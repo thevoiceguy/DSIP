@@ -1,0 +1,59 @@
+name: ci
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  schemas:
+    name: schemas are fresh + sample harness
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install jsonschema
+      - name: regenerate schemas and diff
+        run: |
+          python3 v0.6/dsip-schemas-v0.6-draft/dsip-schemas/generate_schemas.py v0.6/dsip-schemas-v0.6-draft/dsip-schemas/schemas
+          git diff --exit-code -- v0.6/dsip-schemas-v0.6-draft/dsip-schemas/schemas
+      - run: python3 v0.6/dsip-schemas-v0.6-draft/dsip-schemas/validate_samples.py
+
+  vectors:
+    name: vectors regenerate cleanly + Python harness
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install jsonschema pynacl
+      - name: vectors are deterministic and committed
+        run: |
+          python3 impl/tools/generate_vectors.py
+          git diff --exit-code -- impl/vectors
+      - run: python3 impl/tools/run_vectors.py
+      - run: python3 impl/tools/spec_lint.py --check
+
+  rust:
+    name: build, test, docs, Rust runner, parity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install jsonschema pynacl
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with: { workspaces: impl }
+      - run: cargo build --workspace --all-targets
+        working-directory: impl
+      - run: cargo test --workspace
+        working-directory: impl
+      - run: cargo doc --workspace --no-deps
+        working-directory: impl
+        env: { RUSTDOCFLAGS: "-D warnings" }
+      - run: cargo run -q -p dsip-cli -- vectors run
+        working-directory: impl
+      - name: Rust/Python parity
+        run: python3 impl/tools/parity.py
