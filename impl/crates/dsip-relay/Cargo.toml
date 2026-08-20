@@ -1,6 +1,6 @@
 [package]
-name = "dsip-cli"
-description = "DSIP PoC command line: keygen, sign/verify, vector runner"
+name = "dsip-relay"
+description = "DSIP relay (Phase 1 form): wss listener, hello binding, per-leg forking, attempt outcome signaling"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -8,7 +8,7 @@ repository.workspace = true
 rust-version.workspace = true
 
 [[bin]]
-name = "dsip"
+name = "dsip-relay"
 path = "src/main.rs"
 
 [dependencies]
@@ -17,7 +17,11 @@ dsip-schema.workspace = true
 dsip-session.workspace = true
 dsip-transport.workspace = true
 serde_json.workspace = true
-clap.workspace = true
 anyhow.workspace = true
+clap.workspace = true
 tokio.workspace = true
+tokio-tungstenite.workspace = true
+tokio-rustls.workspace = true
+futures-util.workspace = true
+tracing.workspace = true
 tracing-subscriber.workspace = true
