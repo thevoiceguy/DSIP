@@ -1,0 +1,280 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dsip.org/schema/1.0/message.schema.json",
+  "title": "DSIP payload dispatcher",
+  "description": "Validates any DSIP payload by dispatching on type. Relative $refs require a resolver configured with this directory as base; individual schemas are standalone.",
+  "oneOf": [
+    {
+      "allOf": [
+        {
+          "properties": {
+            "type": {
+              "const": "answer"
+            }
+          },
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "$ref": "answer.schema.json"
+        }
+      ]
+    },
+    {
+      "allOf": [
+        {
+          "properties": {
+            "type": {
+              "const": "bye"
+            }
+          },
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "$ref": "bye.schema.json"
+        }
+      ]
+    },
+    {
+      "allOf": [
+        {
+          "properties": {
+            "type": {
+              "const": "cancel"
+            }
+          },
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "$ref": "cancel.schema.json"
+        }
+      ]
+    },
+    {
+      "allOf": [
+        {
+          "properties": {
+            "type": {
+              "const": "error"
+            }
+          },
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "$ref": "error.schema.json"
+        }
+      ]
+    },
+    {
+      "allOf": [
+        {
+          "properties": {
+            "type": {
+              "const": "grant"
+            }
+          },
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "$ref": "grant.schema.json"
+        }
+      ]
+    },
+    {
+      "allOf": [
+        {
+          "properties": {
+            "type": {
+              "const": "hello"
+            }
+          },
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "$ref": "hello.schema.json"
+        }
+      ]
+    },
+    {
+      "allOf": [
+        {
+          "properties": {
+            "type": {
+              "const": "info"
+            }
+          },
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "$ref": "info.schema.json"
+        }
+      ]
+    },
+    {
+      "allOf": [
+        {
+          "properties": {
+            "type": {
+              "const": "introduction"
+            }
+          },
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "$ref": "introduction.schema.json"
+        }
+      ]
+    },
+    {
+      "allOf": [
+        {
+          "properties": {
+            "type": {
+              "const": "invite"
+            }
+          },
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "$ref": "invite.schema.json"
+        }
+      ]
+    },
+    {
+      "allOf": [
+        {
+          "properties": {
+            "type": {
+              "const": "notify"
+            }
+          },
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "$ref": "notify.schema.json"
+        }
+      ]
+    },
+    {
+      "allOf": [
+        {
+          "properties": {
+            "type": {
+              "const": "progress"
+            }
+          },
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "$ref": "progress.schema.json"
+        }
+      ]
+    },
+    {
+      "allOf": [
+        {
+          "properties": {
+            "type": {
+              "const": "publish"
+            }
+          },
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "$ref": "publish.schema.json"
+        }
+      ]
+    },
+    {
+      "allOf": [
+        {
+          "properties": {
+            "type": {
+              "const": "reject"
+            }
+          },
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "$ref": "reject.schema.json"
+        }
+      ]
+    },
+    {
+      "allOf": [
+        {
+          "properties": {
+            "type": {
+              "const": "subscribe"
+            }
+          },
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "$ref": "subscribe.schema.json"
+        }
+      ]
+    },
+    {
+      "allOf": [
+        {
+          "properties": {
+            "type": {
+              "const": "unpublish"
+            }
+          },
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "$ref": "unpublish.schema.json"
+        }
+      ]
+    },
+    {
+      "allOf": [
+        {
+          "properties": {
+            "type": {
+              "const": "update"
+            }
+          },
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "$ref": "update.schema.json"
+        }
+      ]
+    }
+  ]
+}
