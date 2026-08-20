@@ -1,0 +1,38 @@
+{
+  "vector": "payload/introduction-valid",
+  "format": 1,
+  "kind": "payload",
+  "description": "Valid introduction.",
+  "spec_ref": [
+    "§19.4"
+  ],
+  "context": {},
+  "input": {
+    "schema": "introduction",
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "interactive-media/1.0"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "introduction",
+      "id": "01K742SG00Z41R1RN63EB956CH",
+      "from": "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL",
+      "to": "did:web:example.com:users:bob",
+      "identity": {
+        "display_name": "Carol Nguyen",
+        "claims": []
+      },
+      "purpose": "Following up from the meetup.",
+      "issued_at": 1760000000,
+      "expires_at": 1760604800
+    }
+  },
+  "expect": {
+    "verdict": "accept"
+  }
+}

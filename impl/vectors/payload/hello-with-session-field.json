@@ -1,0 +1,36 @@
+{
+  "vector": "payload/hello-with-session-field",
+  "format": 1,
+  "kind": "payload",
+  "description": "hello is session-scoped to nothing.",
+  "spec_ref": [
+    "§13.2"
+  ],
+  "context": {},
+  "input": {
+    "schema": "hello",
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "hello",
+      "id": "01K742SG00KJJXKH2T8EM4GAEX",
+      "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+      "bindings": [
+        "ws/1.0"
+      ],
+      "issued_at": 1760000000,
+      "expires_at": 1760000030,
+      "on_behalf_of": "did:web:example.com:users:bob",
+      "session": "01K742SG001QG79X9HH56TS8SW"
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "schema-invalid"
+  }
+}

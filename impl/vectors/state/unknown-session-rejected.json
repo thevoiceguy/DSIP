@@ -1,0 +1,53 @@
+{
+  "vector": "state/unknown-session-rejected",
+  "format": 1,
+  "kind": "state",
+  "description": "Message for a session this endpoint does not know → error session.unknown-session.",
+  "spec_ref": [
+    "§12.2"
+  ],
+  "context": {
+    "component": "endpoint",
+    "start": 1760000000,
+    "self": {
+      "device": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+      "identity": "did:key:z6MkhzX9qTeXBWkucyMVric1E9JrqUD5LPAkD2BNavakAptf"
+    },
+    "identities": {
+      "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu": "did:key:z6MkhzX9qTeXBWkucyMVric1E9JrqUD5LPAkD2BNavakAptf",
+      "did:key:z6MkfhenvjQ7awdpVWzPaeBuPkXCBLwzJKyosCrTL3huMb66": "did:key:z6MkhzX9qTeXBWkucyMVric1E9JrqUD5LPAkD2BNavakAptf",
+      "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+      "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R"
+    }
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "recv": {
+            "type": "bye",
+            "id": "01K742SG00BHSXRATP7VVC4K89",
+            "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "session": "01K742SG00GY9MSTTKJ5VG3PJW",
+            "reason": "user.hangup"
+          }
+        },
+        "expect": {
+          "emit": [
+            {
+              "send": {
+                "type": "error",
+                "to": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+                "session": "01K742SG00GY9MSTTKJ5VG3PJW",
+                "reason": "session.unknown-session",
+                "in_reply_to": "01K742SG00BHSXRATP7VVC4K89"
+              }
+            }
+          ],
+          "sessions": {}
+        }
+      }
+    ]
+  },
+  "expect": {}
+}

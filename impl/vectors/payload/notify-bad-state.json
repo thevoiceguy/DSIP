@@ -1,0 +1,41 @@
+{
+  "vector": "payload/notify-bad-state",
+  "format": 1,
+  "kind": "payload",
+  "description": "state must be active|terminated.",
+  "spec_ref": [
+    "§9.3"
+  ],
+  "context": {},
+  "input": {
+    "schema": "notify",
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "interactive-media/1.0"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "notify",
+      "id": "01K742SG00KXAF1WWV3DSGSMTJ",
+      "from": "did:web:example.com",
+      "to": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+      "subscription": "01K742SG00HF5KFVRKQ9K51S75",
+      "seq": 1,
+      "state": "paused",
+      "body": {
+        "type": "presence",
+        "state": "available"
+      },
+      "issued_at": 1760000001,
+      "expires_at": 1760000031
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "schema-invalid"
+  }
+}

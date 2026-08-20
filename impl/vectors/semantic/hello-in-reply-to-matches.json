@@ -1,0 +1,52 @@
+{
+  "vector": "semantic/hello-in-reply-to-matches",
+  "format": 1,
+  "kind": "semantic",
+  "description": "Relay hello echoes the id the client actually sent.",
+  "spec_ref": [
+    "§13.2",
+    "§20.5"
+  ],
+  "context": {
+    "now": 1760000000,
+    "supported": {
+      "core": "1.0",
+      "profiles": [
+        "interactive-media/1.0",
+        "verified-broadcast/1.0"
+      ],
+      "extensions": [
+        "broadcast-provenance/1.0"
+      ]
+    },
+    "sent_hello_id": "01K742SG00KJJXKH2T8EM4GAEX"
+  },
+  "input": {
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "hello",
+      "id": "01K742SGZ8PXCM5NP8G0AGW3TF",
+      "from": "did:web:relay.example.com",
+      "in_reply_to": "01K742SG00KJJXKH2T8EM4GAEX",
+      "capabilities": {
+        "max_envelope_bytes": 65536,
+        "store_and_forward": true,
+        "rate_limit": {
+          "envelopes_per_minute": 120,
+          "invites_per_minute": 10
+        }
+      },
+      "issued_at": 1760000001,
+      "expires_at": 1760000031
+    }
+  },
+  "expect": {
+    "verdict": "accept"
+  }
+}

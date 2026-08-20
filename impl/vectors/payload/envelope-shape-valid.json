@@ -1,0 +1,21 @@
+{
+  "vector": "payload/envelope-shape-valid",
+  "format": 1,
+  "kind": "payload",
+  "description": "Envelope object shape.",
+  "spec_ref": [
+    "§10.2"
+  ],
+  "context": {},
+  "input": {
+    "schema": "envelope",
+    "payload": {
+      "protected": "eyJhbGciOiJFZERTQSIsImtpZCI6ImRpZDprZXk6ejZNa2c5b1JTZzZBUHRyTUpQOGlla1FtOHlQYzlvcmUzRTRTSjViRjdDdzFxRkN1I3o2TWtnOW9SU2c2QVB0ck1KUDhpZWtRbTh5UGM5b3JlM0U0U0o1YkY3Q3cxcUZDdSIsInR5cCI6ImRzaXAranNvbiJ9",
+      "payload": "eyJkc2lwIjp7ImNvcmUiOiIxLjAiLCJtaW5fY29yZSI6IjEuMCIsInByb2ZpbGVzIjpbImludGVyYWN0aXZlLW1lZGlhLzEuMCJdLCJleHRlbnNpb25zIjpbXSwiY3JpdGljYWwiOltdfSwidHlwZSI6Imludml0ZSIsImlkIjoiMDFLNzQyU0cwMDFRRzc5WDlISDU2VFM4U1ciLCJmcm9tIjoiZGlkOmtleTp6Nk1rZzlvUlNnNkFQdHJNSlA4aWVrUW04eVBjOW9yZTNFNFNKNWJGN0N3MXFGQ3UiLCJ0byI6ImRpZDp3ZWI6ZXhhbXBsZS5jb206dXNlcnM6Ym9iIiwiaW50ZW50IjoiaW50ZXJhY3RpdmUiLCJpZGVudGl0eSI6eyJkaXNwbGF5X25hbWUiOiJBbGljZSIsImNsYWltcyI6W119LCJtZWRpYSI6W3sidHlwZSI6ImF1ZGlvIiwiZGlyZWN0aW9uIjoic2VuZHJlY3YiLCJjb2RlY3MiOlt7ImlkIjoiY29kZWM6YXVkaW8vb3B1cyIsInNhbXBsZV9yYXRlcyI6WzQ4MDAwXSwiY2hhbm5lbHMiOlsxLDJdfSx7ImlkIjoiY29kZWM6YXVkaW8vcGNtdSIsInNhbXBsZV9yYXRlcyI6WzgwMDBdLCJjaGFubmVscyI6WzFdfV19LHsidHlwZSI6InZpZGVvIiwiZGlyZWN0aW9uIjoic2VuZHJlY3YiLCJjb2RlY3MiOlt7ImlkIjoiY29kZWM6dmlkZW8vaDI2NCIsInByb2ZpbGVzIjpbImJhc2VsaW5lIl19XX1dLCJ0cmFuc3BvcnRzIjpbeyJpZCI6InRyYW5zcG9ydDp3ZWJydGMiLCJpY2UiOiJ0cmlja2xlIn0seyJpZCI6InRyYW5zcG9ydDpydHAtc2RlcyJ9XSwicG9saWN5Ijp7InJlY29yZGluZyI6ImNvbnNlbnQtcmVxdWlyZWQiLCJhaV9wcm9jZXNzaW5nIjoiZGVuaWVkIn0sImlzc3VlZF9hdCI6MTc2MDAwMDAwMCwiZXhwaXJlc19hdCI6MTc2MDAwMDAzMH0",
+      "signature": "Q3LAbM53FPyJQ9mGLd0B2estA_OhyHRxcdbgKDcordZxvKgmBm1BkFqjSmNP94XslLbg16_zMFvOa8Qfjiv7AA"
+    }
+  },
+  "expect": {
+    "verdict": "accept"
+  }
+}

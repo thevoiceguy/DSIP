@@ -1,0 +1,35 @@
+{
+  "vector": "payload/bye-no-session",
+  "format": 1,
+  "kind": "payload",
+  "description": "bye without session.",
+  "spec_ref": [
+    "§12.2"
+  ],
+  "context": {},
+  "input": {
+    "schema": "bye",
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "interactive-media/1.0"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "bye",
+      "id": "01K7432MZ0NDX2K8DPSH3CEX4B",
+      "from": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+      "to": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+      "reason": "user.hangup",
+      "issued_at": 1760000300,
+      "expires_at": 1760000330
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "schema-invalid"
+  }
+}

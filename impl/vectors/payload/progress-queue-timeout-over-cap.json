@@ -1,0 +1,39 @@
+{
+  "vector": "payload/progress-queue-timeout-over-cap",
+  "format": 1,
+  "kind": "payload",
+  "description": "queue_timeout above the 1800 s core cap.",
+  "spec_ref": [
+    "§12.10",
+    "§12.9"
+  ],
+  "context": {},
+  "input": {
+    "schema": "progress",
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "interactive-media/1.0"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "progress",
+      "id": "01K742SGZ8K6SCTFCC2W1Y6QMA",
+      "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+      "to": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+      "session": "01K742SG001QG79X9HH56TS8SW",
+      "status": "queued",
+      "ring_timeout": 120,
+      "issued_at": 1760000001,
+      "expires_at": 1760000031,
+      "queue_timeout": 3600
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "schema-invalid"
+  }
+}

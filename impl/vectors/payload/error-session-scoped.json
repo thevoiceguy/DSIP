@@ -1,0 +1,35 @@
+{
+  "vector": "payload/error-session-scoped",
+  "format": 1,
+  "kind": "payload",
+  "description": "Session-scoped error.",
+  "spec_ref": [
+    "§12.4"
+  ],
+  "context": {},
+  "input": {
+    "schema": "error",
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "error",
+      "id": "01K742SG000EQMRZ6HG43BF8FH",
+      "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+      "to": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+      "reason": "session.invalid-state",
+      "retry_after": 30,
+      "in_reply_to": "01K742SG001QG79X9HH56TS8SW",
+      "issued_at": 1760000000,
+      "expires_at": 1760000030,
+      "session": "01K742SG001QG79X9HH56TS8SW"
+    }
+  },
+  "expect": {
+    "verdict": "accept"
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "vector": "payload/error-missing-reason",
+  "format": 1,
+  "kind": "payload",
+  "description": "reason is required.",
+  "spec_ref": [
+    "§15.2"
+  ],
+  "context": {},
+  "input": {
+    "schema": "error",
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "error",
+      "id": "01K742SG000EQMRZ6HG43BF8FH",
+      "from": "did:web:relay.example.com",
+      "to": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+      "retry_after": 30,
+      "in_reply_to": "01K742SG001QG79X9HH56TS8SW",
+      "issued_at": 1760000000,
+      "expires_at": 1760000030
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "schema-invalid"
+  }
+}

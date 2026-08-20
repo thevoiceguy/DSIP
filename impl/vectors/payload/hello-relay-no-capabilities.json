@@ -1,0 +1,32 @@
+{
+  "vector": "payload/hello-relay-no-capabilities",
+  "format": 1,
+  "kind": "payload",
+  "description": "in_reply_to entails capabilities.",
+  "spec_ref": [
+    "§13.2"
+  ],
+  "context": {},
+  "input": {
+    "schema": "hello",
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "hello",
+      "id": "01K742SGZ8PXCM5NP8G0AGW3TF",
+      "from": "did:web:relay.example.com",
+      "in_reply_to": "01K742SG00KJJXKH2T8EM4GAEX",
+      "issued_at": 1760000001,
+      "expires_at": 1760000031
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "schema-invalid"
+  }
+}

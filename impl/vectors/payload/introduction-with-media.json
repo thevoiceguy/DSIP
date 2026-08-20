@@ -1,0 +1,78 @@
+{
+  "vector": "payload/introduction-with-media",
+  "format": 1,
+  "kind": "payload",
+  "description": "An introduction cannot carry a media offer.",
+  "spec_ref": [
+    "§19.4"
+  ],
+  "context": {},
+  "input": {
+    "schema": "introduction",
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "interactive-media/1.0"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "introduction",
+      "id": "01K742SG00Z41R1RN63EB956CH",
+      "from": "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL",
+      "to": "did:web:example.com:users:bob",
+      "identity": {
+        "display_name": "Carol Nguyen",
+        "claims": []
+      },
+      "purpose": "Following up from the meetup.",
+      "issued_at": 1760000000,
+      "expires_at": 1760604800,
+      "media": [
+        {
+          "type": "audio",
+          "direction": "sendrecv",
+          "codecs": [
+            {
+              "id": "codec:audio/opus",
+              "sample_rates": [
+                48000
+              ],
+              "channels": [
+                1,
+                2
+              ]
+            },
+            {
+              "id": "codec:audio/pcmu",
+              "sample_rates": [
+                8000
+              ],
+              "channels": [
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "type": "video",
+          "direction": "sendrecv",
+          "codecs": [
+            {
+              "id": "codec:video/h264",
+              "profiles": [
+                "baseline"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "schema-invalid"
+  }
+}

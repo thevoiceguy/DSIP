@@ -1,0 +1,105 @@
+{
+  "vector": "state/relay-attempt-outcome-busy-over-expired",
+  "format": 1,
+  "kind": "state",
+  "description": "One leg busy, the other expires at the relay → endpoint.busy forwarded.",
+  "spec_ref": [
+    "§12.7"
+  ],
+  "context": {
+    "component": "relay",
+    "start": 1760000000
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "relay": "invite",
+          "session": "01K742SG00YYNVBMYAQK1CB31F",
+          "from": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+          "to": "did:web:example.com:users:bob",
+          "legs": [
+            "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ"
+          ]
+        },
+        "expect": {
+          "emit": [
+            {
+              "deliver": {
+                "leg": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+                "type": "invite"
+              }
+            },
+            {
+              "deliver": {
+                "leg": "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ",
+                "type": "invite"
+              }
+            }
+          ],
+          "attempts": {
+            "01K742SG00YYNVBMYAQK1CB31F": {
+              "legs": {
+                "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn": "delivered",
+                "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ": "delivered"
+              },
+              "outcome": null
+            }
+          }
+        }
+      },
+      {
+        "event": {
+          "recv": {
+            "type": "reject",
+            "id": "01K742SGZ8SCSR8GKE82YBXK8X",
+            "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "session": "01K742SG00YYNVBMYAQK1CB31F",
+            "reason": "endpoint.busy"
+          }
+        },
+        "expect": {
+          "emit": [],
+          "attempts": {
+            "01K742SG00YYNVBMYAQK1CB31F": {
+              "legs": {
+                "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn": "rejected",
+                "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ": "delivered"
+              },
+              "outcome": null
+            }
+          }
+        }
+      },
+      {
+        "event": {
+          "relay": "leg_expired",
+          "session": "01K742SG00YYNVBMYAQK1CB31F",
+          "leg": "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ"
+        },
+        "expect": {
+          "emit": [
+            {
+              "forward": {
+                "type": "reject",
+                "reason": "endpoint.busy",
+                "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+              }
+            }
+          ],
+          "attempts": {
+            "01K742SG00YYNVBMYAQK1CB31F": {
+              "legs": {
+                "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn": "rejected",
+                "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ": "expired"
+              },
+              "outcome": "rejected"
+            }
+          }
+        }
+      }
+    ]
+  },
+  "expect": {}
+}

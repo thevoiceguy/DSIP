@@ -1,0 +1,38 @@
+{
+  "vector": "payload/subscribe-terminate",
+  "format": 1,
+  "kind": "payload",
+  "description": "expires_in 0 terminates.",
+  "spec_ref": [
+    "§9.3"
+  ],
+  "context": {},
+  "input": {
+    "schema": "subscribe",
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "interactive-media/1.0"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "subscribe",
+      "id": "01K742SG00HF5KFVRKQ9K51S75",
+      "from": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+      "to": "did:web:example.com",
+      "target": "did:web:example.com:users:bob",
+      "events": [
+        "presence"
+      ],
+      "expires_in": 0,
+      "issued_at": 1760000000,
+      "expires_at": 1760000030
+    }
+  },
+  "expect": {
+    "verdict": "accept"
+  }
+}

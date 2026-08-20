@@ -1,0 +1,102 @@
+{
+  "vector": "semantic/unknown-message-type",
+  "format": 1,
+  "kind": "semantic",
+  "description": "type not in the core message set.",
+  "spec_ref": [
+    "§12.1"
+  ],
+  "context": {
+    "now": 1760000000,
+    "supported": {
+      "core": "1.0",
+      "profiles": [
+        "interactive-media/1.0",
+        "verified-broadcast/1.0"
+      ],
+      "extensions": [
+        "broadcast-provenance/1.0"
+      ]
+    }
+  },
+  "input": {
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "interactive-media/1.0"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "transfer",
+      "id": "01K742SG001QG79X9HH56TS8SW",
+      "from": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+      "to": "did:web:example.com:users:bob",
+      "intent": "interactive",
+      "identity": {
+        "display_name": "Alice",
+        "claims": []
+      },
+      "media": [
+        {
+          "type": "audio",
+          "direction": "sendrecv",
+          "codecs": [
+            {
+              "id": "codec:audio/opus",
+              "sample_rates": [
+                48000
+              ],
+              "channels": [
+                1,
+                2
+              ]
+            },
+            {
+              "id": "codec:audio/pcmu",
+              "sample_rates": [
+                8000
+              ],
+              "channels": [
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "type": "video",
+          "direction": "sendrecv",
+          "codecs": [
+            {
+              "id": "codec:video/h264",
+              "profiles": [
+                "baseline"
+              ]
+            }
+          ]
+        }
+      ],
+      "transports": [
+        {
+          "id": "transport:webrtc",
+          "ice": "trickle"
+        },
+        {
+          "id": "transport:rtp-sdes"
+        }
+      ],
+      "policy": {
+        "recording": "consent-required",
+        "ai_processing": "denied"
+      },
+      "issued_at": 1760000000,
+      "expires_at": 1760000030
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "unknown-type"
+  }
+}

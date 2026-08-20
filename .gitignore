@@ -1,0 +1,10 @@
+# Rust
+impl/target/
+**/*.rs.bk
+# Python
+__pycache__/
+*.pyc
+.venv/
+# Local state
+impl/.dsip/
+*.key

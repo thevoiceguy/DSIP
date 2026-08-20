@@ -1,0 +1,105 @@
+{
+  "vector": "envelope/delegation-in-header",
+  "format": 1,
+  "kind": "envelope",
+  "description": "Delegation presented only in the protected header `delegations` array (Impl, spec-gap 8).",
+  "spec_ref": [
+    "§7.4"
+  ],
+  "context": {
+    "now": 1760000000,
+    "did_documents": {
+      "did:web:example.com:users:bob": {
+        "@context": [
+          "https://www.w3.org/ns/did/v1",
+          "https://w3id.org/security/multikey/v1"
+        ],
+        "id": "did:web:example.com:users:bob",
+        "verificationMethod": [
+          {
+            "id": "did:web:example.com:users:bob#key-1",
+            "type": "Multikey",
+            "controller": "did:web:example.com:users:bob",
+            "publicKeyMultibase": "z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R"
+          }
+        ],
+        "authentication": [
+          "did:web:example.com:users:bob#key-1"
+        ],
+        "assertionMethod": [
+          "did:web:example.com:users:bob#key-1"
+        ],
+        "service": [
+          {
+            "id": "did:web:example.com:users:bob#dsip-signaling",
+            "type": "DSIPSignaling",
+            "serviceEndpoint": {
+              "uri": "wss://relay.example.com/dsip",
+              "bindings": [
+                "ws/1.0"
+              ]
+            }
+          }
+        ]
+      },
+      "did:web:relay.example.com": {
+        "@context": [
+          "https://www.w3.org/ns/did/v1",
+          "https://w3id.org/security/multikey/v1"
+        ],
+        "id": "did:web:relay.example.com",
+        "verificationMethod": [
+          {
+            "id": "did:web:relay.example.com#key-1",
+            "type": "Multikey",
+            "controller": "did:web:relay.example.com",
+            "publicKeyMultibase": "z6MkoHY5EaJMeCtA8b5zwzWxJYBuGFpTTJDKh1GahNeB3eeE"
+          }
+        ],
+        "authentication": [
+          "did:web:relay.example.com#key-1"
+        ],
+        "assertionMethod": [
+          "did:web:relay.example.com#key-1"
+        ],
+        "service": [
+          {
+            "id": "did:web:relay.example.com#dsip-signaling",
+            "type": "DSIPSignaling",
+            "serviceEndpoint": {
+              "uri": "wss://relay.example.com/dsip",
+              "bindings": [
+                "ws/1.0"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "delegations": [],
+    "seen_ids": [],
+    "supported": {
+      "core": "1.0",
+      "profiles": [
+        "interactive-media/1.0",
+        "verified-broadcast/1.0"
+      ],
+      "extensions": [
+        "broadcast-provenance/1.0"
+      ]
+    }
+  },
+  "input": {
+    "envelope": {
+      "protected": "eyJhbGciOiJFZERTQSIsImtpZCI6ImRpZDprZXk6ejZNa2c5b1JTZzZBUHRyTUpQOGlla1FtOHlQYzlvcmUzRTRTSjViRjdDdzFxRkN1I3o2TWtnOW9SU2c2QVB0ck1KUDhpZWtRbTh5UGM5b3JlM0U0U0o1YkY3Q3cxcUZDdSIsInR5cCI6ImRzaXAranNvbiIsImRlbGVnYXRpb25zIjpbeyJwcm90ZWN0ZWQiOiJleUpoYkdjaU9pSkZaRVJUUVNJc0ltdHBaQ0k2SW1ScFpEcHJaWGs2ZWpaTmEyaDZXRGx4VkdWWVFsZHJkV041VFZaeWFXTXhSVGxLY25GVlJEVk1VRUZyUkRKQ1RtRjJZV3RCY0hSbUkzbzJUV3RvZWxnNWNWUmxXRUpYYTNWamVVMVdjbWxqTVVVNVNuSnhWVVExVEZCQmEwUXlRazVoZG1GclFYQjBaaUlzSW5SNWNDSTZJbVJ6YVhBcmFuTnZiaUo5IiwicGF5bG9hZCI6ImV5SjBlWEJsSWpvaVJHVjJhV05sUkdWc1pXZGhkR2x2YmlJc0luTjFZbXBsWTNRaU9pSmthV1E2YTJWNU9ubzJUV3RvZWxnNWNWUmxXRUpYYTNWamVVMVdjbWxqTVVVNVNuSnhWVVExVEZCQmEwUXlRazVoZG1GclFYQjBaaUlzSW1SbGRtbGpaU0k2SW1ScFpEcHJaWGs2ZWpaTmEyYzViMUpUWnpaQlVIUnlUVXBRT0dsbGExRnRPSGxRWXpsdmNtVXpSVFJUU2pWaVJqZERkekZ4UmtOMUlpd2lZMkZ3WVdKcGJHbDBhV1Z6SWpwYkltUnphWEF1YzJsbmJtRnNhVzVuSWl3aVpITnBjQzV0WldScFlTNXBiblJsY21GamRHbDJaU0pkTENKcGMzTjFaV1JmWVhRaU9qRTNOVGs1TVRNMk1EQXNJbVY0Y0dseVpYTmZZWFFpT2pFM05qSTFPVEl3TURCOSIsInNpZ25hdHVyZSI6IjAtcF96VG1CbksxTnNrZXV2aVpaU0dqQ1k4QXl2U2ZORUdhdkprTzVZWXU5TjJDUTF5dnNTOG9tQVlVY1p2TFJrajNpMGc2Z3VEZGdpU1BjT2I3Q0J3In1dfQ",
+      "payload": "eyJkc2lwIjp7ImNvcmUiOiIxLjAiLCJtaW5fY29yZSI6IjEuMCIsInByb2ZpbGVzIjpbImludGVyYWN0aXZlLW1lZGlhLzEuMCJdLCJleHRlbnNpb25zIjpbXSwiY3JpdGljYWwiOltdfSwidHlwZSI6Imludml0ZSIsImlkIjoiMDFLNzQyU0cwMDFRRzc5WDlISDU2VFM4U1ciLCJmcm9tIjoiZGlkOmtleTp6Nk1raHpYOXFUZVhCV2t1Y3lNVnJpYzFFOUpycVVENUxQQWtEMkJOYXZha0FwdGYiLCJ0byI6ImRpZDp3ZWI6ZXhhbXBsZS5jb206dXNlcnM6Ym9iIiwiaW50ZW50IjoiaW50ZXJhY3RpdmUiLCJpZGVudGl0eSI6eyJkaXNwbGF5X25hbWUiOiJBbGljZSIsImNsYWltcyI6W119LCJtZWRpYSI6W3sidHlwZSI6ImF1ZGlvIiwiZGlyZWN0aW9uIjoic2VuZHJlY3YiLCJjb2RlY3MiOlt7ImlkIjoiY29kZWM6YXVkaW8vb3B1cyIsInNhbXBsZV9yYXRlcyI6WzQ4MDAwXSwiY2hhbm5lbHMiOlsxLDJdfSx7ImlkIjoiY29kZWM6YXVkaW8vcGNtdSIsInNhbXBsZV9yYXRlcyI6WzgwMDBdLCJjaGFubmVscyI6WzFdfV19LHsidHlwZSI6InZpZGVvIiwiZGlyZWN0aW9uIjoic2VuZHJlY3YiLCJjb2RlY3MiOlt7ImlkIjoiY29kZWM6dmlkZW8vaDI2NCIsInByb2ZpbGVzIjpbImJhc2VsaW5lIl19XX1dLCJ0cmFuc3BvcnRzIjpbeyJpZCI6InRyYW5zcG9ydDp3ZWJydGMiLCJpY2UiOiJ0cmlja2xlIn0seyJpZCI6InRyYW5zcG9ydDpydHAtc2RlcyJ9XSwicG9saWN5Ijp7InJlY29yZGluZyI6ImNvbnNlbnQtcmVxdWlyZWQiLCJhaV9wcm9jZXNzaW5nIjoiZGVuaWVkIn0sImlzc3VlZF9hdCI6MTc2MDAwMDAwMCwiZXhwaXJlc19hdCI6MTc2MDAwMDAzMH0",
+      "signature": "s0ENxWL0Npczd8jsMcYgIPJftHnPOPq0a681qCqVIEDtxoMjXESyynJJhISIO3mGzhcN9n0SKxNvxSvAAK4FAw"
+    }
+  },
+  "expect": {
+    "verdict": "accept",
+    "type": "invite",
+    "signer": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+    "identity": "did:key:z6MkhzX9qTeXBWkucyMVric1E9JrqUD5LPAkD2BNavakAptf"
+  }
+}

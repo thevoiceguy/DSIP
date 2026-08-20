@@ -1,0 +1,34 @@
+{
+  "vector": "payload/hello-client-valid",
+  "format": 1,
+  "kind": "payload",
+  "description": "Client hello with bindings and on_behalf_of.",
+  "spec_ref": [
+    "§13.2"
+  ],
+  "context": {},
+  "input": {
+    "schema": "hello",
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "hello",
+      "id": "01K742SG00KJJXKH2T8EM4GAEX",
+      "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+      "bindings": [
+        "ws/1.0"
+      ],
+      "issued_at": 1760000000,
+      "expires_at": 1760000030,
+      "on_behalf_of": "did:web:example.com:users:bob"
+    }
+  },
+  "expect": {
+    "verdict": "accept"
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "vector": "payload/info-bad-about",
+  "format": 1,
+  "kind": "payload",
+  "description": "about must be namespace:value.",
+  "spec_ref": [
+    "§12.12"
+  ],
+  "context": {},
+  "input": {
+    "schema": "info",
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "interactive-media/1.0"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "info",
+      "id": "01K742SNVGG4MRT79N09RAKT80",
+      "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+      "to": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+      "session": "01K742SG001QG79X9HH56TS8SW",
+      "about": "webrtc",
+      "data": {
+        "candidates": [
+          {
+            "candidate": "candidate:1 1 udp 1 203.0.113.7 61481 typ srflx",
+            "sdp_mid": "0",
+            "sdp_m_line_index": 0
+          }
+        ],
+        "end_of_candidates": false
+      },
+      "issued_at": 1760000006,
+      "expires_at": 1760000036
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "schema-invalid"
+  }
+}

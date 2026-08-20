@@ -1,0 +1,47 @@
+{
+  "vector": "semantic/error-reason-registered",
+  "format": 1,
+  "kind": "semantic",
+  "description": "transport.hello-required on error.",
+  "spec_ref": [
+    "§15.4"
+  ],
+  "context": {
+    "now": 1760000000,
+    "supported": {
+      "core": "1.0",
+      "profiles": [
+        "interactive-media/1.0",
+        "verified-broadcast/1.0"
+      ],
+      "extensions": [
+        "broadcast-provenance/1.0"
+      ]
+    }
+  },
+  "input": {
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "error",
+      "id": "01K742SG000EQMRZ6HG43BF8FH",
+      "from": "did:web:relay.example.com",
+      "to": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+      "reason": "transport.hello-required",
+      "issued_at": 1760000000,
+      "expires_at": 1760000030
+    }
+  },
+  "expect": {
+    "verdict": "accept",
+    "effective": {
+      "reason": "transport.hello-required",
+      "fallback": "none"
+    }
+  }
+}

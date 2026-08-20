@@ -1,0 +1,53 @@
+{
+  "vector": "payload/publish-bad-state",
+  "format": 1,
+  "kind": "payload",
+  "description": "Unknown publication state.",
+  "spec_ref": [
+    "§22.1"
+  ],
+  "context": {},
+  "input": {
+    "schema": "publish",
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "verified-broadcast/1.0"
+        ],
+        "extensions": [
+          "broadcast-provenance/1.0"
+        ],
+        "critical": []
+      },
+      "type": "publish",
+      "id": "01K742SG00RBMKNW06WFFBQW9J",
+      "from": "did:web:wxyz.com",
+      "publisher": "did:web:wxyz.com",
+      "stream_id": "did:web:wxyz.com:radio:main",
+      "title": "WXYZ Live Radio",
+      "state": "paused",
+      "variants": [
+        {
+          "id": "main-opus",
+          "media": [
+            "audio"
+          ],
+          "codec": "codec:audio/opus",
+          "transport": "transport:webrtc",
+          "uri": "wss://live.wxyz.com/dsip/webrtc/main"
+        }
+      ],
+      "policy": {
+        "redistribution": "allowed-with-attribution"
+      },
+      "issued_at": 1760000000,
+      "expires_at": 1760000300
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "schema-invalid"
+  }
+}

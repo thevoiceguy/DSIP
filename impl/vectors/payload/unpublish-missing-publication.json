@@ -1,0 +1,37 @@
+{
+  "vector": "payload/unpublish-missing-publication",
+  "format": 1,
+  "kind": "payload",
+  "description": "publication id is required.",
+  "spec_ref": [
+    "§22.1"
+  ],
+  "context": {},
+  "input": {
+    "schema": "unpublish",
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "verified-broadcast/1.0"
+        ],
+        "extensions": [
+          "broadcast-provenance/1.0"
+        ],
+        "critical": []
+      },
+      "type": "unpublish",
+      "id": "01K742SG00E9TV9M6DKKJZFVW5",
+      "from": "did:web:wxyz.com",
+      "publisher": "did:web:wxyz.com",
+      "stream_id": "did:web:wxyz.com:radio:main",
+      "issued_at": 1760000600,
+      "expires_at": 1760000630
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "schema-invalid"
+  }
+}

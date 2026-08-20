@@ -1,0 +1,53 @@
+{
+  "vector": "semantic/notify-terminated-reason",
+  "format": 1,
+  "kind": "semantic",
+  "description": "Terminal notify reason resolves through the registry.",
+  "spec_ref": [
+    "§9.3"
+  ],
+  "context": {
+    "now": 1760000000,
+    "supported": {
+      "core": "1.0",
+      "profiles": [
+        "interactive-media/1.0",
+        "verified-broadcast/1.0"
+      ],
+      "extensions": [
+        "broadcast-provenance/1.0"
+      ]
+    }
+  },
+  "input": {
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "interactive-media/1.0"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "notify",
+      "id": "01K742SG00KXAF1WWV3DSGSMTJ",
+      "from": "did:web:example.com",
+      "to": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+      "subscription": "01K742SG00HF5KFVRKQ9K51S75",
+      "seq": 3,
+      "state": "terminated",
+      "reason": "session.expired",
+      "body": {},
+      "issued_at": 1760000001,
+      "expires_at": 1760000031
+    }
+  },
+  "expect": {
+    "verdict": "accept",
+    "effective": {
+      "reason": "session.expired",
+      "fallback": "none"
+    }
+  }
+}

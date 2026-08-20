@@ -1,0 +1,35 @@
+{
+  "vector": "payload/bye-valid",
+  "format": 1,
+  "kind": "payload",
+  "description": "Normal hangup.",
+  "spec_ref": [
+    "§12.1"
+  ],
+  "context": {},
+  "input": {
+    "schema": "bye",
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "interactive-media/1.0"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "bye",
+      "id": "01K7432MZ0NDX2K8DPSH3CEX4B",
+      "from": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+      "to": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+      "session": "01K742SG001QG79X9HH56TS8SW",
+      "reason": "user.hangup",
+      "issued_at": 1760000300,
+      "expires_at": 1760000330
+    }
+  },
+  "expect": {
+    "verdict": "accept"
+  }
+}

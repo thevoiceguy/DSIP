@@ -1,0 +1,122 @@
+{
+  "vector": "semantic/selection-transport-not-offered",
+  "format": 1,
+  "kind": "semantic",
+  "description": "Answer selects a transport the offer did not contain.",
+  "spec_ref": [
+    "§14.2"
+  ],
+  "context": {
+    "now": 1760000000,
+    "supported": {
+      "core": "1.0",
+      "profiles": [
+        "interactive-media/1.0",
+        "verified-broadcast/1.0"
+      ],
+      "extensions": [
+        "broadcast-provenance/1.0"
+      ]
+    },
+    "offer": {
+      "media": [
+        {
+          "type": "audio",
+          "direction": "sendrecv",
+          "codecs": [
+            {
+              "id": "codec:audio/opus",
+              "sample_rates": [
+                48000
+              ],
+              "channels": [
+                1,
+                2
+              ]
+            },
+            {
+              "id": "codec:audio/pcmu",
+              "sample_rates": [
+                8000
+              ],
+              "channels": [
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "type": "video",
+          "direction": "sendrecv",
+          "codecs": [
+            {
+              "id": "codec:video/h264",
+              "profiles": [
+                "baseline"
+              ]
+            }
+          ]
+        }
+      ],
+      "transports": [
+        {
+          "id": "transport:webrtc",
+          "ice": "trickle"
+        },
+        {
+          "id": "transport:rtp-sdes"
+        }
+      ]
+    }
+  },
+  "input": {
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "interactive-media/1.0"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "answer",
+      "id": "01K742SMW8PMW4RWKVKGS0QFAM",
+      "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+      "to": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+      "session": "01K742SG001QG79X9HH56TS8SW",
+      "answered_by": "user",
+      "media": [
+        {
+          "type": "audio",
+          "direction": "sendrecv",
+          "codecs": [
+            {
+              "id": "codec:audio/opus"
+            }
+          ]
+        },
+        {
+          "type": "video",
+          "direction": "recvonly",
+          "codecs": [
+            {
+              "id": "codec:video/h264"
+            }
+          ]
+        }
+      ],
+      "transports": [
+        {
+          "id": "transport:quic-media"
+        }
+      ],
+      "issued_at": 1760000005,
+      "expires_at": 1760000035
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "selection-not-subset"
+  }
+}

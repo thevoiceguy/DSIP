@@ -1,0 +1,51 @@
+{
+  "vector": "semantic/reason-unknown-condition-known-category",
+  "format": 1,
+  "kind": "semantic",
+  "description": "endpoint.on-fire is unregistered; category fallback applies.",
+  "spec_ref": [
+    "§15.1",
+    "§15.3"
+  ],
+  "context": {
+    "now": 1760000000,
+    "supported": {
+      "core": "1.0",
+      "profiles": [
+        "interactive-media/1.0",
+        "verified-broadcast/1.0"
+      ],
+      "extensions": [
+        "broadcast-provenance/1.0"
+      ]
+    }
+  },
+  "input": {
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "interactive-media/1.0"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "reject",
+      "id": "01K742SMW8S8S8KMBZJ7QPN9ER",
+      "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+      "to": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+      "session": "01K742SG001QG79X9HH56TS8SW",
+      "reason": "endpoint.on-fire",
+      "issued_at": 1760000005,
+      "expires_at": 1760000035
+    }
+  },
+  "expect": {
+    "verdict": "accept",
+    "effective": {
+      "reason": "endpoint.on-fire",
+      "fallback": "category"
+    }
+  }
+}

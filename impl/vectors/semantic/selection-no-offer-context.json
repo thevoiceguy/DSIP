@@ -1,0 +1,74 @@
+{
+  "vector": "semantic/selection-no-offer-context",
+  "format": 1,
+  "kind": "semantic",
+  "description": "Without an offer in context the subset check is skipped.",
+  "spec_ref": [
+    "§14.2"
+  ],
+  "context": {
+    "now": 1760000000,
+    "supported": {
+      "core": "1.0",
+      "profiles": [
+        "interactive-media/1.0",
+        "verified-broadcast/1.0"
+      ],
+      "extensions": [
+        "broadcast-provenance/1.0"
+      ]
+    }
+  },
+  "input": {
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "interactive-media/1.0"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "answer",
+      "id": "01K742SMW8PMW4RWKVKGS0QFAM",
+      "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+      "to": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+      "session": "01K742SG001QG79X9HH56TS8SW",
+      "answered_by": "user",
+      "media": [
+        {
+          "type": "audio",
+          "direction": "sendrecv",
+          "codecs": [
+            {
+              "id": "codec:audio/opus"
+            }
+          ]
+        },
+        {
+          "type": "video",
+          "direction": "recvonly",
+          "codecs": [
+            {
+              "id": "codec:video/h264"
+            }
+          ]
+        }
+      ],
+      "transports": [
+        {
+          "id": "transport:webrtc"
+        }
+      ],
+      "issued_at": 1760000005,
+      "expires_at": 1760000035
+    }
+  },
+  "expect": {
+    "verdict": "accept",
+    "effective": {
+      "answered_by": "user"
+    }
+  }
+}

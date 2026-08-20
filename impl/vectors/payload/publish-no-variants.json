@@ -1,0 +1,43 @@
+{
+  "vector": "payload/publish-no-variants",
+  "format": 1,
+  "kind": "payload",
+  "description": "variants must be non-empty.",
+  "spec_ref": [
+    "§22.1"
+  ],
+  "context": {},
+  "input": {
+    "schema": "publish",
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "verified-broadcast/1.0"
+        ],
+        "extensions": [
+          "broadcast-provenance/1.0"
+        ],
+        "critical": []
+      },
+      "type": "publish",
+      "id": "01K742SG00RBMKNW06WFFBQW9J",
+      "from": "did:web:wxyz.com",
+      "publisher": "did:web:wxyz.com",
+      "stream_id": "did:web:wxyz.com:radio:main",
+      "title": "WXYZ Live Radio",
+      "state": "live",
+      "variants": [],
+      "policy": {
+        "redistribution": "allowed-with-attribution"
+      },
+      "issued_at": 1760000000,
+      "expires_at": 1760000300
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "schema-invalid"
+  }
+}

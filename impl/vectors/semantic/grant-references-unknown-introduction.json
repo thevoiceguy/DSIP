@@ -1,0 +1,53 @@
+{
+  "vector": "semantic/grant-references-unknown-introduction",
+  "format": 1,
+  "kind": "semantic",
+  "description": "Grant session references no pending introduction.",
+  "spec_ref": [
+    "§19.4"
+  ],
+  "context": {
+    "now": 1760000000,
+    "supported": {
+      "core": "1.0",
+      "profiles": [
+        "interactive-media/1.0",
+        "verified-broadcast/1.0"
+      ],
+      "extensions": [
+        "broadcast-provenance/1.0"
+      ]
+    },
+    "known_introductions": [
+      "01K742SG00R9B6HVA7MXSNRMK6"
+    ]
+  },
+  "input": {
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "interactive-media/1.0"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "grant",
+      "id": "01K742SG008Y7R2F53RRJG6E4R",
+      "session": "01K742SG00Z41R1RN63EB956CH",
+      "from": "did:web:example.com:users:bob",
+      "to": "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL",
+      "scope": [
+        "dsip.invite"
+      ],
+      "valid_until": 1791536000,
+      "issued_at": 1760000600,
+      "expires_at": 1760000630
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "grant-unknown-introduction"
+  }
+}
