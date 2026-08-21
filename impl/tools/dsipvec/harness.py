@@ -123,9 +123,14 @@ def run_state(v: dict) -> tuple[bool, list]:
         emit = comp.step(st["event"])
         exp = st["expect"]
         snap = comp.snapshot(exp.get(key, {}).keys())
-        step_ok = emit == exp["emit"] and snap == exp.get(key, {})
+        actual = {"emit": emit, key: snap}
+        if "contacts" in exp:
+            actual["contacts"] = comp.contacts_snapshot()
+        if "inbox" in exp:
+            actual["inbox"] = comp.inbox_snapshot()
+        step_ok = all(actual.get(k) == exp.get(k) for k in ("emit", key, "contacts", "inbox") if k in exp or k == "emit")
         ok = ok and step_ok
-        results.append({"step": i, "ok": step_ok, "expected": exp, "actual": {"emit": emit, key: snap}})
+        results.append({"step": i, "ok": step_ok, "expected": exp, "actual": actual})
     return ok, results
 
 

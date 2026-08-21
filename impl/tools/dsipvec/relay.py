@@ -34,6 +34,8 @@ class Relay:
         self.now = ctx.get("start", 0)
         self.attempts: dict[str, Attempt] = {}
         self.out: list[dict] = []
+        self.bindings: dict[str, set[str]] = {}        # identity → bound devices (§13.2)
+        self.inbox: dict[str, list[dict]] = {}         # identity → queued introductions (§19.4 / §13.3)
 
     def emit(self, e: dict) -> None:
         self.out.append(e)
@@ -57,6 +59,13 @@ class Relay:
                 a.legs[leg] = "delivered"
                 self.emit({"deliver": {"leg": leg, "type": "invite"}})
             self.attempts[a.session] = a
+        elif ev["relay"] == "bind":
+            self.bindings.setdefault(ev["identity"], set()).add(ev["device"])
+            # flush store-and-forward inbox for the identity (§13.3 boundary)
+            for m in self.inbox.pop(ev["identity"], []):
+                self.emit({"deliver": {"leg": ev["device"], "type": "introduction"}})
+        elif ev["relay"] == "unbind":
+            self.bindings.get(ev["identity"], set()).discard(ev["device"])
         elif ev["relay"] == "leg_expired":
             a = self.attempts[ev["session"]]
             if a.legs.get(ev["leg"]) == "delivered":
@@ -67,6 +76,25 @@ class Relay:
             raise ValueError(ev)
 
     def recv(self, m: dict) -> None:
+        if m["type"] == "introduction":
+            # §19.4 anti-enumeration: an introduction to an unknown identity and one to an offline identity
+            # get the identical treatment — queued, no error. (Impl, spec-gap 14: §13.2 "no silent drops"
+            # yields to §19.4 here.) Bound devices receive it immediately.
+            devices = sorted(self.bindings.get(m["to"], ()))
+            if devices:
+                for d in devices:
+                    self.emit({"deliver": {"leg": d, "type": "introduction"}})
+            else:
+                self.inbox.setdefault(m["to"], []).append(m)
+                self.emit({"queue": {"to": m["to"], "type": "introduction"}})
+            return
+        if m["type"] == "invite":
+            # Session traffic to an identity with no bound device is refused with a signed error (§13.2).
+            if not self.bindings.get(m["to"]):
+                self.emit({"send": {"type": "error", "to": m["from"], "reason": "transport.unknown-recipient", "in_reply_to": m["id"]}})
+                return
+            return self.relay_event({"relay": "invite", "session": m["id"], "from": m["from"], "to": m["to"],
+                                     "legs": sorted(self.bindings[m["to"]])})
         a = self.attempts.get(m.get("session"))
         if a is None:
             self.emit({"drop": "unknown-attempt"})
@@ -122,3 +150,6 @@ class Relay:
 
     def snapshot(self, ids) -> dict:
         return {i: self.attempts[i].snapshot() if i in self.attempts else None for i in ids}
+
+    def inbox_snapshot(self) -> dict:
+        return {k: len(v) for k, v in sorted(self.inbox.items()) if v}

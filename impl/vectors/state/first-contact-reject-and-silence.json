@@ -1,0 +1,163 @@
+{
+  "vector": "state/first-contact-reject-and-silence",
+  "format": 1,
+  "kind": "state",
+  "description": "Rejecting an introduction is a policy choice addressed to the introduction id; ignoring it is the default; granting an unknown introduction is refused.",
+  "spec_ref": [
+    "§19.4"
+  ],
+  "context": {
+    "component": "endpoint",
+    "start": 1760000000,
+    "self": {
+      "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+      "identity": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R"
+    },
+    "identities": {
+      "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu": "did:key:z6MkhzX9qTeXBWkucyMVric1E9JrqUD5LPAkD2BNavakAptf",
+      "did:key:z6MkfhenvjQ7awdpVWzPaeBuPkXCBLwzJKyosCrTL3huMb66": "did:key:z6MkhzX9qTeXBWkucyMVric1E9JrqUD5LPAkD2BNavakAptf",
+      "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+      "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+      "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL": "did:key:z6Mkt5yU6sK3v7gxFHncQbmZ7VQvnVuJBGrDAbqhZp2gDW7G"
+    },
+    "policy": {
+      "first_contact_required": true
+    }
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "recv": {
+            "type": "introduction",
+            "id": "01K742SG008KG93RNF92TESQ98",
+            "from": "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL",
+            "to": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+            "purpose": "Met at the meetup."
+          }
+        },
+        "expect": {
+          "emit": [
+            {
+              "ui": "introduction_received",
+              "from": "did:key:z6Mkt5yU6sK3v7gxFHncQbmZ7VQvnVuJBGrDAbqhZp2gDW7G"
+            }
+          ],
+          "sessions": {},
+          "contacts": {
+            "allow": [],
+            "grants_issued": [],
+            "grants_held": [],
+            "requests": [
+              "01K742SG008KG93RNF92TESQ98"
+            ],
+            "pending_sent": []
+          }
+        }
+      },
+      {
+        "event": {
+          "local": "reject_introduction",
+          "introduction": "01K742SG008KG93RNF92TESQ98",
+          "reason": "user.declined"
+        },
+        "expect": {
+          "emit": [
+            {
+              "send": {
+                "type": "reject",
+                "to": "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL",
+                "session": "01K742SG008KG93RNF92TESQ98",
+                "reason": "user.declined"
+              }
+            }
+          ],
+          "sessions": {},
+          "contacts": {
+            "allow": [],
+            "grants_issued": [],
+            "grants_held": [],
+            "requests": [],
+            "pending_sent": []
+          }
+        }
+      },
+      {
+        "event": {
+          "recv": {
+            "type": "introduction",
+            "id": "01K742SGZ8BXQKX1G8FND7A64K",
+            "from": "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL",
+            "to": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+            "purpose": "Met at the meetup."
+          }
+        },
+        "expect": {
+          "emit": [
+            {
+              "ui": "introduction_received",
+              "from": "did:key:z6Mkt5yU6sK3v7gxFHncQbmZ7VQvnVuJBGrDAbqhZp2gDW7G"
+            }
+          ],
+          "sessions": {},
+          "contacts": {
+            "allow": [],
+            "grants_issued": [],
+            "grants_held": [],
+            "requests": [
+              "01K742SGZ8BXQKX1G8FND7A64K"
+            ],
+            "pending_sent": []
+          }
+        }
+      },
+      {
+        "event": {
+          "advance": 604800
+        },
+        "expect": {
+          "emit": [],
+          "sessions": {},
+          "contacts": {
+            "allow": [],
+            "grants_issued": [],
+            "grants_held": [],
+            "requests": [
+              "01K742SGZ8BXQKX1G8FND7A64K"
+            ],
+            "pending_sent": []
+          }
+        }
+      },
+      {
+        "event": {
+          "local": "grant",
+          "introduction": "01K742SRS8SWD7R7XZGK84QYKR",
+          "id": "01K742SMW89Y0PJMQ89X1MZA2G",
+          "scope": [
+            "dsip.invite"
+          ],
+          "valid_until": 1791536000
+        },
+        "expect": {
+          "emit": [
+            {
+              "refused": "unknown-introduction"
+            }
+          ],
+          "sessions": {},
+          "contacts": {
+            "allow": [],
+            "grants_issued": [],
+            "grants_held": [],
+            "requests": [
+              "01K742SGZ8BXQKX1G8FND7A64K"
+            ],
+            "pending_sent": []
+          }
+        }
+      }
+    ]
+  },
+  "expect": {}
+}

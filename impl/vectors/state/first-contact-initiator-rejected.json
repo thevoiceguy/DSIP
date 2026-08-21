@@ -1,10 +1,10 @@
 {
-  "vector": "state/glare-equal-ids",
+  "vector": "state/first-contact-initiator-rejected",
   "format": 1,
   "kind": "state",
-  "description": "Pathological equal ids: both invites rejected with session.glare; retry hint surfaced.",
+  "description": "Sender side: the introduction is declined.",
   "spec_ref": [
-    "§12.6"
+    "§19.4"
   ],
   "context": {
     "component": "endpoint",
@@ -19,14 +19,74 @@
       "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
       "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
       "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL": "did:key:z6Mkt5yU6sK3v7gxFHncQbmZ7VQvnVuJBGrDAbqhZp2gDW7G"
-    }
+    },
+    "policy": {}
   },
   "input": {
     "steps": [
       {
         "event": {
+          "local": "introduce",
+          "id": "01K742SG008KG93RNF92TESQ98",
+          "to": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+          "purpose": "Met at the meetup.",
+          "contact_token": "tok-1"
+        },
+        "expect": {
+          "emit": [
+            {
+              "send": {
+                "type": "introduction",
+                "to": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+                "id": "01K742SG008KG93RNF92TESQ98",
+                "purpose": "Met at the meetup.",
+                "contact_token": "tok-1"
+              }
+            }
+          ],
+          "sessions": {},
+          "contacts": {
+            "allow": [],
+            "grants_issued": [],
+            "grants_held": [],
+            "requests": [],
+            "pending_sent": [
+              "01K742SG008KG93RNF92TESQ98"
+            ]
+          }
+        }
+      },
+      {
+        "event": {
+          "recv": {
+            "type": "reject",
+            "id": "01K742SMW830CXHKVKKX9XMGDN",
+            "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "session": "01K742SG008KG93RNF92TESQ98",
+            "reason": "user.declined"
+          }
+        },
+        "expect": {
+          "emit": [
+            {
+              "ui": "introduction_rejected",
+              "reason": "user.declined"
+            }
+          ],
+          "sessions": {},
+          "contacts": {
+            "allow": [],
+            "grants_issued": [],
+            "grants_held": [],
+            "requests": [],
+            "pending_sent": []
+          }
+        }
+      },
+      {
+        "event": {
           "local": "place_call",
-          "session": "01K742SG00CK4W6YAS3HFWW550",
+          "session": "01K742SG00YYNVBMYAQK1CB31F",
           "to": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R"
         },
         "expect": {
@@ -35,7 +95,7 @@
               "send": {
                 "type": "invite",
                 "to": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
-                "session": "01K742SG00CK4W6YAS3HFWW550"
+                "session": "01K742SG00YYNVBMYAQK1CB31F"
               }
             },
             {
@@ -45,59 +105,9 @@
             }
           ],
           "sessions": {
-            "01K742SG00CK4W6YAS3HFWW550": {
+            "01K742SG00YYNVBMYAQK1CB31F": {
               "role": "initiator",
               "state": "INVITING",
-              "renegotiating": false,
-              "outstanding_update": null
-            }
-          }
-        }
-      },
-      {
-        "event": {
-          "recv": {
-            "type": "invite",
-            "id": "01K742SG00CK4W6YAS3HFWW550",
-            "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
-            "to": "did:key:z6MkhzX9qTeXBWkucyMVric1E9JrqUD5LPAkD2BNavakAptf",
-            "expires_at": 1760000030
-          }
-        },
-        "expect": {
-          "emit": [
-            {
-              "timer": "stop",
-              "name": "T-Establish"
-            },
-            {
-              "send": {
-                "type": "cancel",
-                "to": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
-                "session": "01K742SG00CK4W6YAS3HFWW550",
-                "reason": "session.glare"
-              }
-            },
-            {
-              "ui": "ended",
-              "reason": "session.glare"
-            },
-            {
-              "send": {
-                "type": "reject",
-                "to": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
-                "session": "01K742SG00CK4W6YAS3HFWW550",
-                "reason": "session.glare"
-              }
-            },
-            {
-              "ui": "glare_retry"
-            }
-          ],
-          "sessions": {
-            "01K742SG00CK4W6YAS3HFWW550": {
-              "role": "initiator",
-              "state": "ENDED",
               "renegotiating": false,
               "outstanding_update": null
             }

@@ -17,7 +17,7 @@ crates/
   dsip-dht      reachability hints over libp2p Kademlia (experimental §8.5); `dsip-dht-node` binary
   dsip-relay    `dsip-relay` binary: wss listener, hello binding, routing, per-leg forking
   dsip-cli      `dsip` binary: keygen, sign, verify, vectors run, identity, resolve, call, answer
-demos/          phase1-demo.sh, dht-demo.sh
+demos/          phase1-demo.sh, dht-demo.sh, first-contact-demo.sh
 docs/           Plan, spec gaps, coverage cross-index, DHT findings + draft hints profile
 ```
 
@@ -69,6 +69,14 @@ dsip answer --identity ./bob --ca .relay/cert.pem --dht <bootstrap> --publish-hi
 dsip resolve <bob did:key> --dht <bootstrap>
 dsip call --identity ./alice --ca .relay/cert.pem --dht <bootstrap> --to <bob did:key>   # no --relay: taken from the hint
 python3 tools/dht_testnet.py --nodes 12                    # integration harness → docs/dht-testnet-report*.json
+
+# Phase 2: first contact (§19.4)
+demos/first-contact-demo.sh
+dsip answer --identity ./bob --ca .relay/cert.pem --first-contact [--token T]   # ungranted invites → policy.first-contact-required
+#   commands: requests | grant [intro-id] | reject-intro [intro-id] | revoke <grant-id> | token <t>
+dsip introduce --identity ./carol --ca .relay/cert.pem --to <bob did> --purpose "…" [--token T] [--wait 30]
+dsip call --identity ./carol --ca .relay/cert.pem --to <bob did>     # a held grant is attached automatically (contacts.json)
+dsip-relay --intro-limit 5 --intro-window 3600 --inbox-cap 100       # §19.4 rate limits; introductions to unknown/offline identities are queued, never errored
 ```
 
 ## Status
@@ -83,4 +91,5 @@ python3 tools/dht_testnet.py --nodes 12                    # integration harness
 | WS-5 CLI `call`/`answer` demo | ✅ `demos/phase1-demo.sh` — screened + escalated call, forked call with no missed call |
 | M1 Phase 1 | ✅ |
 | WS-D `dsip-dht` + testnet harness + no-DNS call demo | ✅ `docs/dht-findings.md`, `docs/dht-hints-profile.md` |
-| Phase 2 (WASM, browser, media, first contact), Phase 3 | not started |
+| Phase 2 — first contact (introduction/grant, allowlist, tokens, relay rate limit + anti-enumeration inbox) | ✅ 9 new traces, `demos/first-contact-demo.sh` |
+| Phase 2 — `dsip-wasm`, browser demo, WebRTC media, full store-and-forward; Phase 3 | not started |

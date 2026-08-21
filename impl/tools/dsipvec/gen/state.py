@@ -13,7 +13,7 @@ APH, ALA = F.did("alice-phone"), F.did("alice-laptop")
 BPH, BLA = F.did("bob-phone"), F.did("bob-laptop")
 ALICE, BOB, BOB_WEB = F.did("alice"), F.did("bob"), F.BOB_WEB
 
-IDENTITIES = {APH: ALICE, ALA: ALICE, BPH: BOB, BLA: BOB}
+IDENTITIES = {APH: ALICE, ALA: ALICE, BPH: BOB, BLA: BOB, F.did("carol-phone"): F.did("carol")}
 ALICE_SELF = {"device": APH, "identity": ALICE}
 BOBPH_SELF = {"device": BPH, "identity": BOB}
 BOBLA_SELF = {"device": BLA, "identity": BOB}
@@ -552,6 +552,119 @@ def vectors() -> list[dict]:
              **{sid: sess("initiator", "INVITING")}),
     ]))
 
+    # ---------------------------------------------------------------- §19.4 first contact (Phase 2)
+    CAR = F.did("carol-phone")
+    CAROL = F.did("carol")
+    FC = {"first_contact_required": True}
+    year = NOW + 31_536_000
+    I1, I2, I9 = uid("intro-1", NOW), uid("intro-2", NOW + 1), uid("intro-9", NOW + 9)
+    G1 = uid("grant-1", NOW + 5)
+
+    def contacts(**k):
+        base = {"allow": [], "grants_issued": [], "grants_held": [], "requests": [], "pending_sent": []}
+        base.update(k)
+        return base
+
+    def fcstep(event, emit, sessions=None, contacts_=None):
+        st = {"event": event, "expect": {"emit": emit, "sessions": sessions or {}}}
+        if contacts_ is not None:
+            st["expect"]["contacts"] = contacts_
+        return st
+
+    def fctrace(vid, desc, self_, steps, policy=FC):
+        v = trace(vid, desc, ["§19.4"], self_, steps)
+        v["context"]["policy"] = policy
+        return v
+
+    intro1 = {"type": "introduction", "id": I1, "from": CAR, "to": BOB, "purpose": "Met at the meetup."}
+    out.append(fctrace("first-contact-responder-grant",
+                       "Ungranted invite → policy.first-contact-required (no alerting); introduction lands in the requests surface; "
+                       "grant admits invites by grant id or by grantee; revocation closes the door again.", BOBPH_SELF, [
+        fcstep({"recv": msg("invite", "inv-a", CAR, None, NOW, to=BOB, expires_at=NOW + 30)},
+               [S(type="reject", to=CAR, session=uid("inv-a"), reason="policy.first-contact-required")],
+               {uid("inv-a"): sess("responder", "ENDED")}, contacts()),
+        fcstep({"recv": intro1}, [UI("introduction_received", **{"from": CAROL})], {}, contacts(requests=[I1])),
+        fcstep({"recv": intro1}, [{"drop": "duplicate-introduction"}], {}, contacts(requests=[I1])),
+        fcstep({"local": "grant", "introduction": I1, "id": G1, "scope": ["dsip.invite"], "valid_until": year},
+               [S(type="grant", to=CAROL, session=I1, id=G1, scope=["dsip.invite"], valid_until=year)], {}, contacts(grants_issued=[G1])),
+        fcstep({"recv": msg("invite", "inv-b", CAR, None, NOW + 10, to=BOB, expires_at=NOW + 40, grant=G1)},
+               [UI("offered")], {uid("inv-b", NOW + 10): sess("responder", "OFFERED")}),
+        fcstep({"recv": msg("invite", "inv-c", CAR, None, NOW + 11, to=BOB, expires_at=NOW + 41)},
+               [UI("offered")], {uid("inv-c", NOW + 11): sess("responder", "OFFERED")}),
+        fcstep({"local": "revoke", "grant": G1}, [], {}, contacts()),
+        fcstep({"recv": msg("invite", "inv-d", CAR, None, NOW + 12, to=BOB, expires_at=NOW + 42, grant=G1)},
+               [S(type="reject", to=CAR, session=uid("inv-d", NOW + 12), reason="policy.first-contact-required")],
+               {uid("inv-d", NOW + 12): sess("responder", "ENDED")}),
+        fcstep({"local": "revoke", "grant": G1}, [{"refused": "unknown-grant"}]),
+    ]))
+    out.append(fctrace("first-contact-grant-expired", "A grant past valid_until no longer admits invites.", BOBPH_SELF, [
+        fcstep({"recv": intro1}, [UI("introduction_received", **{"from": CAROL})]),
+        fcstep({"local": "grant", "introduction": I1, "id": G1, "scope": ["dsip.invite"], "valid_until": NOW + 100},
+               [S(type="grant", to=CAROL, session=I1, id=G1, scope=["dsip.invite"], valid_until=NOW + 100)]),
+        fcstep({"recv": msg("invite", "inv-b", CAR, None, NOW + 10, to=BOB, expires_at=NOW + 40)}, [UI("offered")],
+               {uid("inv-b", NOW + 10): sess("responder", "OFFERED")}),
+        fcstep({"advance": 101}, []),
+        fcstep({"recv": msg("invite", "inv-c", CAR, None, NOW + 101, to=BOB, expires_at=NOW + 131)},
+               [S(type="reject", to=CAR, session=uid("inv-c", NOW + 101), reason="policy.first-contact-required")],
+               {uid("inv-c", NOW + 101): sess("responder", "ENDED")}),
+    ]))
+    out.append(fctrace("first-contact-grant-scope", "A grant scoped only to dsip.subscribe does not admit invites.", BOBPH_SELF, [
+        fcstep({"recv": intro1}, [UI("introduction_received", **{"from": CAROL})]),
+        fcstep({"local": "grant", "introduction": I1, "id": G1, "scope": ["dsip.subscribe"], "valid_until": year},
+               [S(type="grant", to=CAROL, session=I1, id=G1, scope=["dsip.subscribe"], valid_until=year)]),
+        fcstep({"recv": msg("invite", "inv-b", CAR, None, NOW + 10, to=BOB, expires_at=NOW + 40, grant=G1)},
+               [S(type="reject", to=CAR, session=uid("inv-b", NOW + 10), reason="policy.first-contact-required")],
+               {uid("inv-b", NOW + 10): sess("responder", "ENDED")}),
+    ]))
+    out.append(fctrace("first-contact-reject-and-silence",
+                       "Rejecting an introduction is a policy choice addressed to the introduction id; ignoring it is the default; "
+                       "granting an unknown introduction is refused.", BOBPH_SELF, [
+        fcstep({"recv": intro1}, [UI("introduction_received", **{"from": CAROL})], {}, contacts(requests=[I1])),
+        fcstep({"local": "reject_introduction", "introduction": I1, "reason": "user.declined"},
+               [S(type="reject", to=CAR, session=I1, reason="user.declined")], {}, contacts()),
+        fcstep({"recv": {**intro1, "id": I2}}, [UI("introduction_received", **{"from": CAROL})], {}, contacts(requests=[I2])),
+        fcstep({"advance": 604800}, [], {}, contacts(requests=[I2])),
+        fcstep({"local": "grant", "introduction": I9, "id": G1, "scope": ["dsip.invite"], "valid_until": year},
+               [{"refused": "unknown-introduction"}], {}, contacts(requests=[I2])),
+    ]))
+    out.append(fctrace("first-contact-contact-token",
+                       "An introduction bearing a locally issued contact token is auto-granted; the token is single-use.", BOBPH_SELF, [
+        fcstep({"local": "issue_token", "token": "tok-meetup-2026", "grant_id": G1}, []),
+        fcstep({"recv": {**intro1, "contact_token": "tok-meetup-2026"}},
+               [UI("introduction_received", **{"from": CAROL, "token": True}),
+                S(type="grant", to=CAROL, session=I1, id=G1, scope=["dsip.invite"], valid_until=year)], {}, contacts(grants_issued=[G1])),
+        fcstep({"recv": msg("invite", "inv-b", CAR, None, NOW + 10, to=BOB, expires_at=NOW + 40, grant=G1)}, [UI("offered")],
+               {uid("inv-b", NOW + 10): sess("responder", "OFFERED")}),
+        fcstep({"recv": {**intro1, "id": I2, "contact_token": "tok-meetup-2026"}},
+               [UI("introduction_received", **{"from": CAROL})], {}, contacts(grants_issued=[G1], requests=[I2])),
+    ]))
+    out.append(fctrace("first-contact-allowlist", "An allow policy admits listed identities without a grant.", BOBPH_SELF, [
+        fcstep({"recv": msg("invite", "inv-a", APH, None, NOW, to=BOB, expires_at=NOW + 30)}, [UI("offered")],
+               {uid("inv-a"): sess("responder", "OFFERED")}),
+        fcstep({"recv": msg("invite", "inv-b", CAR, None, NOW, to=BOB, expires_at=NOW + 30)},
+               [S(type="reject", to=CAR, session=uid("inv-b"), reason="policy.first-contact-required")],
+               {uid("inv-b"): sess("responder", "ENDED")}),
+    ], policy={"first_contact_required": True, "allow": [ALICE]}))
+    out.append(fctrace("first-contact-initiator",
+                       "Sender side: introduce, receive the grant, then the next invite references the held grant.", ALICE_SELF, [
+        fcstep({"local": "introduce", "id": I1, "to": BOB, "purpose": "Met at the meetup."},
+               [S(type="introduction", to=BOB, id=I1, purpose="Met at the meetup.")], {}, contacts(pending_sent=[I1])),
+        fcstep({"recv": msg("grant", "grant-x", BPH, I9, NOW + 5, scope=["dsip.invite"], valid_until=year)},
+               [{"drop": "unknown-introduction"}], {}, contacts(pending_sent=[I1])),
+        fcstep({"recv": msg("grant", "grant-1", BPH, I1, NOW + 5, scope=["dsip.invite"], valid_until=year)},
+               [UI("granted", by=BOB)], {}, contacts(grants_held=[G1])),
+        fcstep({"local": "place_call", "session": sid, "to": BOB},
+               [S(type="invite", to=BOB, session=sid, grant=G1), TS("T-Establish", 15)], {sid: sess("initiator", "INVITING")}),
+    ], policy={}))
+    out.append(fctrace("first-contact-initiator-rejected", "Sender side: the introduction is declined.", ALICE_SELF, [
+        fcstep({"local": "introduce", "id": I1, "to": BOB, "purpose": "Met at the meetup.", "contact_token": "tok-1"},
+               [S(type="introduction", to=BOB, id=I1, purpose="Met at the meetup.", contact_token="tok-1")], {}, contacts(pending_sent=[I1])),
+        fcstep({"recv": msg("reject", "rej-1", BPH, I1, NOW + 5, reason="user.declined")},
+               [UI("introduction_rejected", reason="user.declined")], {}, contacts()),
+        fcstep({"local": "place_call", "session": sid, "to": BOB},
+               [S(type="invite", to=BOB, session=sid), TS("T-Establish", 15)], {sid: sess("initiator", "INVITING")}),
+    ], policy={}))
+
     # ---------------------------------------------------------------- relay (§12.7 rules 3 and 6)
     def legs(**st):
         return st
@@ -626,5 +739,30 @@ def vectors() -> list[dict]:
               **{sid: {"legs": {BPH: "answered", BLA: "answered"}, "outcome": "answered"}}),
         rstep({"recv": msg("cancel", "c", APH, sid, NOW + 5, reason="session.answered-elsewhere")}, [],
               **{sid: {"legs": {BPH: "answered", BLA: "answered"}, "outcome": "answered"}}),
+    ], component="relay"))
+
+    UNKNOWN = "did:key:z6MkNobodyHereAtAll11111111111111111111111111"
+    def rinbox(event, emit, inbox, **attempts):
+        st = rstep(event, emit, **attempts)
+        st["expect"]["inbox"] = inbox
+        return st
+    out.append(trace("relay-introduction-anti-enumeration",
+                     "Introductions to an unknown identity and to an offline identity are treated identically (queued, no error); "
+                     "session traffic to an unknown identity still gets transport.unknown-recipient; binding flushes the inbox.",
+                     ["§19.4", "§13.2", "§13.3"], None, [
+        rinbox({"recv": {"type": "introduction", "id": I1, "from": CAR, "to": UNKNOWN, "purpose": "hi"}},
+               [{"queue": {"to": UNKNOWN, "type": "introduction"}}], {UNKNOWN: 1}),
+        rinbox({"recv": {"type": "introduction", "id": I2, "from": CAR, "to": BOB, "purpose": "hi"}},
+               [{"queue": {"to": BOB, "type": "introduction"}}], {BOB: 1, UNKNOWN: 1}),
+        rinbox({"relay": "bind", "device": BPH, "identity": BOB}, [{"deliver": {"leg": BPH, "type": "introduction"}}], {UNKNOWN: 1}),
+        rinbox({"recv": {"type": "introduction", "id": I9, "from": CAR, "to": BOB, "purpose": "hi again"}},
+               [{"deliver": {"leg": BPH, "type": "introduction"}}], {UNKNOWN: 1}),
+        rinbox({"recv": msg("invite", "inv-u", APH, None, NOW, to=UNKNOWN)},
+               [{"send": {"type": "error", "to": APH, "reason": "transport.unknown-recipient", "in_reply_to": uid("inv-u")}}], {UNKNOWN: 1}),
+        rinbox({"recv": msg("invite", "sess", APH, None, NOW, to=BOB)},
+               [{"deliver": {"leg": BPH, "type": "invite"}}], {UNKNOWN: 1}, **{sid: {"legs": {BPH: "delivered"}, "outcome": None}}),
+        rinbox({"relay": "unbind", "device": BPH, "identity": BOB}, [], {UNKNOWN: 1}),
+        rinbox({"recv": {"type": "introduction", "id": uid("intro-3"), "from": CAR, "to": BOB, "purpose": "offline again"}},
+               [{"queue": {"to": BOB, "type": "introduction"}}], {BOB: 1, UNKNOWN: 1}),
     ], component="relay"))
     return out

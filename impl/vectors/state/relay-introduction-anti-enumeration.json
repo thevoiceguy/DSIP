@@ -1,0 +1,214 @@
+{
+  "vector": "state/relay-introduction-anti-enumeration",
+  "format": 1,
+  "kind": "state",
+  "description": "Introductions to an unknown identity and to an offline identity are treated identically (queued, no error); session traffic to an unknown identity still gets transport.unknown-recipient; binding flushes the inbox.",
+  "spec_ref": [
+    "§19.4",
+    "§13.2",
+    "§13.3"
+  ],
+  "context": {
+    "component": "relay",
+    "start": 1760000000
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "recv": {
+            "type": "introduction",
+            "id": "01K742SG008KG93RNF92TESQ98",
+            "from": "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL",
+            "to": "did:key:z6MkNobodyHereAtAll11111111111111111111111111",
+            "purpose": "hi"
+          }
+        },
+        "expect": {
+          "emit": [
+            {
+              "queue": {
+                "to": "did:key:z6MkNobodyHereAtAll11111111111111111111111111",
+                "type": "introduction"
+              }
+            }
+          ],
+          "attempts": {},
+          "inbox": {
+            "did:key:z6MkNobodyHereAtAll11111111111111111111111111": 1
+          }
+        }
+      },
+      {
+        "event": {
+          "recv": {
+            "type": "introduction",
+            "id": "01K742SGZ8BXQKX1G8FND7A64K",
+            "from": "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL",
+            "to": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+            "purpose": "hi"
+          }
+        },
+        "expect": {
+          "emit": [
+            {
+              "queue": {
+                "to": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+                "type": "introduction"
+              }
+            }
+          ],
+          "attempts": {},
+          "inbox": {
+            "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R": 1,
+            "did:key:z6MkNobodyHereAtAll11111111111111111111111111": 1
+          }
+        }
+      },
+      {
+        "event": {
+          "relay": "bind",
+          "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+          "identity": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R"
+        },
+        "expect": {
+          "emit": [
+            {
+              "deliver": {
+                "leg": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+                "type": "introduction"
+              }
+            }
+          ],
+          "attempts": {},
+          "inbox": {
+            "did:key:z6MkNobodyHereAtAll11111111111111111111111111": 1
+          }
+        }
+      },
+      {
+        "event": {
+          "recv": {
+            "type": "introduction",
+            "id": "01K742SRS8SWD7R7XZGK84QYKR",
+            "from": "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL",
+            "to": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+            "purpose": "hi again"
+          }
+        },
+        "expect": {
+          "emit": [
+            {
+              "deliver": {
+                "leg": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+                "type": "introduction"
+              }
+            }
+          ],
+          "attempts": {},
+          "inbox": {
+            "did:key:z6MkNobodyHereAtAll11111111111111111111111111": 1
+          }
+        }
+      },
+      {
+        "event": {
+          "recv": {
+            "type": "invite",
+            "id": "01K742SG00BH28SS4V06PHRM39",
+            "from": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+            "to": "did:key:z6MkNobodyHereAtAll11111111111111111111111111"
+          }
+        },
+        "expect": {
+          "emit": [
+            {
+              "send": {
+                "type": "error",
+                "to": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+                "reason": "transport.unknown-recipient",
+                "in_reply_to": "01K742SG00BH28SS4V06PHRM39"
+              }
+            }
+          ],
+          "attempts": {},
+          "inbox": {
+            "did:key:z6MkNobodyHereAtAll11111111111111111111111111": 1
+          }
+        }
+      },
+      {
+        "event": {
+          "recv": {
+            "type": "invite",
+            "id": "01K742SG00YYNVBMYAQK1CB31F",
+            "from": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+            "to": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R"
+          }
+        },
+        "expect": {
+          "emit": [
+            {
+              "deliver": {
+                "leg": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+                "type": "invite"
+              }
+            }
+          ],
+          "attempts": {
+            "01K742SG00YYNVBMYAQK1CB31F": {
+              "legs": {
+                "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn": "delivered"
+              },
+              "outcome": null
+            }
+          },
+          "inbox": {
+            "did:key:z6MkNobodyHereAtAll11111111111111111111111111": 1
+          }
+        }
+      },
+      {
+        "event": {
+          "relay": "unbind",
+          "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+          "identity": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R"
+        },
+        "expect": {
+          "emit": [],
+          "attempts": {},
+          "inbox": {
+            "did:key:z6MkNobodyHereAtAll11111111111111111111111111": 1
+          }
+        }
+      },
+      {
+        "event": {
+          "recv": {
+            "type": "introduction",
+            "id": "01K742SG00XDX5JY8YYR6AXBN6",
+            "from": "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL",
+            "to": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+            "purpose": "offline again"
+          }
+        },
+        "expect": {
+          "emit": [
+            {
+              "queue": {
+                "to": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+                "type": "introduction"
+              }
+            }
+          ],
+          "attempts": {},
+          "inbox": {
+            "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R": 1,
+            "did:key:z6MkNobodyHereAtAll11111111111111111111111111": 1
+          }
+        }
+      }
+    ]
+  },
+  "expect": {}
+}

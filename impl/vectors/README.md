@@ -223,6 +223,16 @@ attempt — through a scripted event sequence with a mock clock.
 | `{"local":"answer_update","session":ID,"in_reply_to":ULID}` | answer the inbound outstanding update |
 | `{"local":"reject_update","session":ID,"in_reply_to":ULID,"reason":TOKEN}` | reject it |
 | `{"local":"info","session":ID}` | send `info` |
+| `{"local":"introduce","id":ULID,"to":DID,"purpose":S,"contact_token":S?}` | send `introduction` (§19.4) |
+| `{"local":"grant","introduction":ID,"id":ULID,"scope":[…],"valid_until":T}` | issue a contact grant for a pending request |
+| `{"local":"reject_introduction","introduction":ID,"reason":TOKEN}` | decline a pending request (a policy choice) |
+| `{"local":"revoke","grant":ID}` | revoke an issued grant (local policy) |
+| `{"local":"issue_token","token":S,"grant_id":ULID}` | pre-authorize an out-of-band contact token (auto-grant on match) |
+
+`context.policy` = `{"first_contact_required": bool, "allow": [identity DIDs]}` (default: off).
+With the policy on, an invite from an identity holding no live `dsip.invite` grant (matched by
+the invite's `grant` reference or by grantee) and not in `allow` is auto-rejected
+`policy.first-contact-required` without alerting. Introductions never create a session.
 | `{"recv": MSG}` | a **verified** message arrives (signature, replay, schema already passed) |
 | `{"advance": SECONDS}` | advance the mock clock; expired timers fire in deadline order, ties by start order |
 
@@ -238,6 +248,8 @@ transition depends on (`status`, `ring_timeout`, `queue_timeout`, `reason`,
 | `{"relay":"invite","session":ID,"from":DID,"to":IDENTITY,"legs":[DEVICE,…]}` | fork an invite to the listed legs |
 | `{"recv": MSG}` | message from a leg (`progress`/`answer`/`reject`) or the initiator (`cancel`) |
 | `{"relay":"leg_expired","session":ID,"leg":DEVICE}` | relay's own per-leg delivery expiry |
+| `{"relay":"bind"|"unbind","device":DEVICE,"identity":IDENTITY}` | a device (un)binds via `hello` (§13.2); binding flushes queued introductions |
+| `{"recv": introduction}` / `{"recv": invite}` (without `legs`) | routed by the relay's bindings; introductions to unknown/offline identities are queued with no error (§19.4 anti-enumeration) |
 | `{"advance": SECONDS}` | clock |
 
 ### Expectation after each step
@@ -249,7 +261,9 @@ transition depends on (`status`, `ring_timeout`, `queue_timeout`, `reason`,
 }
 ```
 
-For the relay: `"attempts": { ID: {"legs": {DEVICE: "alerting|answered|rejected|expired|cancelled"}, "outcome": null|"answered"|"rejected"} }`.
+For the relay: `"attempts": { ID: {"legs": {DEVICE: "alerting|answered|rejected|expired|cancelled"}, "outcome": null|"answered"|"rejected"} }`,
+optionally `"inbox": {IDENTITY: queued-introduction-count}`.
+For an endpoint, optionally `"contacts": {"allow": […], "grants_issued": […], "grants_held": […], "requests": […], "pending_sent": […]}` (sorted ids).
 
 Only the sessions / attempts named in `expect` are compared. `emit` is compared
 exactly, in order.
@@ -270,10 +284,13 @@ exactly, in order.
 | `{"ui": "missed_call"}` | responder surfaces a missed call (never on `session.answered-elsewhere`) |
 | `{"ui": "ended", "reason": …}` | session reached ENDED because of a remote message or timer |
 | `{"ui": "glare_retry"}` | equal-id glare; MAY retry after 1–4 s |
+| `{"ui": "introduction_received", "from": IDENTITY, "token": true?}` | requests surface (§19.4) — never a ring |
+| `{"ui": "granted", "by": IDENTITY}` / `{"ui": "introduction_rejected", "reason": …}` | sender-side outcomes |
+| `{"queue": {"to": IDENTITY, "type": "introduction"}}` | relay queued an introduction for an unbound identity |
 | `{"ui": "error", "reason": …}` | a received `error` is surfaced; no state change |
 | `{"info": {"about": …}}` | an `info` with a recognized `about` is handed to the binding |
 | `{"refused": "update-pending"}` | a local request was refused by the engine |
-| `{"drop": REASON}` | message silently ignored (`ended-session`, `unknown-about`, `stale-update-reply`) |
+| `{"drop": REASON}` | message silently ignored (`ended-session`, `unknown-about`, `stale-update-reply`, `duplicate-introduction`, `unknown-introduction`) |
 
 ## Kind: `dht`
 
@@ -302,6 +319,8 @@ Each item has a matching `spec-gap` issue draft in `impl/docs/spec-gaps.md`.
 11. §12.10: consecutive re-queue limit exceeded → treated as T-Queue expiry.
 12. §12.4/§12.7: `bye` reason for an answer arriving after a terminal `reject` (`session.failed`).
 13. §12.4: ENDING collapsed into ENDED (local teardown is synchronous in the reference engine).
+14. §19.4 vs §13.2: relay treatment of introductions to unknown recipients (queued silently; no `transport.unknown-recipient`).
+15. §19.4: grant matching (by `grant` reference or by grantee identity), scope check, single-use contact tokens.
 
 Emission ordering convention for state traces: timer stops → sends → media →
 ui → timer starts. A session ending emits `media stop` (when media was running)

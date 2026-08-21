@@ -76,6 +76,29 @@ class Endpoint:
         self.timers: list[Timer] = []
         self._seq = 0
         self.out: list[dict] = []
+        # §19.4 first contact (Phase 2): policy, allowlist, grants, pending introductions
+        pol = ctx.get("policy", {}) or {}
+        self.first_contact_required: bool = bool(pol.get("first_contact_required", False))
+        self.allow: set[str] = set(pol.get("allow", []))
+        self.grants_issued: dict[str, dict] = {}   # grant id → {"grantee", "scope", "valid_until"}
+        self.grants_held: dict[str, dict] = {}     # grant id → {"by", "scope", "valid_until"}
+        self.requests: dict[str, dict] = {}        # introduction id → {"from": identity, "token": …}
+        self.pending_sent: dict[str, str] = {}     # introduction id → to identity
+        self.tokens: dict[str, str] = {}           # contact token → grant id to issue on match
+        self.seen_introductions: set[str] = set()
+
+    def contacts_snapshot(self) -> dict:
+        return {"allow": sorted(self.allow), "grants_issued": sorted(self.grants_issued),
+                "grants_held": sorted(self.grants_held), "requests": sorted(self.requests),
+                "pending_sent": sorted(self.pending_sent)}
+
+    def has_grant(self, identity: str, grant_ref: str | None) -> bool:
+        """§19.4: a live grant (scope dsip.invite) held for this identity, matched by reference or by grantee."""
+        for gid, g in self.grants_issued.items():
+            if g["grantee"] == identity and g["valid_until"] > self.now and "dsip.invite" in g["scope"]:
+                if grant_ref is None or grant_ref == gid:
+                    return True
+        return False
 
     # ------------------------------------------------------------ helpers
 
@@ -165,6 +188,17 @@ class Endpoint:
             self.send(type="reject", to=s.peer, session=s.id, reason="user.no-answer")
             self.end(s, "user.no-answer")
 
+    def issue_grant(self, gid: str, grantee: str, scope: list, valid_until: int, introduction: str) -> None:
+        """§19.4 outcome 1: a signed contact grant; the consent receipt (§19.3) in message form."""
+        self.grants_issued[gid] = {"grantee": grantee, "scope": list(scope), "valid_until": valid_until}
+        self.send(type="grant", to=grantee, session=introduction, id=gid, scope=list(scope), valid_until=valid_until)
+
+    def held_grant_for(self, identity: str) -> str | None:
+        for gid, g in sorted(self.grants_held.items()):
+            if g["by"] == identity and g["valid_until"] > self.now and "dsip.invite" in g["scope"]:
+                return gid
+        return None
+
     # ------------------------------------------------------------ local events
 
     def local(self, ev: dict) -> None:
@@ -173,8 +207,37 @@ class Endpoint:
             sid = ev["session"]
             s = Session(sid, "initiator", "INVITING", peer=ev["to"], invite_to=ev["to"])
             self.sessions[sid] = s
-            self.send(type="invite", to=ev["to"], session=sid)
+            # §19.4: the grantee MAY reference a held grant in a future invite to aid stateless relays
+            self.send(type="invite", to=ev["to"], session=sid, grant=self.held_grant_for(self.identity_of(ev["to"])))
             self.start_timer(s, "T-Establish", self.t_establish)  # §12.9: started on sending invite
+            return
+        if kind == "introduce":
+            # §19.4: media-less, session-less request for permission to contact
+            self.pending_sent[ev["id"]] = ev["to"]
+            self.send(type="introduction", to=ev["to"], id=ev["id"], purpose=ev.get("purpose"),
+                      contact_token=ev.get("contact_token"))
+            return
+        if kind == "grant":
+            req = self.requests.pop(ev["introduction"], None)
+            if req is None:
+                self.emit({"refused": "unknown-introduction"})
+                return
+            self.issue_grant(ev["id"], req["from"], ev.get("scope", ["dsip.invite"]), ev["valid_until"], ev["introduction"])
+            return
+        if kind == "reject_introduction":
+            req = self.requests.pop(ev["introduction"], None)
+            if req is None:
+                self.emit({"refused": "unknown-introduction"})
+                return
+            # §19.4 outcome 2: reject with session = introduction id; a policy choice, not an obligation
+            self.send(type="reject", to=req["device"], session=ev["introduction"], reason=ev.get("reason", "user.declined"))
+            return
+        if kind == "revoke":
+            if self.grants_issued.pop(ev["grant"], None) is None:
+                self.emit({"refused": "unknown-grant"})
+            return
+        if kind == "issue_token":
+            self.tokens[ev["token"]] = ev["grant_id"]
             return
         s = self.sessions.get(ev["session"])
         if s is None:
@@ -271,6 +334,15 @@ class Endpoint:
         if t == "error":
             self.emit({"ui": "error", "reason": m.get("reason")})
             return
+        if t == "introduction":
+            return self.recv_introduction(m)
+        if t == "grant":
+            return self.recv_grant(m)
+        if t == "reject" and m.get("session") in self.pending_sent:
+            # §19.4 outcome 2: rejection addressed to the introduction id
+            self.pending_sent.pop(m["session"])
+            self.emit({"ui": "introduction_rejected", "reason": resolve_reason(m["reason"], "reject").effective})
+            return
         s = self.sessions.get(m.get("session"))
         if s is None:
             # Spec §12.2: unknown session reference
@@ -294,8 +366,43 @@ class Endpoint:
         handler = getattr(self, f"recv_{t}")
         handler(s, m)
 
+    def recv_introduction(self, m: dict) -> None:
+        if m["id"] in self.seen_introductions:
+            self.emit({"drop": "duplicate-introduction"})
+            return
+        self.seen_introductions.add(m["id"])
+        identity = self.identity_of(m["from"])
+        token = m.get("contact_token")
+        if token is not None and token in self.tokens:
+            # §19.4: a valid out-of-band contact token MAY be auto-granted per recipient policy
+            gid = self.tokens.pop(token)
+            self.emit({"ui": "introduction_received", "from": identity, "token": True})
+            self.issue_grant(gid, identity, ["dsip.invite"], self.now + 31_536_000, m["id"])
+            return
+        # §19.4 UX requirement: a distinct requests surface — never a ring, never call history
+        self.requests[m["id"]] = {"from": identity, "device": m["from"]}
+        self.emit({"ui": "introduction_received", "from": identity})
+
+    def recv_grant(self, m: dict) -> None:
+        intro = m.get("session")
+        if intro not in self.pending_sent:
+            self.emit({"drop": "unknown-introduction"})
+            return
+        self.pending_sent.pop(intro)
+        by = self.identity_of(m["from"])
+        self.grants_held[m["id"]] = {"by": by, "scope": list(m.get("scope", [])), "valid_until": m.get("valid_until", 0)}
+        self.emit({"ui": "granted", "by": by})
+
     def recv_invite(self, m: dict) -> None:
         sid = m["id"]
+        from_identity = self.identity_of(m["from"])
+        if self.first_contact_required and from_identity not in self.allow and not self.has_grant(from_identity, m.get("grant")):
+            # §19.4: an invite from an identity holding no grant (and matching no allow policy) is rejected
+            # with policy.first-contact-required — the rejection that points the sender at the mechanism.
+            # §12.4 responder: "Policy: auto-reject → send reject → ENDED" (no alerting, no missed call).
+            self.send(type="reject", to=m["from"], session=sid, reason="policy.first-contact-required")
+            self.sessions[sid] = Session(sid, "responder", "ENDED", peer=m["from"])
+            return
         # §12.6 glare: an outbound invite to the identity this invite comes from
         from_identity = self.identity_of(m["from"])
         glare = next((s for s in self.sessions.values()

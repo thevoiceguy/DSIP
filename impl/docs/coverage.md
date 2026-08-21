@@ -9,7 +9,7 @@ unpinned; a section with vectors but no modules is pinned but unimplemented.
 | §6 | dsip-session/lib.rs | — |
 | §7.2 | dsip-cli/main.rs, dsip-core/did.rs, dsip-core/keys.rs, dsip-core/lib.rs, dsip-relay/main.rs, dsip-transport/lib.rs, dsip-transport/resolver.rs | 2 vector(s): envelope/delegated-did-web-identity, envelope/kid-did-key-wrong-fragment |
 | §7.3 | dsip-core/keys.rs, dsip-transport/identity.rs | — |
-| §7.4 | dsip-cli/main.rs, dsip-core/delegation.rs, dsip-core/envelope.rs, dsip-core/lib.rs, dsip-dht/lib.rs, dsip-dht/record.rs, dsip-transport/identity.rs | 14 vector(s): dht/non-delegated-signer, dht/valid-delegated-device, envelope/delegated-device-signs-for-identity, envelope/delegated-did-web-identity, envelope/delegation-chain-not-allowed, envelope/delegation-expired … |
+| §7.4 | dsip-cli/main.rs, dsip-core/delegation.rs, dsip-core/envelope.rs, dsip-core/lib.rs, dsip-dht/lib.rs, dsip-dht/record.rs, dsip-session/endpoint.rs, dsip-transport/identity.rs | 14 vector(s): dht/non-delegated-signer, dht/valid-delegated-device, envelope/delegated-device-signs-for-identity, envelope/delegated-did-web-identity, envelope/delegation-chain-not-allowed, envelope/delegation-expired … |
 | §7.5 | dsip-core/keys.rs | — |
 | §7.6 | dsip-core/keys.rs | — |
 | §8.1 | dsip-cli/console.rs, dsip-cli/hints.rs, dsip-cli/main.rs, dsip-core/did.rs, dsip-core/envelope.rs, dsip-core/lib.rs, dsip-dht/lib.rs, dsip-transport/lib.rs, dsip-transport/resolver.rs | 2 vector(s): envelope/hello-relay-did-web, envelope/kid-unknown-did-web |
@@ -39,13 +39,13 @@ unpinned; a section with vectors but no modules is pinned but unimplemented.
 | §12.11 | dsip-cli/console.rs, dsip-session/endpoint.rs | 4 vector(s): payload/cancel-valid, state/fork-responder-answered-elsewhere, state/race-responder-cancel-after-post-answer-traffic, state/responder-missed-call-on-user-cancel |
 | §12.12 | dsip-cli/console.rs, dsip-core/registry.rs, dsip-session/endpoint.rs, dsip-session/lib.rs, dsip-transport/agent.rs | 5 vector(s): payload/info-bad-about, payload/info-missing-data, payload/info-valid-ice, state/info-active-only, state/invalid-state-messages |
 | §13.1 | dsip-transport/lib.rs | — |
-| §13.2 | dsip-cli/console.rs, dsip-cli/main.rs, dsip-cli/vectors.rs, dsip-core/did.rs, dsip-core/envelope.rs, dsip-core/lib.rs, dsip-core/registry.rs, dsip-relay/main.rs, dsip-schema/lib.rs, dsip-schema/semantic.rs, dsip-transport/agent.rs, dsip-transport/conn.rs, dsip-transport/lib.rs, dsip-transport/tls.rs, dsip-transport/verify.rs | 27 vector(s): envelope/hello-on-behalf-of-no-delegation, envelope/hello-on-behalf-of-valid, envelope/hello-relay-did-web, envelope/hello-relay-did-web-wrong-key, payload/hello-capabilities-without-in-reply-to, payload/hello-client-no-bindings … |
-| §13.3 | dsip-relay/main.rs | — |
+| §13.2 | dsip-cli/console.rs, dsip-cli/main.rs, dsip-cli/vectors.rs, dsip-core/did.rs, dsip-core/envelope.rs, dsip-core/lib.rs, dsip-core/registry.rs, dsip-relay/main.rs, dsip-schema/lib.rs, dsip-schema/semantic.rs, dsip-session/fork.rs, dsip-transport/agent.rs, dsip-transport/conn.rs, dsip-transport/lib.rs, dsip-transport/tls.rs, dsip-transport/verify.rs | 28 vector(s): envelope/hello-on-behalf-of-no-delegation, envelope/hello-on-behalf-of-valid, envelope/hello-relay-did-web, envelope/hello-relay-did-web-wrong-key, payload/hello-capabilities-without-in-reply-to, payload/hello-client-no-bindings … |
+| §13.3 | dsip-relay/main.rs, dsip-session/fork.rs | 1 vector(s): state/relay-introduction-anti-enumeration |
 | §14.1 | dsip-cli/console.rs | 1 vector(s): payload/answer-valid |
 | §14.2 | dsip-schema/lib.rs, dsip-schema/semantic.rs, dsip-transport/agent.rs | 13 vector(s): payload/answer-two-transports, payload/answer-valid, payload/invite-no-transports, payload/invite-offerless, payload/invite-valid, semantic/schema-fail-after-version-ok … |
 | §14.3 | dsip-cli/console.rs, dsip-core/registry.rs, dsip-schema/semantic.rs, dsip-session/endpoint.rs, dsip-session/lib.rs | 6 vector(s): payload/answer-missing-answered-by, payload/answer-unknown-answered-by-shape-ok, semantic/answered-by-gateway, semantic/answered-by-unknown-renders-service, state/screening-initiator, state/unknown-answered-by-renders-service |
 | §14.4 | dsip-cli/console.rs, dsip-session/endpoint.rs, dsip-session/event.rs, dsip-session/lib.rs, dsip-transport/agent.rs | 5 vector(s): payload/answer-screening, payload/update-valid-escalation, state/screening-declined-with-bye, state/screening-initiator, state/screening-responder |
-| §15 | dsip-core/verdict.rs, dsip-schema/lib.rs | — |
+| §15 | dsip-cli/console.rs, dsip-core/verdict.rs, dsip-schema/lib.rs | — |
 | §15.1 | dsip-core/lib.rs, dsip-core/registry.rs, dsip-schema/semantic.rs | 3 vector(s): payload/reject-flat-token, semantic/reason-unknown-category, semantic/reason-unknown-condition-known-category |
 | §15.2 | — | 5 vector(s): payload/cancel-detail-too-long, payload/error-missing-reason, payload/reject-missing-reason, payload/reject-valid, payload/reject-with-detail-retry |
 | §15.3 | dsip-core/registry.rs | 1 vector(s): semantic/reason-unknown-condition-known-category |
@@ -56,7 +56,8 @@ unpinned; a section with vectors but no modules is pinned but unimplemented.
 | §17 | dsip-transport/agent.rs | — |
 | §18.2 | dsip-cli/main.rs, dsip-transport/identity.rs | — |
 | §19 | — | 1 vector(s): state/responder-auto-reject-policy |
-| §19.4 | dsip-core/lib.rs, dsip-core/registry.rs, dsip-schema/lib.rs, dsip-schema/semantic.rs | 14 vector(s): envelope/introduction-too-large, envelope/introduction-valid-7-day, payload/grant-empty-scope, payload/grant-scope-unprefixed, payload/grant-valid, payload/introduction-contact-token … |
+| §19.3 | dsip-session/endpoint.rs | — |
+| §19.4 | dsip-cli/console.rs, dsip-cli/main.rs, dsip-core/lib.rs, dsip-core/registry.rs, dsip-relay/main.rs, dsip-schema/lib.rs, dsip-schema/semantic.rs, dsip-session/endpoint.rs, dsip-session/event.rs, dsip-session/fork.rs, dsip-session/message.rs, dsip-transport/agent.rs | 23 vector(s): envelope/introduction-too-large, envelope/introduction-valid-7-day, payload/grant-empty-scope, payload/grant-scope-unprefixed, payload/grant-valid, payload/introduction-contact-token … |
 | §20.5 | dsip-schema/semantic.rs, dsip-transport/conn.rs, dsip-transport/lib.rs | 4 vector(s): semantic/hello-in-reply-to-matches, semantic/hello-in-reply-to-spliced, transport/relay-hello-bound, transport/relay-hello-spliced |
 | §20.6 | dsip-core/envelope.rs, dsip-core/lib.rs, dsip-core/ulid.rs | 2 vector(s): envelope/ulid-backdated, envelope/ulid-within-tolerance |
 | §21.3 | — | 1 vector(s): payload/invite-accessibility-purpose |

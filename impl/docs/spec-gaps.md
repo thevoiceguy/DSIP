@@ -137,6 +137,32 @@ token covers an answer arriving after the attempt ended by `reject`.
 teardown is synchronous. A future media-bound implementation may surface
 ENDING as an observable state without changing any emission.
 
+## 14. §19.4 vs §13.2 — relay handling of introductions to unknown recipients
+
+**Conflict.** §13.2: "A relay MUST NOT silently drop envelopes on a live connection … it MUST
+respond with a signed `error` (`transport.unknown-recipient` …)". §19.4: "an introduction to a
+nonexistent identity and an ignored introduction are indistinguishable to the sender." A relay
+that answers `transport.unknown-recipient` to an introduction is an enumeration oracle.
+
+**PoC choice.** For `introduction` only, the relay queues the envelope for the addressed identity
+whether or not it knows it (bounded per-inbox, until the introduction's `expires_at`) and returns
+nothing; bound devices receive it immediately; a later `hello` binding flushes the queue. All
+other message types keep the §13.2 error. Vector: `state/relay-introduction-anti-enumeration`.
+
+**Suggested fix.** Add to §13.2: "except for `introduction`, where §19.4 anti-enumeration
+governs: the relay MUST accept without a routing error regardless of recipient existence."
+
+## 15. §19.4 — grant matching, scope, and contact-token semantics
+
+**Gaps.** (a) Whether the optional `grant` field in an invite is required for a relay/endpoint to
+honor a grant, or whether holding a grant for the inviting identity suffices. (b) Whether a grant
+whose `scope` lacks `dsip.invite` admits invites. (c) Whether a contact token is single-use.
+
+**PoC choice.** A live grant admits an invite when matched by `grant` id **or** by grantee
+identity; `scope` MUST contain `dsip.invite`; a token auto-grants once and is then consumed.
+Vectors: `state/first-contact-responder-grant`, `state/first-contact-grant-scope`,
+`state/first-contact-contact-token`.
+
 ---
 
 ## Already-flagged (schema README / plan §11)
