@@ -122,4 +122,5 @@ dsip call --identity ./alice --ca .relay/cert.pem --to <bob did> --media tone --
 | Phase 2 — relay store-and-forward within the §13.3 boundary (known-offline queueing, flush on hello, legs added mid-attempt, cancel drops queued, retention cap) | ✅ 6 new relay traces, `demos/store-and-forward-demo.sh` |
 | **M2 Phase 2** | ✅ (browser WebRTC path manually verifiable only) |
 | **M3 Phase 3** — Verified Broadcast: signed records, §9.3 subscribe/notify with caps/renewal/anti-enumeration, presence, variant selection, `derivative-bound` provenance through a transcoder | ✅ 17 receiver vectors + 9 authority/subscriber traces, `demos/broadcast-demo.sh` |
+| v0.7 prep — §7.5 key-rotation vectors (279 total), citation audit (§15.2/§15.6), spec-gap dispositions 14–22, **WebRTC Media Binding draft** (`../v0.7/`) | ✅ 2026-08-21 |
 | forge-media as the media backend | planned — `docs/forge-media-plan.md` |

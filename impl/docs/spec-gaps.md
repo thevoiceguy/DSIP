@@ -6,6 +6,39 @@ documentation standard. Numbers match the `Impl (spec-gap N)` comments in
 `impl/vectors/README.md`. Vectors named here pin the PoC's choice; if the spec
 resolves differently, the vector changes first, then the code.
 
+## v0.7 worklist (dispositions)
+
+Status of every gap as input to the v0.7 assembly. *Disposition* is what v0.7 should say;
+for gaps 1–13 it is the **Suggested fix** already recorded under each entry. Gaps 14–22
+carry an explicit **v0.7 disposition** paragraph (added 2026-08-21). "adopt" = make the PoC
+choice normative as written; "adopt-with-change" = normative text differs from the PoC and the
+vectors change first; "decision" = the editor must choose between the listed options.
+
+| # | sections | disposition | pinned by |
+|---|---|---|---|
+| 1 | §12.4, §12.5 | adopt (crossed vs late cancel) | `state/race-responder-*` |
+| 2 | §12.6 | adopt (suggested fix) | `state/glare-*` |
+| 3 | §12.8 r4 | adopt (suggested fix) | `state/update-second-outstanding` |
+| 4 | §12.9 | adopt (suggested fix) | `state/t-ring-*` |
+| 5 | §12.7 r3, §12.4 | adopt (suggested fix) | `state/fork-*` |
+| 6 | §20.6 | adopt (300 s, reject) | `envelope/ulid-*` |
+| 7 | §12.9 | adopt (symmetric window) | `envelope/replay-future` |
+| 8 | §7.4 | adopt (header `delegations`) | `envelope/delegation-in-header` |
+| 9 | §14.2 | adopt (suggested fix) | `semantic/selection-*` |
+| 10 | §15.4 | adopt (warning, not reject) | `payload/reject-*` |
+| 11 | §12.10 | adopt (suggested fix) | `state/queue-*` |
+| 12 | §12.4, §12.7 | adopt (`session.failed`) | `state/answer-after-reject` |
+| 13 | §12.4 | adopt (drop ENDING) | all state traces |
+| 14 | §19.4, §13.2 | adopt | `state/relay-introduction-anti-enumeration` |
+| 15 | §19.4 | adopt | `state/first-contact-*` |
+| 16 | §12.12, §16.3, §26 | adopt → **WebRTC Media Binding** (`v0.7/dsip-webrtc-media-binding-v0.7-draft.md`) | `payload/info-*`, `state/info-active-only` |
+| 17 | §13.2, §13.3, §12.7 | adopt | `state/relay-store-and-forward-*`, `state/relay-*-queued-*` |
+| 18 | §22.1 | adopt | `broadcast/publication-*` |
+| 19 | §9.3, §9.4 | adopt (refuse over-cap; authority-asserted presence) | `state/broadcast-authority-presence`, `semantic/subscribe-presence-over-cap` |
+| 20 | §22.2 | **adopt-with-change** (record-level `integrity`) | `broadcast/publication-valid-metadata-only`, `broadcast/provenance-derivative-bound` |
+| 21 | §22.3 | adopt; promote `broadcast.provenance` to a spec schema | `broadcast/provenance-*` |
+| 22 | §7.5 | **decision** (rotation record vs DID-method-only) | `envelope/rotated-did-web-*` |
+
 ---
 
 ## 1. §12.4 vs §12.5 — responder in ACTIVE receiving `cancel`
@@ -152,6 +185,12 @@ other message types keep the §13.2 error. Vector: `state/relay-introduction-ant
 **Suggested fix.** Add to §13.2: "except for `introduction`, where §19.4 anti-enumeration
 governs: the relay MUST accept without a routing error regardless of recipient existence."
 
+**v0.7 disposition.** Adopt. §13.2: append to the MUST-NOT-silently-drop rule — "except
+`introduction`, which §19.4 governs: a relay MUST accept an introduction for any recipient
+without a routing response, MAY hold it (bounded per recipient) until its `expires_at`, and
+MUST deliver it on the recipient's next binding." §19.4: state the bound (PoC: 16 per inbox)
+as a SHOULD with a registry-free deployment knob. No vector change.
+
 ## 15. §19.4 — grant matching, scope, and contact-token semantics
 
 **Gaps.** (a) Whether the optional `grant` field in an invite is required for a relay/endpoint to
@@ -162,6 +201,13 @@ whose `scope` lacks `dsip.invite` admits invites. (c) Whether a contact token is
 identity; `scope` MUST contain `dsip.invite`; a token auto-grants once and is then consumed.
 Vectors: `state/first-contact-responder-grant`, `state/first-contact-grant-scope`,
 `state/first-contact-contact-token`.
+
+**v0.7 disposition.** Adopt all three. §19.4 text: (a) "A live grant admits an invite when
+the invite's `grant` names it **or** the inviting identity is the grantee; the `grant` field is
+an optimisation for stateless relays, never a requirement." (b) "A grant admits only the
+operations in `scope`; an invite requires `dsip.invite`." (c) "A contact token is single-use:
+the first invite carrying it is auto-granted and the token is consumed; multi-use tokens are a
+deployment extension." No vector change.
 
 ## 16. §12.12 / §16.3 — the WebRTC Media Binding document does not exist
 
@@ -178,6 +224,17 @@ buffered by the endpoint. Implemented in `dsip-endpoint` and `demos/browser/app.
 **Suggested fix.** Publish the binding document (or an appendix) with these shapes, fix §26
 step 8 to say `info`, and state whether a forked invite's single SDP offer may be answered by
 more than one leg (the PoC accepts only the first answer; later legs get `bye`).
+
+**v0.7 disposition.** Adopt the PoC shapes and publish them as the **WebRTC Media Binding**
+companion document — drafted at `v0.7/dsip-webrtc-media-binding-v0.7-draft.md` (binding id
+`transport:webrtc`, version 1.0). Spec edits: §12.12 "normative in the WebRTC Media Binding"
+→ cite the document by id; §16.3 replace the `transport_binding: {type, sdp}` example with the
+`transports[].sdp` descriptor form and the authority rule (descriptors govern *what* is
+negotiated, SDP governs transport parameters); §26 step 8 `update` → `info`; §17.2 name the
+binding. Forking: "exactly one answer is applied per invite; a later answer is released with
+`bye session.already-answered`" moves into §12.7. ICE restart is explicitly out of scope for
+binding 1.0. Vectors: the binding's `info.data` schema (Appendix A of the draft) becomes a
+payload vector set in the v0.7 suite.
 
 ## 17. §13.2 / §13.3 — what a store-and-forward relay may call an unknown recipient
 
@@ -199,6 +256,15 @@ gap 14). Vectors: `state/relay-store-and-forward-known-offline`,
 **Suggested fix.** Define "known" in §13.3, state that expiry of a held envelope is not
 signaled (or define an `error` for it), and add the mid-attempt leg case to §12.7 explicitly.
 
+**v0.7 disposition.** Adopt. §13.3 defines *known*: "an identity for which a device has
+completed a verified `hello` at this relay within the relay's retention window"; store-and-
+forward applies only to known identities, `transport.unknown-recipient` to all others (gap 14
+excepted). Expiry of a held envelope is **not** signalled — the initiator's §12.9 timers are the
+backstop; a held `invite` whose `cancel` arrives is dropped with no leg ever created. §12.7 rule
+3 gains the mid-attempt leg sentence: "a device that binds while an attempt is live becomes a
+leg of that attempt if the invite is still unexpired." Retention cap is a SHOULD with the PoC
+default (24 h). No vector change.
+
 ## 18. §22.1 — who may publish a stream, and stream_id ownership
 
 **Gap.** The record carries `from` and `publisher`; nothing says they must agree with the
@@ -209,6 +275,12 @@ MUST be the publisher DID or a colon-suffixed extension of it; a record with a l
 held one is stale; `unpublish` MUST be signed by the same identity and name the held
 `publication`. Vectors: `broadcast/publication-publisher-mismatch`,
 `broadcast/publication-stream-outside-namespace`, `state/broadcast-authority-publisher-binding`.
+
+**v0.7 disposition.** Adopt as §22.1 normative text: "`publisher` MUST equal the verified
+signing identity (the signer, or the delegator of a delegated device); `stream_id` MUST be the
+publisher DID or a colon-suffixed extension of it; a `publish` whose `id` is ULID-older than
+the held record for the same `stream_id` is stale and ignored; `unpublish` MUST be signed by
+the same identity and MUST name the held `publication`." No vector change.
 
 ## 19. §9.3 — presence subscriptions: what the authority knows
 
@@ -223,11 +295,28 @@ Also: §9.3 calls the per-event lifetimes "hard caps" without saying whether an 
 (`subscription-lifetime-exceeded`, vector `semantic/subscribe-presence-over-cap`) and the
 authority additionally clamps as defense in depth.
 
+**v0.7 disposition.** Adopt, with the two models named. §9.4 keeps subject-signed presence
+records as the privacy-preserving form; §9.3 adds: "An authority that has no subject-signed
+record MAY assert presence from its own device bindings (`available` when any device of the
+target is bound, else `offline`); such bodies are authority-asserted and clients MUST render them
+as the authority's claim." Over-cap `expires_in` is **refused** at the stateless boundary with
+`error policy.subscription-lifetime` — v0.7 registers that token (PoC verdict code
+`subscription-lifetime-exceeded`); clamping is not permitted because it makes the caller's view
+of its own subscription wrong. Vector change: none for the refusal; the new token lands in the
+`dsip-reason` registry and `semantic/subscribe-presence-over-cap` gains the `reason` field.
+
 ## 20. §22.2 — where the integrity mode is stated
 
 **Gap.** §22.2 defines `metadata-only` / `derivative-bound` but the `publish` schema is closed and
 has no field for it. **PoC choice.** Variants carry `integrity` (variants allow extra
 properties); a verified transcode statement makes the receiver display `derivative-bound`.
+
+**v0.7 disposition.** Adopt-with-change. The PoC's per-variant `integrity` is a workaround
+for a closed schema; v0.7 adds a **record-level** `integrity` field to `publish` (string,
+registry `dsip-integrity-mode`, initial values `metadata-only`, `derivative-bound`) with an
+optional per-variant override. Vectors change first: `broadcast/publication-valid-metadata-only`
+and `broadcast/provenance-derivative-bound` move the field up a level; `generate_schemas.py`
+gains the property; receivers treat an absent field as `metadata-only`.
 
 ## 21. §22.3 — how provenance statements reach receivers
 
@@ -238,6 +327,46 @@ to the publisher's authority, which attaches processors to the record and lists 
 `broadcast/provenance-*`, `state/broadcast-authority-provenance`.
 
 ---
+
+**v0.7 disposition.** Adopt the carriage (processor → authority → `notify.body.provenance`)
+and promote the statement to a spec message: `provenance` joins §22.3 with the PoC's impl-local
+schema as its normative schema (`broadcast-provenance/1.0` stops being an extension id). Direct
+receiver ↔ processor fetch remains permitted as an alternative path; either way the statement is
+verified against the processor's identity and the publication's `policy` (§16.4). Vector change:
+the `broadcast/provenance-*` vectors drop the extension declaration from `dsip.extensions`.
+
+## 22. §7.5 — key rotation has requirements but no wire format
+
+**Gap.** §7.5 says the protocol "defines, at minimum" a previous key, new key, rotation
+timestamp, signature by the previous key (or a recovery signature), revocation reason, device
+list update, and replay protection — but no message, record, or schema carries these, and no
+section says how a verifier learns of a rotation. §7.6 (recovery models) is explicitly
+deployment-specific and §7.7 (transparency) is optional, so nothing else fills the hole.
+
+**Choices considered.** (a) Define a DSIP `KeyRotation` record (DSIP-JOSE envelope signed by
+the previous key when available, else by a recovery key; carries the fields §7.5 lists; ULID +
+`issued_at` give replay protection) and have DID methods / transparency logs publish it.
+(b) Delegate rotation entirely to the DID method: the DID document *is* the rotation state
+(§8.1 rule 4), and §7.5's list becomes guidance for what a method's update must capture.
+(c) Both: the DID document is authoritative for verification (as today), and the record is the
+audit artifact that §7.7 logs and that clients display as trust metadata.
+
+**PoC choice.** The verifier-observable consequences only, derived from §8.1 + §7.4: after a
+`did:web` document replaces `#key-1` with `#key-2`, signatures under the new kid verify, the
+retired kid is `kid-unresolvable`, a delegation re-issued by the new key admits the device, and
+a delegation signed by the retired key is `delegation-invalid`. No rotation record exists in
+the PoC. Vectors: `envelope/rotated-did-web-new-key-signs`,
+`envelope/rotated-did-web-retired-kid-rejected`, `envelope/rotated-did-web-new-key-delegation`,
+`envelope/rotated-did-web-old-key-delegation-rejected`.
+
+**Suggested fix.** (c). Keep the DID document authoritative — the vectors above then stand
+unchanged — and define the record as the §7.5 artifact with a schema, so §7.7 has something to
+log and clients have something to show. State explicitly that `did:key` identities cannot rotate
+(the DID is the key) and that rotation for them means a new identity plus a signed
+`identity.moved` pointer.
+
+**v0.7 disposition.** **Decision required** between (b) and (c); the PoC vectors are
+compatible with either. Recommendation: (c).
 
 ## Already-flagged (schema README / plan §11)
 

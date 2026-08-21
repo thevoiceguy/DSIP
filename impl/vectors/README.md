@@ -53,7 +53,8 @@ All vectors share the fixture set in `fixtures.json` (also generated):
   vectors carry only public material. `did:key` identifiers are the multicodec
   `ed25519-pub` (0xed01) form, base58btc, `z6Mk…`.
 - **Identities:** `alice` and `bob` are identity controllers with delegated
-  devices `alice-phone`, `alice-laptop`, `bob-phone`, `bob-laptop`. `relay` is
+  devices `alice-phone`, `alice-laptop`, `bob-phone`, `bob-laptop`. `bob-next` is
+  the key bob's `did:web` identity rotates to (§7.5 vectors). `relay` is
   a relay identity. `carol` is an unknown first-contact identity. `mallory`
   holds a key with no delegation from anyone.
 - **`did:web` documents** for `did:web:example.com:users:bob` and
@@ -360,6 +361,7 @@ Each item has a matching `spec-gap` issue draft in `impl/docs/spec-gaps.md`.
 19. §9.3: presence derives from device bindings at the authority; targets never seen get the uniform reject.
 20. §22.2: integrity mode is advertised per variant (`integrity`), the closed `publish` schema has no record-level field.
 21. §22.3: provenance statements reach subscribers in `notify.body.provenance`; carriage is otherwise unspecified.
+22. §7.5: rotation has no wire record; vectors pin only what a verifier observes through the rotated DID document (`envelope/rotated-did-web-*`).
 
 Emission ordering convention for state traces: timer stops → sends → media →
 ui → timer starts. A session ending emits `media stop` (when media was running)

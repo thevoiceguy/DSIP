@@ -49,6 +49,11 @@
       "did": "did:key:z6MkrQ4CKj5x3MGbqmYBbfSXyh865wpvDStxi3HeGvfyJw8H",
       "kid": "did:key:z6MkrQ4CKj5x3MGbqmYBbfSXyh865wpvDStxi3HeGvfyJw8H#z6MkrQ4CKj5x3MGbqmYBbfSXyh865wpvDStxi3HeGvfyJw8H",
       "public_key_multibase": "z6MkrQ4CKj5x3MGbqmYBbfSXyh865wpvDStxi3HeGvfyJw8H"
+    },
+    "bob-next": {
+      "did": "did:key:z6MkvpYhpe9AJ3vBFWyeVfKF6P6egBxVyHZQkCoeuKsEzeS1",
+      "kid": "did:key:z6MkvpYhpe9AJ3vBFWyeVfKF6P6egBxVyHZQkCoeuKsEzeS1#z6MkvpYhpe9AJ3vBFWyeVfKF6P6egBxVyHZQkCoeuKsEzeS1",
+      "public_key_multibase": "z6MkvpYhpe9AJ3vBFWyeVfKF6P6egBxVyHZQkCoeuKsEzeS1"
     }
   },
   "web_identities": {

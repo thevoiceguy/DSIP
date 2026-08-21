@@ -109,6 +109,31 @@ def vectors() -> list[dict]:
                           signed({**inv, "from": BOB, "to": ALICE}, "bob-laptop"), reject("delegation-invalid"),
                           ctx=default_context(delegations=[F.make_delegation(F.KEYS["bob-phone"], BOB, BLA)])))
 
+    # --- key rotation (§7.5): the DID document after rotation is what a verifier sees (§8.1)
+    rotated_docs = {**F.did_documents(), F.BOB_WEB: F.did_web_document_rotated(F.BOB_WEB, "bob-next")}
+    new_kid = f"{F.BOB_WEB}#key-2"
+    prog_web = session_msg("progress", "prog", inv["id"], F.BOB_WEB, APH, NOW + 1, status="ringing")
+    new_dlg = F.make_delegation(F.KEYS["bob-next"], F.BOB_WEB, BPH, signer_kid=new_kid)
+    old_dlg = F.make_delegation(F.KEYS["bob"], F.BOB_WEB, BPH, signer_kid=F.web_kid(F.BOB_WEB))
+    out.append(env_vector("rotated-did-web-new-key-signs",
+                          "bob's did:web identity rotated key-1 → key-2 (§7.5); the identity signs directly under the new kid.",
+                          ["§7.5", "§8.1", "§10.2"], signed(prog_web, "bob-next", kid=new_kid),
+                          accept(type="progress", signer=F.BOB_WEB, identity=F.BOB_WEB, effective={"status": "ringing"}),
+                          ctx=default_context(did_documents=rotated_docs)))
+    out.append(env_vector("rotated-did-web-retired-kid-rejected",
+                          "After rotation the retired fragment #key-1 names no verification method; a signature under it cannot be verified.",
+                          ["§7.5", "§8.1"], signed(prog_web, "bob", kid=F.web_kid(F.BOB_WEB)), reject("kid-unresolvable"),
+                          ctx=default_context(did_documents=rotated_docs)))
+    out.append(env_vector("rotated-did-web-new-key-delegation",
+                          "Device delegation re-issued by the rotated identity key (#key-2) admits bob-phone for the did:web identity.",
+                          ["§7.5", "§7.4"], signed(prog_web, "bob-phone"),
+                          accept(type="progress", signer=BPH, identity=F.BOB_WEB, effective={"status": "ringing"}),
+                          ctx=default_context(did_documents=rotated_docs, delegations=[new_dlg])))
+    out.append(env_vector("rotated-did-web-old-key-delegation-rejected",
+                          "A delegation signed by the retired key-1 is invalid once the document no longer lists it — rotation revokes the device list (§7.5).",
+                          ["§7.5", "§7.4"], signed(prog_web, "bob-phone"), reject("delegation-invalid"),
+                          ctx=default_context(did_documents=rotated_docs, delegations=[old_dlg])))
+
     # --- hello on_behalf_of (check 3)
     h = hello_client(on_behalf_of=F.BOB_WEB)
     out.append(env_vector("hello-on-behalf-of-valid", "bob-phone hello on behalf of bob's did:web identity with a valid delegation.",

@@ -9,7 +9,7 @@ from . import envelope as env
 NOW = 1760000000  # receiver clock used by default
 
 NAMES = ["alice", "alice-phone", "alice-laptop", "bob", "bob-phone", "bob-laptop",
-         "relay", "carol", "carol-phone", "mallory"]
+         "relay", "carol", "carol-phone", "mallory", "bob-next"]
 
 KEYS: dict[str, KeyPair] = {n: keypair_from_seed_name(n) for n in NAMES}
 
@@ -65,6 +65,23 @@ def did_web_document(web_did: str, signaling_uri: str = "wss://relay.example.com
 
 def did_documents() -> dict[str, dict]:
     return {d: did_web_document(d) for d in WEB_IDENTITIES}
+
+
+def did_web_document_rotated(web_did: str, new_name: str, new_frag: str = "key-2") -> dict:
+    """The same did:web identity after key rotation (spec §7.5): the previous verification
+    method is gone and a new one under a new fragment is in its place. DSIP has no rotation
+    record on the wire in v0.6 (spec-gap 22); what a verifier observes is the DID document
+    state, which is authoritative (§8.1)."""
+    doc = did_web_document(web_did)
+    doc["verificationMethod"] = [{
+        "id": f"{web_did}#{new_frag}",
+        "type": "Multikey",
+        "controller": web_did,
+        "publicKeyMultibase": multibase_pub(new_name),
+    }]
+    doc["authentication"] = [f"{web_did}#{new_frag}"]
+    doc["assertionMethod"] = [f"{web_did}#{new_frag}"]
+    return doc
 
 
 # ---------------------------------------------------------------- delegations (§7.4)

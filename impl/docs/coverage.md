@@ -10,10 +10,10 @@ unpinned; a section with vectors but no modules is pinned but unimplemented.
 | §7 | dsip-media/lib.rs | — |
 | §7.2 | dsip-cli/main.rs, dsip-core/did.rs, dsip-core/keys.rs, dsip-core/lib.rs, dsip-relay/main.rs, dsip-transport/lib.rs, dsip-transport/resolver.rs | 2 vector(s): envelope/delegated-did-web-identity, envelope/kid-did-key-wrong-fragment |
 | §7.3 | dsip-core/keys.rs, dsip-transport/identity.rs | — |
-| §7.4 | dsip-cli/main.rs, dsip-core/delegation.rs, dsip-core/envelope.rs, dsip-core/lib.rs, dsip-dht/lib.rs, dsip-dht/record.rs, dsip-endpoint/core.rs, dsip-session/endpoint.rs, dsip-transport/identity.rs, dsip-wasm/lib.rs | 16 vector(s): broadcast/provenance-unsigned-by-processor, broadcast/publication-delegated-device, dht/non-delegated-signer, dht/valid-delegated-device, envelope/delegated-device-signs-for-identity, envelope/delegated-did-web-identity … |
-| §7.5 | dsip-core/keys.rs | — |
+| §7.4 | dsip-cli/main.rs, dsip-core/delegation.rs, dsip-core/envelope.rs, dsip-core/lib.rs, dsip-dht/lib.rs, dsip-dht/record.rs, dsip-endpoint/core.rs, dsip-session/endpoint.rs, dsip-transport/identity.rs, dsip-wasm/lib.rs | 18 vector(s): broadcast/provenance-unsigned-by-processor, broadcast/publication-delegated-device, dht/non-delegated-signer, dht/valid-delegated-device, envelope/delegated-device-signs-for-identity, envelope/delegated-did-web-identity … |
+| §7.5 | dsip-core/delegation.rs, dsip-core/did.rs, dsip-core/keys.rs | 4 vector(s): envelope/rotated-did-web-new-key-delegation, envelope/rotated-did-web-new-key-signs, envelope/rotated-did-web-old-key-delegation-rejected, envelope/rotated-did-web-retired-kid-rejected |
 | §7.6 | dsip-core/keys.rs | — |
-| §8.1 | dsip-broadcast/receiver.rs, dsip-cli/console.rs, dsip-cli/hints.rs, dsip-cli/main.rs, dsip-core/did.rs, dsip-core/envelope.rs, dsip-core/lib.rs, dsip-dht/lib.rs, dsip-transport/lib.rs, dsip-transport/resolver.rs | 4 vector(s): broadcast/publication-publisher-mismatch, envelope/hello-relay-did-web, envelope/kid-unknown-did-web, state/broadcast-authority-publisher-binding |
+| §8.1 | dsip-broadcast/receiver.rs, dsip-cli/console.rs, dsip-cli/hints.rs, dsip-cli/main.rs, dsip-core/did.rs, dsip-core/envelope.rs, dsip-core/lib.rs, dsip-dht/lib.rs, dsip-transport/lib.rs, dsip-transport/resolver.rs | 6 vector(s): broadcast/publication-publisher-mismatch, envelope/hello-relay-did-web, envelope/kid-unknown-did-web, envelope/rotated-did-web-new-key-signs, envelope/rotated-did-web-retired-kid-rejected, state/broadcast-authority-publisher-binding |
 | §8.3 | dsip-broadcast/authority.rs, dsip-cli/console.rs, dsip-cli/hints.rs, dsip-dht/lib.rs, dsip-dht/node.rs, dsip-dht/record.rs | 14 vector(s): dht/existing-expired-ignored, dht/expired-record, dht/non-delegated-signer, dht/same-record-duplicate, dht/same-seq-live-conflict, dht/schema-missing-seq … |
 | §8.4 | dsip-cli/main.rs, dsip-transport/resolver.rs | — |
 | §8.5 | dsip-cli/hints.rs, dsip-cli/main.rs, dsip-dht/bin/dsip-dht-node.rs, dsip-dht/lib.rs, dsip-dht/node.rs, dsip-dht/record.rs | 1 vector(s): dht/valid-self-signed-did-key |
@@ -21,7 +21,7 @@ unpinned; a section with vectors but no modules is pinned but unimplemented.
 | §9.3 | dsip-broadcast/authority.rs, dsip-broadcast/lib.rs, dsip-broadcast/subscriber.rs, dsip-cli/broadcast_cli.rs, dsip-cli/main.rs, dsip-core/registry.rs, dsip-endpoint/core.rs, dsip-relay/main.rs, dsip-schema/lib.rs, dsip-schema/semantic.rs | 19 vector(s): payload/notify-bad-state, payload/notify-initial, payload/notify-seq-zero, payload/notify-terminated, payload/subscribe-no-events, payload/subscribe-over-schema-ceiling … |
 | §9.4 | dsip-cli/broadcast_cli.rs | — |
 | §10 | dsip-dht/lib.rs, dsip-schema/embedded.rs | — |
-| §10.2 | dsip-core/b64.rs, dsip-core/delegation.rs, dsip-core/did.rs, dsip-core/envelope.rs, dsip-core/keys.rs, dsip-core/lib.rs, dsip-dht/bin/dsip-dht-node.rs, dsip-endpoint/lib.rs, dsip-endpoint/verify.rs, dsip-relay/main.rs | 13 vector(s): envelope/alg-es256-rejected, envelope/alg-none-rejected, envelope/delegated-device-signs-for-identity, envelope/envelope-bad-base64url, envelope/envelope-extra-member, envelope/header-missing-kid … |
+| §10.2 | dsip-core/b64.rs, dsip-core/delegation.rs, dsip-core/did.rs, dsip-core/envelope.rs, dsip-core/keys.rs, dsip-core/lib.rs, dsip-dht/bin/dsip-dht-node.rs, dsip-endpoint/lib.rs, dsip-endpoint/verify.rs, dsip-relay/main.rs | 14 vector(s): envelope/alg-es256-rejected, envelope/alg-none-rejected, envelope/delegated-device-signs-for-identity, envelope/envelope-bad-base64url, envelope/envelope-extra-member, envelope/header-missing-kid … |
 | §10.3 | dsip-core/lib.rs, dsip-core/ulid.rs, dsip-core/wire.rs, dsip-dht/node.rs, dsip-schema/embedded.rs, dsip-schema/lib.rs, dsip-schema/validate.rs | 9 vector(s): envelope/payload-float-nested, envelope/payload-float-timestamp, envelope/payload-json-array, envelope/payload-missing-core-fields, envelope/payload-not-json, envelope/payload-not-utf8 … |
 | §10.4 | dsip-cli/hints.rs | — |
 | §11 | dsip-core/envelope.rs, dsip-core/lib.rs, dsip-dht/record.rs, dsip-schema/lib.rs, dsip-schema/semantic.rs | — |
@@ -50,10 +50,10 @@ unpinned; a section with vectors but no modules is pinned but unimplemented.
 | §14.4 | dsip-cli/console.rs, dsip-endpoint/core.rs, dsip-endpoint/lib.rs, dsip-media/leg.rs, dsip-media/lib.rs, dsip-media/source.rs, dsip-session/endpoint.rs, dsip-session/event.rs, dsip-session/lib.rs | 5 vector(s): payload/answer-screening, payload/update-valid-escalation, state/screening-declined-with-bye, state/screening-initiator, state/screening-responder |
 | §15 | dsip-cli/console.rs, dsip-core/verdict.rs, dsip-schema/lib.rs | — |
 | §15.1 | dsip-core/lib.rs, dsip-core/registry.rs, dsip-schema/semantic.rs | 3 vector(s): payload/reject-flat-token, semantic/reason-unknown-category, semantic/reason-unknown-condition-known-category |
-| §15.2 | — | 5 vector(s): payload/cancel-detail-too-long, payload/error-missing-reason, payload/reject-missing-reason, payload/reject-valid, payload/reject-with-detail-retry |
+| §15.2 | dsip-schema/validate.rs | 5 vector(s): payload/cancel-detail-too-long, payload/error-missing-reason, payload/reject-missing-reason, payload/reject-valid, payload/reject-with-detail-retry |
 | §15.3 | dsip-core/registry.rs | 1 vector(s): semantic/reason-unknown-condition-known-category |
 | §15.4 | dsip-core/lib.rs, dsip-core/registry.rs | 5 vector(s): payload/error-transport-scoped, semantic/bye-reason-registered, semantic/error-reason-registered, semantic/reason-not-valid-on-type, semantic/reason-registered |
-| §15.6 | — | 1 vector(s): payload/reject-extension-namespace |
+| §15.6 | dsip-core/registry.rs | 1 vector(s): payload/reject-extension-namespace |
 | §16.2 | dsip-endpoint/core.rs, dsip-endpoint/lib.rs | 2 vector(s): payload/invite-bad-direction, payload/invite-codec-bare-string |
 | §16.3 | dsip-cli/console.rs, dsip-endpoint/core.rs, dsip-endpoint/lib.rs, dsip-media/lib.rs, dsip-transport/agent.rs | — |
 | §16.4 | dsip-broadcast/lib.rs, dsip-broadcast/receiver.rs | 2 vector(s): broadcast/provenance-policy-transcoding-forbidden, payload/invite-policy-bad-value |
