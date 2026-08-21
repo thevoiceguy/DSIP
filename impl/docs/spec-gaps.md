@@ -8,6 +8,8 @@ resolves differently, the vector changes first, then the code.
 
 ## v0.7 worklist (dispositions)
 
+**Status (2026-08-21):** every disposition below is transcribed into `v0.7/dsip_v_0_7_decentralized_session_initiation_protocol.md` (changelog Appendix A.4) and pinned by the 298-vector v0.7 suite.
+
 Status of every gap as input to the v0.7 assembly. *Disposition* is what v0.7 should say;
 for gaps 1–13 it is the **Suggested fix** already recorded under each entry. Gaps 14–22
 carry an explicit **v0.7 disposition** paragraph (added 2026-08-21). "adopt" = make the PoC
