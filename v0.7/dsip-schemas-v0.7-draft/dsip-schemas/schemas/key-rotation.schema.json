@@ -1,0 +1,243 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dsip.org/schema/1.0/key-rotation.schema.json",
+  "title": "DSIP key-rotation payload",
+  "description": "Key rotation record (spec 7.5): the artifact an identity publishes when a verification key changes. Signed by the key being retired, or by a recovery key of the subject when that key is lost (recovery: true). The DID document stays authoritative for verification (spec 8.1); this record is what transparency logs (7.7) keep and clients show as trust metadata.",
+  "type": "object",
+  "properties": {
+    "dsip": {
+      "$ref": "#/$defs/versionBlock"
+    },
+    "type": {
+      "const": "key-rotation"
+    },
+    "id": {
+      "$ref": "#/$defs/ulid"
+    },
+    "from": {
+      "$ref": "#/$defs/did"
+    },
+    "issued_at": {
+      "$ref": "#/$defs/timestamp"
+    },
+    "expires_at": {
+      "$ref": "#/$defs/timestamp"
+    },
+    "subject": {
+      "$ref": "#/$defs/did"
+    },
+    "previous": {
+      "type": "string",
+      "pattern": "^did:[a-z0-9]+:[A-Za-z0-9.%_:-]+#[A-Za-z0-9._-]+$",
+      "description": "Verification method id being retired."
+    },
+    "next": {
+      "type": "string",
+      "pattern": "^did:[a-z0-9]+:[A-Za-z0-9.%_:-]+#[A-Za-z0-9._-]+$",
+      "description": "Verification method id that replaces it."
+    },
+    "next_public_key_multibase": {
+      "type": "string",
+      "pattern": "^z[1-9A-HJ-NP-Za-km-z]+$",
+      "description": "Public key of next, so the record is self-contained for logs and caches."
+    },
+    "reason": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$",
+      "description": "Registry dsip-rotation-reason: scheduled, compromised, lost, policy."
+    },
+    "recovery": {
+      "type": "boolean",
+      "description": "True when the record is signed by a recovery key rather than by previous."
+    },
+    "devices": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/did"
+      },
+      "description": "Device DIDs whose delegations are re-issued under next (the device-list update of 7.5)."
+    }
+  },
+  "required": [
+    "dsip",
+    "type",
+    "id",
+    "from",
+    "issued_at",
+    "expires_at",
+    "subject",
+    "previous",
+    "next",
+    "next_public_key_multibase",
+    "reason"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "ulid": {
+      "type": "string",
+      "pattern": "^[0-7][0-9A-HJKMNP-TV-Z]{25}$",
+      "description": "ULID (Crockford base32, 26 chars). Note: illustrative ids in spec prose (e.g. 01HZINVITEABC) are NOT valid ULIDs; conformant messages and test vectors use real ULIDs."
+    },
+    "did": {
+      "type": "string",
+      "pattern": "^did:[a-z0-9]+:[A-Za-z0-9.%_:-]+$",
+      "description": "Decentralized Identifier (DID Core syntax, method-specific validation out of scope here)."
+    },
+    "timestamp": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Integer Unix timestamp, seconds (payload rules, spec 11.3: no floating point)."
+    },
+    "versionToken": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+$"
+    },
+    "profileId": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*/\\d+\\.\\d+$",
+      "description": "Registered profile or extension identifier with version, e.g. interactive-media/1.0"
+    },
+    "versionBlock": {
+      "type": "object",
+      "properties": {
+        "core": {
+          "$ref": "#/$defs/versionToken"
+        },
+        "min_core": {
+          "$ref": "#/$defs/versionToken"
+        },
+        "profiles": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/profileId"
+          }
+        },
+        "extensions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/profileId"
+          }
+        },
+        "critical": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/profileId"
+          }
+        }
+      },
+      "required": [
+        "core",
+        "min_core",
+        "profiles",
+        "extensions",
+        "critical"
+      ],
+      "additionalProperties": false
+    },
+    "reasonToken": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*\\.[a-z][a-z0-9-]*$",
+      "description": "Namespaced reason token, category.condition (spec 13C). Registry membership is a semantic check, not a schema check; unknown conditions fall back per category."
+    },
+    "codecId": {
+      "type": "string",
+      "pattern": "^codec:(audio|video|text|application)/[a-z0-9.+-]+$"
+    },
+    "codec": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/codecId"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": true,
+      "description": "Codec descriptor. Normative form is an object with registered id plus codec-specific parameters (resolves the 14.2/15.3 draft inconsistency in favor of 14.2 objects)."
+    },
+    "transportId": {
+      "type": "string",
+      "pattern": "^transport:[a-z0-9-]+$"
+    },
+    "transportDescriptor": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/transportId"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": true
+    },
+    "mediaDescriptor": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "enum": [
+            "audio",
+            "video",
+            "text",
+            "application"
+          ]
+        },
+        "purpose": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$",
+          "description": "Registered media purpose, e.g. sign-language, caption (spec 20)."
+        },
+        "direction": {
+          "enum": [
+            "sendrecv",
+            "sendonly",
+            "recvonly",
+            "inactive"
+          ]
+        },
+        "codecs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/codec"
+          }
+        }
+      },
+      "required": [
+        "type",
+        "direction",
+        "codecs"
+      ],
+      "additionalProperties": true
+    },
+    "policy": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9_]*$"
+      },
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9-]*$"
+      },
+      "description": "Registered policy keys to registered policy values (spec 14.4). Registry membership is a semantic check."
+    },
+    "identityInfo": {
+      "type": "object",
+      "properties": {
+        "display_name": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "claims": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "description": "Unverified-by-default identity presentation; claims carry VC presentations (spec 17). Display fields are claims, not truth."
+    }
+  }
+}
