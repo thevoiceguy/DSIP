@@ -1,4 +1,4 @@
-"""dsipvec — Python reference semantics for the DSIP v0.6 conformance vectors.
+"""dsipvec — Python reference semantics for the DSIP v0.7 conformance vectors.
 
 This package is the *Python side* of the Rust/Python parity contract described
 in `impl/docs/dsip_poc_dev_plan.md` §5. It contains:

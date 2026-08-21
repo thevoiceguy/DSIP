@@ -1,0 +1,40 @@
+{
+  "vector": "payload/key-rotation-missing-next-key",
+  "format": 1,
+  "kind": "payload",
+  "description": "next_public_key_multibase is required.",
+  "spec_ref": [
+    "§7.5"
+  ],
+  "context": {},
+  "input": {
+    "schema": "key-rotation",
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "interactive-media/1.0"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "key-rotation",
+      "id": "01K742SG00DKPPG54WBSRT3BMW",
+      "from": "did:web:example.com:users:bob",
+      "subject": "did:web:example.com:users:bob",
+      "previous": "did:web:example.com:users:bob#key-1",
+      "next": "did:web:example.com:users:bob#key-2",
+      "reason": "scheduled",
+      "devices": [
+        "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+      ],
+      "issued_at": 1760000000,
+      "expires_at": 1760086400
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "schema-invalid"
+  }
+}

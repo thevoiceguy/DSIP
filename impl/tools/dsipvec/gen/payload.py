@@ -10,7 +10,7 @@ from .common import (NOW, invite, hello_client, hello_relay, session_msg, vector
 APH, BPH = F.did("alice-phone"), F.did("bob-phone")
 V = F.VERSION
 BCAST_V = {"core": "1.0", "min_core": "1.0", "profiles": ["verified-broadcast/1.0"],
-           "extensions": ["broadcast-provenance/1.0"], "critical": []}
+           "extensions": [], "critical": []}
 
 
 def pv(vid, schema, desc, refs, payload, ok=True):
@@ -108,6 +108,13 @@ def vectors() -> list[dict]:
     out.append(pv("info-valid-ice", "info", "info carrying trickle ICE candidates.", ["§12.12"], info))
     out.append(pv("info-missing-data", "info", "data is required.", ["§12.12"], {k: v for k, v in info.items() if k != "data"}, ok=False))
     out.append(pv("info-bad-about", "info", "about must be namespace:value.", ["§12.12"], {**info, "about": "webrtc"}, ok=False))
+    # WebRTC Media Binding, Appendix A (v0.7, spec-gap 16): info.data is validated for about = transport:webrtc
+    out.append(pv("info-webrtc-missing-mid", "info", "A webrtc candidate without sdp_mid fails the binding's data schema.", ["§12.12", "§16.3"],
+                  {**info, "data": {"candidates": [{"candidate": "candidate:1 1 udp 1 203.0.113.7 61481 typ srflx"}], "end_of_candidates": False}}, ok=False))
+    out.append(pv("info-webrtc-end-only", "info", "An empty batch with end_of_candidates true is the end-of-gathering marker.", ["§12.12"],
+                  {**info, "data": {"candidates": [], "end_of_candidates": True}}))
+    out.append(pv("info-other-about-data-unchecked", "info", "data for an about the receiver does not implement is not validated (unknown about is ignored, never rejected).", ["§12.12"],
+                  {**info, "about": "transport:other", "data": {"anything": 1}}))
 
     # error
     err = {"dsip": F.VERSION_TRANSPORT, "type": "error", "id": uid("err"), "from": F.RELAY_WEB, "to": APH,
@@ -178,6 +185,22 @@ def vectors() -> list[dict]:
     out.append(pv("unpublish-valid", "unpublish", "Withdraw a publication.", ["§22.1"], unp))
     out.append(pv("unpublish-missing-publication", "unpublish", "publication id is required.", ["§22.1"],
                   {k: v for k, v in unp.items() if k != "publication"}, ok=False))
+    out.append(pv("publish-integrity-declared", "publish", "Record-level integrity mode (v0.7).", ["§22.2"], {**pub, "integrity": "derivative-bound"}))
+    out.append(pv("publish-integrity-bad-shape", "publish", "integrity must be a token.", ["§22.2"], {**pub, "integrity": "Metadata Only"}, ok=False))
+    prov = {"dsip": BCAST_V, "type": "provenance", "id": uid("prov"), "from": "did:web:cdn.example",
+            "original_stream": pub["stream_id"], "original_publication": pub["id"], "processor": "did:web:cdn.example",
+            "operation": "transcode", "input_variant": "main-opus", "output_variant": "main-aac-hls",
+            "output_uri": "https://cdn.example/wxyz/main.m3u8", "issued_at": NOW + 100, "expires_at": NOW + 3700}
+    out.append(pv("provenance-valid", "provenance", "Processor statement (core message in v0.7, §22.3).", ["§22.3"], prov))
+    out.append(pv("provenance-missing-output-variant", "provenance", "output_variant is required.", ["§22.3"],
+                  {k: v for k, v in prov.items() if k != "output_variant"}, ok=False))
+    rot = {"dsip": V, "type": "key-rotation", "id": uid("rot"), "from": F.BOB_WEB, "subject": F.BOB_WEB,
+           "previous": F.web_kid(F.BOB_WEB), "next": f"{F.BOB_WEB}#key-2", "next_public_key_multibase": F.multibase_pub("bob-next"),
+           "reason": "scheduled", "devices": [BPH], "issued_at": NOW, "expires_at": NOW + 86400}
+    out.append(pv("key-rotation-valid", "key-rotation", "Rotation record signed by the retiring key (§7.5, v0.7).", ["§7.5"], rot))
+    out.append(pv("key-rotation-bad-reason-token", "key-rotation", "reason must be a token.", ["§7.5"], {**rot, "reason": "Scheduled!"}, ok=False))
+    out.append(pv("key-rotation-missing-next-key", "key-rotation", "next_public_key_multibase is required.", ["§7.5"],
+                  {k: v for k, v in rot.items() if k != "next_public_key_multibase"}, ok=False))
 
     # envelope schema (shape only)
     from .common import signed

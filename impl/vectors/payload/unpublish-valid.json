@@ -16,9 +16,7 @@
         "profiles": [
           "verified-broadcast/1.0"
         ],
-        "extensions": [
-          "broadcast-provenance/1.0"
-        ],
+        "extensions": [],
         "critical": []
       },
       "type": "unpublish",

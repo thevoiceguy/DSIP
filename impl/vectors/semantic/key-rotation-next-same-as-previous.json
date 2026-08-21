@@ -1,0 +1,51 @@
+{
+  "vector": "semantic/key-rotation-next-same-as-previous",
+  "format": 1,
+  "kind": "semantic",
+  "description": "next MUST differ from previous.",
+  "spec_ref": [
+    "§7.5"
+  ],
+  "context": {
+    "now": 1760000000,
+    "supported": {
+      "core": "1.0",
+      "profiles": [
+        "interactive-media/1.0",
+        "verified-broadcast/1.0"
+      ],
+      "extensions": []
+    },
+    "signer_kid": "did:web:example.com:users:bob#key-1"
+  },
+  "input": {
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "interactive-media/1.0"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "key-rotation",
+      "id": "01K742SG00DKPPG54WBSRT3BMW",
+      "from": "did:web:example.com:users:bob",
+      "subject": "did:web:example.com:users:bob",
+      "previous": "did:web:example.com:users:bob#key-1",
+      "next": "did:web:example.com:users:bob#key-1",
+      "next_public_key_multibase": "z6MkvpYhpe9AJ3vBFWyeVfKF6P6egBxVyHZQkCoeuKsEzeS1",
+      "reason": "scheduled",
+      "devices": [
+        "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+      ],
+      "issued_at": 1760000000,
+      "expires_at": 1760086400
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "rotation-next-same-as-previous"
+  }
+}

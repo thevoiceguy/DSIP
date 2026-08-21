@@ -1,6 +1,6 @@
 # DSIP Conformance Test Vectors
 
-**Tracks:** DSIP Draft v0.6 + JSON Schema set v0.6 (draft 2020-12)
+**Tracks:** DSIP Draft v0.7 + JSON Schema set v0.7 (draft 2020-12)
 **Format version:** 1
 
 These vectors are the language-neutral conformance contract for DSIP Core v1.0.
@@ -43,7 +43,7 @@ the `.json` suffix (e.g. `envelope/valid-ed25519`).
 }
 ```
 
-`spec_ref` entries cite v0.6 section numbers. Every vector has at least one.
+`spec_ref` entries cite v0.7 section numbers (unchanged from v0.6 for every section the vectors cite). Every vector has at least one.
 
 ## Fixed fixtures
 
@@ -100,7 +100,10 @@ implementation under test MUST emit that token when it signals the failure.
 | `schema-invalid` | payload fails its JSON Schema | |
 | `unknown-type` | `type` is not a known message type | |
 | `selection-not-subset` | `answer`/`reject` selection not ⊆ referenced offer (check 9) | |
-| `subscription-lifetime-exceeded` | `expires_in` above the per-event cap (presence 3,600) (§9.3) | |
+| `subscription-lifetime-exceeded` | `expires_in` above the per-event cap (presence 3,600) (§9.3) | `policy.subscription-lifetime` on `error` (v0.7) |
+| `rotation-subject-mismatch` | `key-rotation.from` ≠ `subject` (§7.5) | |
+| `rotation-next-same-as-previous` | `key-rotation.next` = `previous` (§7.5) | |
+| `rotation-signer-not-previous` | `key-rotation` signed by a method other than `previous` without `recovery: true` (§7.5; `context.signer_kid`) | |
 | `introduction-too-large` | encoded introduction envelope > 4,096 bytes (§19.4) | |
 | `grant-unknown-introduction` | `grant.session` references no known introduction (§19.4) | |
 | `hello-in-reply-to-mismatch` | relay `hello.in_reply_to` ≠ the client hello id actually sent (§13.2, §20.5) | |
@@ -128,7 +131,11 @@ runs 13 only; `kind: semantic` runs 12–14).
 11b. `hello-required` (transport binding state: `context.hello_verified` is `false` and the type is not `hello`)
 12. `version-unsupported`
 13. `unknown-type` → `schema-invalid`
-14. Stateless semantic checks (`selection-not-subset`, `subscription-lifetime-exceeded`, `introduction-too-large`, `grant-unknown-introduction`, `hello-in-reply-to-mismatch`)
+14. Stateless semantic checks (`selection-not-subset`, `subscription-lifetime-exceeded`, `introduction-too-large`, `grant-unknown-introduction`, `hello-in-reply-to-mismatch`, `rotation-*`)
+
+Stage 13 also validates `info.data` against the binding schema named by `about` when the
+receiver implements that binding (`transport:webrtc` → `webrtc-info-data.schema.json`); an
+unimplemented `about` leaves `data` unchecked (§12.12: ignored, never rejected).
 
 Registry membership (check 5) never rejects a well-formed token. It yields an
 *effective* interpretation, reported on accept:
@@ -173,7 +180,7 @@ Input is a decoded payload plus whatever receiver context the check needs:
 
 ```json
 "context": { "now": …, "supported": {…}, "offer": {"media": [...], "transports": [...]},
-             "known_introductions": [], "sent_hello_id": "…", "encoded_size": 4200 },
+             "known_introductions": [], "sent_hello_id": "…", "encoded_size": 4200, "signer_kid": "did:…#key-1" },
 "input":   { "payload": { ... } },
 "expect":  { "verdict": "accept", "effective": {...}, "warnings": [...] } | { "verdict": "reject", "code": "…", "reason": "…" }
 ```
@@ -310,8 +317,9 @@ Receiver-side verification of a publication record and its provenance (§22).
 Extra codes: `publisher-mismatch` (record `publisher` ≠ verified identity), `stream-id-namespace`
 (`stream_id` not under the publisher DID), and per-statement `provenance-unknown-publication`,
 `provenance-stream-mismatch`, `provenance-processor-mismatch`, `provenance-variant-unknown`.
-Provenance statements use the implementation-local schema `impl/schemas/broadcast-provenance.schema.json`
-(type `broadcast.provenance`, extension `broadcast-provenance/1.0`).
+Provenance statements are the core `provenance` message (v0.7, §22.3; schema `provenance.schema.json`),
+no extension declaration. The record's `integrity` (§22.2) is shown unless a verified transcode statement makes the
+delivered stream `derivative-bound`; a selected variant's own `integrity` overrides the record's; unknown tokens fall back to `metadata-only`.
 
 ### State components `authority` and `subscriber`
 

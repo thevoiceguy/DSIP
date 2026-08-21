@@ -115,9 +115,7 @@
         "interactive-media/1.0",
         "verified-broadcast/1.0"
       ],
-      "extensions": [
-        "broadcast-provenance/1.0"
-      ]
+      "extensions": []
     },
     "existing": {
       "protected": "eyJhbGciOiJFZERTQSIsImtpZCI6ImRpZDprZXk6ejZNa2h6WDlxVGVYQldrdWN5TVZyaWMxRTlKcnFVRDVMUEFrRDJCTmF2YWtBcHRmI3o2TWtoelg5cVRlWEJXa3VjeU1WcmljMUU5SnJxVUQ1TFBBa0QyQk5hdmFrQXB0ZiIsInR5cCI6ImRzaXAranNvbiJ9",

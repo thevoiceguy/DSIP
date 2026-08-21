@@ -50,6 +50,7 @@ REASONS: dict[str, tuple[str, ...]] = {
     "policy.blocked": ("reject", "cancel"),
     "policy.terminated": ("bye",),
     "policy.rate-limited": ("reject", "error"),
+    "policy.subscription-lifetime": ("error",),          # v0.7 (spec-gap 19): expires_in above the §9.3 cap
     "transport.envelope-too-large": ("error",),
     "transport.hello-required": ("error",),
     "transport.hello-rejected": ("error",),
@@ -75,7 +76,16 @@ GRANT_SCOPES = ("dsip.invite", "dsip.subscribe")                # §19.4
 MESSAGE_TYPES = (
     "invite", "progress", "answer", "reject", "cancel", "update", "info", "bye",
     "introduction", "grant", "publish", "subscribe", "notify", "unpublish", "error", "hello",
+    "provenance", "key-rotation", "reachability-hint",   # v0.7: §22.3, §7.5, DHT Hints Profile
 )
+INTEGRITY_MODES = ("metadata-only", "derivative-bound")   # dsip-integrity-mode (§22.2); unknown → metadata-only
+ROTATION_REASONS = ("scheduled", "compromised", "lost", "policy")   # dsip-rotation-reason (§7.5)
+PROVENANCE_OPERATIONS = ("transcode", "relay", "repackage")         # dsip-provenance-operation (§22.3)
+
+
+def effective_integrity(value) -> str:
+    """Registry membership with fallback: an unknown or absent mode is the weaker claim, metadata-only."""
+    return value if value in INTEGRITY_MODES else "metadata-only"
 SESSION_SCOPED = ("progress", "answer", "reject", "cancel", "update", "info", "bye")
 
 

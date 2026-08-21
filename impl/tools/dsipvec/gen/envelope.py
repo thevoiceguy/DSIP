@@ -134,6 +134,14 @@ def vectors() -> list[dict]:
                           ["§7.5", "§7.4"], signed(prog_web, "bob-phone"), reject("delegation-invalid"),
                           ctx=default_context(did_documents=rotated_docs, delegations=[old_dlg])))
 
+    rot = {"dsip": F.VERSION, "type": "key-rotation", "id": uid("rot"), "from": F.BOB_WEB, "subject": F.BOB_WEB,
+           "previous": F.web_kid(F.BOB_WEB), "next": new_kid, "next_public_key_multibase": F.multibase_pub("bob-next"),
+           "reason": "scheduled", "devices": [BPH], "issued_at": NOW, "expires_at": NOW + 86400}
+    out.append(env_vector("key-rotation-signed-by-previous-key",
+                          "A rotation record (v0.7, §7.5) verifies under the pre-rotation document the receiver still holds: the retiring key signs it.",
+                          ["§7.5", "§8.1"], signed(rot, "bob", kid=F.web_kid(F.BOB_WEB)),
+                          accept(type="key-rotation", signer=F.BOB_WEB, identity=F.BOB_WEB)))
+
     # --- hello on_behalf_of (check 3)
     h = hello_client(on_behalf_of=F.BOB_WEB)
     out.append(env_vector("hello-on-behalf-of-valid", "bob-phone hello on behalf of bob's did:web identity with a valid delegation.",

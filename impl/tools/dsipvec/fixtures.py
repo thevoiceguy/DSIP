@@ -22,7 +22,7 @@ VERSION = {"core": "1.0", "min_core": "1.0", "profiles": ["interactive-media/1.0
            "extensions": [], "critical": []}
 VERSION_TRANSPORT = {**VERSION, "profiles": []}
 SUPPORTED = {"core": "1.0", "profiles": ["interactive-media/1.0", "verified-broadcast/1.0"],
-             "extensions": ["broadcast-provenance/1.0"]}
+             "extensions": []}   # v0.7: provenance is a core message (§22.3), no extension id
 
 
 def did(name: str) -> str:

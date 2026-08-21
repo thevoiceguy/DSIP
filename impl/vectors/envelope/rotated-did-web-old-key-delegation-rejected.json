@@ -91,9 +91,7 @@
         "interactive-media/1.0",
         "verified-broadcast/1.0"
       ],
-      "extensions": [
-        "broadcast-provenance/1.0"
-      ]
+      "extensions": []
     }
   },
   "input": {

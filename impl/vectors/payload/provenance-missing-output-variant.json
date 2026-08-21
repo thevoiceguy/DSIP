@@ -1,0 +1,39 @@
+{
+  "vector": "payload/provenance-missing-output-variant",
+  "format": 1,
+  "kind": "payload",
+  "description": "output_variant is required.",
+  "spec_ref": [
+    "§22.3"
+  ],
+  "context": {},
+  "input": {
+    "schema": "provenance",
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "verified-broadcast/1.0"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "provenance",
+      "id": "01K742SG0019KGVWFCB8T6RFH3",
+      "from": "did:web:cdn.example",
+      "original_stream": "did:web:wxyz.com:radio:main",
+      "original_publication": "01K742SG00RBMKNW06WFFBQW9J",
+      "processor": "did:web:cdn.example",
+      "operation": "transcode",
+      "input_variant": "main-opus",
+      "output_uri": "https://cdn.example/wxyz/main.m3u8",
+      "issued_at": 1760000100,
+      "expires_at": 1760003700
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "schema-invalid"
+  }
+}

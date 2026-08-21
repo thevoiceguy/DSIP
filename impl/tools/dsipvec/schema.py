@@ -1,4 +1,4 @@
-"""JSON Schema validation against the canonical v0.6 schema set (spec §10.3).
+"""JSON Schema validation against the canonical v0.7 schema set (spec §10.3).
 
 Schemas are loaded from the spec folder — never copied — so this harness and
 `dsip-schema` (which embeds the same files at build time) validate against one
@@ -15,7 +15,10 @@ from jsonschema import Draft202012Validator
 from .registry import MESSAGE_TYPES
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-SCHEMA_DIR = REPO_ROOT / "v0.6" / "dsip-schemas-v0.6-draft" / "dsip-schemas" / "schemas"
+SCHEMA_DIR = REPO_ROOT / "v0.7" / "dsip-schemas-v0.7-draft" / "dsip-schemas" / "schemas"
+
+# `info.data` shapes by `about` (§12.12): validated for bindings this harness implements, ignored otherwise.
+BINDING_DATA_SCHEMAS = {"transport:webrtc": "webrtc-info-data"}
 
 
 @lru_cache(maxsize=None)
@@ -25,22 +28,15 @@ def validator(name: str) -> Draft202012Validator:
 
 
 def schema_errors(name: str, payload) -> list[str]:
-    v = local_validator(LOCAL_TYPES[name]) if name in LOCAL_TYPES else validator(name)
-    return [e.message for e in v.iter_errors(payload)]
-
-
-IMPL_SCHEMA_DIR = REPO_ROOT / "impl" / "schemas"
-LOCAL_TYPES = {"reachability-hint": "reachability-hint", "broadcast.provenance": "broadcast-provenance"}
-
-
-@lru_cache(maxsize=None)
-def local_validator(name: str) -> Draft202012Validator:
-    return Draft202012Validator(json.loads((IMPL_SCHEMA_DIR / f"{name}.schema.json").read_text()))
+    errs = [e.message for e in validator(name).iter_errors(payload)]
+    if name == "info" and not errs and isinstance(payload, dict):
+        binding = BINDING_DATA_SCHEMAS.get(payload.get("about"))
+        if binding is not None:
+            errs += [f"data: {e.message}" for e in validator(binding).iter_errors(payload.get("data"))]
+    return errs
 
 
 def dispatch_type(payload) -> str | None:
-    """`message.schema.json` dispatch done natively: match on `type` (plus the implementation-local extension types)."""
+    """`message.schema.json` dispatch done natively: match on `type`."""
     t = payload.get("type") if isinstance(payload, dict) else None
-    if t in MESSAGE_TYPES or t in LOCAL_TYPES:
-        return t
-    return None
+    return t if t in MESSAGE_TYPES else None

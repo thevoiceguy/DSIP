@@ -15,9 +15,7 @@
         "interactive-media/1.0",
         "verified-broadcast/1.0"
       ],
-      "extensions": [
-        "broadcast-provenance/1.0"
-      ]
+      "extensions": []
     },
     "sent_hello_id": "01K742SG00DPFDF4D4WBV5F4SE"
   },

@@ -8,28 +8,30 @@ from .common import NOW, signed, default_context, vector, accept, reject, uid
 
 BOB, BPH, CAROL, CPH, ALICE = F.did("bob"), F.did("bob-phone"), F.did("carol"), F.did("carol-phone"), F.did("alice")
 STREAM = BOB + ":radio:main"
-BCAST = {"core": "1.0", "min_core": "1.0", "profiles": ["verified-broadcast/1.0"], "extensions": ["broadcast-provenance/1.0"], "critical": []}
+BCAST = {"core": "1.0", "min_core": "1.0", "profiles": ["verified-broadcast/1.0"], "extensions": [], "critical": []}
 VARIANTS = [
     {"id": "main-opus", "media": ["audio"], "codec": "codec:audio/opus", "transport": "transport:webrtc",
-     "uri": "wss://live.bob.example/dsip/webrtc/main", "integrity": "metadata-only"},
+     "uri": "wss://live.bob.example/dsip/webrtc/main"},
     {"id": "main-aac-hls", "media": ["audio"], "codec": "codec:audio/aac", "transport": "transport:hls",
-     "uri": "https://live.bob.example/main.m3u8", "integrity": "metadata-only"},
+     "uri": "https://live.bob.example/main.m3u8"},
 ]
 CAPS_WEBRTC = {"codecs": ["codec:audio/opus"], "transports": ["transport:webrtc"]}
 CAPS_BOTH = {"codecs": ["codec:audio/opus", "codec:audio/aac"], "transports": ["transport:webrtc", "transport:hls"]}
 CAPS_HLS = {"codecs": ["codec:audio/aac"], "transports": ["transport:hls"]}
 
 
-def publication(label="pub", publisher=BOB, frm=BOB, stream=STREAM, at=NOW, ttl=300, state="live", policy=None, variants=None):
+def publication(label="pub", publisher=BOB, frm=BOB, stream=STREAM, at=NOW, ttl=300, state="live", policy=None, variants=None,
+                integrity="metadata-only"):
     return {"dsip": copy.deepcopy(BCAST), "type": "publish", "id": uid(label, at), "from": frm, "publisher": publisher,
-            "stream_id": stream, "title": "Bob Live Radio", "state": state, "variants": copy.deepcopy(variants or VARIANTS),
+            "stream_id": stream, "title": "Bob Live Radio", "state": state, "integrity": integrity,
+            "variants": copy.deepcopy(variants or VARIANTS),
             "policy": policy if policy is not None else {"redistribution": "allowed-with-attribution", "transcoding": "allowed"},
             "issued_at": at, "expires_at": at + ttl}
 
 
 def provenance(pub_id, label="prov", processor=CAROL, frm=CAROL, stream=STREAM, operation="transcode",
                input_variant="main-opus", output_variant="main-aac-hls", at=NOW + 5):
-    return {"dsip": copy.deepcopy(BCAST), "type": "broadcast.provenance", "id": uid(label, at), "from": frm,
+    return {"dsip": copy.deepcopy(BCAST), "type": "provenance", "id": uid(label, at), "from": frm,
             "original_stream": stream, "original_publication": pub_id, "processor": processor, "operation": operation,
             "input_variant": input_variant, "output_variant": output_variant,
             "output_uri": "https://cdn.carol.example/bob/main.m3u8", "issued_at": at, "expires_at": at + 3600}
@@ -68,6 +70,15 @@ def vectors() -> list[dict]:
     out.append(bv("publication-schema-bad-variant", "Variant without a uri fails the publish schema.", ["§22.1"],
                   signed(publication(variants=[{"id": "x", "media": ["audio"], "codec": "codec:audio/opus", "transport": "transport:webrtc"}]), "bob"),
                   reject("schema-invalid")))
+
+    # §22.2 (v0.7, spec-gap 20): record-level integrity with variant override and registry fallback
+    out.append(bv("publication-integrity-derivative-bound-declared", "The record itself declares derivative-bound; with no statements the receiver shows the declared mode.",
+                  ["§22.2"], signed(publication("pub-db", integrity="derivative-bound"), "bob"), pub_accept("main-opus", integrity="derivative-bound")))
+    out.append(bv("publication-integrity-unknown-mode", "A reserved/unknown integrity token (frame-bound) falls back to metadata-only (registry membership, not a closed enum).",
+                  ["§22.2", "§15.6"], signed(publication("pub-fb", integrity="frame-bound"), "bob"), pub_accept("main-opus", integrity="metadata-only")))
+    vo = copy.deepcopy(VARIANTS); vo[0]["integrity"] = "derivative-bound"
+    out.append(bv("publication-variant-integrity-override", "The selected variant overrides the record-level mode.", ["§22.2"],
+                  signed(publication("pub-vo", variants=vo), "bob"), pub_accept("main-opus", integrity="derivative-bound"), caps=CAPS_WEBRTC))
 
     prov_ok = signed(provenance(pub["id"]), "carol")
     out.append(bv("provenance-derivative-bound", "A transcoder's signed statement references the original record; receiver displays publisher + processor, integrity derivative-bound.",

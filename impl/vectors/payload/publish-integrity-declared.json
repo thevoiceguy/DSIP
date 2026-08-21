@@ -1,0 +1,51 @@
+{
+  "vector": "payload/publish-integrity-declared",
+  "format": 1,
+  "kind": "payload",
+  "description": "Record-level integrity mode (v0.7).",
+  "spec_ref": [
+    "§22.2"
+  ],
+  "context": {},
+  "input": {
+    "schema": "publish",
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "verified-broadcast/1.0"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "publish",
+      "id": "01K742SG00RBMKNW06WFFBQW9J",
+      "from": "did:web:wxyz.com",
+      "publisher": "did:web:wxyz.com",
+      "stream_id": "did:web:wxyz.com:radio:main",
+      "title": "WXYZ Live Radio",
+      "state": "live",
+      "variants": [
+        {
+          "id": "main-opus",
+          "media": [
+            "audio"
+          ],
+          "codec": "codec:audio/opus",
+          "transport": "transport:webrtc",
+          "uri": "wss://live.wxyz.com/dsip/webrtc/main"
+        }
+      ],
+      "policy": {
+        "redistribution": "allowed-with-attribution"
+      },
+      "issued_at": 1760000000,
+      "expires_at": 1760000300,
+      "integrity": "derivative-bound"
+    }
+  },
+  "expect": {
+    "verdict": "accept"
+  }
+}

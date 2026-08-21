@@ -14,8 +14,7 @@ from __future__ import annotations
 from .registry import SUBSCRIPTION_EVENTS, resolve_reason
 
 INTEGRITY_MODES = ("metadata-only", "derivative-bound")           # §22.2 core; others reserved
-PROVENANCE_OPERATIONS = ("transcode", "relay", "repackage")        # Impl (spec-gap 20)
-PROVENANCE_EXTENSION = "broadcast-provenance/1.0"
+PROVENANCE_OPERATIONS = ("transcode", "relay", "repackage")        # dsip-provenance-operation (§22.3, v0.7)
 
 
 def stream_in_namespace(stream_id: str, publisher: str) -> bool:

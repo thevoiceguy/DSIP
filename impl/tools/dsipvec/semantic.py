@@ -6,8 +6,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from .registry import (resolve_reason, effective_answered_by, effective_progress_status,
-                       SUBSCRIPTION_EVENTS, REASON_BEARING_TYPES)
+from .registry import (resolve_reason, effective_answered_by, effective_progress_status, effective_integrity,
+                       SUBSCRIPTION_EVENTS, REASON_BEARING_TYPES, INTEGRITY_MODES)
 from .schema import schema_errors, dispatch_type
 from .verdict import Verdict
 
@@ -97,8 +97,8 @@ def check_semantic(payload: dict, ctx: dict, encoded_size: int | None = None) ->
     if t == "subscribe":
         for ev in payload.get("events", []):
             cap = SUBSCRIPTION_EVENTS.get(ev)
-            if cap is not None and payload["expires_in"] > cap:  # §9.3 hard caps
-                return Verdict.reject("subscription-lifetime-exceeded")
+            if cap is not None and payload["expires_in"] > cap:  # §9.3 hard caps → error policy.subscription-lifetime (v0.7)
+                return Verdict.reject("subscription-lifetime-exceeded", "policy.subscription-lifetime")
     if t == "introduction":
         size = encoded_size if encoded_size is not None else ctx.get("encoded_size")
         if size is not None and size > INTRODUCTION_MAX_BYTES:  # §19.4
@@ -106,6 +106,14 @@ def check_semantic(payload: dict, ctx: dict, encoded_size: int | None = None) ->
     if t == "grant" and isinstance(ctx.get("known_introductions"), list):
         if payload["session"] not in ctx["known_introductions"]:  # §19.4
             return Verdict.reject("grant-unknown-introduction")
+    if t == "key-rotation":  # §7.5 (v0.7, spec-gap 22)
+        if payload["subject"] != payload["from"]:
+            return Verdict.reject("rotation-subject-mismatch")
+        if payload["next"] == payload["previous"]:
+            return Verdict.reject("rotation-next-same-as-previous")
+        signer = ctx.get("signer_kid")
+        if signer is not None and not payload.get("recovery", False) and signer != payload["previous"]:
+            return Verdict.reject("rotation-signer-not-previous")
     return Verdict.accept(**registry_effects(payload))
 
 
@@ -124,6 +132,10 @@ def registry_effects(payload: dict) -> dict:
         eff["answered_by"] = effective_answered_by(payload["answered_by"])
     if t == "progress":
         eff["status"] = effective_progress_status(payload["status"])
+    if t == "publish" and "integrity" in payload:
+        eff["integrity"] = effective_integrity(payload["integrity"])
+        if payload["integrity"] not in INTEGRITY_MODES:
+            warnings.append("integrity-mode-unknown")  # §22.2 registry fallback
     out: dict[str, Any] = {}
     if eff:
         out["effective"] = eff

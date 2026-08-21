@@ -114,11 +114,26 @@ def vectors() -> list[dict]:
            "events": ["presence"], "expires_in": 3600, "issued_at": NOW, "expires_at": NOW + 30}
     out.append(sv("subscribe-presence-at-cap", "Presence subscription at exactly 3,600 s.", ["§9.3"], sub, accept()))
     out.append(sv("subscribe-presence-over-cap", "Presence subscription of 3,601 s exceeds the hard cap.", ["§9.3"],
-                  {**sub, "expires_in": 3601}, reject("subscription-lifetime-exceeded")))
+                  {**sub, "expires_in": 3601}, reject("subscription-lifetime-exceeded", "policy.subscription-lifetime")))
     out.append(sv("subscribe-publication-long-ok", "Publication subscription of 86,400 s is within its cap.", ["§9.3"],
                   {**sub, "events": ["publication"], "expires_in": 86400}, accept()))
     out.append(sv("subscribe-mixed-events-presence-cap-applies", "Mixed events: the tighter presence cap applies.", ["§9.3"],
-                  {**sub, "events": ["publication", "presence"], "expires_in": 7200}, reject("subscription-lifetime-exceeded")))
+                  {**sub, "events": ["publication", "presence"], "expires_in": 7200}, reject("subscription-lifetime-exceeded", "policy.subscription-lifetime")))
+
+    # --- key rotation (§7.5, v0.7, spec-gap 22)
+    k1, k2 = F.web_kid(F.BOB_WEB), f"{F.BOB_WEB}#key-2"
+    rot = {"dsip": F.VERSION, "type": "key-rotation", "id": uid("rot"), "from": F.BOB_WEB, "subject": F.BOB_WEB,
+           "previous": k1, "next": k2, "next_public_key_multibase": F.multibase_pub("bob-next"), "reason": "scheduled",
+           "devices": [F.did("bob-phone")], "issued_at": NOW, "expires_at": NOW + 86400}
+    out.append(sv("key-rotation-signed-by-previous", "The retiring key signs its own rotation record.", ["§7.5"], rot, accept(), ctx={"signer_kid": k1}))
+    out.append(sv("key-rotation-signer-not-previous", "Signed by some other method of the subject without recovery: not a rotation by the retiring key.", ["§7.5"],
+                  rot, reject("rotation-signer-not-previous"), ctx={"signer_kid": f"{F.BOB_WEB}#key-9"}))
+    out.append(sv("key-rotation-recovery-signer", "recovery: true lets a recovery key of the subject sign when previous is lost.", ["§7.5", "§7.6"],
+                  {**rot, "recovery": True, "reason": "lost"}, accept(), ctx={"signer_kid": f"{F.BOB_WEB}#recovery-1"}))
+    out.append(sv("key-rotation-next-same-as-previous", "next MUST differ from previous.", ["§7.5"], {**rot, "next": k1},
+                  reject("rotation-next-same-as-previous"), ctx={"signer_kid": k1}))
+    out.append(sv("key-rotation-subject-mismatch", "from MUST be the subject: only the identity rotates its own keys.", ["§7.5"],
+                  {**rot, "from": F.did("alice")}, reject("rotation-subject-mismatch"), ctx={"signer_kid": k1}))
     ntf = {"dsip": F.VERSION, "type": "notify", "id": uid("ntf"), "from": "did:web:example.com", "to": APH, "subscription": sub["id"],
            "seq": 3, "state": "terminated", "reason": "session.expired", "body": {}, "issued_at": NOW + 1, "expires_at": NOW + 31}
     out.append(sv("notify-terminated-reason", "Terminal notify reason resolves through the registry.", ["§9.3"], ntf,

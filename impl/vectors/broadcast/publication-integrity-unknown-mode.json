@@ -1,0 +1,154 @@
+{
+  "vector": "broadcast/publication-integrity-unknown-mode",
+  "format": 1,
+  "kind": "broadcast",
+  "description": "A reserved/unknown integrity token (frame-bound) falls back to metadata-only (registry membership, not a closed enum).",
+  "spec_ref": [
+    "§22.2",
+    "§15.6"
+  ],
+  "context": {
+    "now": 1760000000,
+    "did_documents": {
+      "did:web:example.com:users:bob": {
+        "@context": [
+          "https://www.w3.org/ns/did/v1",
+          "https://w3id.org/security/multikey/v1"
+        ],
+        "id": "did:web:example.com:users:bob",
+        "verificationMethod": [
+          {
+            "id": "did:web:example.com:users:bob#key-1",
+            "type": "Multikey",
+            "controller": "did:web:example.com:users:bob",
+            "publicKeyMultibase": "z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R"
+          }
+        ],
+        "authentication": [
+          "did:web:example.com:users:bob#key-1"
+        ],
+        "assertionMethod": [
+          "did:web:example.com:users:bob#key-1"
+        ],
+        "service": [
+          {
+            "id": "did:web:example.com:users:bob#dsip-signaling",
+            "type": "DSIPSignaling",
+            "serviceEndpoint": {
+              "uri": "wss://relay.example.com/dsip",
+              "bindings": [
+                "ws/1.0"
+              ]
+            }
+          }
+        ]
+      },
+      "did:web:relay.example.com": {
+        "@context": [
+          "https://www.w3.org/ns/did/v1",
+          "https://w3id.org/security/multikey/v1"
+        ],
+        "id": "did:web:relay.example.com",
+        "verificationMethod": [
+          {
+            "id": "did:web:relay.example.com#key-1",
+            "type": "Multikey",
+            "controller": "did:web:relay.example.com",
+            "publicKeyMultibase": "z6MkoHY5EaJMeCtA8b5zwzWxJYBuGFpTTJDKh1GahNeB3eeE"
+          }
+        ],
+        "authentication": [
+          "did:web:relay.example.com#key-1"
+        ],
+        "assertionMethod": [
+          "did:web:relay.example.com#key-1"
+        ],
+        "service": [
+          {
+            "id": "did:web:relay.example.com#dsip-signaling",
+            "type": "DSIPSignaling",
+            "serviceEndpoint": {
+              "uri": "wss://relay.example.com/dsip",
+              "bindings": [
+                "ws/1.0"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "delegations": [
+      {
+        "protected": "eyJhbGciOiJFZERTQSIsImtpZCI6ImRpZDprZXk6ejZNa2h6WDlxVGVYQldrdWN5TVZyaWMxRTlKcnFVRDVMUEFrRDJCTmF2YWtBcHRmI3o2TWtoelg5cVRlWEJXa3VjeU1WcmljMUU5SnJxVUQ1TFBBa0QyQk5hdmFrQXB0ZiIsInR5cCI6ImRzaXAranNvbiJ9",
+        "payload": "eyJ0eXBlIjoiRGV2aWNlRGVsZWdhdGlvbiIsInN1YmplY3QiOiJkaWQ6a2V5Ono2TWtoelg5cVRlWEJXa3VjeU1WcmljMUU5SnJxVUQ1TFBBa0QyQk5hdmFrQXB0ZiIsImRldmljZSI6ImRpZDprZXk6ejZNa2c5b1JTZzZBUHRyTUpQOGlla1FtOHlQYzlvcmUzRTRTSjViRjdDdzFxRkN1IiwiY2FwYWJpbGl0aWVzIjpbImRzaXAuc2lnbmFsaW5nIiwiZHNpcC5tZWRpYS5pbnRlcmFjdGl2ZSJdLCJpc3N1ZWRfYXQiOjE3NTk5MTM2MDAsImV4cGlyZXNfYXQiOjE3NjI1OTIwMDB9",
+        "signature": "0-p_zTmBnK1NskeuviZZSGjCY8AyvSfNEGavJkO5YYu9N2CQ1yvsS8omAYUcZvLRkj3i0g6guDdgiSPcOb7CBw"
+      },
+      {
+        "protected": "eyJhbGciOiJFZERTQSIsImtpZCI6ImRpZDprZXk6ejZNa2h6WDlxVGVYQldrdWN5TVZyaWMxRTlKcnFVRDVMUEFrRDJCTmF2YWtBcHRmI3o2TWtoelg5cVRlWEJXa3VjeU1WcmljMUU5SnJxVUQ1TFBBa0QyQk5hdmFrQXB0ZiIsInR5cCI6ImRzaXAranNvbiJ9",
+        "payload": "eyJ0eXBlIjoiRGV2aWNlRGVsZWdhdGlvbiIsInN1YmplY3QiOiJkaWQ6a2V5Ono2TWtoelg5cVRlWEJXa3VjeU1WcmljMUU5SnJxVUQ1TFBBa0QyQk5hdmFrQXB0ZiIsImRldmljZSI6ImRpZDprZXk6ejZNa2ZoZW52alE3YXdkcFZXelBhZUJ1UGtYQ0JMd3pKS3lvc0NyVEwzaHVNYjY2IiwiY2FwYWJpbGl0aWVzIjpbImRzaXAuc2lnbmFsaW5nIiwiZHNpcC5tZWRpYS5pbnRlcmFjdGl2ZSJdLCJpc3N1ZWRfYXQiOjE3NTk5MTM2MDAsImV4cGlyZXNfYXQiOjE3NjI1OTIwMDB9",
+        "signature": "EgI4Kr2ZQUD4C-CvTnqqmph05YK9uNu9oKDSxfn5uovveIMl0gimzXTYG27vaicoT7g9HI_fjBdgzt3nCMhKDw"
+      },
+      {
+        "protected": "eyJhbGciOiJFZERTQSIsImtpZCI6ImRpZDprZXk6ejZNa3JnWGdNY1NmcVVRNmJoTUVMMWRocXZQWVU0WWF1ZVk1Nk13OGFlZTlZTjRSI3o2TWtyZ1hnTWNTZnFVUTZiaE1FTDFkaHF2UFlVNFlhdWVZNTZNdzhhZWU5WU40UiIsInR5cCI6ImRzaXAranNvbiJ9",
+        "payload": "eyJ0eXBlIjoiRGV2aWNlRGVsZWdhdGlvbiIsInN1YmplY3QiOiJkaWQ6a2V5Ono2TWtyZ1hnTWNTZnFVUTZiaE1FTDFkaHF2UFlVNFlhdWVZNTZNdzhhZWU5WU40UiIsImRldmljZSI6ImRpZDprZXk6ejZNa3MxMXRqTWVSbkUxSmNlV2h5VDd6RVRvWDR6M0w2QnVLYU0xM1BiVEVkQXBuIiwiY2FwYWJpbGl0aWVzIjpbImRzaXAuc2lnbmFsaW5nIiwiZHNpcC5tZWRpYS5pbnRlcmFjdGl2ZSJdLCJpc3N1ZWRfYXQiOjE3NTk5MTM2MDAsImV4cGlyZXNfYXQiOjE3NjI1OTIwMDB9",
+        "signature": "il_ZRZQRtqcwKTRZu0YHpBUP0zYgHE_XY04jNkXlMGdXIa73r92nn_OWBC5_nPFpVdOSfE3CPDidv_kWOyAgDQ"
+      },
+      {
+        "protected": "eyJhbGciOiJFZERTQSIsImtpZCI6ImRpZDprZXk6ejZNa3JnWGdNY1NmcVVRNmJoTUVMMWRocXZQWVU0WWF1ZVk1Nk13OGFlZTlZTjRSI3o2TWtyZ1hnTWNTZnFVUTZiaE1FTDFkaHF2UFlVNFlhdWVZNTZNdzhhZWU5WU40UiIsInR5cCI6ImRzaXAranNvbiJ9",
+        "payload": "eyJ0eXBlIjoiRGV2aWNlRGVsZWdhdGlvbiIsInN1YmplY3QiOiJkaWQ6a2V5Ono2TWtyZ1hnTWNTZnFVUTZiaE1FTDFkaHF2UFlVNFlhdWVZNTZNdzhhZWU5WU40UiIsImRldmljZSI6ImRpZDprZXk6ejZNa2oyQnh5WlFjMVluVWRQTmtSREFkMUdQMlppZ1BQaGg2WmZZd2Y1SFJNcnRKIiwiY2FwYWJpbGl0aWVzIjpbImRzaXAuc2lnbmFsaW5nIiwiZHNpcC5tZWRpYS5pbnRlcmFjdGl2ZSJdLCJpc3N1ZWRfYXQiOjE3NTk5MTM2MDAsImV4cGlyZXNfYXQiOjE3NjI1OTIwMDB9",
+        "signature": "P7hHAdLTzHgkiTVvaRRcTkMwewauZZ65KAseqgd6XrjpVqHkbnFK2BVEwI5pxsm40-oPqQr-Nda9gJyhR5dICw"
+      },
+      {
+        "protected": "eyJhbGciOiJFZERTQSIsImtpZCI6ImRpZDp3ZWI6ZXhhbXBsZS5jb206dXNlcnM6Ym9iI2tleS0xIiwidHlwIjoiZHNpcCtqc29uIn0",
+        "payload": "eyJ0eXBlIjoiRGV2aWNlRGVsZWdhdGlvbiIsInN1YmplY3QiOiJkaWQ6d2ViOmV4YW1wbGUuY29tOnVzZXJzOmJvYiIsImRldmljZSI6ImRpZDprZXk6ejZNa3MxMXRqTWVSbkUxSmNlV2h5VDd6RVRvWDR6M0w2QnVLYU0xM1BiVEVkQXBuIiwiY2FwYWJpbGl0aWVzIjpbImRzaXAuc2lnbmFsaW5nIiwiZHNpcC5tZWRpYS5pbnRlcmFjdGl2ZSJdLCJpc3N1ZWRfYXQiOjE3NTk5MTM2MDAsImV4cGlyZXNfYXQiOjE3NjI1OTIwMDB9",
+        "signature": "QUuetNigRObJLWICLGR3R05gxUoAC1eeqP1u9pZkvS_7WZwqhDzC9CqSlwb2M8_oIKRx0Vz62NurTlEp-SH4Dw"
+      },
+      {
+        "protected": "eyJhbGciOiJFZERTQSIsImtpZCI6ImRpZDp3ZWI6ZXhhbXBsZS5jb206dXNlcnM6Ym9iI2tleS0xIiwidHlwIjoiZHNpcCtqc29uIn0",
+        "payload": "eyJ0eXBlIjoiRGV2aWNlRGVsZWdhdGlvbiIsInN1YmplY3QiOiJkaWQ6d2ViOmV4YW1wbGUuY29tOnVzZXJzOmJvYiIsImRldmljZSI6ImRpZDprZXk6ejZNa2oyQnh5WlFjMVluVWRQTmtSREFkMUdQMlppZ1BQaGg2WmZZd2Y1SFJNcnRKIiwiY2FwYWJpbGl0aWVzIjpbImRzaXAuc2lnbmFsaW5nIiwiZHNpcC5tZWRpYS5pbnRlcmFjdGl2ZSJdLCJpc3N1ZWRfYXQiOjE3NTk5MTM2MDAsImV4cGlyZXNfYXQiOjE3NjI1OTIwMDB9",
+        "signature": "fgm_XmGfT2UO0K5Y-FHt02axj9c74cVekr8A2TxdiCzjJlvl_2ZRrzaJUxckbBOY3GkAj3Wn3U4nA6IcaV4gDQ"
+      }
+    ],
+    "seen_ids": [],
+    "supported": {
+      "core": "1.0",
+      "profiles": [
+        "interactive-media/1.0",
+        "verified-broadcast/1.0"
+      ],
+      "extensions": []
+    }
+  },
+  "input": {
+    "publication": {
+      "protected": "eyJhbGciOiJFZERTQSIsImtpZCI6ImRpZDprZXk6ejZNa3JnWGdNY1NmcVVRNmJoTUVMMWRocXZQWVU0WWF1ZVk1Nk13OGFlZTlZTjRSI3o2TWtyZ1hnTWNTZnFVUTZiaE1FTDFkaHF2UFlVNFlhdWVZNTZNdzhhZWU5WU40UiIsInR5cCI6ImRzaXAranNvbiJ9",
+      "payload": "eyJkc2lwIjp7ImNvcmUiOiIxLjAiLCJtaW5fY29yZSI6IjEuMCIsInByb2ZpbGVzIjpbInZlcmlmaWVkLWJyb2FkY2FzdC8xLjAiXSwiZXh0ZW5zaW9ucyI6W10sImNyaXRpY2FsIjpbXX0sInR5cGUiOiJwdWJsaXNoIiwiaWQiOiIwMUs3NDJTRzAwNlpBOFJFV0czWEQ1ODBRMyIsImZyb20iOiJkaWQ6a2V5Ono2TWtyZ1hnTWNTZnFVUTZiaE1FTDFkaHF2UFlVNFlhdWVZNTZNdzhhZWU5WU40UiIsInB1Ymxpc2hlciI6ImRpZDprZXk6ejZNa3JnWGdNY1NmcVVRNmJoTUVMMWRocXZQWVU0WWF1ZVk1Nk13OGFlZTlZTjRSIiwic3RyZWFtX2lkIjoiZGlkOmtleTp6Nk1rcmdYZ01jU2ZxVVE2YmhNRUwxZGhxdlBZVTRZYXVlWTU2TXc4YWVlOVlONFI6cmFkaW86bWFpbiIsInRpdGxlIjoiQm9iIExpdmUgUmFkaW8iLCJzdGF0ZSI6ImxpdmUiLCJpbnRlZ3JpdHkiOiJmcmFtZS1ib3VuZCIsInZhcmlhbnRzIjpbeyJpZCI6Im1haW4tb3B1cyIsIm1lZGlhIjpbImF1ZGlvIl0sImNvZGVjIjoiY29kZWM6YXVkaW8vb3B1cyIsInRyYW5zcG9ydCI6InRyYW5zcG9ydDp3ZWJydGMiLCJ1cmkiOiJ3c3M6Ly9saXZlLmJvYi5leGFtcGxlL2RzaXAvd2VicnRjL21haW4ifSx7ImlkIjoibWFpbi1hYWMtaGxzIiwibWVkaWEiOlsiYXVkaW8iXSwiY29kZWMiOiJjb2RlYzphdWRpby9hYWMiLCJ0cmFuc3BvcnQiOiJ0cmFuc3BvcnQ6aGxzIiwidXJpIjoiaHR0cHM6Ly9saXZlLmJvYi5leGFtcGxlL21haW4ubTN1OCJ9XSwicG9saWN5Ijp7InJlZGlzdHJpYnV0aW9uIjoiYWxsb3dlZC13aXRoLWF0dHJpYnV0aW9uIiwidHJhbnNjb2RpbmciOiJhbGxvd2VkIn0sImlzc3VlZF9hdCI6MTc2MDAwMDAwMCwiZXhwaXJlc19hdCI6MTc2MDAwMDMwMH0",
+      "signature": "KFcg5FgVnET2zrRnZvzxN5wLieoE-0Gyy_wsqYhvvdXDMgeNZVb7LlfiUcZiu3_NbaWrvSzXfHPtK9fkNBtgCw"
+    },
+    "provenance": [],
+    "capabilities": {
+      "codecs": [
+        "codec:audio/opus",
+        "codec:audio/aac"
+      ],
+      "transports": [
+        "transport:webrtc",
+        "transport:hls"
+      ]
+    }
+  },
+  "expect": {
+    "verdict": "accept",
+    "type": "publish",
+    "signer": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+    "identity": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+    "selected_variant": "main-opus",
+    "provenance": [],
+    "display": {
+      "original_publisher": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+      "delivered_by": [],
+      "transcoded_by": [],
+      "integrity_mode": "metadata-only"
+    }
+  }
+}

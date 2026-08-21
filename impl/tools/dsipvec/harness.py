@@ -17,8 +17,8 @@ from .verdict import Verdict
 
 IMPL_ROOT = Path(__file__).resolve().parents[2]
 VECTOR_DIR = IMPL_ROOT / "vectors"
-HINT_SCHEMA = IMPL_ROOT / "schemas" / "reachability-hint.schema.json"
-PROV_SCHEMA = IMPL_ROOT / "schemas" / "broadcast-provenance.schema.json"
+from .schema import validator as spec_validator  # v0.7: hint and provenance schemas are in the spec set
+from .registry import effective_integrity
 
 
 @dataclass
@@ -76,14 +76,10 @@ def run_semantic(v: dict) -> dict:
     return SEM.check_payload(v["input"]["payload"], v["context"]).to_expect()
 
 
-_hint_validator = None
 
 
 def hint_validator() -> Draft202012Validator:
-    global _hint_validator
-    if _hint_validator is None:
-        _hint_validator = Draft202012Validator(json.loads(HINT_SCHEMA.read_text()))
-    return _hint_validator
+    return spec_validator("reachability-hint")
 
 
 def run_dht_tail(v: dict, verdict: Verdict, ver) -> dict:
@@ -116,14 +112,10 @@ def run_dht_tail(v: dict, verdict: Verdict, ver) -> dict:
     return out
 
 
-_prov_validator = None
 
 
 def prov_validator() -> Draft202012Validator:
-    global _prov_validator
-    if _prov_validator is None:
-        _prov_validator = Draft202012Validator(json.loads(PROV_SCHEMA.read_text()))
-    return _prov_validator
+    return spec_validator("provenance")
 
 
 def run_broadcast(v: dict) -> dict:
@@ -161,8 +153,14 @@ def run_broadcast(v: dict) -> dict:
         if r["verdict"] == "accept":
             (transcoded if r["operation"] == "transcode" else delivered).append(r["processor"])
     out["provenance"] = results
+    # §22.2 (v0.7, spec-gap 20): the record declares its mode (variant override allowed; unknown → metadata-only);
+    # a verified transcode statement makes the delivered stream derivative-bound regardless.
+    declared = effective_integrity(p.get("integrity"))
+    sel = next((v for v in p.get("variants", []) if v.get("id") == out["selected_variant"]), None)
+    if sel is not None and "integrity" in sel:
+        declared = effective_integrity(sel["integrity"])
     out["display"] = {"original_publisher": p["publisher"], "delivered_by": delivered, "transcoded_by": transcoded,
-                      "integrity_mode": "derivative-bound" if transcoded else "metadata-only"}
+                      "integrity_mode": "derivative-bound" if transcoded else declared}
     return out
 
 
