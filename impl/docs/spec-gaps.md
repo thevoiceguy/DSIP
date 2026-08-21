@@ -40,6 +40,14 @@ vectors change first. No gap is awaiting a decision.
 | 20 | §22.2 | **adopt-with-change** (record-level `integrity`) — done in v0.7 vectors | `broadcast/publication-integrity-*` (3, v0.7), `broadcast/publication-valid-metadata-only`, `broadcast/provenance-derivative-bound` |
 | 21 | §22.3 | adopt; `provenance` is a core message with a spec schema — done in v0.7 vectors | `broadcast/provenance-*`, `payload/provenance-*` (v0.7) |
 | 22 | §7.5 | adopt (c): DID document authoritative + `key-rotation` record defined — schema + checks in v0.7 | `envelope/rotated-did-web-*`, `envelope/key-rotation-signed-by-previous-key`, `payload/key-rotation-*`, `semantic/key-rotation-*` (v0.7) |
+| 23 | §15.5, §6.3 | adopt → **Gateway Profile 1.0** (`v0.8/dsip-gateway-profile-v0.8-draft.md`) | `gateway/*` (53) |
+| 24 | §15.5 | adopt (`Reason: DSIP;text=`) | `gateway/reason-outbound-*`, `gateway/trace-*` |
+| 25 | §18.1, §24.2 | adopt; register `tel` claim type | `gateway/claims-*` |
+| 26 | §12.12 | **open** (DTMF `info` binding — future revision) | — (round one does not forward DTMF) |
+| 27 | §6.3 | adopt (named downgrade losses) | `gateway/downgrade-*` |
+| 28 | §15.5, App. C | adopt (per-trunk early-media policy) | `gateway/trace-outbound-early-media*` |
+| 29 | §12.7 | adopt (single contact; no SIP→DSIP forking in v1) | `gateway/trace-*` |
+| 30 | §17.2, §24.4 | adopt → **RTP/SRTP Media Binding 1.0** (`v0.8/dsip-rtp-srtp-media-binding-v0.8-draft.md`) | G§6 (`gateway/sdp-*`) |
 
 ---
 
@@ -371,6 +379,99 @@ log and clients have something to show. State explicitly that `did:key` identiti
 verification (§8.1; the vectors above stand unchanged) and v0.7 defines the `KeyRotation` record
 with a schema as the §7.5 artifact — what §7.7 logs and clients show as trust metadata. `did:key`
 identities cannot rotate; v0.7 says so and points to `identity.moved`.
+
+## 23. §15.5 / §6.3 — the Gateway Profile does not exist
+
+**Gap.** §15.5 gives an "informative initial mapping" and says "the normative table belongs to the
+gateway profile"; §6.3 states the trust-downgrade principle but no mechanism. No Gateway Profile
+document exists.
+
+**PoC choice.** `impl/crates/dsip-gateway` implements the full B2BUA rule set — reason mapping both
+directions, PSTN caller claims, SDP↔descriptor mapping, the downgrade rule, early media, the
+controller state machine — all pinned by the 53 `gateway/` vectors. Written up as
+**DSIP Gateway Profile 1.0** (`v0.8/dsip-gateway-profile-v0.8-draft.md`).
+
+**Suggested fix.** Adopt the profile draft as a named conformance piece (§24.4); make §15.5's table
+normative there and leave §15.5 in core as the pointer.
+
+## 24. §15.5 — the DSIP reason should stay visible across a SIP crossing
+
+**Gap.** §15.5 says map foreign codes to DSIP reasons; it does not say the DSIP reason should be
+preserved *on* the SIP message so a capture or downstream element can see the original token.
+
+**PoC choice.** Every SIP crossing carries `Reason: DSIP;text="<token>"` (RFC 3326) in addition to
+any `Q.850;cause=`. Vectors: `gateway/reason-outbound-*`, `gateway/trace-*`.
+
+**Suggested fix.** State the `Reason: DSIP` convention in the Gateway Profile (G§3).
+
+## 25. §18.1 — no claim type for a PSTN caller identity
+
+**Gap.** §18.1 requires clients to display a verification *basis*; a gateway presenting a PSTN
+caller has no registered claim shape to carry the number, STIR attestation, and verification
+outcome.
+
+**PoC choice.** A `tel` claim `{type, number, attestation, verified, verifier, cnam?}` in the
+invite's `identity.claims`, rendered as "Gateway attested by <did> · STIR attestation <A|B|C>
+(verified|unverified)" or "· no attestation"; a PASSporT whose `orig` ≠ `From` is discarded.
+Vectors: `gateway/claims-*`.
+
+**Suggested fix.** Register `tel` in a DSIP claim-types registry (§24.2) with this shape.
+
+## 26. §12.12 — DTMF has no DSIP carriage
+
+**Gap.** DSIP Core v1.0 has no DTMF semantics; a gateway bridging RFC 2833 telephone-event has
+nowhere to put digits on the DSIP side.
+
+**PoC choice.** Round one does not forward DTMF across the gateway. The natural vehicle is a signed
+`info` (§12.12) with a gateway-defined `about` (`x-gateway:dtmf`).
+
+**Suggested fix.** Define a DTMF `info` binding (`about` value + `data` schema) in a future
+revision; register the `about` in `dsip-info-about`.
+
+## 27. §6.3 — `gateway.downgraded` trigger conditions are undefined
+
+**Gap.** `gateway.downgraded` is a registered reason (§15.4) but §6.3 does not say when a gateway
+emits it.
+
+**PoC choice.** One informational `error` per crossing that loses a guarantee, naming each loss:
+`no-srtp-on-trunk`, `identity-not-assertable`, `no-attestation`, `policy-unenforceable`. Vectors:
+`gateway/downgrade-*`.
+
+**Suggested fix.** State the trigger set in the Gateway Profile (G§7).
+
+## 28. §15.5 / Appendix C — early-media handling needs a rule
+
+**Gap.** §15.5 and Appendix C describe early media in prose ("classify announcements … otherwise
+answer the DSIP leg and pass audio through") without a rule.
+
+**PoC choice.** Per-trunk `pass-early-media` ∈ {auto, always, never}, default auto (classify to a
+reason if possible, else answer `answered_by: gateway` and bridge). Vectors:
+`gateway/trace-outbound-early-media*`.
+
+**Suggested fix.** Adopt the rule in the Gateway Profile (G§8).
+
+## 29. §12.7 — may a gateway forward SIP forking as DSIP forking?
+
+**Gap.** SIP 3xx and parallel forking have no stated mapping to DSIP forking (§12.7 is a
+relay-side, identity-addressed mechanism).
+
+**PoC choice.** A gateway follows a single SIP contact and does **not** forward SIP 3xx as DSIP
+forking in round one; glare (§12.6) cannot cross (the two sides are distinct sessions).
+
+**Suggested fix.** State single-contact behaviour in the Gateway Profile; leave multi-contact
+follow as a later extension.
+
+## 30. §17.2 / §24.4 — the RTP/SRTP Media Binding does not exist
+
+**Gap.** §17.2 names "RTP/SRTP binding for SIP and telecom gateways" and §24.4 lists
+`DSIP RTP/SRTP Media Binding 1.0` as a conformance piece; no document defined it.
+
+**PoC choice.** `transport:rtp` with SDES/DTLS keying, the §17.2 encryption floor plus a
+plain-RTP exception behind an operator-vouched trunk (with `gateway.downgraded`), and the PSTN
+codec set. Written up as `v0.8/dsip-rtp-srtp-media-binding-v0.8-draft.md`.
+
+**Suggested fix.** Adopt the binding draft; align it with the WebRTC binding's descriptor/SDP
+authority rule.
 
 ## Already-flagged (schema README / plan §11)
 
