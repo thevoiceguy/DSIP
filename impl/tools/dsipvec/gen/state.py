@@ -502,6 +502,13 @@ def vectors() -> list[dict]:
                               **{sid: sess("initiator", "ENDED")}),
                      ]))
 
+    # bye with a caller-supplied reason (B§8: a failed media path ends the leg with media.failed)
+    out.append(trace("hangup-with-reason-media-failed", "A local hangup may name the reason; the media layer ends a failed path with bye media.failed (B§8) instead of user.hangup.",
+                     ["§12.4", "B§8"], ALICE_SELF, initiator_to_active(sid) + [
+                         step({"local": "hangup", "session": sid, "reason": "media.failed"},
+                              [S(type="bye", to=BPH, session=sid, reason="media.failed"), MEDIA("stop")], **{sid: sess("initiator", "ENDED")}),
+                     ]))
+
     # §12.12 info
     out.append(trace("info-active-only", "info in ACTIVE is delivered; unknown about is ignored; info after ENDED is dropped.", ["§12.12"], ALICE_SELF,
                      initiator_to_active(sid) + [

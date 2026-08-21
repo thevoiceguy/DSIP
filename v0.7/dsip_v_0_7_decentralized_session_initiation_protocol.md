@@ -7,7 +7,7 @@
 **Editor:** James Ferris
 **Date:** August 2026
 **Supersedes:** Draft v0.6
-**Companion documents:** WebRTC Media Binding 1.0 (`dsip-webrtc-media-binding-v0.7-draft.md`); DHT Hints Profile (`dsip-dht-hints-profile-v0.7-draft.md`); JSON Schema set v0.7 (`dsip-schemas-v0.7-draft/`); conformance vectors (`impl/vectors/`, 298 vectors, Rust/Python parity)
+**Companion documents:** WebRTC Media Binding 1.0 (`dsip-webrtc-media-binding-v0.7.md`); DHT Hints Profile (`dsip-dht-hints-profile-v0.7-draft.md`); JSON Schema set v0.7 (`dsip-schemas-v0.7-draft/`); conformance vectors (`impl/vectors/`, 298 vectors, Rust/Python parity)
 
 ---
 
@@ -961,7 +961,7 @@ Rules:
 
 - `info` is valid **only in ACTIVE state** (including its RENEGOTIATING sub-state). Because Core v1.0 has no pre-answer media (§14.1), candidates are only ever needed after `answer`, so no earlier state requires it. `info` in any other state is answered with `error` (`session.invalid-state`).
 - `about` (required) names the registered transport or extension the data belongs to (registry `dsip-info-about`; initial values are the media transport identifiers, e.g. `transport:webrtc`). An endpoint receiving `info` with an unrecognized `about` MUST ignore it silently — `info` is never critical.
-- `data` (required) is an object whose structure is defined by the binding named in `about`. For `transport:webrtc`, the structure above is normative in the **WebRTC Media Binding 1.0** companion document (`dsip-webrtc-media-binding-v0.7-draft.md`, Appendix A; schema `webrtc-info-data.schema.json`). A receiver validates `data` against the schema of each binding it implements and rejects a malformed `data` as it would any schema failure; for an `about` it does not implement, `data` is not inspected.
+- `data` (required) is an object whose structure is defined by the binding named in `about`. For `transport:webrtc`, the structure above is normative in the **WebRTC Media Binding 1.0** companion document (`dsip-webrtc-media-binding-v0.7.md`, Appendix A; schema `webrtc-info-data.schema.json`). A receiver validates `data` against the schema of each binding it implements and rejects a malformed `data` as it would any schema failure; for an `about` it does not implement, `data` is not inspected.
 - `info` MUST NOT alter negotiated session parameters, elicits no `answer` or `reject`, and causes no state transition. Anything that changes the negotiation is an `update`.
 - Because candidates ride in signed envelopes, candidate injection requires a key compromise, not just a network position — this is why unsigned side-channel candidate exchange is prohibited.
 - Bindings SHOULD define rate expectations; implementations SHOULD apply per-session `info` rate limits and respond to abuse with `error` (`policy.rate-limited`).
@@ -1471,7 +1471,7 @@ Relay conformance additionally requires: verified-`hello` gating of inbound deli
 
 The first implementation defines one recommended media transport binding for interoperability:
 
-- WebRTC binding for browsers and modern applications — `transport:webrtc` 1.0, the companion document `dsip-webrtc-media-binding-v0.7-draft.md`
+- WebRTC binding for browsers and modern applications — `transport:webrtc` 1.0, the companion document `dsip-webrtc-media-binding-v0.7.md`
 - RTP/SRTP binding for SIP and telecom gateways
 
 The spec may define both, but v1.0 interoperability does not require every endpoint to support every binding. The v1.0 encryption floor: transport-encrypted media (DTLS-SRTP for the WebRTC binding) is REQUIRED; E2EE through SFUs via SFrame is a reserved future extension (§6.2).

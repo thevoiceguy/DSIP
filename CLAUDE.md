@@ -22,10 +22,11 @@ v0.7/dsip-schemas…  Canonical JSON Schemas (draft 2020-12) + generate_schemas.
 impl/               PoC Cargo workspace (living code; tracks spec versions via
                     git tags poc-v0.6, poc-v0.7, …, never via folder placement)
 impl/vectors/       Language-neutral JSON test vectors (envelope/ payload/
-                    semantic/ state/ transport/ dht/)
+                    semantic/ state/ transport/ dht/ broadcast/ media-binding/)
 impl/tools/         Python: vector generator, parity harness, testnet harness
-impl/crates/        dsip-core, dsip-schema, dsip-session, dsip-transport,
-                    dsip-dht, dsip-relay, dsip-cli, dsip-wasm
+impl/crates/        dsip-core, dsip-schema, dsip-session, dsip-endpoint, dsip-transport,
+                    dsip-media, dsip-webrtc-binding, dsip-broadcast, dsip-dht, dsip-relay,
+                    dsip-cli, dsip-wasm
 impl/demos/         Browser client, broadcast UI (Phase 2+)
 ```
 
@@ -122,6 +123,7 @@ pip installs in this environment need `--break-system-packages`.
 | §15 | Reason codes: `category.condition`, category fallback |
 | §19.4 | First contact: introduction/grant |
 | §22 | Verified Broadcast profile |
+| B§2–B§8 | WebRTC Media Binding 1.0 (`v0.7/dsip-webrtc-media-binding-v0.7.md`) — cite as `B§n` |
 
 ## Semantic checks (post-schema, must-implement)
 

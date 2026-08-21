@@ -233,7 +233,7 @@ attempt — through a scripted event sequence with a mock clock.
 |---|---|
 | `{"local":"place_call","session":ID,"to":DID}` | send `invite` (id = session), start T-Establish |
 | `{"local":"cancel","session":ID}` | user abandons → `cancel user.cancelled` |
-| `{"local":"hangup","session":ID}` | `bye user.hangup` |
+| `{"local":"hangup","session":ID,"reason":TOKEN?}` | `bye` with `reason` (default `user.hangup`; the media layer uses `media.failed`, B§8) |
 | `{"local":"alert","session":ID,"ring_timeout":N?}` | policy admits invite → `progress ringing`, start T-Ring-Local |
 | `{"local":"auto_reject","session":ID,"reason":TOKEN}` | policy rejects at OFFERED |
 | `{"local":"accept","session":ID,"answered_by":V}` | user/service answers → `answer` |
@@ -347,7 +347,7 @@ Emissions: `send subscribe`, `{"ui":"notify","event","state"}`, `{"ui":"subscrip
 
 ## Kind: `media-binding`
 
-WebRTC Media Binding 1.0 (`v0.7/dsip-webrtc-media-binding-v0.7-draft.md`) conformance, below the
+WebRTC Media Binding 1.0 (`v0.7/dsip-webrtc-media-binding-v0.7.md`) conformance, below the
 envelope pipeline: inputs are decoded payloads or event traces. `input.check` selects:
 
 | check | input | expect |

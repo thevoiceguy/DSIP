@@ -256,7 +256,8 @@ class Endpoint:
                 # Impl: ENDING is collapsed into ENDED — local teardown is synchronous in this engine.
                 self.stop_all(s)
                 s.outstanding = None
-                self.send(type="bye", to=s.peer, session=s.id, reason="user.hangup")
+                # B§8: the media layer ends a failed path with `media.failed`; default is user.hangup
+                self.send(type="bye", to=s.peer, session=s.id, reason=ev.get("reason") or "user.hangup")
                 self.emit({"media": "stop"})
                 s.state = "ENDED"
             else:

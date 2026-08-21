@@ -1,7 +1,8 @@
 # DSIP WebRTC Media Binding — `transport:webrtc` 1.0
 
-**Status:** DRAFT, companion document to DSIP v0.7 (in assembly). Normative once v0.7 is
-published. Resolves spec-gap 16 (`impl/docs/spec-gaps.md`).
+**Status:** companion document to DSIP v0.7 — normative for `transport:webrtc` 1.0. Conformance: the
+`media-binding/` category of the v0.7 vector suite (`impl/vectors/media-binding/`, 42 vectors, Rust/Python
+parity) pins B§2–B§6; resolves spec-gap 16 (`impl/docs/spec-gaps.md`).
 **Editor's note:** written from the behaviour of the v0.6 reference implementation
 (`impl/crates/dsip-endpoint`, `dsip-media` on webrtc-rs, `impl/demos/browser`) and intended to be
 the contract a second media backend (forge-media) implements. Where this document and the
@@ -314,8 +315,8 @@ Core §12.12 asks bindings to define rate expectations. Binding 1.0:
 
 An endpoint claiming `transport:webrtc` 1.0 MUST implement §2–§7 as offerer **and** answerer
 (an answer-only or offer-only endpoint is not conformant — it cannot renegotiate), MUST document
-how it enforces Core §14.1, and SHOULD pass the binding vectors once they exist (Appendix A is
-their schema).
+how it enforces Core §14.1, and MUST pass the `media-binding/` vectors of the conformance suite (their
+`info.data` schema is Appendix A, published as `webrtc-info-data.schema.json` in the v0.7 schema set).
 
 Edits to Core for v0.7 carried by this binding (spec-gap 16):
 

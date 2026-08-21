@@ -33,7 +33,7 @@ vectors change first. No gap is awaiting a decision.
 | 13 | §12.4 | adopt (drop ENDING) | all state traces |
 | 14 | §19.4, §13.2 | adopt | `state/relay-introduction-anti-enumeration` |
 | 15 | §19.4 | adopt | `state/first-contact-*` |
-| 16 | §12.12, §16.3, §26 | adopt → **WebRTC Media Binding** (`v0.7/dsip-webrtc-media-binding-v0.7-draft.md`) | `payload/info-*` incl. `info-webrtc-missing-mid` (binding schema, v0.7), `state/info-active-only` |
+| 16 | §12.12, §16.3, §26 | adopt → **WebRTC Media Binding** (`v0.7/dsip-webrtc-media-binding-v0.7.md`) | `payload/info-*` incl. `info-webrtc-missing-mid` (binding schema, v0.7), `state/info-active-only` |
 | 17 | §13.2, §13.3, §12.7 | adopt | `state/relay-store-and-forward-*`, `state/relay-*-queued-*` |
 | 18 | §22.1 | adopt | `broadcast/publication-*` |
 | 19 | §9.3, §9.4 | adopt (refuse over-cap with `error policy.subscription-lifetime`; authority-asserted presence) | `state/broadcast-authority-presence`, `semantic/subscribe-presence-over-cap` (carries the token since v0.7) |
@@ -228,7 +228,7 @@ step 8 to say `info`, and state whether a forked invite's single SDP offer may b
 more than one leg (the PoC accepts only the first answer; later legs get `bye`).
 
 **v0.7 disposition.** Adopt the PoC shapes and publish them as the **WebRTC Media Binding**
-companion document — drafted at `v0.7/dsip-webrtc-media-binding-v0.7-draft.md` (binding id
+companion document — drafted at `v0.7/dsip-webrtc-media-binding-v0.7.md` (binding id
 `transport:webrtc`, version 1.0). Spec edits: §12.12 "normative in the WebRTC Media Binding"
 → cite the document by id; §16.3 replace the `transport_binding: {type, sdp}` example with the
 `transports[].sdp` descriptor form and the authority rule (descriptors govern *what* is

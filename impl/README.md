@@ -12,6 +12,7 @@ schemas/        Implementation-local schemas (DHT reachability hint)
 crates/
   dsip-core     ULIDs, did:key, DID documents, Ed25519, DSIP-JOSE envelope pipeline
   dsip-schema   v0.7 schemas embedded at build time + stateless semantic checks
+  dsip-webrtc-binding  WebRTC Media Binding 1.0 rules (descriptor/SDP authority, roles, candidates, renegotiation), pure
   dsip-session  §12 endpoint state engine, timers, races, renegotiation; §12.7 relay leg tracker
   dsip-endpoint IO-free endpoint core: verify → §12 engine → build/sign (shared by native agent and WASM)
   dsip-transport ws/1.0 client binding (wss, hello, caps, reconnect), identity dirs, did:web fetch, the Agent
@@ -123,5 +124,6 @@ dsip call --identity ./alice --ca .relay/cert.pem --to <bob did> --media tone --
 | **M2 Phase 2** | ✅ (browser WebRTC path manually verifiable only) |
 | **M3 Phase 3** — Verified Broadcast: signed records, §9.3 subscribe/notify with caps/renewal/anti-enumeration, presence, variant selection, `derivative-bound` provenance through a transcoder | ✅ 17 receiver vectors + 9 authority/subscriber traces, `demos/broadcast-demo.sh` |
 | v0.7 prep — §7.5 key-rotation vectors (279 total), citation audit (§15.2/§15.6), spec-gap dispositions 14–22, **WebRTC Media Binding draft** (`../v0.7/`) | ✅ 2026-08-21 |
+| **WebRTC Media Binding conformance** — `vectors/media-binding/` (42 vectors: B§2 descriptor/SDP authority rule, B§3 roles, B§4 candidate sequencing, B§5 renegotiation, B§6.1 one answer per offer) + `dsip-webrtc-binding` crate (pure; enforced live by `dsip-endpoint` on inbound SDP); dual-backend media demos in CI (forge↔webrtc-rs both ways) | ✅ 2026-08-21 — binding document no longer draft |
 | **v0.7 assembly** — canonical schema set `v0.7/dsip-schemas-v0.7-draft` (`provenance`, `key-rotation`, `reachability-hint` as message types; `publish.integrity`; `webrtc-info-data` binding schema), 298 vectors (23 new: gaps 16/19/20/21/22), Python + Rust at parity, `impl/schemas/` retired | ◐ 2026-08-21 — spec text transcription next, then `poc-v0.7` |
 | forge-media as the media backend — **default** (`Backend::default()`, CLI `--media-backend forge`); webrtc-rs compiled in as reference peer/fallback; cross-backend interop test (forge ↔ webrtc-rs both directions) in the normal workspace test run; `demos/media-demo.sh [forge|webrtc-rs] [forge|webrtc-rs]` | ✅ 2026-08-21 (`docs/forge-media-plan.md`); browser ↔ native on forge verified by hand only |
