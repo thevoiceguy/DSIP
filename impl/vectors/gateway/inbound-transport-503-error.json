@@ -1,0 +1,20 @@
+{
+  "vector": "gateway/inbound-transport-503-error",
+  "format": 1,
+  "kind": "gateway",
+  "description": "SIP 503 / Q.850 None in phase transport → gateway.unreachable on error.",
+  "spec_ref": [
+    "§15.5"
+  ],
+  "context": {},
+  "input": {
+    "check": "reason-inbound",
+    "phase": "transport",
+    "sip_status": 503
+  },
+  "expect": {
+    "reason": "gateway.unreachable",
+    "carry": "error",
+    "detail": "SIP 503"
+  }
+}

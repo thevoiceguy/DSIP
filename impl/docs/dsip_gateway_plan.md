@@ -276,8 +276,8 @@ Exit criterion for each workstream below: its vectors exist and pass in Python b
 
 | WS | Deliverable | Exit criterion |
 |---|---|---|
-| **G0** | `gateway/` vectors + Python reference: reason tables, SDP map, claims, controller traces | Python green; tables reviewed against §15.5 and RFC 3261/Q.850 |
-| **G1** | `dsip-gateway` lib: controller + DSIP leg + SIP leg + media wiring; Rust at parity with G0 | parity green; `cargo doc` Spec: citations to §15.5/§14.1/§19 and G§ (Gateway Profile) |
+| **G0** ✅ 2026-08-21 | `gateway/` vectors (53) + Python reference (`tools/dsipvec/gateway.py`): reason tables both ways, SDP map, claims, downgrade, 13 controller traces; **plus the Rust mirror** `crates/dsip-gateway` (tables + `controller::GatewayCall`, no I/O) so parity stays green — the protocol half of G1 landed with G0 | Python green; Rust/Python parity 394/394 |
+| **G1** | `dsip-gateway` hosting: DSIP leg (Core/Agent) + SIP leg (siphon adapter) + forge media wiring around the G0 controller | the controller drives real legs; `cargo doc` Spec: citations to §15.5/§14.1/§19 |
 | **G2** | daemon + demo: DSIP native CLI ↔ gateway ↔ siphond (siphon-rs test daemon) with forge media both ways, audio recorded on both ends; then against a real trunk (Twilio) by hand | `demos/gateway-demo.sh` self-checking like `media-demo.sh`; CI runs it against siphond |
 | **G3** | trust: claims, `gateway.downgraded`, §18.1 rendering in the CLI and browser demo; first-contact via the gateway identity | vectors + demo |
 | **G4** | STIR/SHAKEN / RCD / CNAM **findings report** (options (a)/(b)/(c) of §6.3 with what each needs; PASSporT signing prototype in `sip-identity` behind a feature) | report in `docs/`; prototype signs a PASSporT that siphon verifies |

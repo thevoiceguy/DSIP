@@ -1,0 +1,92 @@
+{
+  "vector": "gateway/trace-outbound-cancel-487",
+  "format": 1,
+  "kind": "gateway",
+  "description": "DSIP cancel → CANCEL; 487 closes the SIP leg with nothing more to tell the DSIP side.",
+  "spec_ref": [
+    "§12.5",
+    "§15.5"
+  ],
+  "context": {
+    "direction": "outbound"
+  },
+  "input": {
+    "check": "trace",
+    "steps": [
+      {
+        "event": {
+          "dsip": {
+            "type": "invite"
+          }
+        }
+      },
+      {
+        "event": {
+          "sip": {
+            "status": 180
+          }
+        }
+      },
+      {
+        "event": {
+          "dsip": {
+            "type": "cancel"
+          }
+        }
+      },
+      {
+        "event": {
+          "sip": {
+            "status": 487
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "sip": "INVITE"
+          }
+        ],
+        "state": {
+          "dsip": "inviting",
+          "sip": "calling"
+        }
+      },
+      {
+        "emit": [
+          {
+            "dsip": {
+              "local": "alert"
+            }
+          }
+        ],
+        "state": {
+          "dsip": "proceeding",
+          "sip": "early"
+        }
+      },
+      {
+        "emit": [
+          {
+            "sip": "CANCEL"
+          }
+        ],
+        "state": {
+          "dsip": "ended",
+          "sip": "early"
+        }
+      },
+      {
+        "emit": [],
+        "state": {
+          "dsip": "ended",
+          "sip": "terminated"
+        }
+      }
+    ]
+  }
+}

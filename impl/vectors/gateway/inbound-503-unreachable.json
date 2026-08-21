@@ -1,0 +1,20 @@
+{
+  "vector": "gateway/inbound-503-unreachable",
+  "format": 1,
+  "kind": "gateway",
+  "description": "SIP 503 / Q.850 None in phase pre-answer → gateway.unreachable on reject.",
+  "spec_ref": [
+    "§15.5"
+  ],
+  "context": {},
+  "input": {
+    "check": "reason-inbound",
+    "phase": "pre-answer",
+    "sip_status": 503
+  },
+  "expect": {
+    "reason": "gateway.unreachable",
+    "carry": "reject",
+    "detail": "SIP 503"
+  }
+}

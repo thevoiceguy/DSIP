@@ -1,0 +1,29 @@
+{
+  "vector": "gateway/downgrade-outbound-plain-trunk",
+  "format": 1,
+  "kind": "gateway",
+  "description": "Outbound over a plain-RTP trunk with no identity assertion and a policy block: three losses.",
+  "spec_ref": [
+    "§6.3",
+    "§15.4",
+    "§16.4"
+  ],
+  "context": {},
+  "input": {
+    "check": "downgrade",
+    "facts": {
+      "direction": "outbound",
+      "trunk_srtp": false,
+      "identity_assertable": false,
+      "policy_present": true
+    }
+  },
+  "expect": {
+    "downgraded": true,
+    "lost": [
+      "no-srtp-on-trunk",
+      "identity-not-assertable",
+      "policy-unenforceable"
+    ]
+  }
+}

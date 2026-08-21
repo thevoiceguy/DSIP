@@ -1,0 +1,20 @@
+{
+  "vector": "gateway/inbound-bye-q850-41-unreachable",
+  "format": 1,
+  "kind": "gateway",
+  "description": "SIP None / Q.850 41 in phase active → gateway.unreachable on bye.",
+  "spec_ref": [
+    "§15.5"
+  ],
+  "context": {},
+  "input": {
+    "check": "reason-inbound",
+    "phase": "active",
+    "q850": 41
+  },
+  "expect": {
+    "reason": "gateway.unreachable",
+    "carry": "bye",
+    "detail": "Q.850 41"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "vector": "gateway/inbound-active-attempt-token-becomes-mapped",
+  "format": 1,
+  "kind": "gateway",
+  "description": "SIP None / Q.850 17 in phase active → gateway.mapped on bye.",
+  "spec_ref": [
+    "§15.5"
+  ],
+  "context": {},
+  "input": {
+    "check": "reason-inbound",
+    "phase": "active",
+    "q850": 17
+  },
+  "expect": {
+    "reason": "gateway.mapped",
+    "carry": "bye",
+    "detail": "Q.850 17"
+  }
+}

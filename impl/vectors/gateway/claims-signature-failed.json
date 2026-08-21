@@ -1,0 +1,30 @@
+{
+  "vector": "gateway/claims-signature-failed",
+  "format": 1,
+  "kind": "gateway",
+  "description": "PASSporT present but verification failed: level shown as unverified.",
+  "spec_ref": [
+    "§18.1",
+    "§20.4"
+  ],
+  "context": {},
+  "input": {
+    "check": "claims",
+    "from_tn": "+15551234567",
+    "identity": {
+      "attest": "B",
+      "verified": false,
+      "orig_tn": "+15551234567"
+    }
+  },
+  "expect": {
+    "claim": {
+      "type": "tel",
+      "number": "+15551234567",
+      "attestation": "B",
+      "verified": false,
+      "verifier": "did:web:gw.example"
+    },
+    "trust_basis": "Gateway attested by gw.example · STIR attestation B (unverified)"
+  }
+}

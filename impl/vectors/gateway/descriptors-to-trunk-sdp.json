@@ -1,0 +1,40 @@
+{
+  "vector": "gateway/descriptors-to-trunk-sdp",
+  "format": 1,
+  "kind": "gateway",
+  "description": "The DSIP selection → the SIP leg's m= line (encodings, direction).",
+  "spec_ref": [
+    "§16.2",
+    "§14.2"
+  ],
+  "context": {},
+  "input": {
+    "check": "descriptors-to-sdp",
+    "media": [
+      {
+        "type": "audio",
+        "direction": "recvonly",
+        "codecs": [
+          {
+            "id": "codec:audio/opus"
+          },
+          {
+            "id": "codec:audio/g722"
+          }
+        ]
+      }
+    ]
+  },
+  "expect": {
+    "m_lines": [
+      {
+        "kind": "audio",
+        "encodings": [
+          "opus",
+          "G722"
+        ],
+        "direction": "recvonly"
+      }
+    ]
+  }
+}

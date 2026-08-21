@@ -19,6 +19,7 @@ modules — they are never derived from either implementation's output.
 vectors/
   envelope/    Signature, header, kid→DID resolution, delegation, replay, ULID/issued_at
   media-binding/ WebRTC Media Binding 1.0 conformance (descriptor/SDP authority, roles, candidates, renegotiation, one answer)
+  gateway/     SIP/PSTN gateway (Phase 4): §15.5 reason mapping both ways, SDP ⇄ descriptors, PSTN caller claims, downgrade rule, B2BUA controller traces
   payload/     JSON Schema pass/fail per message type (shape only)
   semantic/    Stateless post-schema checks (schema README list of 11)
   state/       Scripted endpoint and relay state-machine traces (§12)
@@ -358,6 +359,21 @@ envelope pipeline: inputs are decoded payloads or event traces. `input.check` se
 | `candidates` | `steps` of `local_candidate` / `gathering_complete` / `active` / `remote_description` / `remote_info{from,candidates,end_of_candidates}` / `session_end`; `context.peer` | per-step `emit`: `buffer{local\|remote,n}`, `send_info{candidates,end_of_candidates}`, `apply n`, `remote_end`, `ignore{after-end\|not-party\|ended}`, `drop_buffered n` (B§4.2–B§4.4) |
 | `renegotiation` | `steps` of `local_reoffer{ufrag}` / `remote_answer` / `remote_reject` / `remote_reoffer{ufrag}` / `answer_update`; `context.ufrag` | per-step `emit`: `local_description{pending\|current}`, `apply`, `rollback`, `reject{reason,detail}`, `error binding-ice-restart` (B§5) |
 | `one-answer` | `offer` + `answers[]` | `{"applied": DID, "legs": [{from, applied\|bye[,code]}]}` — first valid answer applied, earlier invalid legs `bye media.failed`, later legs `bye session.already-answered` (B§6.1) |
+
+## Kind: `gateway`
+
+Phase 4 (`impl/docs/dsip_gateway_plan.md` §8): the normative tables the Gateway Profile will
+carry, pinned before the gateway exists. `input.check` selects:
+
+| check | input | expect |
+|---|---|---|
+| `reason-inbound` | `sip_status`?, `q850`?, `phase` (`pre-answer`\|`active`\|`transport`), `moved_to`? | `{reason, carry: reject\|bye\|error, detail?}` — Q.850 cause wins over the status; unmappable → `gateway.mapped`; BYE without Reason → `user.hangup`; attempt-phase tokens arriving while ACTIVE become `gateway.mapped` (§15.5) |
+| `reason-outbound` | `reason`, `phase` | pre-answer: `{status, q850?, reason_header: {protocol: "DSIP", text}, retry_after?}`; active: `{method: "BYE", q850, reason_header}` — every crossing carries `Reason: DSIP;text=<token>`; unregistered tokens fall back by category (§15.1) |
+| `sdp-to-descriptors` | trunk `sdp` | `{media: [descriptors], srtp: none\|sdes\|dtls}` or `{error}` |
+| `descriptors-to-sdp` | DSIP `media` | `{m_lines: [{kind, encodings, direction}]}` |
+| `claims` | `from_tn`, `identity` (`attest`, `verified`, `orig_tn`)?, `cnam`? | `{claim: {type: tel, number, attestation, verified, verifier, cnam?}, trust_basis}` (§18.1: a basis line, never a badge; `orig` mismatch discards the attestation) |
+| `downgrade` | `facts` (`direction`, `trunk_srtp`, `identity_assertable`, `attestation`, `policy_present`) | `{downgraded, lost: [no-srtp-on-trunk \| identity-not-assertable \| no-attestation \| policy-unenforceable]}` (§6.3) |
+| `trace` | `steps` of `{dsip: MSG}` / `{sip: {status}\|{request, …}}` / `{timer: "C"}`; `context.direction`, `context.early_media` | per-step `emit` (what each leg is told: `{sip: "INVITE"\|"ACK"\|"CANCEL"\|{response, direction?, q850?, reason_header?}\|{request, …}}`, `{dsip: {local: …}}`, `{media: bridge\|release}`) and `state: {dsip, sip}` |
 
 ## Kind: `dht`
 

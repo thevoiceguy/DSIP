@@ -1,0 +1,84 @@
+{
+  "vector": "gateway/trace-inbound-declined-and-first-contact",
+  "format": 1,
+  "kind": "gateway",
+  "description": "DSIP reject user.declined → 603; a first-contact refusal → 403 with the DSIP token in Reason.",
+  "spec_ref": [
+    "§15.5",
+    "§19.4"
+  ],
+  "context": {
+    "direction": "inbound"
+  },
+  "input": {
+    "check": "trace",
+    "steps": [
+      {
+        "event": {
+          "sip": {
+            "request": "INVITE",
+            "from_tn": "+15551234567"
+          }
+        }
+      },
+      {
+        "event": {
+          "dsip": {
+            "type": "reject",
+            "reason": "policy.first-contact-required"
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "dsip": {
+              "local": "place_call",
+              "claims": [
+                {
+                  "type": "tel",
+                  "number": "+15551234567",
+                  "attestation": "none",
+                  "verified": false,
+                  "verifier": "did:web:gw.example"
+                }
+              ],
+              "trust_basis": "Gateway attested by gw.example · no attestation"
+            }
+          },
+          {
+            "sip": {
+              "response": 100
+            }
+          }
+        ],
+        "state": {
+          "dsip": "offered",
+          "sip": "early"
+        }
+      },
+      {
+        "emit": [
+          {
+            "sip": {
+              "response": 403,
+              "q850": 21,
+              "reason_header": {
+                "protocol": "DSIP",
+                "text": "policy.first-contact-required"
+              }
+            }
+          }
+        ],
+        "state": {
+          "dsip": "ended",
+          "sip": "terminated"
+        }
+      }
+    ]
+  }
+}

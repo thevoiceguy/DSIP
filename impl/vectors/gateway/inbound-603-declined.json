@@ -1,0 +1,20 @@
+{
+  "vector": "gateway/inbound-603-declined",
+  "format": 1,
+  "kind": "gateway",
+  "description": "SIP 603 / Q.850 None in phase pre-answer → user.declined on reject.",
+  "spec_ref": [
+    "§15.5"
+  ],
+  "context": {},
+  "input": {
+    "check": "reason-inbound",
+    "phase": "pre-answer",
+    "sip_status": 603
+  },
+  "expect": {
+    "reason": "user.declined",
+    "carry": "reject",
+    "detail": "SIP 603"
+  }
+}

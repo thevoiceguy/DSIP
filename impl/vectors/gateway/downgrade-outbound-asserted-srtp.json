@@ -1,0 +1,23 @@
+{
+  "vector": "gateway/downgrade-outbound-asserted-srtp",
+  "format": 1,
+  "kind": "gateway",
+  "description": "Outbound over SRTP with a signed PASSporT and no policy: no downgrade.",
+  "spec_ref": [
+    "§6.3"
+  ],
+  "context": {},
+  "input": {
+    "check": "downgrade",
+    "facts": {
+      "direction": "outbound",
+      "trunk_srtp": true,
+      "identity_assertable": true,
+      "policy_present": false
+    }
+  },
+  "expect": {
+    "downgraded": false,
+    "lost": []
+  }
+}

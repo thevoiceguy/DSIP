@@ -1,0 +1,24 @@
+{
+  "vector": "gateway/outbound-unknown-token-category-fallback",
+  "format": 1,
+  "kind": "gateway",
+  "description": "DSIP user.stepped-out in phase pre-answer → SIP 603 with Reason DSIP + Q.850.",
+  "spec_ref": [
+    "§15.5",
+    "§15.1"
+  ],
+  "context": {},
+  "input": {
+    "check": "reason-outbound",
+    "reason": "user.stepped-out",
+    "phase": "pre-answer"
+  },
+  "expect": {
+    "status": 603,
+    "q850": 21,
+    "reason_header": {
+      "protocol": "DSIP",
+      "text": "user.stepped-out"
+    }
+  }
+}

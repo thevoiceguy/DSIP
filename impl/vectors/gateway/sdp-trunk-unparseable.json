@@ -1,0 +1,17 @@
+{
+  "vector": "gateway/sdp-trunk-unparseable",
+  "format": 1,
+  "kind": "gateway",
+  "description": "Not SDP.",
+  "spec_ref": [
+    "§16.2"
+  ],
+  "context": {},
+  "input": {
+    "check": "sdp-to-descriptors",
+    "sdp": "hello"
+  },
+  "expect": {
+    "error": "unparseable"
+  }
+}

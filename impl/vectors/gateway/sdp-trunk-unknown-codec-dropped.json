@@ -1,0 +1,18 @@
+{
+  "vector": "gateway/sdp-trunk-unknown-codec-dropped",
+  "format": 1,
+  "kind": "gateway",
+  "description": "An encoding DSIP has no id for (GSM) is dropped; a section with nothing known is omitted.",
+  "spec_ref": [
+    "§16.2"
+  ],
+  "context": {},
+  "input": {
+    "check": "sdp-to-descriptors",
+    "sdp": "v=0\r\no=trunk 1 1 IN IP4 198.51.100.5\r\ns=-\r\nc=IN IP4 198.51.100.5\r\nt=0 0\r\nm=audio 20000 RTP/AVP 3\r\na=rtpmap:3 GSM/8000\r\na=sendrecv\r\n"
+  },
+  "expect": {
+    "media": [],
+    "srtp": "none"
+  }
+}

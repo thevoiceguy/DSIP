@@ -1,0 +1,32 @@
+{
+  "vector": "gateway/claims-attestation-a-verified",
+  "format": 1,
+  "kind": "gateway",
+  "description": "Verified PASSporT with attestation A → verified tel claim; basis names the gateway and the level.",
+  "spec_ref": [
+    "§18.1",
+    "§6.3"
+  ],
+  "context": {},
+  "input": {
+    "check": "claims",
+    "from_tn": "+15551234567",
+    "identity": {
+      "attest": "A",
+      "verified": true,
+      "orig_tn": "+15551234567"
+    },
+    "cnam": "ACME Corp"
+  },
+  "expect": {
+    "claim": {
+      "type": "tel",
+      "number": "+15551234567",
+      "attestation": "A",
+      "verified": true,
+      "verifier": "did:web:gw.example",
+      "cnam": "ACME Corp"
+    },
+    "trust_basis": "Gateway attested by gw.example · STIR attestation A (verified)"
+  }
+}

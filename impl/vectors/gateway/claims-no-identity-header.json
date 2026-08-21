@@ -1,0 +1,24 @@
+{
+  "vector": "gateway/claims-no-identity-header",
+  "format": 1,
+  "kind": "gateway",
+  "description": "No Identity header: attestation none, never a badge.",
+  "spec_ref": [
+    "§18.1"
+  ],
+  "context": {},
+  "input": {
+    "check": "claims",
+    "from_tn": "+15551234567"
+  },
+  "expect": {
+    "claim": {
+      "type": "tel",
+      "number": "+15551234567",
+      "attestation": "none",
+      "verified": false,
+      "verifier": "did:web:gw.example"
+    },
+    "trust_basis": "Gateway attested by gw.example · no attestation"
+  }
+}

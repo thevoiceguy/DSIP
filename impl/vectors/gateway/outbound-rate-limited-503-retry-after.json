@@ -1,0 +1,25 @@
+{
+  "vector": "gateway/outbound-rate-limited-503-retry-after",
+  "format": 1,
+  "kind": "gateway",
+  "description": "DSIP policy.rate-limited in phase pre-answer → SIP 503 with Reason DSIP + Q.850.",
+  "spec_ref": [
+    "§15.5",
+    "§15.1"
+  ],
+  "context": {},
+  "input": {
+    "check": "reason-outbound",
+    "reason": "policy.rate-limited",
+    "phase": "pre-answer"
+  },
+  "expect": {
+    "status": 503,
+    "q850": 42,
+    "reason_header": {
+      "protocol": "DSIP",
+      "text": "policy.rate-limited"
+    },
+    "retry_after": true
+  }
+}

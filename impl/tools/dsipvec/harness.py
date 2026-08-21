@@ -14,6 +14,7 @@ from .session import Endpoint
 from .relay import Relay
 from .broadcast import Authority, Subscriber, evaluate_provenance, select_variant, stream_in_namespace
 from . import binding as BINDING
+from . import gateway as GATEWAY
 from .verdict import Verdict
 
 IMPL_ROOT = Path(__file__).resolve().parents[2]
@@ -213,6 +214,8 @@ def run_vector(v: dict) -> Result:
             actual = run_broadcast(v)
         elif kind == "media-binding":
             actual = BINDING.run(v)
+        elif kind == "gateway":
+            actual = GATEWAY.run(v)
         else:
             return Result(v["vector"], False, v["expect"], None, note=f"unknown kind {kind}")
     except Exception as e:  # a crash is a failure, never a pass

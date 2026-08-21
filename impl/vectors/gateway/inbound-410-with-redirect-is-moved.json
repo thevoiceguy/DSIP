@@ -1,0 +1,21 @@
+{
+  "vector": "gateway/inbound-410-with-redirect-is-moved",
+  "format": 1,
+  "kind": "gateway",
+  "description": "410 with a known successor maps to identity.moved with the target in detail.",
+  "spec_ref": [
+    "§15.5",
+    "§15.4"
+  ],
+  "context": {},
+  "input": {
+    "check": "reason-inbound",
+    "sip_status": 410,
+    "moved_to": "tel:+15557654321"
+  },
+  "expect": {
+    "reason": "identity.moved",
+    "carry": "reject",
+    "detail": "tel:+15557654321"
+  }
+}

@@ -1,0 +1,109 @@
+{
+  "vector": "gateway/trace-inbound-cancel",
+  "format": 1,
+  "kind": "gateway",
+  "description": "PSTN caller hangs up while ringing: CANCEL → 200 + DSIP cancel + 487.",
+  "spec_ref": [
+    "§12.5",
+    "§12.11"
+  ],
+  "context": {
+    "direction": "inbound"
+  },
+  "input": {
+    "check": "trace",
+    "steps": [
+      {
+        "event": {
+          "sip": {
+            "request": "INVITE",
+            "from_tn": "+15551234567"
+          }
+        }
+      },
+      {
+        "event": {
+          "dsip": {
+            "type": "progress",
+            "status": "ringing"
+          }
+        }
+      },
+      {
+        "event": {
+          "sip": {
+            "request": "CANCEL"
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "dsip": {
+              "local": "place_call",
+              "claims": [
+                {
+                  "type": "tel",
+                  "number": "+15551234567",
+                  "attestation": "none",
+                  "verified": false,
+                  "verifier": "did:web:gw.example"
+                }
+              ],
+              "trust_basis": "Gateway attested by gw.example · no attestation"
+            }
+          },
+          {
+            "sip": {
+              "response": 100
+            }
+          }
+        ],
+        "state": {
+          "dsip": "offered",
+          "sip": "early"
+        }
+      },
+      {
+        "emit": [
+          {
+            "sip": {
+              "response": 180
+            }
+          }
+        ],
+        "state": {
+          "dsip": "alerting",
+          "sip": "early"
+        }
+      },
+      {
+        "emit": [
+          {
+            "sip": {
+              "response": 200
+            }
+          },
+          {
+            "dsip": {
+              "local": "cancel"
+            }
+          },
+          {
+            "sip": {
+              "response": 487
+            }
+          }
+        ],
+        "state": {
+          "dsip": "ended",
+          "sip": "terminated"
+        }
+      }
+    ]
+  }
+}

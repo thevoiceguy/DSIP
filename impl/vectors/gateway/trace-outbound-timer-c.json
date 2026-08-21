@@ -1,0 +1,63 @@
+{
+  "vector": "gateway/trace-outbound-timer-c",
+  "format": 1,
+  "kind": "gateway",
+  "description": "No final response: SIP Timer C → CANCEL and reject gateway.unreachable.",
+  "spec_ref": [
+    "§15.5",
+    "§12.9"
+  ],
+  "context": {
+    "direction": "outbound"
+  },
+  "input": {
+    "check": "trace",
+    "steps": [
+      {
+        "event": {
+          "dsip": {
+            "type": "invite"
+          }
+        }
+      },
+      {
+        "event": {
+          "timer": "C"
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "sip": "INVITE"
+          }
+        ],
+        "state": {
+          "dsip": "inviting",
+          "sip": "calling"
+        }
+      },
+      {
+        "emit": [
+          {
+            "sip": "CANCEL"
+          },
+          {
+            "dsip": {
+              "local": "auto_reject",
+              "reason": "gateway.unreachable",
+              "detail": "SIP Timer C"
+            }
+          }
+        ],
+        "state": {
+          "dsip": "ended",
+          "sip": "terminated"
+        }
+      }
+    ]
+  }
+}

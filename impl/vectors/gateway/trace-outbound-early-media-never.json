@@ -1,0 +1,89 @@
+{
+  "vector": "gateway/trace-outbound-early-media-never",
+  "format": 1,
+  "kind": "gateway",
+  "description": "early_media never: 183 only rings; 200 answers.",
+  "spec_ref": [
+    "Appendix C"
+  ],
+  "context": {
+    "direction": "outbound",
+    "early_media": "never"
+  },
+  "input": {
+    "check": "trace",
+    "steps": [
+      {
+        "event": {
+          "dsip": {
+            "type": "invite"
+          }
+        }
+      },
+      {
+        "event": {
+          "sip": {
+            "status": 183,
+            "sdp": true
+          }
+        }
+      },
+      {
+        "event": {
+          "sip": {
+            "status": 200,
+            "sdp": true
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "sip": "INVITE"
+          }
+        ],
+        "state": {
+          "dsip": "inviting",
+          "sip": "calling"
+        }
+      },
+      {
+        "emit": [
+          {
+            "dsip": {
+              "local": "alert"
+            }
+          }
+        ],
+        "state": {
+          "dsip": "proceeding",
+          "sip": "early"
+        }
+      },
+      {
+        "emit": [
+          {
+            "sip": "ACK"
+          },
+          {
+            "dsip": {
+              "local": "accept",
+              "answered_by": "gateway"
+            }
+          },
+          {
+            "media": "bridge"
+          }
+        ],
+        "state": {
+          "dsip": "active",
+          "sip": "confirmed"
+        }
+      }
+    ]
+  }
+}

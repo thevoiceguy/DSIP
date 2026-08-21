@@ -1,0 +1,24 @@
+{
+  "vector": "gateway/outbound-policy-blocked-403",
+  "format": 1,
+  "kind": "gateway",
+  "description": "DSIP policy.blocked in phase pre-answer → SIP 403 with Reason DSIP + Q.850.",
+  "spec_ref": [
+    "§15.5",
+    "§15.1"
+  ],
+  "context": {},
+  "input": {
+    "check": "reason-outbound",
+    "reason": "policy.blocked",
+    "phase": "pre-answer"
+  },
+  "expect": {
+    "status": 403,
+    "q850": 21,
+    "reason_header": {
+      "protocol": "DSIP",
+      "text": "policy.blocked"
+    }
+  }
+}

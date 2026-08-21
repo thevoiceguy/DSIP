@@ -1,0 +1,124 @@
+{
+  "vector": "gateway/trace-inbound-refer-and-hold",
+  "format": 1,
+  "kind": "gateway",
+  "description": "REFER is declined in round one; a hold re-INVITE becomes a DSIP update with the mirrored direction.",
+  "spec_ref": [
+    "§12.8"
+  ],
+  "context": {
+    "direction": "inbound"
+  },
+  "input": {
+    "check": "trace",
+    "steps": [
+      {
+        "event": {
+          "sip": {
+            "request": "INVITE",
+            "from_tn": "+15551234567"
+          }
+        }
+      },
+      {
+        "event": {
+          "dsip": {
+            "type": "answer",
+            "answered_by": "user"
+          }
+        }
+      },
+      {
+        "event": {
+          "sip": {
+            "request": "REFER"
+          }
+        }
+      },
+      {
+        "event": {
+          "sip": {
+            "request": "re-INVITE",
+            "direction": "sendonly"
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "dsip": {
+              "local": "place_call",
+              "claims": [
+                {
+                  "type": "tel",
+                  "number": "+15551234567",
+                  "attestation": "none",
+                  "verified": false,
+                  "verifier": "did:web:gw.example"
+                }
+              ],
+              "trust_basis": "Gateway attested by gw.example · no attestation"
+            }
+          },
+          {
+            "sip": {
+              "response": 100
+            }
+          }
+        ],
+        "state": {
+          "dsip": "offered",
+          "sip": "early"
+        }
+      },
+      {
+        "emit": [
+          {
+            "sip": {
+              "response": 200,
+              "direction": "sendrecv"
+            }
+          },
+          {
+            "media": "bridge"
+          }
+        ],
+        "state": {
+          "dsip": "active",
+          "sip": "confirmed"
+        }
+      },
+      {
+        "emit": [
+          {
+            "sip": {
+              "response": 603
+            }
+          }
+        ],
+        "state": {
+          "dsip": "active",
+          "sip": "confirmed"
+        }
+      },
+      {
+        "emit": [
+          {
+            "dsip": {
+              "local": "update",
+              "direction": "sendonly"
+            }
+          }
+        ],
+        "state": {
+          "dsip": "active",
+          "sip": "confirmed"
+        }
+      }
+    ]
+  }
+}

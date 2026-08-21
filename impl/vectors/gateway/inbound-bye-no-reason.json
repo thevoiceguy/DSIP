@@ -1,0 +1,18 @@
+{
+  "vector": "gateway/inbound-bye-no-reason",
+  "format": 1,
+  "kind": "gateway",
+  "description": "SIP None / Q.850 None in phase active → user.hangup on bye.",
+  "spec_ref": [
+    "§15.5"
+  ],
+  "context": {},
+  "input": {
+    "check": "reason-inbound",
+    "phase": "active"
+  },
+  "expect": {
+    "reason": "user.hangup",
+    "carry": "bye"
+  }
+}

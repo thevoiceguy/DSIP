@@ -1,0 +1,90 @@
+{
+  "vector": "gateway/trace-outbound-early-media",
+  "format": 1,
+  "kind": "gateway",
+  "description": "183 with SDP under early_media auto: the DSIP leg is answered by the gateway and audio passes; 200 later only ACKs.",
+  "spec_ref": [
+    "§15.5",
+    "Appendix C"
+  ],
+  "context": {
+    "direction": "outbound",
+    "early_media": "auto"
+  },
+  "input": {
+    "check": "trace",
+    "steps": [
+      {
+        "event": {
+          "dsip": {
+            "type": "invite"
+          }
+        }
+      },
+      {
+        "event": {
+          "sip": {
+            "status": 183,
+            "sdp": true
+          }
+        }
+      },
+      {
+        "event": {
+          "sip": {
+            "status": 200,
+            "sdp": true
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "sip": "INVITE"
+          }
+        ],
+        "state": {
+          "dsip": "inviting",
+          "sip": "calling"
+        }
+      },
+      {
+        "emit": [
+          {
+            "dsip": {
+              "local": "alert"
+            }
+          },
+          {
+            "dsip": {
+              "local": "accept",
+              "answered_by": "gateway"
+            }
+          },
+          {
+            "media": "bridge"
+          }
+        ],
+        "state": {
+          "dsip": "active",
+          "sip": "early"
+        }
+      },
+      {
+        "emit": [
+          {
+            "sip": "ACK"
+          }
+        ],
+        "state": {
+          "dsip": "active",
+          "sip": "confirmed"
+        }
+      }
+    ]
+  }
+}

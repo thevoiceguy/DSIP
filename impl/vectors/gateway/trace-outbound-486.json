@@ -1,0 +1,61 @@
+{
+  "vector": "gateway/trace-outbound-486",
+  "format": 1,
+  "kind": "gateway",
+  "description": "486 before answer → reject endpoint.busy on the DSIP leg.",
+  "spec_ref": [
+    "§15.5"
+  ],
+  "context": {
+    "direction": "outbound"
+  },
+  "input": {
+    "check": "trace",
+    "steps": [
+      {
+        "event": {
+          "dsip": {
+            "type": "invite"
+          }
+        }
+      },
+      {
+        "event": {
+          "sip": {
+            "status": 486
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "sip": "INVITE"
+          }
+        ],
+        "state": {
+          "dsip": "inviting",
+          "sip": "calling"
+        }
+      },
+      {
+        "emit": [
+          {
+            "dsip": {
+              "local": "auto_reject",
+              "reason": "endpoint.busy",
+              "detail": "SIP 486"
+            }
+          }
+        ],
+        "state": {
+          "dsip": "ended",
+          "sip": "terminated"
+        }
+      }
+    ]
+  }
+}

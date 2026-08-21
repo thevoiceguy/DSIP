@@ -1,0 +1,24 @@
+{
+  "vector": "gateway/outbound-endpoint-busy-486",
+  "format": 1,
+  "kind": "gateway",
+  "description": "DSIP endpoint.busy in phase pre-answer → SIP 486 with Reason DSIP + Q.850.",
+  "spec_ref": [
+    "§15.5",
+    "§15.1"
+  ],
+  "context": {},
+  "input": {
+    "check": "reason-outbound",
+    "reason": "endpoint.busy",
+    "phase": "pre-answer"
+  },
+  "expect": {
+    "status": 486,
+    "q850": 17,
+    "reason_header": {
+      "protocol": "DSIP",
+      "text": "endpoint.busy"
+    }
+  }
+}

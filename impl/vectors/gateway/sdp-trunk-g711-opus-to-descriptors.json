@@ -1,0 +1,32 @@
+{
+  "vector": "gateway/sdp-trunk-g711-opus-to-descriptors",
+  "format": 1,
+  "kind": "gateway",
+  "description": "A trunk offering PCMU+opus, plain RTP → two codec ids, srtp none.",
+  "spec_ref": [
+    "§16.2",
+    "§17.2"
+  ],
+  "context": {},
+  "input": {
+    "check": "sdp-to-descriptors",
+    "sdp": "v=0\r\no=trunk 1 1 IN IP4 198.51.100.5\r\ns=-\r\nc=IN IP4 198.51.100.5\r\nt=0 0\r\nm=audio 20000 RTP/AVP 0 111\r\na=rtpmap:0 PCMU/8000\r\na=rtpmap:111 opus/48000/2\r\na=sendrecv\r\n"
+  },
+  "expect": {
+    "media": [
+      {
+        "type": "audio",
+        "direction": "sendrecv",
+        "codecs": [
+          {
+            "id": "codec:audio/pcmu"
+          },
+          {
+            "id": "codec:audio/opus"
+          }
+        ]
+      }
+    ],
+    "srtp": "none"
+  }
+}

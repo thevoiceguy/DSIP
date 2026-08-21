@@ -1,0 +1,86 @@
+{
+  "vector": "gateway/trace-outbound-cancel-crosses-200",
+  "format": 1,
+  "kind": "gateway",
+  "description": "A 200 OK crossing our CANCEL is ACKed and torn down with BYE session.cancelled (§12.5 rule 3 on the SIP leg).",
+  "spec_ref": [
+    "§12.5"
+  ],
+  "context": {
+    "direction": "outbound"
+  },
+  "input": {
+    "check": "trace",
+    "steps": [
+      {
+        "event": {
+          "dsip": {
+            "type": "invite"
+          }
+        }
+      },
+      {
+        "event": {
+          "dsip": {
+            "type": "cancel"
+          }
+        }
+      },
+      {
+        "event": {
+          "sip": {
+            "status": 200,
+            "sdp": true
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "sip": "INVITE"
+          }
+        ],
+        "state": {
+          "dsip": "inviting",
+          "sip": "calling"
+        }
+      },
+      {
+        "emit": [
+          {
+            "sip": "CANCEL"
+          }
+        ],
+        "state": {
+          "dsip": "ended",
+          "sip": "calling"
+        }
+      },
+      {
+        "emit": [
+          {
+            "sip": "ACK"
+          },
+          {
+            "sip": {
+              "request": "BYE",
+              "q850": 16,
+              "reason_header": {
+                "protocol": "DSIP",
+                "text": "session.cancelled"
+              }
+            }
+          }
+        ],
+        "state": {
+          "dsip": "ended",
+          "sip": "terminated"
+        }
+      }
+    ]
+  }
+}

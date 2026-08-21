@@ -1,0 +1,21 @@
+{
+  "vector": "gateway/inbound-q850-precedence",
+  "format": 1,
+  "kind": "gateway",
+  "description": "SIP 480 / Q.850 17 in phase pre-answer → endpoint.busy on reject.",
+  "spec_ref": [
+    "§15.5"
+  ],
+  "context": {},
+  "input": {
+    "check": "reason-inbound",
+    "phase": "pre-answer",
+    "sip_status": 480,
+    "q850": 17
+  },
+  "expect": {
+    "reason": "endpoint.busy",
+    "carry": "reject",
+    "detail": "Q.850 17"
+  }
+}

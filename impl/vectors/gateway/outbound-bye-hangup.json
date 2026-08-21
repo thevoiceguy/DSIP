@@ -1,0 +1,24 @@
+{
+  "vector": "gateway/outbound-bye-hangup",
+  "format": 1,
+  "kind": "gateway",
+  "description": "DSIP user.hangup in phase active → SIP BYE with Reason DSIP + Q.850.",
+  "spec_ref": [
+    "§15.5",
+    "§15.1"
+  ],
+  "context": {},
+  "input": {
+    "check": "reason-outbound",
+    "reason": "user.hangup",
+    "phase": "active"
+  },
+  "expect": {
+    "method": "BYE",
+    "q850": 16,
+    "reason_header": {
+      "protocol": "DSIP",
+      "text": "user.hangup"
+    }
+  }
+}

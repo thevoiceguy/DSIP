@@ -1,0 +1,97 @@
+{
+  "vector": "gateway/trace-outbound-remote-bye",
+  "format": 1,
+  "kind": "gateway",
+  "description": "PSTN side hangs up with Q.850 16 → DSIP bye user.hangup.",
+  "spec_ref": [
+    "§15.5"
+  ],
+  "context": {
+    "direction": "outbound"
+  },
+  "input": {
+    "check": "trace",
+    "steps": [
+      {
+        "event": {
+          "dsip": {
+            "type": "invite"
+          }
+        }
+      },
+      {
+        "event": {
+          "sip": {
+            "status": 200,
+            "sdp": true
+          }
+        }
+      },
+      {
+        "event": {
+          "sip": {
+            "request": "BYE",
+            "q850": 16
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "sip": "INVITE"
+          }
+        ],
+        "state": {
+          "dsip": "inviting",
+          "sip": "calling"
+        }
+      },
+      {
+        "emit": [
+          {
+            "sip": "ACK"
+          },
+          {
+            "dsip": {
+              "local": "accept",
+              "answered_by": "gateway"
+            }
+          },
+          {
+            "media": "bridge"
+          }
+        ],
+        "state": {
+          "dsip": "active",
+          "sip": "confirmed"
+        }
+      },
+      {
+        "emit": [
+          {
+            "sip": {
+              "response": 200
+            }
+          },
+          {
+            "dsip": {
+              "local": "hangup",
+              "reason": "user.hangup"
+            }
+          },
+          {
+            "media": "release"
+          }
+        ],
+        "state": {
+          "dsip": "ended",
+          "sip": "terminated"
+        }
+      }
+    ]
+  }
+}

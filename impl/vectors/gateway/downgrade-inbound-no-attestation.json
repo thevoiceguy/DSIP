@@ -1,0 +1,25 @@
+{
+  "vector": "gateway/downgrade-inbound-no-attestation",
+  "format": 1,
+  "kind": "gateway",
+  "description": "Inbound with SRTP but no attestation: one loss.",
+  "spec_ref": [
+    "§6.3",
+    "§18.1"
+  ],
+  "context": {},
+  "input": {
+    "check": "downgrade",
+    "facts": {
+      "direction": "inbound",
+      "trunk_srtp": true,
+      "attestation": "none"
+    }
+  },
+  "expect": {
+    "downgraded": true,
+    "lost": [
+      "no-attestation"
+    ]
+  }
+}

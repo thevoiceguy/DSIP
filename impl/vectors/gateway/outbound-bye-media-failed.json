@@ -1,0 +1,24 @@
+{
+  "vector": "gateway/outbound-bye-media-failed",
+  "format": 1,
+  "kind": "gateway",
+  "description": "DSIP media.failed in phase active → SIP BYE with Reason DSIP + Q.850.",
+  "spec_ref": [
+    "§15.5",
+    "§15.1"
+  ],
+  "context": {},
+  "input": {
+    "check": "reason-outbound",
+    "reason": "media.failed",
+    "phase": "active"
+  },
+  "expect": {
+    "method": "BYE",
+    "q850": 47,
+    "reason_header": {
+      "protocol": "DSIP",
+      "text": "media.failed"
+    }
+  }
+}

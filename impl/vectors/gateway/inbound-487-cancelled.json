@@ -1,0 +1,20 @@
+{
+  "vector": "gateway/inbound-487-cancelled",
+  "format": 1,
+  "kind": "gateway",
+  "description": "SIP 487 / Q.850 None in phase pre-answer → session.cancelled on reject.",
+  "spec_ref": [
+    "§15.5"
+  ],
+  "context": {},
+  "input": {
+    "check": "reason-inbound",
+    "phase": "pre-answer",
+    "sip_status": 487
+  },
+  "expect": {
+    "reason": "session.cancelled",
+    "carry": "reject",
+    "detail": "SIP 487"
+  }
+}

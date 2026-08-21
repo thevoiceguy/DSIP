@@ -1,0 +1,28 @@
+{
+  "vector": "gateway/sdp-trunk-sdes-hold",
+  "format": 1,
+  "kind": "gateway",
+  "description": "SDES-protected trunk on hold (sendonly): direction survives, srtp sdes.",
+  "spec_ref": [
+    "§16.2"
+  ],
+  "context": {},
+  "input": {
+    "check": "sdp-to-descriptors",
+    "sdp": "v=0\r\no=trunk 1 1 IN IP4 198.51.100.5\r\ns=-\r\nc=IN IP4 198.51.100.5\r\nt=0 0\r\nm=audio 20000 RTP/SAVP 8\r\na=rtpmap:8 PCMA/8000\r\na=crypto:1 AES_CM_128_HMAC_SHA1_80 inline:WVNfX19zZW1jdGwgKCkgewkyMjA7fQp9CnUnCg==\r\na=sendonly\r\n"
+  },
+  "expect": {
+    "media": [
+      {
+        "type": "audio",
+        "direction": "sendonly",
+        "codecs": [
+          {
+            "id": "codec:audio/pcma"
+          }
+        ]
+      }
+    ],
+    "srtp": "sdes"
+  }
+}
