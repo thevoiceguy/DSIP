@@ -248,7 +248,7 @@ Subcommands: `keygen`, `resolve <did|alias>`, `call`, `answer` (interactive acce
 
 ## 9. Phase 4 — SIP/WebRTC Gateway (§25.4)
 
-DSIP→SIP INVITE gateway, SDP mapping, RTP/SRTP bridge, §15.5 reason-code mapping, trust downgrade indicator, optional STIR/PASSporT/RCD mapping research. Scoped as a separate follow-on plan once Phases 1–2 are stable; it has the largest external-dependency surface and the least spec-proving value per unit effort.
+DSIP→SIP INVITE gateway, SDP mapping, RTP/SRTP bridge, §15.5 reason-code mapping, trust downgrade indicator, optional STIR/PASSporT/RCD mapping research. **Planned in `dsip_gateway_plan.md` (2026-08-21)**, which supersedes this section: with siphon-rs and forge-media as the SIP and media stacks (both this project's own), the gateway is no longer the largest external-dependency surface; it is the first cross-protocol proof of the trust model.
 
 ---
 
@@ -327,4 +327,4 @@ Ongoing: every implementation-blocking ambiguity gets a repo issue tagged `spec-
 | **M2** | Phase 2 complete | Browser↔native call, forked ringing, first-contact flow |
 | **MD** | Workstream D complete (parallel; targets M2 timeframe) | Two `did:key` endpoints discover each other via DHT and complete a signed call — no DNS, no Web PKI; findings report + draft DHT Hints Profile delivered |
 | **M3** | Phase 3 complete | Verified broadcast with provenance display |
-| **M4** | Gateway plan drafted | — |
+| **M4** | Gateway plan drafted — `dsip_gateway_plan.md` | ✅ 2026-08-21; M4′ (gateway delivered) defined there |
