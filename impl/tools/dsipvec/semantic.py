@@ -134,7 +134,7 @@ def registry_effects(payload: dict) -> dict:
 
 def check_payload(payload: dict, ctx: dict, encoded_size: int | None = None) -> Verdict:
     """Stages 12–14 in order."""
-    for v in (check_version(payload, ctx.get("supported") or {"core": "1.0", "profiles": [], "extensions": []}),
+    for v in (check_version(payload, ctx.get("supported") or {"core": "1.0", "profiles": ["interactive-media/1.0"], "extensions": []}),
               check_schema(payload)):
         if not v.ok:
             return v

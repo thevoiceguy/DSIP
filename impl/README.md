@@ -13,11 +13,13 @@ crates/
   dsip-core     ULIDs, did:key, DID documents, Ed25519, DSIP-JOSE envelope pipeline
   dsip-schema   v0.6 schemas embedded at build time + stateless semantic checks
   dsip-session  §12 endpoint state engine, timers, races, renegotiation; §12.7 relay leg tracker
+  dsip-endpoint IO-free endpoint core: verify → §12 engine → build/sign (shared by native agent and WASM)
   dsip-transport ws/1.0 client binding (wss, hello, caps, reconnect), identity dirs, did:web fetch, the Agent
+  dsip-wasm     the same verifier/engine/builder for the browser (wasm-bindgen); built into demos/browser/pkg
   dsip-dht      reachability hints over libp2p Kademlia (experimental §8.5); `dsip-dht-node` binary
   dsip-relay    `dsip-relay` binary: wss listener, hello binding, routing, per-leg forking
   dsip-cli      `dsip` binary: keygen, sign, verify, vectors run, identity, resolve, call, answer
-demos/          phase1-demo.sh, dht-demo.sh, first-contact-demo.sh
+demos/          phase1-demo.sh, dht-demo.sh, first-contact-demo.sh, browser-demo.sh + browser/ (page, WASM pkg, Node test)
 docs/           Plan, spec gaps, coverage cross-index, DHT findings + draft hints profile
 ```
 
@@ -77,6 +79,11 @@ dsip answer --identity ./bob --ca .relay/cert.pem --first-contact [--token T]   
 dsip introduce --identity ./carol --ca .relay/cert.pem --to <bob did> --purpose "…" [--token T] [--wait 30]
 dsip call --identity ./carol --ca .relay/cert.pem --to <bob did>     # a held grant is attached automatically (contacts.json)
 dsip-relay --intro-limit 5 --intro-window 3600 --inbox-cap 100       # §19.4 rate limits; introductions to unknown/offline identities are queued, never errored
+
+# Phase 2: browser endpoint (needs `rustup target add wasm32-unknown-unknown` + `cargo install wasm-pack`)
+demos/browser/build.sh          # wasm-pack → demos/browser/pkg
+node demos/browser/test.mjs     # two WASM endpoints run a full call + first contact in memory
+demos/browser-demo.sh           # relay serves https://127.0.0.1:8443/?as=alice and ?as=bob (accept the self-signed cert once)
 ```
 
 ## Status
@@ -92,4 +99,5 @@ dsip-relay --intro-limit 5 --intro-window 3600 --inbox-cap 100       # §19.4 ra
 | M1 Phase 1 | ✅ |
 | WS-D `dsip-dht` + testnet harness + no-DNS call demo | ✅ `docs/dht-findings.md`, `docs/dht-hints-profile.md` |
 | Phase 2 — first contact (introduction/grant, allowlist, tokens, relay rate limit + anti-enumeration inbox) | ✅ 9 new traces, `demos/first-contact-demo.sh` |
-| Phase 2 — `dsip-wasm`, browser demo, WebRTC media, full store-and-forward; Phase 3 | not started |
+| Phase 2 — `dsip-endpoint` + `dsip-wasm` + browser demo (WebRTC audio/video, screening, update, first contact, identity display) | ✅ WASM engine tested under Node; media path needs a real browser (`demos/browser-demo.sh`) |
+| Phase 2 — `webrtc-rs` native media endpoint, full relay store-and-forward; Phase 3 | not started |

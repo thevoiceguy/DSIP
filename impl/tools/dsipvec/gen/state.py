@@ -324,6 +324,14 @@ def vectors() -> list[dict]:
                               [S(type="error", to=APH, session=sid, reason="session.invalid-state", in_reply_to=uid("c", NOW + 4))],
                               **{sid: sess("responder", "ACTIVE")}),
                      ]))
+    out.append(trace("race-responder-answered-elsewhere-at-answering-leg",
+                     "A per-leg cancel session.answered-elsewhere that reaches the leg which answered is misrouted, not crossed: "
+                     "error session.invalid-state, session stays ACTIVE (Impl, spec-gap 1).", ["§12.5", "§12.7"], BOBPH_SELF,
+                     responder_to_active(sid) + [
+                         step({"recv": msg("cancel", "c", APH, sid, NOW + 3, reason="session.answered-elsewhere")},
+                              [S(type="error", to=APH, session=sid, reason="session.invalid-state", in_reply_to=uid("c", NOW + 3))],
+                              **{sid: sess("responder", "ACTIVE")}),
+                     ]))
     out.append(trace("race-timeout-cancel-then-answer", "T-Ring expiry cancels; a late answer still gets bye session.cancelled.", ["§12.5", "§12.9"], ALICE_SELF, [
         initiator_to_active(sid)[0],
         step({"recv": msg("progress", "p", BPH, sid, NOW, status="ringing")},

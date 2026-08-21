@@ -69,7 +69,7 @@ class Context:
             did_documents=ctx.get("did_documents", {}) or {},
             delegations=list(ctx.get("delegations", []) or []),
             seen_ids=set(ctx.get("seen_ids", []) or []),
-            supported=ctx.get("supported") or {"core": "1.0", "profiles": [], "extensions": []},
+            supported=ctx.get("supported") or {"core": "1.0", "profiles": ["interactive-media/1.0"], "extensions": []},
         )
 
 

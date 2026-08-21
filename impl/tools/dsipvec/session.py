@@ -539,9 +539,11 @@ class Endpoint:
                 self.emit({"ui": "missed_call"})
             self.end(s, reason)
         elif s.state == "ACTIVE":
-            if not s.post_answer_seen:
+            if reason != "session.answered-elsewhere" and not s.post_answer_seen:
                 # §12.5 rule 2: crossed cancel — our answer was in flight; tear down, no error.
-                # Impl (spec-gap 1): "crossed" = no initiator message observed since our answer.
+                # Impl (spec-gap 1): "crossed" = no initiator message observed since our answer, and the
+                # reason is a withdrawal of intent. `session.answered-elsewhere` can only be meant for
+                # non-answered legs (§12.7 rule 3); at the leg that answered it is misrouted, never crossed.
                 self.end(s, reason, media_stop=True)
             else:
                 # §12.4/§12.11: cancel for an ACTIVE session

@@ -59,3 +59,18 @@ jobs:
         run: python3 impl/tools/parity.py
       - name: DHT local testnet (5 nodes)
         run: python3 impl/tools/dht_testnet.py --nodes 5 --report /tmp/dht-report.json
+
+  wasm:
+    name: dsip-wasm builds and the Node smoke test passes
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with: { targets: wasm32-unknown-unknown }
+      - uses: Swatinem/rust-cache@v2
+        with: { workspaces: impl }
+      - uses: jetli/wasm-pack-action@v0.4.0
+      - uses: actions/setup-node@v4
+        with: { node-version: "20" }
+      - run: impl/demos/browser/build.sh
+      - run: node impl/demos/browser/test.mjs

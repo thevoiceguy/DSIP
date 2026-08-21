@@ -163,6 +163,22 @@ identity; `scope` MUST contain `dsip.invite`; a token auto-grants once and is th
 Vectors: `state/first-contact-responder-grant`, `state/first-contact-grant-scope`,
 `state/first-contact-contact-token`.
 
+## 16. §12.12 / §16.3 — the WebRTC Media Binding document does not exist
+
+**Gap.** §12.12 says the `info.data` structure for `transport:webrtc` "is normative in the
+WebRTC Media Binding document" and §16.3 says SDP may ride as a transport binding object; no
+such document is in the repository, and §26 step 8 still says candidates ride in `update`.
+
+**PoC choice.** `transports[].sdp` on `invite`/`update`/`answer` carries the SDP offer/answer
+(the descriptor keeps `id: transport:webrtc`, `ice: trickle`); trickle candidates ride in
+`info.data.candidates[{candidate, sdp_mid, sdp_m_line_index}]` + `end_of_candidates`, exactly
+the §12.12 example shape; `info` is ACTIVE-only so candidates gathered before the answer are
+buffered by the endpoint. Implemented in `dsip-endpoint` and `demos/browser/app.js`.
+
+**Suggested fix.** Publish the binding document (or an appendix) with these shapes, fix §26
+step 8 to say `info`, and state whether a forked invite's single SDP offer may be answered by
+more than one leg (the PoC accepts only the first answer; later legs get `bye`).
+
 ---
 
 ## Already-flagged (schema README / plan §11)

@@ -1,5 +1,5 @@
-   0.170119751s  INFO prepare_target{force=false package_id=dsip-cli v0.1.0 (/home/siphon/dsip/impl/crates/dsip-cli) target="dsip"}: cargo::core::compiler::fingerprint: fingerprint error for dsip-cli v0.1.0 (/home/siphon/dsip/impl/crates/dsip-cli)/Check { test: false }/TargetInner { name: "dsip", doc: true, ..: with_path("/home/siphon/dsip/impl/crates/dsip-cli/src/main.rs", Edition2021) }
-   0.170164465s  INFO prepare_target{force=false package_id=dsip-cli v0.1.0 (/home/siphon/dsip/impl/crates/dsip-cli) target="dsip"}: cargo::core::compiler::fingerprint:     err: failed to read `/home/siphon/dsip/impl/target/debug/.fingerprint/dsip-cli-670d182c24341ae1/bin-dsip`
+   0.177655907s  INFO prepare_target{force=false package_id=dsip-cli v0.1.0 (/home/siphon/dsip/impl/crates/dsip-cli) target="dsip"}: cargo::core::compiler::fingerprint: fingerprint error for dsip-cli v0.1.0 (/home/siphon/dsip/impl/crates/dsip-cli)/Check { test: false }/TargetInner { name: "dsip", doc: true, ..: with_path("/home/siphon/dsip/impl/crates/dsip-cli/src/main.rs", Edition2021) }
+   0.177697348s  INFO prepare_target{force=false package_id=dsip-cli v0.1.0 (/home/siphon/dsip/impl/crates/dsip-cli) target="dsip"}: cargo::core::compiler::fingerprint:     err: failed to read `/home/siphon/dsip/impl/target/debug/.fingerprint/dsip-cli-060178d0e071f44a/bin-dsip`
 
 Caused by:
     No such file or directory (os error 2)
@@ -41,8 +41,1618 @@ Stack backtrace:
   24: <unknown>
   25: __libc_start_main
   26: <unknown>
-   0.208095317s  INFO prepare_target{force=false package_id=dsip-cli v0.1.0 (/home/siphon/dsip/impl/crates/dsip-cli) target="dsip"}: cargo::core::compiler::fingerprint: fingerprint error for dsip-cli v0.1.0 (/home/siphon/dsip/impl/crates/dsip-cli)/Check { test: true }/TargetInner { name: "dsip", doc: true, ..: with_path("/home/siphon/dsip/impl/crates/dsip-cli/src/main.rs", Edition2021) }
-   0.208119181s  INFO prepare_target{force=false package_id=dsip-cli v0.1.0 (/home/siphon/dsip/impl/crates/dsip-cli) target="dsip"}: cargo::core::compiler::fingerprint:     err: failed to read `/home/siphon/dsip/impl/target/debug/.fingerprint/dsip-cli-d1b16bdeb58d0701/test-bin-dsip`
+   0.199199892s  INFO prepare_target{force=false package_id=dsip-core v0.1.0 (/home/siphon/dsip/impl/crates/dsip-core) target="dsip_core"}: cargo::core::compiler::fingerprint: fingerprint error for dsip-core v0.1.0 (/home/siphon/dsip/impl/crates/dsip-core)/Check { test: false }/TargetInner { name_inferred: true, ..: lib_target("dsip_core", ["lib"], "/home/siphon/dsip/impl/crates/dsip-core/src/lib.rs", Edition2021) }
+   0.199218215s  INFO prepare_target{force=false package_id=dsip-core v0.1.0 (/home/siphon/dsip/impl/crates/dsip-core) target="dsip_core"}: cargo::core::compiler::fingerprint:     err: failed to read `/home/siphon/dsip/impl/target/debug/.fingerprint/dsip-core-d46dcf4b1d21cff7/lib-dsip_core`
+
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: cargo_util::paths::read_bytes
+   1: cargo_util::paths::read
+   2: cargo::core::compiler::fingerprint::_compare_old_fingerprint
+   3: cargo::core::compiler::fingerprint::prepare_target
+   4: cargo::core::compiler::compile
+   5: cargo::core::compiler::compile
+   6: <cargo::core::compiler::build_runner::BuildRunner>::compile
+   7: cargo::ops::cargo_compile::compile_ws
+   8: cargo::ops::cargo_compile::compile_with_exec
+   9: cargo::ops::cargo_compile::compile
+  10: cargo::commands::check::exec
+  11: <cargo::cli::Exec>::exec
+  12: cargo::main
+  13: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  14: std::rt::lang_start::<()>::{closure#0}
+  15: core::ops::function::impls::<impl core::ops::function::FnOnce<A> for &F>::call_once
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/core/src/ops/function.rs:287:21
+  16: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  17: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  18: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  19: std::rt::lang_start_internal::{{closure}}
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:175:24
+  20: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  21: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  22: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  23: std::rt::lang_start_internal
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:171:5
+  24: main
+  25: <unknown>
+  26: __libc_start_main
+  27: <unknown>
+   0.199865420s  INFO prepare_target{force=false package_id=ed25519-dalek v2.2.0 target="ed25519_dalek"}: cargo::core::compiler::fingerprint: fingerprint error for ed25519-dalek v2.2.0/Check { test: false }/TargetInner { ..: lib_target("ed25519_dalek", ["lib"], "/home/siphon/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ed25519-dalek-2.2.0/src/lib.rs", Edition2021) }
+   0.199873356s  INFO prepare_target{force=false package_id=ed25519-dalek v2.2.0 target="ed25519_dalek"}: cargo::core::compiler::fingerprint:     err: failed to read `/home/siphon/dsip/impl/target/debug/.fingerprint/ed25519-dalek-5888a45e0c0bfe85/lib-ed25519_dalek`
+
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: cargo_util::paths::read_bytes
+   1: cargo_util::paths::read
+   2: cargo::core::compiler::fingerprint::_compare_old_fingerprint
+   3: cargo::core::compiler::fingerprint::prepare_target
+   4: cargo::core::compiler::compile
+   5: cargo::core::compiler::compile
+   6: cargo::core::compiler::compile
+   7: <cargo::core::compiler::build_runner::BuildRunner>::compile
+   8: cargo::ops::cargo_compile::compile_ws
+   9: cargo::ops::cargo_compile::compile_with_exec
+  10: cargo::ops::cargo_compile::compile
+  11: cargo::commands::check::exec
+  12: <cargo::cli::Exec>::exec
+  13: cargo::main
+  14: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  15: std::rt::lang_start::<()>::{closure#0}
+  16: core::ops::function::impls::<impl core::ops::function::FnOnce<A> for &F>::call_once
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/core/src/ops/function.rs:287:21
+  17: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  18: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  19: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  20: std::rt::lang_start_internal::{{closure}}
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:175:24
+  21: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  22: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  23: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  24: std::rt::lang_start_internal
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:171:5
+  25: main
+  26: <unknown>
+  27: __libc_start_main
+  28: <unknown>
+   0.202861355s  INFO prepare_target{force=false package_id=rand_core v0.6.4 target="rand_core"}: cargo::core::compiler::fingerprint: fingerprint error for rand_core v0.6.4/Check { test: false }/TargetInner { name_inferred: true, ..: lib_target("rand_core", ["lib"], "/home/siphon/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rand_core-0.6.4/src/lib.rs", Edition2018) }
+   0.202870836s  INFO prepare_target{force=false package_id=rand_core v0.6.4 target="rand_core"}: cargo::core::compiler::fingerprint:     err: failed to read `/home/siphon/dsip/impl/target/debug/.fingerprint/rand_core-c7490607bf453c07/lib-rand_core`
+
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: cargo_util::paths::read_bytes
+   1: cargo_util::paths::read
+   2: cargo::core::compiler::fingerprint::_compare_old_fingerprint
+   3: cargo::core::compiler::fingerprint::prepare_target
+   4: cargo::core::compiler::compile
+   5: cargo::core::compiler::compile
+   6: cargo::core::compiler::compile
+   7: cargo::core::compiler::compile
+   8: <cargo::core::compiler::build_runner::BuildRunner>::compile
+   9: cargo::ops::cargo_compile::compile_ws
+  10: cargo::ops::cargo_compile::compile_with_exec
+  11: cargo::ops::cargo_compile::compile
+  12: cargo::commands::check::exec
+  13: <cargo::cli::Exec>::exec
+  14: cargo::main
+  15: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  16: std::rt::lang_start::<()>::{closure#0}
+  17: core::ops::function::impls::<impl core::ops::function::FnOnce<A> for &F>::call_once
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/core/src/ops/function.rs:287:21
+  18: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  19: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  20: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  21: std::rt::lang_start_internal::{{closure}}
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:175:24
+  22: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  23: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  24: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  25: std::rt::lang_start_internal
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:171:5
+  26: main
+  27: <unknown>
+  28: __libc_start_main
+  29: <unknown>
+   0.202994626s  INFO prepare_target{force=false package_id=getrandom v0.2.17 target="getrandom"}: cargo::core::compiler::fingerprint: fingerprint error for getrandom v0.2.17/Check { test: false }/TargetInner { ..: lib_target("getrandom", ["lib"], "/home/siphon/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/getrandom-0.2.17/src/lib.rs", Edition2018) }
+   0.202997962s  INFO prepare_target{force=false package_id=getrandom v0.2.17 target="getrandom"}: cargo::core::compiler::fingerprint:     err: failed to read `/home/siphon/dsip/impl/target/debug/.fingerprint/getrandom-71f6d9391ce47656/lib-getrandom`
+
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: cargo_util::paths::read_bytes
+   1: cargo_util::paths::read
+   2: cargo::core::compiler::fingerprint::_compare_old_fingerprint
+   3: cargo::core::compiler::fingerprint::prepare_target
+   4: cargo::core::compiler::compile
+   5: cargo::core::compiler::compile
+   6: cargo::core::compiler::compile
+   7: cargo::core::compiler::compile
+   8: cargo::core::compiler::compile
+   9: <cargo::core::compiler::build_runner::BuildRunner>::compile
+  10: cargo::ops::cargo_compile::compile_ws
+  11: cargo::ops::cargo_compile::compile_with_exec
+  12: cargo::ops::cargo_compile::compile
+  13: cargo::commands::check::exec
+  14: <cargo::cli::Exec>::exec
+  15: cargo::main
+  16: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  17: std::rt::lang_start::<()>::{closure#0}
+  18: core::ops::function::impls::<impl core::ops::function::FnOnce<A> for &F>::call_once
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/core/src/ops/function.rs:287:21
+  19: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  20: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  21: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  22: std::rt::lang_start_internal::{{closure}}
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:175:24
+  23: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  24: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  25: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  26: std::rt::lang_start_internal
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:171:5
+  27: main
+  28: <unknown>
+  29: __libc_start_main
+  30: <unknown>
+   0.204064647s  INFO prepare_target{force=false package_id=rand v0.8.7 target="rand"}: cargo::core::compiler::fingerprint: fingerprint error for rand v0.8.7/Check { test: false }/TargetInner { ..: lib_target("rand", ["lib"], "/home/siphon/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rand-0.8.7/src/lib.rs", Edition2018) }
+   0.204071911s  INFO prepare_target{force=false package_id=rand v0.8.7 target="rand"}: cargo::core::compiler::fingerprint:     err: failed to read `/home/siphon/dsip/impl/target/debug/.fingerprint/rand-26688952bc470cc3/lib-rand`
+
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: cargo_util::paths::read_bytes
+   1: cargo_util::paths::read
+   2: cargo::core::compiler::fingerprint::_compare_old_fingerprint
+   3: cargo::core::compiler::fingerprint::prepare_target
+   4: cargo::core::compiler::compile
+   5: cargo::core::compiler::compile
+   6: cargo::core::compiler::compile
+   7: <cargo::core::compiler::build_runner::BuildRunner>::compile
+   8: cargo::ops::cargo_compile::compile_ws
+   9: cargo::ops::cargo_compile::compile_with_exec
+  10: cargo::ops::cargo_compile::compile
+  11: cargo::commands::check::exec
+  12: <cargo::cli::Exec>::exec
+  13: cargo::main
+  14: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  15: std::rt::lang_start::<()>::{closure#0}
+  16: core::ops::function::impls::<impl core::ops::function::FnOnce<A> for &F>::call_once
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/core/src/ops/function.rs:287:21
+  17: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  18: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  19: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  20: std::rt::lang_start_internal::{{closure}}
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:175:24
+  21: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  22: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  23: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  24: std::rt::lang_start_internal
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:171:5
+  25: main
+  26: <unknown>
+  27: __libc_start_main
+  28: <unknown>
+   0.204216865s  INFO prepare_target{force=false package_id=rand_chacha v0.3.1 target="rand_chacha"}: cargo::core::compiler::fingerprint: fingerprint error for rand_chacha v0.3.1/Check { test: false }/TargetInner { name_inferred: true, ..: lib_target("rand_chacha", ["lib"], "/home/siphon/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rand_chacha-0.3.1/src/lib.rs", Edition2018) }
+   0.204220652s  INFO prepare_target{force=false package_id=rand_chacha v0.3.1 target="rand_chacha"}: cargo::core::compiler::fingerprint:     err: failed to read `/home/siphon/dsip/impl/target/debug/.fingerprint/rand_chacha-16c17e9714381600/lib-rand_chacha`
+
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: cargo_util::paths::read_bytes
+   1: cargo_util::paths::read
+   2: cargo::core::compiler::fingerprint::_compare_old_fingerprint
+   3: cargo::core::compiler::fingerprint::prepare_target
+   4: cargo::core::compiler::compile
+   5: cargo::core::compiler::compile
+   6: cargo::core::compiler::compile
+   7: cargo::core::compiler::compile
+   8: <cargo::core::compiler::build_runner::BuildRunner>::compile
+   9: cargo::ops::cargo_compile::compile_ws
+  10: cargo::ops::cargo_compile::compile_with_exec
+  11: cargo::ops::cargo_compile::compile
+  12: cargo::commands::check::exec
+  13: <cargo::cli::Exec>::exec
+  14: cargo::main
+  15: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  16: std::rt::lang_start::<()>::{closure#0}
+  17: core::ops::function::impls::<impl core::ops::function::FnOnce<A> for &F>::call_once
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/core/src/ops/function.rs:287:21
+  18: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  19: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  20: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  21: std::rt::lang_start_internal::{{closure}}
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:175:24
+  22: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  23: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  24: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  25: std::rt::lang_start_internal
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:171:5
+  26: main
+  27: <unknown>
+  28: __libc_start_main
+  29: <unknown>
+   0.208156702s  INFO prepare_target{force=false package_id=dsip-dht v0.1.0 (/home/siphon/dsip/impl/crates/dsip-dht) target="dsip_dht"}: cargo::core::compiler::fingerprint: fingerprint error for dsip-dht v0.1.0 (/home/siphon/dsip/impl/crates/dsip-dht)/Check { test: false }/TargetInner { name_inferred: true, ..: lib_target("dsip_dht", ["lib"], "/home/siphon/dsip/impl/crates/dsip-dht/src/lib.rs", Edition2021) }
+   0.208169560s  INFO prepare_target{force=false package_id=dsip-dht v0.1.0 (/home/siphon/dsip/impl/crates/dsip-dht) target="dsip_dht"}: cargo::core::compiler::fingerprint:     err: failed to read `/home/siphon/dsip/impl/target/debug/.fingerprint/dsip-dht-b50af84447881efb/lib-dsip_dht`
+
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: cargo_util::paths::read_bytes
+   1: cargo_util::paths::read
+   2: cargo::core::compiler::fingerprint::_compare_old_fingerprint
+   3: cargo::core::compiler::fingerprint::prepare_target
+   4: cargo::core::compiler::compile
+   5: cargo::core::compiler::compile
+   6: <cargo::core::compiler::build_runner::BuildRunner>::compile
+   7: cargo::ops::cargo_compile::compile_ws
+   8: cargo::ops::cargo_compile::compile_with_exec
+   9: cargo::ops::cargo_compile::compile
+  10: cargo::commands::check::exec
+  11: <cargo::cli::Exec>::exec
+  12: cargo::main
+  13: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  14: std::rt::lang_start::<()>::{closure#0}
+  15: core::ops::function::impls::<impl core::ops::function::FnOnce<A> for &F>::call_once
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/core/src/ops/function.rs:287:21
+  16: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  17: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  18: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  19: std::rt::lang_start_internal::{{closure}}
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:175:24
+  20: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  21: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  22: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  23: std::rt::lang_start_internal
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:171:5
+  24: main
+  25: <unknown>
+  26: __libc_start_main
+  27: <unknown>
+   0.208784704s  INFO prepare_target{force=false package_id=dsip-schema v0.1.0 (/home/siphon/dsip/impl/crates/dsip-schema) target="dsip_schema"}: cargo::core::compiler::fingerprint: fingerprint error for dsip-schema v0.1.0 (/home/siphon/dsip/impl/crates/dsip-schema)/Check { test: false }/TargetInner { name_inferred: true, ..: lib_target("dsip_schema", ["lib"], "/home/siphon/dsip/impl/crates/dsip-schema/src/lib.rs", Edition2021) }
+   0.208792124s  INFO prepare_target{force=false package_id=dsip-schema v0.1.0 (/home/siphon/dsip/impl/crates/dsip-schema) target="dsip_schema"}: cargo::core::compiler::fingerprint:     err: failed to read `/home/siphon/dsip/impl/target/debug/.fingerprint/dsip-schema-ee7ae647b9523943/lib-dsip_schema`
+
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: cargo_util::paths::read_bytes
+   1: cargo_util::paths::read
+   2: cargo::core::compiler::fingerprint::_compare_old_fingerprint
+   3: cargo::core::compiler::fingerprint::prepare_target
+   4: cargo::core::compiler::compile
+   5: cargo::core::compiler::compile
+   6: cargo::core::compiler::compile
+   7: <cargo::core::compiler::build_runner::BuildRunner>::compile
+   8: cargo::ops::cargo_compile::compile_ws
+   9: cargo::ops::cargo_compile::compile_with_exec
+  10: cargo::ops::cargo_compile::compile
+  11: cargo::commands::check::exec
+  12: <cargo::cli::Exec>::exec
+  13: cargo::main
+  14: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  15: std::rt::lang_start::<()>::{closure#0}
+  16: core::ops::function::impls::<impl core::ops::function::FnOnce<A> for &F>::call_once
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/core/src/ops/function.rs:287:21
+  17: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  18: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  19: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  20: std::rt::lang_start_internal::{{closure}}
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:175:24
+  21: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  22: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  23: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  24: std::rt::lang_start_internal
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:171:5
+  25: main
+  26: <unknown>
+  27: __libc_start_main
+  28: <unknown>
+   0.229433460s  INFO prepare_target{force=false package_id=libp2p v0.56.0 target="libp2p"}: cargo::core::compiler::fingerprint: fingerprint error for libp2p v0.56.0/Check { test: false }/TargetInner { ..: lib_target("libp2p", ["lib"], "/home/siphon/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libp2p-0.56.0/src/lib.rs", Edition2021) }
+   0.229459578s  INFO prepare_target{force=false package_id=libp2p v0.56.0 target="libp2p"}: cargo::core::compiler::fingerprint:     err: failed to read `/home/siphon/dsip/impl/target/debug/.fingerprint/libp2p-37f5632dfb3874ce/lib-libp2p`
+
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: cargo_util::paths::read_bytes
+   1: cargo_util::paths::read
+   2: cargo::core::compiler::fingerprint::_compare_old_fingerprint
+   3: cargo::core::compiler::fingerprint::prepare_target
+   4: cargo::core::compiler::compile
+   5: cargo::core::compiler::compile
+   6: cargo::core::compiler::compile
+   7: <cargo::core::compiler::build_runner::BuildRunner>::compile
+   8: cargo::ops::cargo_compile::compile_ws
+   9: cargo::ops::cargo_compile::compile_with_exec
+  10: cargo::ops::cargo_compile::compile
+  11: cargo::commands::check::exec
+  12: <cargo::cli::Exec>::exec
+  13: cargo::main
+  14: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  15: std::rt::lang_start::<()>::{closure#0}
+  16: core::ops::function::impls::<impl core::ops::function::FnOnce<A> for &F>::call_once
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/core/src/ops/function.rs:287:21
+  17: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  18: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  19: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  20: std::rt::lang_start_internal::{{closure}}
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:175:24
+  21: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  22: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  23: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  24: std::rt::lang_start_internal
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:171:5
+  25: main
+  26: <unknown>
+  27: __libc_start_main
+  28: <unknown>
+   0.231308737s  INFO prepare_target{force=false package_id=libp2p-allow-block-list v0.6.0 target="libp2p_allow_block_list"}: cargo::core::compiler::fingerprint: fingerprint error for libp2p-allow-block-list v0.6.0/Check { test: false }/TargetInner { ..: lib_target("libp2p_allow_block_list", ["lib"], "/home/siphon/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libp2p-allow-block-list-0.6.0/src/lib.rs", Edition2021) }
+   0.231321454s  INFO prepare_target{force=false package_id=libp2p-allow-block-list v0.6.0 target="libp2p_allow_block_list"}: cargo::core::compiler::fingerprint:     err: failed to read `/home/siphon/dsip/impl/target/debug/.fingerprint/libp2p-allow-block-list-b3cf77dc60192520/lib-libp2p_allow_block_list`
+
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: cargo_util::paths::read_bytes
+   1: cargo_util::paths::read
+   2: cargo::core::compiler::fingerprint::_compare_old_fingerprint
+   3: cargo::core::compiler::fingerprint::prepare_target
+   4: cargo::core::compiler::compile
+   5: cargo::core::compiler::compile
+   6: cargo::core::compiler::compile
+   7: cargo::core::compiler::compile
+   8: <cargo::core::compiler::build_runner::BuildRunner>::compile
+   9: cargo::ops::cargo_compile::compile_ws
+  10: cargo::ops::cargo_compile::compile_with_exec
+  11: cargo::ops::cargo_compile::compile
+  12: cargo::commands::check::exec
+  13: <cargo::cli::Exec>::exec
+  14: cargo::main
+  15: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  16: std::rt::lang_start::<()>::{closure#0}
+  17: core::ops::function::impls::<impl core::ops::function::FnOnce<A> for &F>::call_once
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/core/src/ops/function.rs:287:21
+  18: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  19: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  20: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  21: std::rt::lang_start_internal::{{closure}}
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:175:24
+  22: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  23: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  24: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  25: std::rt::lang_start_internal
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:171:5
+  26: main
+  27: <unknown>
+  28: __libc_start_main
+  29: <unknown>
+   0.231660768s  INFO prepare_target{force=false package_id=libp2p-core v0.43.2 target="libp2p_core"}: cargo::core::compiler::fingerprint: fingerprint error for libp2p-core v0.43.2/Check { test: false }/TargetInner { ..: lib_target("libp2p_core", ["lib"], "/home/siphon/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libp2p-core-0.43.2/src/lib.rs", Edition2021) }
+   0.231666542s  INFO prepare_target{force=false package_id=libp2p-core v0.43.2 target="libp2p_core"}: cargo::core::compiler::fingerprint:     err: failed to read `/home/siphon/dsip/impl/target/debug/.fingerprint/libp2p-core-717a236eab841b3e/lib-libp2p_core`
+
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: cargo_util::paths::read_bytes
+   1: cargo_util::paths::read
+   2: cargo::core::compiler::fingerprint::_compare_old_fingerprint
+   3: cargo::core::compiler::fingerprint::prepare_target
+   4: cargo::core::compiler::compile
+   5: cargo::core::compiler::compile
+   6: cargo::core::compiler::compile
+   7: cargo::core::compiler::compile
+   8: cargo::core::compiler::compile
+   9: <cargo::core::compiler::build_runner::BuildRunner>::compile
+  10: cargo::ops::cargo_compile::compile_ws
+  11: cargo::ops::cargo_compile::compile_with_exec
+  12: cargo::ops::cargo_compile::compile
+  13: cargo::commands::check::exec
+  14: <cargo::cli::Exec>::exec
+  15: cargo::main
+  16: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  17: std::rt::lang_start::<()>::{closure#0}
+  18: core::ops::function::impls::<impl core::ops::function::FnOnce<A> for &F>::call_once
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/core/src/ops/function.rs:287:21
+  19: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  20: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  21: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  22: std::rt::lang_start_internal::{{closure}}
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:175:24
+  23: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  24: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  25: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  26: std::rt::lang_start_internal
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:171:5
+  27: main
+  28: <unknown>
+  29: __libc_start_main
+  30: <unknown>
+   0.232184297s  INFO prepare_target{force=false package_id=libp2p-identity v0.2.14 target="libp2p_identity"}: cargo::core::compiler::fingerprint: fingerprint error for libp2p-identity v0.2.14/Check { test: false }/TargetInner { ..: lib_target("libp2p_identity", ["lib"], "/home/siphon/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libp2p-identity-0.2.14/src/lib.rs", Edition2021) }
+   0.232200851s  INFO prepare_target{force=false package_id=libp2p-identity v0.2.14 target="libp2p_identity"}: cargo::core::compiler::fingerprint:     err: failed to read `/home/siphon/dsip/impl/target/debug/.fingerprint/libp2p-identity-e9409c3229c77030/lib-libp2p_identity`
+
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: cargo_util::paths::read_bytes
+   1: cargo_util::paths::read
+   2: cargo::core::compiler::fingerprint::_compare_old_fingerprint
+   3: cargo::core::compiler::fingerprint::prepare_target
+   4: cargo::core::compiler::compile
+   5: cargo::core::compiler::compile
+   6: cargo::core::compiler::compile
+   7: cargo::core::compiler::compile
+   8: cargo::core::compiler::compile
+   9: cargo::core::compiler::compile
+  10: <cargo::core::compiler::build_runner::BuildRunner>::compile
+  11: cargo::ops::cargo_compile::compile_ws
+  12: cargo::ops::cargo_compile::compile_with_exec
+  13: cargo::ops::cargo_compile::compile
+  14: cargo::commands::check::exec
+  15: <cargo::cli::Exec>::exec
+  16: cargo::main
+  17: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  18: std::rt::lang_start::<()>::{closure#0}
+  19: core::ops::function::impls::<impl core::ops::function::FnOnce<A> for &F>::call_once
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/core/src/ops/function.rs:287:21
+  20: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  21: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  22: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  23: std::rt::lang_start_internal::{{closure}}
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:175:24
+  24: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  25: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  26: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  27: std::rt::lang_start_internal
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:171:5
+  28: main
+  29: <unknown>
+  30: __libc_start_main
+  31: <unknown>
+   0.233991708s  INFO prepare_target{force=false package_id=multiaddr v0.18.2 target="multiaddr"}: cargo::core::compiler::fingerprint: fingerprint error for multiaddr v0.18.2/Check { test: false }/TargetInner { ..: lib_target("multiaddr", ["lib"], "/home/siphon/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/multiaddr-0.18.2/src/lib.rs", Edition2021) }
+   0.234000033s  INFO prepare_target{force=false package_id=multiaddr v0.18.2 target="multiaddr"}: cargo::core::compiler::fingerprint:     err: failed to read `/home/siphon/dsip/impl/target/debug/.fingerprint/multiaddr-434b720955e7e2ae/lib-multiaddr`
+
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: cargo_util::paths::read_bytes
+   1: cargo_util::paths::read
+   2: cargo::core::compiler::fingerprint::_compare_old_fingerprint
+   3: cargo::core::compiler::fingerprint::prepare_target
+   4: cargo::core::compiler::compile
+   5: cargo::core::compiler::compile
+   6: cargo::core::compiler::compile
+   7: cargo::core::compiler::compile
+   8: cargo::core::compiler::compile
+   9: cargo::core::compiler::compile
+  10: <cargo::core::compiler::build_runner::BuildRunner>::compile
+  11: cargo::ops::cargo_compile::compile_ws
+  12: cargo::ops::cargo_compile::compile_with_exec
+  13: cargo::ops::cargo_compile::compile
+  14: cargo::commands::check::exec
+  15: <cargo::cli::Exec>::exec
+  16: cargo::main
+  17: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  18: std::rt::lang_start::<()>::{closure#0}
+  19: core::ops::function::impls::<impl core::ops::function::FnOnce<A> for &F>::call_once
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/core/src/ops/function.rs:287:21
+  20: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  21: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  22: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  23: std::rt::lang_start_internal::{{closure}}
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:175:24
+  24: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  25: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  26: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  27: std::rt::lang_start_internal
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:171:5
+  28: main
+  29: <unknown>
+  30: __libc_start_main
+  31: <unknown>
+   0.238082244s  INFO prepare_target{force=false package_id=libp2p-swarm v0.47.1 target="libp2p_swarm"}: cargo::core::compiler::fingerprint: fingerprint error for libp2p-swarm v0.47.1/Check { test: false }/TargetInner { ..: lib_target("libp2p_swarm", ["lib"], "/home/siphon/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libp2p-swarm-0.47.1/src/lib.rs", Edition2021) }
+   0.238093323s  INFO prepare_target{force=false package_id=libp2p-swarm v0.47.1 target="libp2p_swarm"}: cargo::core::compiler::fingerprint:     err: failed to read `/home/siphon/dsip/impl/target/debug/.fingerprint/libp2p-swarm-315131bea72b54ea/lib-libp2p_swarm`
+
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: cargo_util::paths::read_bytes
+   1: cargo_util::paths::read
+   2: cargo::core::compiler::fingerprint::_compare_old_fingerprint
+   3: cargo::core::compiler::fingerprint::prepare_target
+   4: cargo::core::compiler::compile
+   5: cargo::core::compiler::compile
+   6: cargo::core::compiler::compile
+   7: cargo::core::compiler::compile
+   8: cargo::core::compiler::compile
+   9: <cargo::core::compiler::build_runner::BuildRunner>::compile
+  10: cargo::ops::cargo_compile::compile_ws
+  11: cargo::ops::cargo_compile::compile_with_exec
+  12: cargo::ops::cargo_compile::compile
+  13: cargo::commands::check::exec
+  14: <cargo::cli::Exec>::exec
+  15: cargo::main
+  16: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  17: std::rt::lang_start::<()>::{closure#0}
+  18: core::ops::function::impls::<impl core::ops::function::FnOnce<A> for &F>::call_once
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/core/src/ops/function.rs:287:21
+  19: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  20: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  21: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  22: std::rt::lang_start_internal::{{closure}}
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:175:24
+  23: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  24: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  25: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  26: std::rt::lang_start_internal
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:171:5
+  27: main
+  28: <unknown>
+  29: __libc_start_main
+  30: <unknown>
+   0.240150679s  INFO prepare_target{force=false package_id=libp2p-connection-limits v0.6.0 target="libp2p_connection_limits"}: cargo::core::compiler::fingerprint: fingerprint error for libp2p-connection-limits v0.6.0/Check { test: false }/TargetInner { ..: lib_target("libp2p_connection_limits", ["lib"], "/home/siphon/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libp2p-connection-limits-0.6.0/src/lib.rs", Edition2021) }
+   0.240159127s  INFO prepare_target{force=false package_id=libp2p-connection-limits v0.6.0 target="libp2p_connection_limits"}: cargo::core::compiler::fingerprint:     err: failed to read `/home/siphon/dsip/impl/target/debug/.fingerprint/libp2p-connection-limits-c3a4dcae8d53d774/lib-libp2p_connection_limits`
+
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: cargo_util::paths::read_bytes
+   1: cargo_util::paths::read
+   2: cargo::core::compiler::fingerprint::_compare_old_fingerprint
+   3: cargo::core::compiler::fingerprint::prepare_target
+   4: cargo::core::compiler::compile
+   5: cargo::core::compiler::compile
+   6: cargo::core::compiler::compile
+   7: cargo::core::compiler::compile
+   8: <cargo::core::compiler::build_runner::BuildRunner>::compile
+   9: cargo::ops::cargo_compile::compile_ws
+  10: cargo::ops::cargo_compile::compile_with_exec
+  11: cargo::ops::cargo_compile::compile
+  12: cargo::commands::check::exec
+  13: <cargo::cli::Exec>::exec
+  14: cargo::main
+  15: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  16: std::rt::lang_start::<()>::{closure#0}
+  17: core::ops::function::impls::<impl core::ops::function::FnOnce<A> for &F>::call_once
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/core/src/ops/function.rs:287:21
+  18: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  19: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  20: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  21: std::rt::lang_start_internal::{{closure}}
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:175:24
+  22: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  23: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  24: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  25: std::rt::lang_start_internal
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:171:5
+  26: main
+  27: <unknown>
+  28: __libc_start_main
+  29: <unknown>
+   0.240433193s  INFO prepare_target{force=false package_id=libp2p-identify v0.47.0 target="libp2p_identify"}: cargo::core::compiler::fingerprint: fingerprint error for libp2p-identify v0.47.0/Check { test: false }/TargetInner { ..: lib_target("libp2p_identify", ["lib"], "/home/siphon/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libp2p-identify-0.47.0/src/lib.rs", Edition2021) }
+   0.240437117s  INFO prepare_target{force=false package_id=libp2p-identify v0.47.0 target="libp2p_identify"}: cargo::core::compiler::fingerprint:     err: failed to read `/home/siphon/dsip/impl/target/debug/.fingerprint/libp2p-identify-397ff6fd47e8cad3/lib-libp2p_identify`
+
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: cargo_util::paths::read_bytes
+   1: cargo_util::paths::read
+   2: cargo::core::compiler::fingerprint::_compare_old_fingerprint
+   3: cargo::core::compiler::fingerprint::prepare_target
+   4: cargo::core::compiler::compile
+   5: cargo::core::compiler::compile
+   6: cargo::core::compiler::compile
+   7: cargo::core::compiler::compile
+   8: <cargo::core::compiler::build_runner::BuildRunner>::compile
+   9: cargo::ops::cargo_compile::compile_ws
+  10: cargo::ops::cargo_compile::compile_with_exec
+  11: cargo::ops::cargo_compile::compile
+  12: cargo::commands::check::exec
+  13: <cargo::cli::Exec>::exec
+  14: cargo::main
+  15: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  16: std::rt::lang_start::<()>::{closure#0}
+  17: core::ops::function::impls::<impl core::ops::function::FnOnce<A> for &F>::call_once
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/core/src/ops/function.rs:287:21
+  18: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  19: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  20: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  21: std::rt::lang_start_internal::{{closure}}
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:175:24
+  22: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  23: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  24: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  25: std::rt::lang_start_internal
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:171:5
+  26: main
+  27: <unknown>
+  28: __libc_start_main
+  29: <unknown>
+   0.241669935s  INFO prepare_target{force=false package_id=libp2p-kad v0.48.0 target="libp2p_kad"}: cargo::core::compiler::fingerprint: fingerprint error for libp2p-kad v0.48.0/Check { test: false }/TargetInner { ..: lib_target("libp2p_kad", ["lib"], "/home/siphon/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libp2p-kad-0.48.0/src/lib.rs", Edition2021) }
+   0.241679593s  INFO prepare_target{force=false package_id=libp2p-kad v0.48.0 target="libp2p_kad"}: cargo::core::compiler::fingerprint:     err: failed to read `/home/siphon/dsip/impl/target/debug/.fingerprint/libp2p-kad-3541e3daa6ee4241/lib-libp2p_kad`
+
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: cargo_util::paths::read_bytes
+   1: cargo_util::paths::read
+   2: cargo::core::compiler::fingerprint::_compare_old_fingerprint
+   3: cargo::core::compiler::fingerprint::prepare_target
+   4: cargo::core::compiler::compile
+   5: cargo::core::compiler::compile
+   6: cargo::core::compiler::compile
+   7: cargo::core::compiler::compile
+   8: <cargo::core::compiler::build_runner::BuildRunner>::compile
+   9: cargo::ops::cargo_compile::compile_ws
+  10: cargo::ops::cargo_compile::compile_with_exec
+  11: cargo::ops::cargo_compile::compile
+  12: cargo::commands::check::exec
+  13: <cargo::cli::Exec>::exec
+  14: cargo::main
+  15: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  16: std::rt::lang_start::<()>::{closure#0}
+  17: core::ops::function::impls::<impl core::ops::function::FnOnce<A> for &F>::call_once
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/core/src/ops/function.rs:287:21
+  18: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  19: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  20: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  21: std::rt::lang_start_internal::{{closure}}
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:175:24
+  22: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  23: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  24: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  25: std::rt::lang_start_internal
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:171:5
+  26: main
+  27: <unknown>
+  28: __libc_start_main
+  29: <unknown>
+   0.242729036s  INFO prepare_target{force=false package_id=libp2p-noise v0.46.1 target="libp2p_noise"}: cargo::core::compiler::fingerprint: fingerprint error for libp2p-noise v0.46.1/Check { test: false }/TargetInner { ..: lib_target("libp2p_noise", ["lib"], "/home/siphon/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libp2p-noise-0.46.1/src/lib.rs", Edition2021) }
+   0.242737797s  INFO prepare_target{force=false package_id=libp2p-noise v0.46.1 target="libp2p_noise"}: cargo::core::compiler::fingerprint:     err: failed to read `/home/siphon/dsip/impl/target/debug/.fingerprint/libp2p-noise-651f15ad1d41d172/lib-libp2p_noise`
+
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: cargo_util::paths::read_bytes
+   1: cargo_util::paths::read
+   2: cargo::core::compiler::fingerprint::_compare_old_fingerprint
+   3: cargo::core::compiler::fingerprint::prepare_target
+   4: cargo::core::compiler::compile
+   5: cargo::core::compiler::compile
+   6: cargo::core::compiler::compile
+   7: cargo::core::compiler::compile
+   8: <cargo::core::compiler::build_runner::BuildRunner>::compile
+   9: cargo::ops::cargo_compile::compile_ws
+  10: cargo::ops::cargo_compile::compile_with_exec
+  11: cargo::ops::cargo_compile::compile
+  12: cargo::commands::check::exec
+  13: <cargo::cli::Exec>::exec
+  14: cargo::main
+  15: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  16: std::rt::lang_start::<()>::{closure#0}
+  17: core::ops::function::impls::<impl core::ops::function::FnOnce<A> for &F>::call_once
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/core/src/ops/function.rs:287:21
+  18: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  19: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  20: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  21: std::rt::lang_start_internal::{{closure}}
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:175:24
+  22: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  23: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  24: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  25: std::rt::lang_start_internal
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:171:5
+  26: main
+  27: <unknown>
+  28: __libc_start_main
+  29: <unknown>
+   0.243084661s  INFO prepare_target{force=false package_id=snow v0.9.6 target="snow"}: cargo::core::compiler::fingerprint: fingerprint error for snow v0.9.6/Check { test: false }/TargetInner { name_inferred: true, ..: lib_target("snow", ["lib"], "/home/siphon/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/snow-0.9.6/src/lib.rs", Edition2018) }
+   0.243091557s  INFO prepare_target{force=false package_id=snow v0.9.6 target="snow"}: cargo::core::compiler::fingerprint:     err: failed to read `/home/siphon/dsip/impl/target/debug/.fingerprint/snow-63e6a77af1b878bb/lib-snow`
+
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: cargo_util::paths::read_bytes
+   1: cargo_util::paths::read
+   2: cargo::core::compiler::fingerprint::_compare_old_fingerprint
+   3: cargo::core::compiler::fingerprint::prepare_target
+   4: cargo::core::compiler::compile
+   5: cargo::core::compiler::compile
+   6: cargo::core::compiler::compile
+   7: cargo::core::compiler::compile
+   8: cargo::core::compiler::compile
+   9: <cargo::core::compiler::build_runner::BuildRunner>::compile
+  10: cargo::ops::cargo_compile::compile_ws
+  11: cargo::ops::cargo_compile::compile_with_exec
+  12: cargo::ops::cargo_compile::compile
+  13: cargo::commands::check::exec
+  14: <cargo::cli::Exec>::exec
+  15: cargo::main
+  16: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  17: std::rt::lang_start::<()>::{closure#0}
+  18: core::ops::function::impls::<impl core::ops::function::FnOnce<A> for &F>::call_once
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/core/src/ops/function.rs:287:21
+  19: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  20: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  21: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  22: std::rt::lang_start_internal::{{closure}}
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:175:24
+  23: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  24: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  25: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  26: std::rt::lang_start_internal
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:171:5
+  27: main
+  28: <unknown>
+  29: __libc_start_main
+  30: <unknown>
+   0.243225997s  INFO prepare_target{force=false package_id=ring v0.17.14 target="ring"}: cargo::core::compiler::fingerprint: fingerprint error for ring v0.17.14/Check { test: false }/TargetInner { ..: lib_target("ring", ["lib"], "/home/siphon/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ring-0.17.14/src/lib.rs", Edition2021) }
+   0.243229218s  INFO prepare_target{force=false package_id=ring v0.17.14 target="ring"}: cargo::core::compiler::fingerprint:     err: failed to read `/home/siphon/dsip/impl/target/debug/.fingerprint/ring-2930b8253c1e5b27/lib-ring`
+
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: cargo_util::paths::read_bytes
+   1: cargo_util::paths::read
+   2: cargo::core::compiler::fingerprint::_compare_old_fingerprint
+   3: cargo::core::compiler::fingerprint::prepare_target
+   4: cargo::core::compiler::compile
+   5: cargo::core::compiler::compile
+   6: cargo::core::compiler::compile
+   7: cargo::core::compiler::compile
+   8: cargo::core::compiler::compile
+   9: cargo::core::compiler::compile
+  10: <cargo::core::compiler::build_runner::BuildRunner>::compile
+  11: cargo::ops::cargo_compile::compile_ws
+  12: cargo::ops::cargo_compile::compile_with_exec
+  13: cargo::ops::cargo_compile::compile
+  14: cargo::commands::check::exec
+  15: <cargo::cli::Exec>::exec
+  16: cargo::main
+  17: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  18: std::rt::lang_start::<()>::{closure#0}
+  19: core::ops::function::impls::<impl core::ops::function::FnOnce<A> for &F>::call_once
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/core/src/ops/function.rs:287:21
+  20: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  21: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  22: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  23: std::rt::lang_start_internal::{{closure}}
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:175:24
+  24: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  25: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  26: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  27: std::rt::lang_start_internal
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:171:5
+  28: main
+  29: <unknown>
+  30: __libc_start_main
+  31: <unknown>
+   0.243981103s  INFO prepare_target{force=false package_id=x25519-dalek v2.0.1 target="x25519_dalek"}: cargo::core::compiler::fingerprint: fingerprint error for x25519-dalek v2.0.1/Check { test: false }/TargetInner { name_inferred: true, ..: lib_target("x25519_dalek", ["lib"], "/home/siphon/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/x25519-dalek-2.0.1/src/lib.rs", Edition2021) }
+   0.243989675s  INFO prepare_target{force=false package_id=x25519-dalek v2.0.1 target="x25519_dalek"}: cargo::core::compiler::fingerprint:     err: failed to read `/home/siphon/dsip/impl/target/debug/.fingerprint/x25519-dalek-741c3b2ffe15f607/lib-x25519_dalek`
+
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: cargo_util::paths::read_bytes
+   1: cargo_util::paths::read
+   2: cargo::core::compiler::fingerprint::_compare_old_fingerprint
+   3: cargo::core::compiler::fingerprint::prepare_target
+   4: cargo::core::compiler::compile
+   5: cargo::core::compiler::compile
+   6: cargo::core::compiler::compile
+   7: cargo::core::compiler::compile
+   8: cargo::core::compiler::compile
+   9: <cargo::core::compiler::build_runner::BuildRunner>::compile
+  10: cargo::ops::cargo_compile::compile_ws
+  11: cargo::ops::cargo_compile::compile_with_exec
+  12: cargo::ops::cargo_compile::compile
+  13: cargo::commands::check::exec
+  14: <cargo::cli::Exec>::exec
+  15: cargo::main
+  16: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  17: std::rt::lang_start::<()>::{closure#0}
+  18: core::ops::function::impls::<impl core::ops::function::FnOnce<A> for &F>::call_once
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/core/src/ops/function.rs:287:21
+  19: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  20: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  21: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  22: std::rt::lang_start_internal::{{closure}}
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:175:24
+  23: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  24: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  25: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  26: std::rt::lang_start_internal
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:171:5
+  27: main
+  28: <unknown>
+  29: __libc_start_main
+  30: <unknown>
+   0.244151955s  INFO prepare_target{force=false package_id=libp2p-tcp v0.44.1 target="libp2p_tcp"}: cargo::core::compiler::fingerprint: fingerprint error for libp2p-tcp v0.44.1/Check { test: false }/TargetInner { ..: lib_target("libp2p_tcp", ["lib"], "/home/siphon/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libp2p-tcp-0.44.1/src/lib.rs", Edition2021) }
+   0.244156946s  INFO prepare_target{force=false package_id=libp2p-tcp v0.44.1 target="libp2p_tcp"}: cargo::core::compiler::fingerprint:     err: failed to read `/home/siphon/dsip/impl/target/debug/.fingerprint/libp2p-tcp-58b2a4fefa9193ab/lib-libp2p_tcp`
+
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: cargo_util::paths::read_bytes
+   1: cargo_util::paths::read
+   2: cargo::core::compiler::fingerprint::_compare_old_fingerprint
+   3: cargo::core::compiler::fingerprint::prepare_target
+   4: cargo::core::compiler::compile
+   5: cargo::core::compiler::compile
+   6: cargo::core::compiler::compile
+   7: cargo::core::compiler::compile
+   8: <cargo::core::compiler::build_runner::BuildRunner>::compile
+   9: cargo::ops::cargo_compile::compile_ws
+  10: cargo::ops::cargo_compile::compile_with_exec
+  11: cargo::ops::cargo_compile::compile
+  12: cargo::commands::check::exec
+  13: <cargo::cli::Exec>::exec
+  14: cargo::main
+  15: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  16: std::rt::lang_start::<()>::{closure#0}
+  17: core::ops::function::impls::<impl core::ops::function::FnOnce<A> for &F>::call_once
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/core/src/ops/function.rs:287:21
+  18: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  19: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  20: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  21: std::rt::lang_start_internal::{{closure}}
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:175:24
+  22: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  23: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  24: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  25: std::rt::lang_start_internal
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:171:5
+  26: main
+  27: <unknown>
+  28: __libc_start_main
+  29: <unknown>
+   0.246637085s  INFO prepare_target{force=false package_id=libp2p-yamux v0.47.0 target="libp2p_yamux"}: cargo::core::compiler::fingerprint: fingerprint error for libp2p-yamux v0.47.0/Check { test: false }/TargetInner { ..: lib_target("libp2p_yamux", ["lib"], "/home/siphon/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libp2p-yamux-0.47.0/src/lib.rs", Edition2021) }
+   0.246646442s  INFO prepare_target{force=false package_id=libp2p-yamux v0.47.0 target="libp2p_yamux"}: cargo::core::compiler::fingerprint:     err: failed to read `/home/siphon/dsip/impl/target/debug/.fingerprint/libp2p-yamux-8ca365f518274ab2/lib-libp2p_yamux`
+
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: cargo_util::paths::read_bytes
+   1: cargo_util::paths::read
+   2: cargo::core::compiler::fingerprint::_compare_old_fingerprint
+   3: cargo::core::compiler::fingerprint::prepare_target
+   4: cargo::core::compiler::compile
+   5: cargo::core::compiler::compile
+   6: cargo::core::compiler::compile
+   7: cargo::core::compiler::compile
+   8: <cargo::core::compiler::build_runner::BuildRunner>::compile
+   9: cargo::ops::cargo_compile::compile_ws
+  10: cargo::ops::cargo_compile::compile_with_exec
+  11: cargo::ops::cargo_compile::compile
+  12: cargo::commands::check::exec
+  13: <cargo::cli::Exec>::exec
+  14: cargo::main
+  15: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  16: std::rt::lang_start::<()>::{closure#0}
+  17: core::ops::function::impls::<impl core::ops::function::FnOnce<A> for &F>::call_once
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/core/src/ops/function.rs:287:21
+  18: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  19: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  20: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  21: std::rt::lang_start_internal::{{closure}}
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:175:24
+  22: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  23: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  24: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  25: std::rt::lang_start_internal
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:171:5
+  26: main
+  27: <unknown>
+  28: __libc_start_main
+  29: <unknown>
+   0.246947393s  INFO prepare_target{force=false package_id=yamux v0.12.1 target="yamux"}: cargo::core::compiler::fingerprint: fingerprint error for yamux v0.12.1/Check { test: false }/TargetInner { name_inferred: true, ..: lib_target("yamux", ["lib"], "/home/siphon/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/yamux-0.12.1/src/lib.rs", Edition2018) }
+   0.246953947s  INFO prepare_target{force=false package_id=yamux v0.12.1 target="yamux"}: cargo::core::compiler::fingerprint:     err: failed to read `/home/siphon/dsip/impl/target/debug/.fingerprint/yamux-d71d22fc4a21f410/lib-yamux`
+
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: cargo_util::paths::read_bytes
+   1: cargo_util::paths::read
+   2: cargo::core::compiler::fingerprint::_compare_old_fingerprint
+   3: cargo::core::compiler::fingerprint::prepare_target
+   4: cargo::core::compiler::compile
+   5: cargo::core::compiler::compile
+   6: cargo::core::compiler::compile
+   7: cargo::core::compiler::compile
+   8: cargo::core::compiler::compile
+   9: <cargo::core::compiler::build_runner::BuildRunner>::compile
+  10: cargo::ops::cargo_compile::compile_ws
+  11: cargo::ops::cargo_compile::compile_with_exec
+  12: cargo::ops::cargo_compile::compile
+  13: cargo::commands::check::exec
+  14: <cargo::cli::Exec>::exec
+  15: cargo::main
+  16: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  17: std::rt::lang_start::<()>::{closure#0}
+  18: core::ops::function::impls::<impl core::ops::function::FnOnce<A> for &F>::call_once
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/core/src/ops/function.rs:287:21
+  19: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  20: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  21: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  22: std::rt::lang_start_internal::{{closure}}
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:175:24
+  23: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  24: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  25: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  26: std::rt::lang_start_internal
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:171:5
+  27: main
+  28: <unknown>
+  29: __libc_start_main
+  30: <unknown>
+   0.249771399s  INFO prepare_target{force=false package_id=dsip-session v0.1.0 (/home/siphon/dsip/impl/crates/dsip-session) target="dsip_session"}: cargo::core::compiler::fingerprint: fingerprint error for dsip-session v0.1.0 (/home/siphon/dsip/impl/crates/dsip-session)/Check { test: false }/TargetInner { name_inferred: true, ..: lib_target("dsip_session", ["lib"], "/home/siphon/dsip/impl/crates/dsip-session/src/lib.rs", Edition2021) }
+   0.249783022s  INFO prepare_target{force=false package_id=dsip-session v0.1.0 (/home/siphon/dsip/impl/crates/dsip-session) target="dsip_session"}: cargo::core::compiler::fingerprint:     err: failed to read `/home/siphon/dsip/impl/target/debug/.fingerprint/dsip-session-f58ce7d302f18b7e/lib-dsip_session`
+
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: cargo_util::paths::read_bytes
+   1: cargo_util::paths::read
+   2: cargo::core::compiler::fingerprint::_compare_old_fingerprint
+   3: cargo::core::compiler::fingerprint::prepare_target
+   4: cargo::core::compiler::compile
+   5: cargo::core::compiler::compile
+   6: <cargo::core::compiler::build_runner::BuildRunner>::compile
+   7: cargo::ops::cargo_compile::compile_ws
+   8: cargo::ops::cargo_compile::compile_with_exec
+   9: cargo::ops::cargo_compile::compile
+  10: cargo::commands::check::exec
+  11: <cargo::cli::Exec>::exec
+  12: cargo::main
+  13: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  14: std::rt::lang_start::<()>::{closure#0}
+  15: core::ops::function::impls::<impl core::ops::function::FnOnce<A> for &F>::call_once
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/core/src/ops/function.rs:287:21
+  16: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  17: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  18: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  19: std::rt::lang_start_internal::{{closure}}
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:175:24
+  20: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  21: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  22: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  23: std::rt::lang_start_internal
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:171:5
+  24: main
+  25: <unknown>
+  26: __libc_start_main
+  27: <unknown>
+   0.249993984s  INFO prepare_target{force=false package_id=dsip-transport v0.1.0 (/home/siphon/dsip/impl/crates/dsip-transport) target="dsip_transport"}: cargo::core::compiler::fingerprint: fingerprint error for dsip-transport v0.1.0 (/home/siphon/dsip/impl/crates/dsip-transport)/Check { test: false }/TargetInner { name_inferred: true, ..: lib_target("dsip_transport", ["lib"], "/home/siphon/dsip/impl/crates/dsip-transport/src/lib.rs", Edition2021) }
+   0.249999764s  INFO prepare_target{force=false package_id=dsip-transport v0.1.0 (/home/siphon/dsip/impl/crates/dsip-transport) target="dsip_transport"}: cargo::core::compiler::fingerprint:     err: failed to read `/home/siphon/dsip/impl/target/debug/.fingerprint/dsip-transport-0f9c4d7cf4b17883/lib-dsip_transport`
+
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: cargo_util::paths::read_bytes
+   1: cargo_util::paths::read
+   2: cargo::core::compiler::fingerprint::_compare_old_fingerprint
+   3: cargo::core::compiler::fingerprint::prepare_target
+   4: cargo::core::compiler::compile
+   5: cargo::core::compiler::compile
+   6: <cargo::core::compiler::build_runner::BuildRunner>::compile
+   7: cargo::ops::cargo_compile::compile_ws
+   8: cargo::ops::cargo_compile::compile_with_exec
+   9: cargo::ops::cargo_compile::compile
+  10: cargo::commands::check::exec
+  11: <cargo::cli::Exec>::exec
+  12: cargo::main
+  13: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  14: std::rt::lang_start::<()>::{closure#0}
+  15: core::ops::function::impls::<impl core::ops::function::FnOnce<A> for &F>::call_once
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/core/src/ops/function.rs:287:21
+  16: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  17: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  18: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  19: std::rt::lang_start_internal::{{closure}}
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:175:24
+  20: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  21: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  22: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  23: std::rt::lang_start_internal
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:171:5
+  24: main
+  25: <unknown>
+  26: __libc_start_main
+  27: <unknown>
+   0.250529439s  INFO prepare_target{force=false package_id=dsip-endpoint v0.1.0 (/home/siphon/dsip/impl/crates/dsip-endpoint) target="dsip_endpoint"}: cargo::core::compiler::fingerprint: fingerprint error for dsip-endpoint v0.1.0 (/home/siphon/dsip/impl/crates/dsip-endpoint)/Check { test: false }/TargetInner { name_inferred: true, ..: lib_target("dsip_endpoint", ["lib"], "/home/siphon/dsip/impl/crates/dsip-endpoint/src/lib.rs", Edition2021) }
+   0.250534515s  INFO prepare_target{force=false package_id=dsip-endpoint v0.1.0 (/home/siphon/dsip/impl/crates/dsip-endpoint) target="dsip_endpoint"}: cargo::core::compiler::fingerprint:     err: failed to read `/home/siphon/dsip/impl/target/debug/.fingerprint/dsip-endpoint-7ea2b2a5aa1b1d8a/lib-dsip_endpoint`
+
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: cargo_util::paths::read_bytes
+   1: cargo_util::paths::read
+   2: cargo::core::compiler::fingerprint::_compare_old_fingerprint
+   3: cargo::core::compiler::fingerprint::prepare_target
+   4: cargo::core::compiler::compile
+   5: cargo::core::compiler::compile
+   6: cargo::core::compiler::compile
+   7: <cargo::core::compiler::build_runner::BuildRunner>::compile
+   8: cargo::ops::cargo_compile::compile_ws
+   9: cargo::ops::cargo_compile::compile_with_exec
+  10: cargo::ops::cargo_compile::compile
+  11: cargo::commands::check::exec
+  12: <cargo::cli::Exec>::exec
+  13: cargo::main
+  14: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  15: std::rt::lang_start::<()>::{closure#0}
+  16: core::ops::function::impls::<impl core::ops::function::FnOnce<A> for &F>::call_once
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/core/src/ops/function.rs:287:21
+  17: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  18: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  19: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  20: std::rt::lang_start_internal::{{closure}}
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:175:24
+  21: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  22: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  23: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  24: std::rt::lang_start_internal
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:171:5
+  25: main
+  26: <unknown>
+  27: __libc_start_main
+  28: <unknown>
+   0.250751897s  INFO prepare_target{force=false package_id=rcgen v0.13.2 target="rcgen"}: cargo::core::compiler::fingerprint: fingerprint error for rcgen v0.13.2/Check { test: false }/TargetInner { ..: lib_target("rcgen", ["lib"], "/home/siphon/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rcgen-0.13.2/src/lib.rs", Edition2021) }
+   0.250757840s  INFO prepare_target{force=false package_id=rcgen v0.13.2 target="rcgen"}: cargo::core::compiler::fingerprint:     err: failed to read `/home/siphon/dsip/impl/target/debug/.fingerprint/rcgen-4c78bf4e4b018a17/lib-rcgen`
+
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: cargo_util::paths::read_bytes
+   1: cargo_util::paths::read
+   2: cargo::core::compiler::fingerprint::_compare_old_fingerprint
+   3: cargo::core::compiler::fingerprint::prepare_target
+   4: cargo::core::compiler::compile
+   5: cargo::core::compiler::compile
+   6: cargo::core::compiler::compile
+   7: <cargo::core::compiler::build_runner::BuildRunner>::compile
+   8: cargo::ops::cargo_compile::compile_ws
+   9: cargo::ops::cargo_compile::compile_with_exec
+  10: cargo::ops::cargo_compile::compile
+  11: cargo::commands::check::exec
+  12: <cargo::cli::Exec>::exec
+  13: cargo::main
+  14: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  15: std::rt::lang_start::<()>::{closure#0}
+  16: core::ops::function::impls::<impl core::ops::function::FnOnce<A> for &F>::call_once
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/core/src/ops/function.rs:287:21
+  17: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  18: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  19: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  20: std::rt::lang_start_internal::{{closure}}
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:175:24
+  21: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  22: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  23: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  24: std::rt::lang_start_internal
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:171:5
+  25: main
+  26: <unknown>
+  27: __libc_start_main
+  28: <unknown>
+   0.252761509s  INFO prepare_target{force=false package_id=reqwest v0.12.28 target="reqwest"}: cargo::core::compiler::fingerprint: fingerprint error for reqwest v0.12.28/Check { test: false }/TargetInner { ..: lib_target("reqwest", ["lib"], "/home/siphon/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/reqwest-0.12.28/src/lib.rs", Edition2021) }
+   0.252772977s  INFO prepare_target{force=false package_id=reqwest v0.12.28 target="reqwest"}: cargo::core::compiler::fingerprint:     err: failed to read `/home/siphon/dsip/impl/target/debug/.fingerprint/reqwest-ed10216b929e3a30/lib-reqwest`
+
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: cargo_util::paths::read_bytes
+   1: cargo_util::paths::read
+   2: cargo::core::compiler::fingerprint::_compare_old_fingerprint
+   3: cargo::core::compiler::fingerprint::prepare_target
+   4: cargo::core::compiler::compile
+   5: cargo::core::compiler::compile
+   6: cargo::core::compiler::compile
+   7: <cargo::core::compiler::build_runner::BuildRunner>::compile
+   8: cargo::ops::cargo_compile::compile_ws
+   9: cargo::ops::cargo_compile::compile_with_exec
+  10: cargo::ops::cargo_compile::compile
+  11: cargo::commands::check::exec
+  12: <cargo::cli::Exec>::exec
+  13: cargo::main
+  14: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  15: std::rt::lang_start::<()>::{closure#0}
+  16: core::ops::function::impls::<impl core::ops::function::FnOnce<A> for &F>::call_once
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/core/src/ops/function.rs:287:21
+  17: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  18: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  19: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  20: std::rt::lang_start_internal::{{closure}}
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:175:24
+  21: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  22: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  23: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  24: std::rt::lang_start_internal
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:171:5
+  25: main
+  26: <unknown>
+  27: __libc_start_main
+  28: <unknown>
+   0.255002193s  INFO prepare_target{force=false package_id=hyper-rustls v0.27.9 target="hyper_rustls"}: cargo::core::compiler::fingerprint: fingerprint error for hyper-rustls v0.27.9/Check { test: false }/TargetInner { ..: lib_target("hyper_rustls", ["lib"], "/home/siphon/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/hyper-rustls-0.27.9/src/lib.rs", Edition2021) }
+   0.255014161s  INFO prepare_target{force=false package_id=hyper-rustls v0.27.9 target="hyper_rustls"}: cargo::core::compiler::fingerprint:     err: failed to read `/home/siphon/dsip/impl/target/debug/.fingerprint/hyper-rustls-2a593cce642b1be9/lib-hyper_rustls`
+
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: cargo_util::paths::read_bytes
+   1: cargo_util::paths::read
+   2: cargo::core::compiler::fingerprint::_compare_old_fingerprint
+   3: cargo::core::compiler::fingerprint::prepare_target
+   4: cargo::core::compiler::compile
+   5: cargo::core::compiler::compile
+   6: cargo::core::compiler::compile
+   7: cargo::core::compiler::compile
+   8: <cargo::core::compiler::build_runner::BuildRunner>::compile
+   9: cargo::ops::cargo_compile::compile_ws
+  10: cargo::ops::cargo_compile::compile_with_exec
+  11: cargo::ops::cargo_compile::compile
+  12: cargo::commands::check::exec
+  13: <cargo::cli::Exec>::exec
+  14: cargo::main
+  15: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  16: std::rt::lang_start::<()>::{closure#0}
+  17: core::ops::function::impls::<impl core::ops::function::FnOnce<A> for &F>::call_once
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/core/src/ops/function.rs:287:21
+  18: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  19: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  20: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  21: std::rt::lang_start_internal::{{closure}}
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:175:24
+  22: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  23: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  24: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  25: std::rt::lang_start_internal
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:171:5
+  26: main
+  27: <unknown>
+  28: __libc_start_main
+  29: <unknown>
+   0.255712324s  INFO prepare_target{force=false package_id=rustls v0.23.43 target="rustls"}: cargo::core::compiler::fingerprint: fingerprint error for rustls v0.23.43/Check { test: false }/TargetInner { ..: lib_target("rustls", ["lib"], "/home/siphon/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rustls-0.23.43/src/lib.rs", Edition2021) }
+   0.255722579s  INFO prepare_target{force=false package_id=rustls v0.23.43 target="rustls"}: cargo::core::compiler::fingerprint:     err: failed to read `/home/siphon/dsip/impl/target/debug/.fingerprint/rustls-9a69b57232a5af3c/lib-rustls`
+
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: cargo_util::paths::read_bytes
+   1: cargo_util::paths::read
+   2: cargo::core::compiler::fingerprint::_compare_old_fingerprint
+   3: cargo::core::compiler::fingerprint::prepare_target
+   4: cargo::core::compiler::compile
+   5: cargo::core::compiler::compile
+   6: cargo::core::compiler::compile
+   7: cargo::core::compiler::compile
+   8: cargo::core::compiler::compile
+   9: <cargo::core::compiler::build_runner::BuildRunner>::compile
+  10: cargo::ops::cargo_compile::compile_ws
+  11: cargo::ops::cargo_compile::compile_with_exec
+  12: cargo::ops::cargo_compile::compile
+  13: cargo::commands::check::exec
+  14: <cargo::cli::Exec>::exec
+  15: cargo::main
+  16: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  17: std::rt::lang_start::<()>::{closure#0}
+  18: core::ops::function::impls::<impl core::ops::function::FnOnce<A> for &F>::call_once
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/core/src/ops/function.rs:287:21
+  19: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  20: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  21: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  22: std::rt::lang_start_internal::{{closure}}
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:175:24
+  23: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  24: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  25: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  26: std::rt::lang_start_internal
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:171:5
+  27: main
+  28: <unknown>
+  29: __libc_start_main
+  30: <unknown>
+   0.257835865s  INFO prepare_target{force=false package_id=rustls-webpki v0.103.14 target="webpki"}: cargo::core::compiler::fingerprint: fingerprint error for rustls-webpki v0.103.14/Check { test: false }/TargetInner { ..: lib_target("webpki", ["lib"], "/home/siphon/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rustls-webpki-0.103.14/src/lib.rs", Edition2021) }
+   0.257847274s  INFO prepare_target{force=false package_id=rustls-webpki v0.103.14 target="webpki"}: cargo::core::compiler::fingerprint:     err: failed to read `/home/siphon/dsip/impl/target/debug/.fingerprint/rustls-webpki-9ed866c64ea24244/lib-webpki`
+
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: cargo_util::paths::read_bytes
+   1: cargo_util::paths::read
+   2: cargo::core::compiler::fingerprint::_compare_old_fingerprint
+   3: cargo::core::compiler::fingerprint::prepare_target
+   4: cargo::core::compiler::compile
+   5: cargo::core::compiler::compile
+   6: cargo::core::compiler::compile
+   7: cargo::core::compiler::compile
+   8: cargo::core::compiler::compile
+   9: cargo::core::compiler::compile
+  10: <cargo::core::compiler::build_runner::BuildRunner>::compile
+  11: cargo::ops::cargo_compile::compile_ws
+  12: cargo::ops::cargo_compile::compile_with_exec
+  13: cargo::ops::cargo_compile::compile
+  14: cargo::commands::check::exec
+  15: <cargo::cli::Exec>::exec
+  16: cargo::main
+  17: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  18: std::rt::lang_start::<()>::{closure#0}
+  19: core::ops::function::impls::<impl core::ops::function::FnOnce<A> for &F>::call_once
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/core/src/ops/function.rs:287:21
+  20: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  21: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  22: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  23: std::rt::lang_start_internal::{{closure}}
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:175:24
+  24: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  25: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  26: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  27: std::rt::lang_start_internal
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:171:5
+  28: main
+  29: <unknown>
+  30: __libc_start_main
+  31: <unknown>
+   0.258002882s  INFO prepare_target{force=false package_id=tokio-rustls v0.26.4 target="tokio_rustls"}: cargo::core::compiler::fingerprint: fingerprint error for tokio-rustls v0.26.4/Check { test: false }/TargetInner { ..: lib_target("tokio_rustls", ["lib"], "/home/siphon/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-rustls-0.26.4/src/lib.rs", Edition2021) }
+   0.258008321s  INFO prepare_target{force=false package_id=tokio-rustls v0.26.4 target="tokio_rustls"}: cargo::core::compiler::fingerprint:     err: failed to read `/home/siphon/dsip/impl/target/debug/.fingerprint/tokio-rustls-7e4f86f27b213986/lib-tokio_rustls`
+
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: cargo_util::paths::read_bytes
+   1: cargo_util::paths::read
+   2: cargo::core::compiler::fingerprint::_compare_old_fingerprint
+   3: cargo::core::compiler::fingerprint::prepare_target
+   4: cargo::core::compiler::compile
+   5: cargo::core::compiler::compile
+   6: cargo::core::compiler::compile
+   7: cargo::core::compiler::compile
+   8: cargo::core::compiler::compile
+   9: <cargo::core::compiler::build_runner::BuildRunner>::compile
+  10: cargo::ops::cargo_compile::compile_ws
+  11: cargo::ops::cargo_compile::compile_with_exec
+  12: cargo::ops::cargo_compile::compile
+  13: cargo::commands::check::exec
+  14: <cargo::cli::Exec>::exec
+  15: cargo::main
+  16: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  17: std::rt::lang_start::<()>::{closure#0}
+  18: core::ops::function::impls::<impl core::ops::function::FnOnce<A> for &F>::call_once
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/core/src/ops/function.rs:287:21
+  19: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  20: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  21: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  22: std::rt::lang_start_internal::{{closure}}
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:175:24
+  23: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  24: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  25: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  26: std::rt::lang_start_internal
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:171:5
+  27: main
+  28: <unknown>
+  29: __libc_start_main
+  30: <unknown>
+   0.261040450s  INFO prepare_target{force=false package_id=tokio-tungstenite v0.30.0 target="tokio_tungstenite"}: cargo::core::compiler::fingerprint: fingerprint error for tokio-tungstenite v0.30.0/Check { test: false }/TargetInner { ..: lib_target("tokio_tungstenite", ["lib"], "/home/siphon/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-tungstenite-0.30.0/src/lib.rs", Edition2018) }
+   0.261053873s  INFO prepare_target{force=false package_id=tokio-tungstenite v0.30.0 target="tokio_tungstenite"}: cargo::core::compiler::fingerprint:     err: failed to read `/home/siphon/dsip/impl/target/debug/.fingerprint/tokio-tungstenite-06a8f3b967eafc26/lib-tokio_tungstenite`
+
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: cargo_util::paths::read_bytes
+   1: cargo_util::paths::read
+   2: cargo::core::compiler::fingerprint::_compare_old_fingerprint
+   3: cargo::core::compiler::fingerprint::prepare_target
+   4: cargo::core::compiler::compile
+   5: cargo::core::compiler::compile
+   6: cargo::core::compiler::compile
+   7: <cargo::core::compiler::build_runner::BuildRunner>::compile
+   8: cargo::ops::cargo_compile::compile_ws
+   9: cargo::ops::cargo_compile::compile_with_exec
+  10: cargo::ops::cargo_compile::compile
+  11: cargo::commands::check::exec
+  12: <cargo::cli::Exec>::exec
+  13: cargo::main
+  14: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  15: std::rt::lang_start::<()>::{closure#0}
+  16: core::ops::function::impls::<impl core::ops::function::FnOnce<A> for &F>::call_once
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/core/src/ops/function.rs:287:21
+  17: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  18: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  19: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  20: std::rt::lang_start_internal::{{closure}}
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:175:24
+  21: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  22: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  23: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  24: std::rt::lang_start_internal
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:171:5
+  25: main
+  26: <unknown>
+  27: __libc_start_main
+  28: <unknown>
+   0.261925392s  INFO prepare_target{force=false package_id=tungstenite v0.30.0 target="tungstenite"}: cargo::core::compiler::fingerprint: fingerprint error for tungstenite v0.30.0/Check { test: false }/TargetInner { ..: lib_target("tungstenite", ["lib"], "/home/siphon/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tungstenite-0.30.0/src/lib.rs", Edition2021) }
+   0.261935657s  INFO prepare_target{force=false package_id=tungstenite v0.30.0 target="tungstenite"}: cargo::core::compiler::fingerprint:     err: failed to read `/home/siphon/dsip/impl/target/debug/.fingerprint/tungstenite-969051f2876e3036/lib-tungstenite`
+
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: cargo_util::paths::read_bytes
+   1: cargo_util::paths::read
+   2: cargo::core::compiler::fingerprint::_compare_old_fingerprint
+   3: cargo::core::compiler::fingerprint::prepare_target
+   4: cargo::core::compiler::compile
+   5: cargo::core::compiler::compile
+   6: cargo::core::compiler::compile
+   7: cargo::core::compiler::compile
+   8: <cargo::core::compiler::build_runner::BuildRunner>::compile
+   9: cargo::ops::cargo_compile::compile_ws
+  10: cargo::ops::cargo_compile::compile_with_exec
+  11: cargo::ops::cargo_compile::compile
+  12: cargo::commands::check::exec
+  13: <cargo::cli::Exec>::exec
+  14: cargo::main
+  15: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  16: std::rt::lang_start::<()>::{closure#0}
+  17: core::ops::function::impls::<impl core::ops::function::FnOnce<A> for &F>::call_once
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/core/src/ops/function.rs:287:21
+  18: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  19: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  20: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  21: std::rt::lang_start_internal::{{closure}}
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:175:24
+  22: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  23: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  24: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  25: std::rt::lang_start_internal
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:171:5
+  26: main
+  27: <unknown>
+  28: __libc_start_main
+  29: <unknown>
+   0.269700052s  INFO prepare_target{force=false package_id=dsip-cli v0.1.0 (/home/siphon/dsip/impl/crates/dsip-cli) target="dsip"}: cargo::core::compiler::fingerprint: fingerprint error for dsip-cli v0.1.0 (/home/siphon/dsip/impl/crates/dsip-cli)/Check { test: true }/TargetInner { name: "dsip", doc: true, ..: with_path("/home/siphon/dsip/impl/crates/dsip-cli/src/main.rs", Edition2021) }
+   0.269731364s  INFO prepare_target{force=false package_id=dsip-cli v0.1.0 (/home/siphon/dsip/impl/crates/dsip-cli) target="dsip"}: cargo::core::compiler::fingerprint:     err: failed to read `/home/siphon/dsip/impl/target/debug/.fingerprint/dsip-cli-d1cf634963c4529e/test-bin-dsip`
 
 Caused by:
     No such file or directory (os error 2)
@@ -84,8 +1694,8 @@ Stack backtrace:
   24: <unknown>
   25: __libc_start_main
   26: <unknown>
-   0.208985731s  INFO prepare_target{force=false package_id=dsip-cli v0.1.0 (/home/siphon/dsip/impl/crates/dsip-cli) target="vectors"}: cargo::core::compiler::fingerprint: fingerprint error for dsip-cli v0.1.0 (/home/siphon/dsip/impl/crates/dsip-cli)/Check { test: true }/TargetInner { kind: "test", name: "vectors", benched: false, ..: with_path("/home/siphon/dsip/impl/crates/dsip-cli/tests/vectors.rs", Edition2021) }
-   0.208994617s  INFO prepare_target{force=false package_id=dsip-cli v0.1.0 (/home/siphon/dsip/impl/crates/dsip-cli) target="vectors"}: cargo::core::compiler::fingerprint:     err: failed to read `/home/siphon/dsip/impl/target/debug/.fingerprint/dsip-cli-8dad88f469cb83f0/test-integration-test-vectors`
+   0.270943240s  INFO prepare_target{force=false package_id=dsip-cli v0.1.0 (/home/siphon/dsip/impl/crates/dsip-cli) target="vectors"}: cargo::core::compiler::fingerprint: fingerprint error for dsip-cli v0.1.0 (/home/siphon/dsip/impl/crates/dsip-cli)/Check { test: true }/TargetInner { kind: "test", name: "vectors", benched: false, ..: with_path("/home/siphon/dsip/impl/crates/dsip-cli/tests/vectors.rs", Edition2021) }
+   0.270964935s  INFO prepare_target{force=false package_id=dsip-cli v0.1.0 (/home/siphon/dsip/impl/crates/dsip-cli) target="vectors"}: cargo::core::compiler::fingerprint:     err: failed to read `/home/siphon/dsip/impl/target/debug/.fingerprint/dsip-cli-a3630cf58e6e14bf/test-integration-test-vectors`
 
 Caused by:
     No such file or directory (os error 2)
@@ -127,5 +1737,832 @@ Stack backtrace:
   24: <unknown>
   25: __libc_start_main
   26: <unknown>
+   0.271663199s  INFO prepare_target{force=false package_id=dsip-core v0.1.0 (/home/siphon/dsip/impl/crates/dsip-core) target="dsip_core"}: cargo::core::compiler::fingerprint: fingerprint error for dsip-core v0.1.0 (/home/siphon/dsip/impl/crates/dsip-core)/Check { test: true }/TargetInner { name_inferred: true, ..: lib_target("dsip_core", ["lib"], "/home/siphon/dsip/impl/crates/dsip-core/src/lib.rs", Edition2021) }
+   0.271686569s  INFO prepare_target{force=false package_id=dsip-core v0.1.0 (/home/siphon/dsip/impl/crates/dsip-core) target="dsip_core"}: cargo::core::compiler::fingerprint:     err: failed to read `/home/siphon/dsip/impl/target/debug/.fingerprint/dsip-core-6a9d4ccc14ea59cf/test-lib-dsip_core`
+
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: cargo_util::paths::read_bytes
+   1: cargo_util::paths::read
+   2: cargo::core::compiler::fingerprint::_compare_old_fingerprint
+   3: cargo::core::compiler::fingerprint::prepare_target
+   4: cargo::core::compiler::compile
+   5: <cargo::core::compiler::build_runner::BuildRunner>::compile
+   6: cargo::ops::cargo_compile::compile_ws
+   7: cargo::ops::cargo_compile::compile_with_exec
+   8: cargo::ops::cargo_compile::compile
+   9: cargo::commands::check::exec
+  10: <cargo::cli::Exec>::exec
+  11: cargo::main
+  12: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  13: std::rt::lang_start::<()>::{closure#0}
+  14: core::ops::function::impls::<impl core::ops::function::FnOnce<A> for &F>::call_once
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/core/src/ops/function.rs:287:21
+  15: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  16: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  17: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  18: std::rt::lang_start_internal::{{closure}}
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:175:24
+  19: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  20: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  21: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  22: std::rt::lang_start_internal
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:171:5
+  23: main
+  24: <unknown>
+  25: __libc_start_main
+  26: <unknown>
+   0.271915309s  INFO prepare_target{force=false package_id=dsip-dht v0.1.0 (/home/siphon/dsip/impl/crates/dsip-dht) target="dsip_dht"}: cargo::core::compiler::fingerprint: fingerprint error for dsip-dht v0.1.0 (/home/siphon/dsip/impl/crates/dsip-dht)/Check { test: true }/TargetInner { name_inferred: true, ..: lib_target("dsip_dht", ["lib"], "/home/siphon/dsip/impl/crates/dsip-dht/src/lib.rs", Edition2021) }
+   0.271919381s  INFO prepare_target{force=false package_id=dsip-dht v0.1.0 (/home/siphon/dsip/impl/crates/dsip-dht) target="dsip_dht"}: cargo::core::compiler::fingerprint:     err: failed to read `/home/siphon/dsip/impl/target/debug/.fingerprint/dsip-dht-bd8763ded35ca1af/test-lib-dsip_dht`
+
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: cargo_util::paths::read_bytes
+   1: cargo_util::paths::read
+   2: cargo::core::compiler::fingerprint::_compare_old_fingerprint
+   3: cargo::core::compiler::fingerprint::prepare_target
+   4: cargo::core::compiler::compile
+   5: <cargo::core::compiler::build_runner::BuildRunner>::compile
+   6: cargo::ops::cargo_compile::compile_ws
+   7: cargo::ops::cargo_compile::compile_with_exec
+   8: cargo::ops::cargo_compile::compile
+   9: cargo::commands::check::exec
+  10: <cargo::cli::Exec>::exec
+  11: cargo::main
+  12: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  13: std::rt::lang_start::<()>::{closure#0}
+  14: core::ops::function::impls::<impl core::ops::function::FnOnce<A> for &F>::call_once
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/core/src/ops/function.rs:287:21
+  15: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  16: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  17: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  18: std::rt::lang_start_internal::{{closure}}
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:175:24
+  19: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  20: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  21: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  22: std::rt::lang_start_internal
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:171:5
+  23: main
+  24: <unknown>
+  25: __libc_start_main
+  26: <unknown>
+   0.272371565s  INFO prepare_target{force=false package_id=dsip-dht v0.1.0 (/home/siphon/dsip/impl/crates/dsip-dht) target="dsip-dht-node"}: cargo::core::compiler::fingerprint: fingerprint error for dsip-dht v0.1.0 (/home/siphon/dsip/impl/crates/dsip-dht)/Check { test: false }/TargetInner { name: "dsip-dht-node", doc: true, ..: with_path("/home/siphon/dsip/impl/crates/dsip-dht/src/bin/dsip-dht-node.rs", Edition2021) }
+   0.272377336s  INFO prepare_target{force=false package_id=dsip-dht v0.1.0 (/home/siphon/dsip/impl/crates/dsip-dht) target="dsip-dht-node"}: cargo::core::compiler::fingerprint:     err: failed to read `/home/siphon/dsip/impl/target/debug/.fingerprint/dsip-dht-f0d48be17f2c2044/bin-dsip-dht-node`
+
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: cargo_util::paths::read_bytes
+   1: cargo_util::paths::read
+   2: cargo::core::compiler::fingerprint::_compare_old_fingerprint
+   3: cargo::core::compiler::fingerprint::prepare_target
+   4: cargo::core::compiler::compile
+   5: <cargo::core::compiler::build_runner::BuildRunner>::compile
+   6: cargo::ops::cargo_compile::compile_ws
+   7: cargo::ops::cargo_compile::compile_with_exec
+   8: cargo::ops::cargo_compile::compile
+   9: cargo::commands::check::exec
+  10: <cargo::cli::Exec>::exec
+  11: cargo::main
+  12: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  13: std::rt::lang_start::<()>::{closure#0}
+  14: core::ops::function::impls::<impl core::ops::function::FnOnce<A> for &F>::call_once
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/core/src/ops/function.rs:287:21
+  15: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  16: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  17: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  18: std::rt::lang_start_internal::{{closure}}
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:175:24
+  19: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  20: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  21: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  22: std::rt::lang_start_internal
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:171:5
+  23: main
+  24: <unknown>
+  25: __libc_start_main
+  26: <unknown>
+   0.272990099s  INFO prepare_target{force=false package_id=dsip-dht v0.1.0 (/home/siphon/dsip/impl/crates/dsip-dht) target="dsip-dht-node"}: cargo::core::compiler::fingerprint: fingerprint error for dsip-dht v0.1.0 (/home/siphon/dsip/impl/crates/dsip-dht)/Check { test: true }/TargetInner { name: "dsip-dht-node", doc: true, ..: with_path("/home/siphon/dsip/impl/crates/dsip-dht/src/bin/dsip-dht-node.rs", Edition2021) }
+   0.272997900s  INFO prepare_target{force=false package_id=dsip-dht v0.1.0 (/home/siphon/dsip/impl/crates/dsip-dht) target="dsip-dht-node"}: cargo::core::compiler::fingerprint:     err: failed to read `/home/siphon/dsip/impl/target/debug/.fingerprint/dsip-dht-e0b39726b27df1b4/test-bin-dsip-dht-node`
+
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: cargo_util::paths::read_bytes
+   1: cargo_util::paths::read
+   2: cargo::core::compiler::fingerprint::_compare_old_fingerprint
+   3: cargo::core::compiler::fingerprint::prepare_target
+   4: cargo::core::compiler::compile
+   5: <cargo::core::compiler::build_runner::BuildRunner>::compile
+   6: cargo::ops::cargo_compile::compile_ws
+   7: cargo::ops::cargo_compile::compile_with_exec
+   8: cargo::ops::cargo_compile::compile
+   9: cargo::commands::check::exec
+  10: <cargo::cli::Exec>::exec
+  11: cargo::main
+  12: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  13: std::rt::lang_start::<()>::{closure#0}
+  14: core::ops::function::impls::<impl core::ops::function::FnOnce<A> for &F>::call_once
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/core/src/ops/function.rs:287:21
+  15: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  16: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  17: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  18: std::rt::lang_start_internal::{{closure}}
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:175:24
+  19: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  20: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  21: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  22: std::rt::lang_start_internal
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:171:5
+  23: main
+  24: <unknown>
+  25: __libc_start_main
+  26: <unknown>
+   0.273744730s  INFO prepare_target{force=false package_id=dsip-endpoint v0.1.0 (/home/siphon/dsip/impl/crates/dsip-endpoint) target="dsip_endpoint"}: cargo::core::compiler::fingerprint: fingerprint error for dsip-endpoint v0.1.0 (/home/siphon/dsip/impl/crates/dsip-endpoint)/Check { test: true }/TargetInner { name_inferred: true, ..: lib_target("dsip_endpoint", ["lib"], "/home/siphon/dsip/impl/crates/dsip-endpoint/src/lib.rs", Edition2021) }
+   0.273751889s  INFO prepare_target{force=false package_id=dsip-endpoint v0.1.0 (/home/siphon/dsip/impl/crates/dsip-endpoint) target="dsip_endpoint"}: cargo::core::compiler::fingerprint:     err: failed to read `/home/siphon/dsip/impl/target/debug/.fingerprint/dsip-endpoint-9d81293da94a58ed/test-lib-dsip_endpoint`
+
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: cargo_util::paths::read_bytes
+   1: cargo_util::paths::read
+   2: cargo::core::compiler::fingerprint::_compare_old_fingerprint
+   3: cargo::core::compiler::fingerprint::prepare_target
+   4: cargo::core::compiler::compile
+   5: <cargo::core::compiler::build_runner::BuildRunner>::compile
+   6: cargo::ops::cargo_compile::compile_ws
+   7: cargo::ops::cargo_compile::compile_with_exec
+   8: cargo::ops::cargo_compile::compile
+   9: cargo::commands::check::exec
+  10: <cargo::cli::Exec>::exec
+  11: cargo::main
+  12: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  13: std::rt::lang_start::<()>::{closure#0}
+  14: core::ops::function::impls::<impl core::ops::function::FnOnce<A> for &F>::call_once
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/core/src/ops/function.rs:287:21
+  15: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  16: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  17: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  18: std::rt::lang_start_internal::{{closure}}
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:175:24
+  19: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  20: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  21: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  22: std::rt::lang_start_internal
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:171:5
+  23: main
+  24: <unknown>
+  25: __libc_start_main
+  26: <unknown>
+   0.274038779s  INFO prepare_target{force=false package_id=dsip-relay v0.1.0 (/home/siphon/dsip/impl/crates/dsip-relay) target="dsip-relay"}: cargo::core::compiler::fingerprint: fingerprint error for dsip-relay v0.1.0 (/home/siphon/dsip/impl/crates/dsip-relay)/Check { test: false }/TargetInner { name: "dsip-relay", doc: true, ..: with_path("/home/siphon/dsip/impl/crates/dsip-relay/src/main.rs", Edition2021) }
+   0.274042438s  INFO prepare_target{force=false package_id=dsip-relay v0.1.0 (/home/siphon/dsip/impl/crates/dsip-relay) target="dsip-relay"}: cargo::core::compiler::fingerprint:     err: failed to read `/home/siphon/dsip/impl/target/debug/.fingerprint/dsip-relay-0f605808c5aa9ef2/bin-dsip-relay`
+
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: cargo_util::paths::read_bytes
+   1: cargo_util::paths::read
+   2: cargo::core::compiler::fingerprint::_compare_old_fingerprint
+   3: cargo::core::compiler::fingerprint::prepare_target
+   4: cargo::core::compiler::compile
+   5: <cargo::core::compiler::build_runner::BuildRunner>::compile
+   6: cargo::ops::cargo_compile::compile_ws
+   7: cargo::ops::cargo_compile::compile_with_exec
+   8: cargo::ops::cargo_compile::compile
+   9: cargo::commands::check::exec
+  10: <cargo::cli::Exec>::exec
+  11: cargo::main
+  12: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  13: std::rt::lang_start::<()>::{closure#0}
+  14: core::ops::function::impls::<impl core::ops::function::FnOnce<A> for &F>::call_once
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/core/src/ops/function.rs:287:21
+  15: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  16: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  17: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  18: std::rt::lang_start_internal::{{closure}}
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:175:24
+  19: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  20: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  21: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  22: std::rt::lang_start_internal
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:171:5
+  23: main
+  24: <unknown>
+  25: __libc_start_main
+  26: <unknown>
+   0.274441520s  INFO prepare_target{force=false package_id=dsip-relay v0.1.0 (/home/siphon/dsip/impl/crates/dsip-relay) target="dsip-relay"}: cargo::core::compiler::fingerprint: fingerprint error for dsip-relay v0.1.0 (/home/siphon/dsip/impl/crates/dsip-relay)/Check { test: true }/TargetInner { name: "dsip-relay", doc: true, ..: with_path("/home/siphon/dsip/impl/crates/dsip-relay/src/main.rs", Edition2021) }
+   0.274445156s  INFO prepare_target{force=false package_id=dsip-relay v0.1.0 (/home/siphon/dsip/impl/crates/dsip-relay) target="dsip-relay"}: cargo::core::compiler::fingerprint:     err: failed to read `/home/siphon/dsip/impl/target/debug/.fingerprint/dsip-relay-43d91b9b9c55dc5f/test-bin-dsip-relay`
+
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: cargo_util::paths::read_bytes
+   1: cargo_util::paths::read
+   2: cargo::core::compiler::fingerprint::_compare_old_fingerprint
+   3: cargo::core::compiler::fingerprint::prepare_target
+   4: cargo::core::compiler::compile
+   5: <cargo::core::compiler::build_runner::BuildRunner>::compile
+   6: cargo::ops::cargo_compile::compile_ws
+   7: cargo::ops::cargo_compile::compile_with_exec
+   8: cargo::ops::cargo_compile::compile
+   9: cargo::commands::check::exec
+  10: <cargo::cli::Exec>::exec
+  11: cargo::main
+  12: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  13: std::rt::lang_start::<()>::{closure#0}
+  14: core::ops::function::impls::<impl core::ops::function::FnOnce<A> for &F>::call_once
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/core/src/ops/function.rs:287:21
+  15: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  16: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  17: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  18: std::rt::lang_start_internal::{{closure}}
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:175:24
+  19: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  20: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  21: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  22: std::rt::lang_start_internal
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:171:5
+  23: main
+  24: <unknown>
+  25: __libc_start_main
+  26: <unknown>
+   0.274820719s  INFO prepare_target{force=false package_id=dsip-schema v0.1.0 (/home/siphon/dsip/impl/crates/dsip-schema) target="dsip_schema"}: cargo::core::compiler::fingerprint: fingerprint error for dsip-schema v0.1.0 (/home/siphon/dsip/impl/crates/dsip-schema)/Check { test: true }/TargetInner { name_inferred: true, ..: lib_target("dsip_schema", ["lib"], "/home/siphon/dsip/impl/crates/dsip-schema/src/lib.rs", Edition2021) }
+   0.274825129s  INFO prepare_target{force=false package_id=dsip-schema v0.1.0 (/home/siphon/dsip/impl/crates/dsip-schema) target="dsip_schema"}: cargo::core::compiler::fingerprint:     err: failed to read `/home/siphon/dsip/impl/target/debug/.fingerprint/dsip-schema-7b73cd989740b11f/test-lib-dsip_schema`
+
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: cargo_util::paths::read_bytes
+   1: cargo_util::paths::read
+   2: cargo::core::compiler::fingerprint::_compare_old_fingerprint
+   3: cargo::core::compiler::fingerprint::prepare_target
+   4: cargo::core::compiler::compile
+   5: <cargo::core::compiler::build_runner::BuildRunner>::compile
+   6: cargo::ops::cargo_compile::compile_ws
+   7: cargo::ops::cargo_compile::compile_with_exec
+   8: cargo::ops::cargo_compile::compile
+   9: cargo::commands::check::exec
+  10: <cargo::cli::Exec>::exec
+  11: cargo::main
+  12: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  13: std::rt::lang_start::<()>::{closure#0}
+  14: core::ops::function::impls::<impl core::ops::function::FnOnce<A> for &F>::call_once
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/core/src/ops/function.rs:287:21
+  15: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  16: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  17: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  18: std::rt::lang_start_internal::{{closure}}
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:175:24
+  19: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  20: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  21: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  22: std::rt::lang_start_internal
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:171:5
+  23: main
+  24: <unknown>
+  25: __libc_start_main
+  26: <unknown>
+   0.288039968s  INFO prepare_target{force=false package_id=dsip-session v0.1.0 (/home/siphon/dsip/impl/crates/dsip-session) target="dsip_session"}: cargo::core::compiler::fingerprint: fingerprint error for dsip-session v0.1.0 (/home/siphon/dsip/impl/crates/dsip-session)/Check { test: true }/TargetInner { name_inferred: true, ..: lib_target("dsip_session", ["lib"], "/home/siphon/dsip/impl/crates/dsip-session/src/lib.rs", Edition2021) }
+   0.288105233s  INFO prepare_target{force=false package_id=dsip-session v0.1.0 (/home/siphon/dsip/impl/crates/dsip-session) target="dsip_session"}: cargo::core::compiler::fingerprint:     err: failed to read `/home/siphon/dsip/impl/target/debug/.fingerprint/dsip-session-9e37466f870e8ef5/test-lib-dsip_session`
+
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: cargo_util::paths::read_bytes
+   1: cargo_util::paths::read
+   2: cargo::core::compiler::fingerprint::_compare_old_fingerprint
+   3: cargo::core::compiler::fingerprint::prepare_target
+   4: cargo::core::compiler::compile
+   5: <cargo::core::compiler::build_runner::BuildRunner>::compile
+   6: cargo::ops::cargo_compile::compile_ws
+   7: cargo::ops::cargo_compile::compile_with_exec
+   8: cargo::ops::cargo_compile::compile
+   9: cargo::commands::check::exec
+  10: <cargo::cli::Exec>::exec
+  11: cargo::main
+  12: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  13: std::rt::lang_start::<()>::{closure#0}
+  14: core::ops::function::impls::<impl core::ops::function::FnOnce<A> for &F>::call_once
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/core/src/ops/function.rs:287:21
+  15: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  16: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  17: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  18: std::rt::lang_start_internal::{{closure}}
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:175:24
+  19: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  20: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  21: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  22: std::rt::lang_start_internal
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:171:5
+  23: main
+  24: <unknown>
+  25: __libc_start_main
+  26: <unknown>
+   0.294589323s  INFO prepare_target{force=false package_id=dsip-session v0.1.0 (/home/siphon/dsip/impl/crates/dsip-session) target="invariants"}: cargo::core::compiler::fingerprint: fingerprint error for dsip-session v0.1.0 (/home/siphon/dsip/impl/crates/dsip-session)/Check { test: true }/TargetInner { kind: "test", name: "invariants", benched: false, ..: with_path("/home/siphon/dsip/impl/crates/dsip-session/tests/invariants.rs", Edition2021) }
+   0.294620679s  INFO prepare_target{force=false package_id=dsip-session v0.1.0 (/home/siphon/dsip/impl/crates/dsip-session) target="invariants"}: cargo::core::compiler::fingerprint:     err: failed to read `/home/siphon/dsip/impl/target/debug/.fingerprint/dsip-session-f16d7dec0ccc5266/test-integration-test-invariants`
+
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: cargo_util::paths::read_bytes
+   1: cargo_util::paths::read
+   2: cargo::core::compiler::fingerprint::_compare_old_fingerprint
+   3: cargo::core::compiler::fingerprint::prepare_target
+   4: cargo::core::compiler::compile
+   5: <cargo::core::compiler::build_runner::BuildRunner>::compile
+   6: cargo::ops::cargo_compile::compile_ws
+   7: cargo::ops::cargo_compile::compile_with_exec
+   8: cargo::ops::cargo_compile::compile
+   9: cargo::commands::check::exec
+  10: <cargo::cli::Exec>::exec
+  11: cargo::main
+  12: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  13: std::rt::lang_start::<()>::{closure#0}
+  14: core::ops::function::impls::<impl core::ops::function::FnOnce<A> for &F>::call_once
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/core/src/ops/function.rs:287:21
+  15: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  16: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  17: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  18: std::rt::lang_start_internal::{{closure}}
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:175:24
+  19: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  20: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  21: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  22: std::rt::lang_start_internal
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:171:5
+  23: main
+  24: <unknown>
+  25: __libc_start_main
+  26: <unknown>
+   0.295117630s  INFO prepare_target{force=false package_id=dsip-transport v0.1.0 (/home/siphon/dsip/impl/crates/dsip-transport) target="dsip_transport"}: cargo::core::compiler::fingerprint: fingerprint error for dsip-transport v0.1.0 (/home/siphon/dsip/impl/crates/dsip-transport)/Check { test: true }/TargetInner { name_inferred: true, ..: lib_target("dsip_transport", ["lib"], "/home/siphon/dsip/impl/crates/dsip-transport/src/lib.rs", Edition2021) }
+   0.295124438s  INFO prepare_target{force=false package_id=dsip-transport v0.1.0 (/home/siphon/dsip/impl/crates/dsip-transport) target="dsip_transport"}: cargo::core::compiler::fingerprint:     err: failed to read `/home/siphon/dsip/impl/target/debug/.fingerprint/dsip-transport-7c8c31f2cfdf607b/test-lib-dsip_transport`
+
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: cargo_util::paths::read_bytes
+   1: cargo_util::paths::read
+   2: cargo::core::compiler::fingerprint::_compare_old_fingerprint
+   3: cargo::core::compiler::fingerprint::prepare_target
+   4: cargo::core::compiler::compile
+   5: <cargo::core::compiler::build_runner::BuildRunner>::compile
+   6: cargo::ops::cargo_compile::compile_ws
+   7: cargo::ops::cargo_compile::compile_with_exec
+   8: cargo::ops::cargo_compile::compile
+   9: cargo::commands::check::exec
+  10: <cargo::cli::Exec>::exec
+  11: cargo::main
+  12: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  13: std::rt::lang_start::<()>::{closure#0}
+  14: core::ops::function::impls::<impl core::ops::function::FnOnce<A> for &F>::call_once
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/core/src/ops/function.rs:287:21
+  15: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  16: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  17: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  18: std::rt::lang_start_internal::{{closure}}
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:175:24
+  19: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  20: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  21: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  22: std::rt::lang_start_internal
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:171:5
+  23: main
+  24: <unknown>
+  25: __libc_start_main
+  26: <unknown>
+   0.296017328s  INFO prepare_target{force=false package_id=dsip-wasm v0.1.0 (/home/siphon/dsip/impl/crates/dsip-wasm) target="dsip_wasm"}: cargo::core::compiler::fingerprint: fingerprint error for dsip-wasm v0.1.0 (/home/siphon/dsip/impl/crates/dsip-wasm)/Check { test: false }/TargetInner { name_inferred: true, ..: lib_target("dsip_wasm", ["cdylib", "rlib"], "/home/siphon/dsip/impl/crates/dsip-wasm/src/lib.rs", Edition2021) }
+   0.296027080s  INFO prepare_target{force=false package_id=dsip-wasm v0.1.0 (/home/siphon/dsip/impl/crates/dsip-wasm) target="dsip_wasm"}: cargo::core::compiler::fingerprint:     err: failed to read `/home/siphon/dsip/impl/target/debug/.fingerprint/dsip-wasm-5b340f9dd178d118/lib-dsip_wasm`
+
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: cargo_util::paths::read_bytes
+   1: cargo_util::paths::read
+   2: cargo::core::compiler::fingerprint::_compare_old_fingerprint
+   3: cargo::core::compiler::fingerprint::prepare_target
+   4: cargo::core::compiler::compile
+   5: <cargo::core::compiler::build_runner::BuildRunner>::compile
+   6: cargo::ops::cargo_compile::compile_ws
+   7: cargo::ops::cargo_compile::compile_with_exec
+   8: cargo::ops::cargo_compile::compile
+   9: cargo::commands::check::exec
+  10: <cargo::cli::Exec>::exec
+  11: cargo::main
+  12: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  13: std::rt::lang_start::<()>::{closure#0}
+  14: core::ops::function::impls::<impl core::ops::function::FnOnce<A> for &F>::call_once
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/core/src/ops/function.rs:287:21
+  15: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  16: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  17: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  18: std::rt::lang_start_internal::{{closure}}
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:175:24
+  19: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  20: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  21: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  22: std::rt::lang_start_internal
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:171:5
+  23: main
+  24: <unknown>
+  25: __libc_start_main
+  26: <unknown>
+   0.296409854s  INFO prepare_target{force=false package_id=console_error_panic_hook v0.1.7 target="console_error_panic_hook"}: cargo::core::compiler::fingerprint: fingerprint error for console_error_panic_hook v0.1.7/Check { test: false }/TargetInner { name_inferred: true, ..: lib_target("console_error_panic_hook", ["lib"], "/home/siphon/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/console_error_panic_hook-0.1.7/src/lib.rs", Edition2015) }
+   0.296430157s  INFO prepare_target{force=false package_id=console_error_panic_hook v0.1.7 target="console_error_panic_hook"}: cargo::core::compiler::fingerprint:     err: failed to read `/home/siphon/dsip/impl/target/debug/.fingerprint/console_error_panic_hook-e65f996f7c9d0646/lib-console_error_panic_hook`
+
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: cargo_util::paths::read_bytes
+   1: cargo_util::paths::read
+   2: cargo::core::compiler::fingerprint::_compare_old_fingerprint
+   3: cargo::core::compiler::fingerprint::prepare_target
+   4: cargo::core::compiler::compile
+   5: cargo::core::compiler::compile
+   6: <cargo::core::compiler::build_runner::BuildRunner>::compile
+   7: cargo::ops::cargo_compile::compile_ws
+   8: cargo::ops::cargo_compile::compile_with_exec
+   9: cargo::ops::cargo_compile::compile
+  10: cargo::commands::check::exec
+  11: <cargo::cli::Exec>::exec
+  12: cargo::main
+  13: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  14: std::rt::lang_start::<()>::{closure#0}
+  15: core::ops::function::impls::<impl core::ops::function::FnOnce<A> for &F>::call_once
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/core/src/ops/function.rs:287:21
+  16: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  17: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  18: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  19: std::rt::lang_start_internal::{{closure}}
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:175:24
+  20: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  21: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  22: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  23: std::rt::lang_start_internal
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:171:5
+  24: main
+  25: <unknown>
+  26: __libc_start_main
+  27: <unknown>
+   0.296588016s  INFO prepare_target{force=false package_id=wasm-bindgen v0.2.127 target="wasm_bindgen"}: cargo::core::compiler::fingerprint: fingerprint error for wasm-bindgen v0.2.127/Check { test: false }/TargetInner { tested: false, ..: lib_target("wasm_bindgen", ["lib"], "/home/siphon/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wasm-bindgen-0.2.127/src/lib.rs", Edition2021) }
+   0.296592256s  INFO prepare_target{force=false package_id=wasm-bindgen v0.2.127 target="wasm_bindgen"}: cargo::core::compiler::fingerprint:     err: failed to read `/home/siphon/dsip/impl/target/debug/.fingerprint/wasm-bindgen-d5847b017b2a7af6/lib-wasm_bindgen`
+
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: cargo_util::paths::read_bytes
+   1: cargo_util::paths::read
+   2: cargo::core::compiler::fingerprint::_compare_old_fingerprint
+   3: cargo::core::compiler::fingerprint::prepare_target
+   4: cargo::core::compiler::compile
+   5: cargo::core::compiler::compile
+   6: cargo::core::compiler::compile
+   7: <cargo::core::compiler::build_runner::BuildRunner>::compile
+   8: cargo::ops::cargo_compile::compile_ws
+   9: cargo::ops::cargo_compile::compile_with_exec
+  10: cargo::ops::cargo_compile::compile
+  11: cargo::commands::check::exec
+  12: <cargo::cli::Exec>::exec
+  13: cargo::main
+  14: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  15: std::rt::lang_start::<()>::{closure#0}
+  16: core::ops::function::impls::<impl core::ops::function::FnOnce<A> for &F>::call_once
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/core/src/ops/function.rs:287:21
+  17: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  18: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  19: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  20: std::rt::lang_start_internal::{{closure}}
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:175:24
+  21: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  22: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  23: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  24: std::rt::lang_start_internal
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:171:5
+  25: main
+  26: <unknown>
+  27: __libc_start_main
+  28: <unknown>
+   0.297016115s  INFO prepare_target{force=false package_id=wasm-bindgen-shared v0.2.127 target="wasm_bindgen_shared"}: cargo::core::compiler::fingerprint: fingerprint error for wasm-bindgen-shared v0.2.127/Check { test: false }/TargetInner { ..: lib_target("wasm_bindgen_shared", ["lib"], "/home/siphon/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wasm-bindgen-shared-0.2.127/src/lib.rs", Edition2021) }
+   0.297035491s  INFO prepare_target{force=false package_id=wasm-bindgen-shared v0.2.127 target="wasm_bindgen_shared"}: cargo::core::compiler::fingerprint:     err: failed to read `/home/siphon/dsip/impl/target/debug/.fingerprint/wasm-bindgen-shared-5269ef487a8e5c6a/lib-wasm_bindgen_shared`
+
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: cargo_util::paths::read_bytes
+   1: cargo_util::paths::read
+   2: cargo::core::compiler::fingerprint::_compare_old_fingerprint
+   3: cargo::core::compiler::fingerprint::prepare_target
+   4: cargo::core::compiler::compile
+   5: cargo::core::compiler::compile
+   6: cargo::core::compiler::compile
+   7: cargo::core::compiler::compile
+   8: <cargo::core::compiler::build_runner::BuildRunner>::compile
+   9: cargo::ops::cargo_compile::compile_ws
+  10: cargo::ops::cargo_compile::compile_with_exec
+  11: cargo::ops::cargo_compile::compile
+  12: cargo::commands::check::exec
+  13: <cargo::cli::Exec>::exec
+  14: cargo::main
+  15: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  16: std::rt::lang_start::<()>::{closure#0}
+  17: core::ops::function::impls::<impl core::ops::function::FnOnce<A> for &F>::call_once
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/core/src/ops/function.rs:287:21
+  18: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  19: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  20: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  21: std::rt::lang_start_internal::{{closure}}
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:175:24
+  22: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  23: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  24: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  25: std::rt::lang_start_internal
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:171:5
+  26: main
+  27: <unknown>
+  28: __libc_start_main
+  29: <unknown>
+   0.297138379s  INFO prepare_target{force=false package_id=unicode-ident v1.0.24 target="unicode_ident"}: cargo::core::compiler::fingerprint: fingerprint error for unicode-ident v1.0.24/Check { test: false }/TargetInner { ..: lib_target("unicode_ident", ["lib"], "/home/siphon/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/unicode-ident-1.0.24/src/lib.rs", Edition2021) }
+   0.297141622s  INFO prepare_target{force=false package_id=unicode-ident v1.0.24 target="unicode_ident"}: cargo::core::compiler::fingerprint:     err: failed to read `/home/siphon/dsip/impl/target/debug/.fingerprint/unicode-ident-8eca967e5ae5feb8/lib-unicode_ident`
+
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: cargo_util::paths::read_bytes
+   1: cargo_util::paths::read
+   2: cargo::core::compiler::fingerprint::_compare_old_fingerprint
+   3: cargo::core::compiler::fingerprint::prepare_target
+   4: cargo::core::compiler::compile
+   5: cargo::core::compiler::compile
+   6: cargo::core::compiler::compile
+   7: cargo::core::compiler::compile
+   8: cargo::core::compiler::compile
+   9: <cargo::core::compiler::build_runner::BuildRunner>::compile
+  10: cargo::ops::cargo_compile::compile_ws
+  11: cargo::ops::cargo_compile::compile_with_exec
+  12: cargo::ops::cargo_compile::compile
+  13: cargo::commands::check::exec
+  14: <cargo::cli::Exec>::exec
+  15: cargo::main
+  16: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  17: std::rt::lang_start::<()>::{closure#0}
+  18: core::ops::function::impls::<impl core::ops::function::FnOnce<A> for &F>::call_once
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/core/src/ops/function.rs:287:21
+  19: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  20: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  21: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  22: std::rt::lang_start_internal::{{closure}}
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:175:24
+  23: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  24: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  25: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  26: std::rt::lang_start_internal
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:171:5
+  27: main
+  28: <unknown>
+  29: __libc_start_main
+  30: <unknown>
+   0.297227601s  INFO prepare_target{force=false package_id=js-sys v0.3.104 target="js_sys"}: cargo::core::compiler::fingerprint: fingerprint error for js-sys v0.3.104/Check { test: false }/TargetInner { tested: false, doctest: false, ..: lib_target("js_sys", ["lib"], "/home/siphon/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/js-sys-0.3.104/src/lib.rs", Edition2021) }
+   0.297230498s  INFO prepare_target{force=false package_id=js-sys v0.3.104 target="js_sys"}: cargo::core::compiler::fingerprint:     err: failed to read `/home/siphon/dsip/impl/target/debug/.fingerprint/js-sys-8ff40acf4e4d6745/lib-js_sys`
+
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: cargo_util::paths::read_bytes
+   1: cargo_util::paths::read
+   2: cargo::core::compiler::fingerprint::_compare_old_fingerprint
+   3: cargo::core::compiler::fingerprint::prepare_target
+   4: cargo::core::compiler::compile
+   5: cargo::core::compiler::compile
+   6: <cargo::core::compiler::build_runner::BuildRunner>::compile
+   7: cargo::ops::cargo_compile::compile_ws
+   8: cargo::ops::cargo_compile::compile_with_exec
+   9: cargo::ops::cargo_compile::compile
+  10: cargo::commands::check::exec
+  11: <cargo::cli::Exec>::exec
+  12: cargo::main
+  13: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  14: std::rt::lang_start::<()>::{closure#0}
+  15: core::ops::function::impls::<impl core::ops::function::FnOnce<A> for &F>::call_once
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/core/src/ops/function.rs:287:21
+  16: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  17: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  18: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  19: std::rt::lang_start_internal::{{closure}}
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:175:24
+  20: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  21: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  22: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  23: std::rt::lang_start_internal
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:171:5
+  24: main
+  25: <unknown>
+  26: __libc_start_main
+  27: <unknown>
+   0.297371295s  INFO prepare_target{force=false package_id=dsip-wasm v0.1.0 (/home/siphon/dsip/impl/crates/dsip-wasm) target="dsip_wasm"}: cargo::core::compiler::fingerprint: fingerprint error for dsip-wasm v0.1.0 (/home/siphon/dsip/impl/crates/dsip-wasm)/Check { test: true }/TargetInner { name_inferred: true, ..: lib_target("dsip_wasm", ["cdylib", "rlib"], "/home/siphon/dsip/impl/crates/dsip-wasm/src/lib.rs", Edition2021) }
+   0.297375062s  INFO prepare_target{force=false package_id=dsip-wasm v0.1.0 (/home/siphon/dsip/impl/crates/dsip-wasm) target="dsip_wasm"}: cargo::core::compiler::fingerprint:     err: failed to read `/home/siphon/dsip/impl/target/debug/.fingerprint/dsip-wasm-780a3854828f70f9/test-lib-dsip_wasm`
+
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: cargo_util::paths::read_bytes
+   1: cargo_util::paths::read
+   2: cargo::core::compiler::fingerprint::_compare_old_fingerprint
+   3: cargo::core::compiler::fingerprint::prepare_target
+   4: cargo::core::compiler::compile
+   5: <cargo::core::compiler::build_runner::BuildRunner>::compile
+   6: cargo::ops::cargo_compile::compile_ws
+   7: cargo::ops::cargo_compile::compile_with_exec
+   8: cargo::ops::cargo_compile::compile
+   9: cargo::commands::check::exec
+  10: <cargo::cli::Exec>::exec
+  11: cargo::main
+  12: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  13: std::rt::lang_start::<()>::{closure#0}
+  14: core::ops::function::impls::<impl core::ops::function::FnOnce<A> for &F>::call_once
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/core/src/ops/function.rs:287:21
+  15: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  16: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  17: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  18: std::rt::lang_start_internal::{{closure}}
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:175:24
+  19: std::panicking::catch_unwind::do_call
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
+  20: std::panicking::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
+  21: std::panic::catch_unwind
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
+  22: std::rt::lang_start_internal
+             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:171:5
+  23: main
+  24: <unknown>
+  25: __libc_start_main
+  26: <unknown>
+    Checking getrandom v0.2.17
+    Checking rand_core v0.6.4
+    Checking ring v0.17.14
+    Checking unicode-ident v1.0.24
+    Checking rand_chacha v0.3.1
+    Checking ed25519-dalek v2.2.0
+    Checking x25519-dalek v2.0.1
+    Checking wasm-bindgen-shared v0.2.127
+    Checking wasm-bindgen v0.2.127
+    Checking rand v0.8.7
+    Checking dsip-core v0.1.0 (/home/siphon/dsip/impl/crates/dsip-core)
+    Checking libp2p-identity v0.2.14
+    Checking yamux v0.12.1
+    Checking multiaddr v0.18.2
+    Checking rustls-webpki v0.103.14
+    Checking snow v0.9.6
+    Checking rcgen v0.13.2
+    Checking console_error_panic_hook v0.1.7
+    Checking js-sys v0.3.104
+    Checking dsip-schema v0.1.0 (/home/siphon/dsip/impl/crates/dsip-schema)
+    Checking dsip-session v0.1.0 (/home/siphon/dsip/impl/crates/dsip-session)
+    Checking libp2p-core v0.43.2
+    Checking rustls v0.23.43
+    Checking libp2p-swarm v0.47.1
+    Checking libp2p-yamux v0.47.0
+    Checking libp2p-tcp v0.44.1
+    Checking libp2p-noise v0.46.1
+    Checking dsip-endpoint v0.1.0 (/home/siphon/dsip/impl/crates/dsip-endpoint)
+    Checking libp2p-connection-limits v0.6.0
+    Checking libp2p-identify v0.47.0
+    Checking libp2p-allow-block-list v0.6.0
+    Checking libp2p-kad v0.48.0
+    Checking libp2p v0.56.0
+    Checking dsip-dht v0.1.0 (/home/siphon/dsip/impl/crates/dsip-dht)
+    Checking tokio-rustls v0.26.4
+    Checking tungstenite v0.30.0
+    Checking hyper-rustls v0.27.9
+    Checking reqwest v0.12.28
+    Checking tokio-tungstenite v0.30.0
+    Checking dsip-transport v0.1.0 (/home/siphon/dsip/impl/crates/dsip-transport)
     Checking dsip-cli v0.1.0 (/home/siphon/dsip/impl/crates/dsip-cli)
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.56s
+    Checking dsip-relay v0.1.0 (/home/siphon/dsip/impl/crates/dsip-relay)
+    Checking dsip-wasm v0.1.0 (/home/siphon/dsip/impl/crates/dsip-wasm)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 4.86s

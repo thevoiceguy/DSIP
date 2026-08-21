@@ -321,6 +321,7 @@ Each item has a matching `spec-gap` issue draft in `impl/docs/spec-gaps.md`.
 13. §12.4: ENDING collapsed into ENDED (local teardown is synchronous in the reference engine).
 14. §19.4 vs §13.2: relay treatment of introductions to unknown recipients (queued silently; no `transport.unknown-recipient`).
 15. §19.4: grant matching (by `grant` reference or by grantee identity), scope check, single-use contact tokens.
+16. §12.12/§16.3: WebRTC binding shapes (SDP in `transports[].sdp`, candidates in `info.data`).
 
 Emission ordering convention for state traces: timer stops → sends → media →
 ui → timer starts. A session ending emits `media stop` (when media was running)
