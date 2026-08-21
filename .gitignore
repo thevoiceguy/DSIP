@@ -8,3 +8,5 @@ __pycache__/
 # Local state
 impl/.dsip/
 *.key
+# Rust (root-level scratch from IDE tooling too)
+target/
