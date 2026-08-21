@@ -58,8 +58,10 @@ jobs:
       - name: media fallback build (webrtc-rs only, no forge/OpenSSL) still compiles and passes
         run: cargo test -p dsip-media --no-default-features --features webrtc-rs
         working-directory: impl
-      - name: gateway host build + SIP leg on-the-wire test (Phase 4 G1; siphon-rs + forge from git)
-        run: cargo test -p dsip-gateway --features host --test sip_leg_live
+      - name: gateway host + round trip (Phase 4 G1/G2; siphon-rs + forge from git)
+        # SIP leg on the wire (G1) and the full DSIP↔gateway↔SIP round trip with Opus⇄G.711
+        # transcoding, in-process and deterministic (G2).
+        run: cargo test -p dsip-gateway --features host --test sip_leg_live --test round_trip
         working-directory: impl
       - name: media demos, both backends paired both ways (forge-media plan step 3)
         # A signalled call through the relay with DTLS-SRTP Opus each way; the script fails unless
