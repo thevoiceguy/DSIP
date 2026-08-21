@@ -14,10 +14,11 @@ crates/
   dsip-schema   v0.6 schemas embedded at build time + stateless semantic checks
   dsip-session  §12 endpoint state engine, timers, races, renegotiation; §12.7 relay leg tracker
   dsip-transport ws/1.0 client binding (wss, hello, caps, reconnect), identity dirs, did:web fetch, the Agent
+  dsip-dht      reachability hints over libp2p Kademlia (experimental §8.5); `dsip-dht-node` binary
   dsip-relay    `dsip-relay` binary: wss listener, hello binding, routing, per-leg forking
   dsip-cli      `dsip` binary: keygen, sign, verify, vectors run, identity, resolve, call, answer
-demos/          phase1-demo.sh
-docs/           Plan, spec gaps, generated coverage cross-index
+demos/          phase1-demo.sh, dht-demo.sh
+docs/           Plan, spec gaps, coverage cross-index, DHT findings + draft hints profile
 ```
 
 Verification order is crate order: a payload reaching `dsip-session` has
@@ -60,6 +61,14 @@ dsip identity init --dir ./bob-laptop --controller-from ./bob   # second device,
 dsip answer --identity ./bob --ca .relay/cert.pem              # interactive: accept | screen | decline | escalate …
 dsip call   --identity ./alice --ca .relay/cert.pem --to <bob identity did>   # interactive: update | info | hangup …
 dsip resolve did:web:example.com
+
+# Workstream D: hints tier (never authoritative)
+demos/dht-demo.sh                                          # 3 DHT nodes + relay; call discovered via hint only
+dsip-dht-node --listen /ip4/127.0.0.1/tcp/4001 --control 127.0.0.1:4101       # prints listening: /ip4/…/p2p/<PeerId>
+dsip answer --identity ./bob --ca .relay/cert.pem --dht <bootstrap> --publish-hint
+dsip resolve <bob did:key> --dht <bootstrap>
+dsip call --identity ./alice --ca .relay/cert.pem --dht <bootstrap> --to <bob did:key>   # no --relay: taken from the hint
+python3 tools/dht_testnet.py --nodes 12                    # integration harness → docs/dht-testnet-report*.json
 ```
 
 ## Status
@@ -73,4 +82,5 @@ dsip resolve did:web:example.com
 | WS-4 `dsip-transport` + `dsip-relay` | ✅ wss-only `ws/1.0`, `hello` binding, size cap, reconnection; relay forks per-leg with attempt outcomes |
 | WS-5 CLI `call`/`answer` demo | ✅ `demos/phase1-demo.sh` — screened + escalated call, forked call with no missed call |
 | M1 Phase 1 | ✅ |
-| Phase 2 (WASM, browser, media, first contact), WS-D (DHT hints), Phase 3 | not started |
+| WS-D `dsip-dht` + testnet harness + no-DNS call demo | ✅ `docs/dht-findings.md`, `docs/dht-hints-profile.md` |
+| Phase 2 (WASM, browser, media, first contact), Phase 3 | not started |

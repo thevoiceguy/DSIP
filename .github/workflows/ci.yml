@@ -57,3 +57,5 @@ jobs:
         working-directory: impl
       - name: Rust/Python parity
         run: python3 impl/tools/parity.py
+      - name: DHT local testnet (5 nodes)
+        run: python3 impl/tools/dht_testnet.py --nodes 5 --report /tmp/dht-report.json

@@ -1,0 +1,67 @@
+{
+  "nodes": 5,
+  "elapsed_s": 14.1,
+  "results": {
+    "round_trip": {
+      "ok": true,
+      "acknowledged": 1,
+      "returned": 5,
+      "publish_error": null
+    },
+    "seq_conflict": {
+      "ok": true,
+      "winner_seq": 2,
+      "conflicts": [
+        "none",
+        "none",
+        "none",
+        "none",
+        "older-seq"
+      ]
+    },
+    "poisoning_rejected": {
+      "ok": true,
+      "honest_publish_refused": true,
+      "inbound_rejections": 8,
+      "winner_uri": "wss://relay-b.example/dsip",
+      "rejection_codes": [
+        "signer-mismatch"
+      ]
+    },
+    "expiry_lapse": {
+      "ok": true,
+      "live_returned": 5,
+      "lapsed_returned": 5,
+      "lapsed_codes": [
+        "expired",
+        "expired",
+        "expired",
+        "expired",
+        "expired"
+      ]
+    },
+    "churn_survival": {
+      "ok": true,
+      "after_kill_returned": 4,
+      "late_joiner_returned": 4
+    },
+    "routing": {
+      "ok": true,
+      "routing_peers": {
+        "0": 5,
+        "1": 5,
+        "3": 5,
+        "4": 5,
+        "5": 4
+      },
+      "stored": {
+        "0": 2,
+        "1": 2,
+        "3": 2,
+        "4": 2,
+        "5": 0
+      },
+      "note": "every node bootstrapped via node 0 (and node 1): a static, configured entry point (plan \u00a710.2)"
+    }
+  }
+}
