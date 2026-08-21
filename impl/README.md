@@ -17,10 +17,11 @@ crates/
   dsip-transport ws/1.0 client binding (wss, hello, caps, reconnect), identity dirs, did:web fetch, the Agent
   dsip-wasm     the same verifier/engine/builder for the browser (wasm-bindgen); built into demos/browser/pkg
   dsip-media    native WebRTC media leg (webrtc-rs): offer/answer, trickle ICE, Opus tone/file source, Ogg recording
+  dsip-broadcast Verified Broadcast (§22) + subscriptions (§9.3): authority registry, subscriber state, receiver verification with provenance
   dsip-dht      reachability hints over libp2p Kademlia (experimental §8.5); `dsip-dht-node` binary
   dsip-relay    `dsip-relay` binary: wss listener, hello binding, per-leg forking, store-and-forward (§13.3), static page serving
   dsip-cli      `dsip` binary: keygen, sign, verify, vectors run, identity, resolve, call, answer
-demos/          phase1, dht, first-contact, browser (+ browser/), media, store-and-forward demos
+demos/          phase1, dht, first-contact, browser (+ browser/), media, store-and-forward, broadcast demos
 docs/           Plan, spec gaps, coverage cross-index, DHT findings + draft hints profile
 ```
 
@@ -83,6 +84,14 @@ dsip-relay --intro-limit 5 --intro-window 3600 --inbox-cap 100       # §19.4 ra
 dsip-relay --offline-retention 86400                                 # §13.3: hold envelopes for known-but-offline recipients until min(expires_at, retention)
 demos/store-and-forward-demo.sh                                      # offline callee rings when it binds; a device binding mid-attempt becomes a leg
 
+# Phase 3: Verified Broadcast (§22) and subscriptions (§9.3) — the relay is the authority for identities bound to it
+demos/broadcast-demo.sh
+dsip broadcast publish --identity ./bob --ca .relay/cert.pem --stream radio:main --variant "main-opus,codec:audio/opus,transport:webrtc,wss://…" --policy transcoding=allowed
+dsip broadcast subscribe --identity ./alice --ca .relay/cert.pem --target <bob did>:radio:main [--codec …] [--transport …]   # verifies the record itself, selects a variant, shows provenance
+dsip broadcast provenance --identity ./carol --ca .relay/cert.pem --stream <stream> --publication <id> --operation transcode --input main-opus --output main-aac-hls
+dsip broadcast subscribe --identity ./alice --ca .relay/cert.pem --target <bob did> --events presence --expires-in 3600
+dsip broadcast unpublish --identity ./bob --ca .relay/cert.pem --stream radio:main
+
 # Phase 2: browser endpoint (needs `rustup target add wasm32-unknown-unknown` + `cargo install wasm-pack`)
 demos/browser/build.sh          # wasm-pack → demos/browser/pkg
 node demos/browser/test.mjs     # two WASM endpoints run a full call + first contact in memory
@@ -112,5 +121,5 @@ dsip call --identity ./alice --ca .relay/cert.pem --to <bob did> --media tone --
 | Phase 2 — `dsip-media` native endpoint (webrtc-rs): DTLS-SRTP Opus, trickle ICE via signed `info`, screening/escalation, recording | ✅ `demos/media-demo.sh`; browser↔native shares the same SDP/candidate shapes |
 | Phase 2 — relay store-and-forward within the §13.3 boundary (known-offline queueing, flush on hello, legs added mid-attempt, cancel drops queued, retention cap) | ✅ 6 new relay traces, `demos/store-and-forward-demo.sh` |
 | **M2 Phase 2** | ✅ (browser WebRTC path manually verifiable only) |
-| Phase 3 — Verified Broadcast (§22): publish/unpublish, subscribe/notify, provenance | not started |
+| **M3 Phase 3** — Verified Broadcast: signed records, §9.3 subscribe/notify with caps/renewal/anti-enumeration, presence, variant selection, `derivative-bound` provenance through a transcoder | ✅ 17 receiver vectors + 9 authority/subscriber traces, `demos/broadcast-demo.sh` |
 | forge-media as the media backend | planned — `docs/forge-media-plan.md` |

@@ -25,10 +25,22 @@ def validator(name: str) -> Draft202012Validator:
 
 
 def schema_errors(name: str, payload) -> list[str]:
-    return [e.message for e in validator(name).iter_errors(payload)]
+    v = local_validator(LOCAL_TYPES[name]) if name in LOCAL_TYPES else validator(name)
+    return [e.message for e in v.iter_errors(payload)]
+
+
+IMPL_SCHEMA_DIR = REPO_ROOT / "impl" / "schemas"
+LOCAL_TYPES = {"reachability-hint": "reachability-hint", "broadcast.provenance": "broadcast-provenance"}
+
+
+@lru_cache(maxsize=None)
+def local_validator(name: str) -> Draft202012Validator:
+    return Draft202012Validator(json.loads((IMPL_SCHEMA_DIR / f"{name}.schema.json").read_text()))
 
 
 def dispatch_type(payload) -> str | None:
-    """`message.schema.json` dispatch done natively: match on `type`."""
+    """`message.schema.json` dispatch done natively: match on `type` (plus the implementation-local extension types)."""
     t = payload.get("type") if isinstance(payload, dict) else None
-    return t if t in MESSAGE_TYPES else None
+    if t in MESSAGE_TYPES or t in LOCAL_TYPES:
+        return t
+    return None

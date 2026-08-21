@@ -1,0 +1,143 @@
+{
+  "vector": "state/broadcast-authority-presence",
+  "format": 1,
+  "kind": "state",
+  "description": "Presence subscriptions (§9.3 event class) follow the target's device bindings; unknown targets get the uniform reject.",
+  "spec_ref": [
+    "§9.3",
+    "§9.2"
+  ],
+  "context": {
+    "component": "authority",
+    "start": 1760000000,
+    "identities": {
+      "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu": "did:key:z6MkhzX9qTeXBWkucyMVric1E9JrqUD5LPAkD2BNavakAptf",
+      "did:key:z6MkfhenvjQ7awdpVWzPaeBuPkXCBLwzJKyosCrTL3huMb66": "did:key:z6MkhzX9qTeXBWkucyMVric1E9JrqUD5LPAkD2BNavakAptf",
+      "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+      "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+      "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL": "did:key:z6Mkt5yU6sK3v7gxFHncQbmZ7VQvnVuJBGrDAbqhZp2gDW7G"
+    }
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "local": "policy",
+          "target": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+          "mode": "public"
+        },
+        "expect": {
+          "emit": []
+        }
+      },
+      {
+        "event": {
+          "recv": {
+            "type": "subscribe",
+            "id": "01K742SGZ8J9J7XY75S4YY8Y78",
+            "from": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+            "to": "did:key:z6MkAuthorityRelay11111111111111111111111111",
+            "target": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+            "events": [
+              "presence"
+            ],
+            "expires_in": 600
+          }
+        },
+        "expect": {
+          "emit": [
+            {
+              "send": {
+                "type": "notify",
+                "to": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+                "subscription": "01K742SGZ8J9J7XY75S4YY8Y78",
+                "seq": 1,
+                "state": "active",
+                "body": {
+                  "event": "presence",
+                  "state": "offline"
+                }
+              }
+            }
+          ]
+        }
+      },
+      {
+        "event": {
+          "relay": "bind",
+          "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+          "identity": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R"
+        },
+        "expect": {
+          "emit": [
+            {
+              "send": {
+                "type": "notify",
+                "to": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+                "subscription": "01K742SGZ8J9J7XY75S4YY8Y78",
+                "seq": 2,
+                "state": "active",
+                "body": {
+                  "event": "presence",
+                  "state": "available"
+                }
+              }
+            }
+          ]
+        }
+      },
+      {
+        "event": {
+          "relay": "unbind",
+          "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+          "identity": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R"
+        },
+        "expect": {
+          "emit": [
+            {
+              "send": {
+                "type": "notify",
+                "to": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+                "subscription": "01K742SGZ8J9J7XY75S4YY8Y78",
+                "seq": 3,
+                "state": "active",
+                "body": {
+                  "event": "presence",
+                  "state": "offline"
+                }
+              }
+            }
+          ]
+        }
+      },
+      {
+        "event": {
+          "recv": {
+            "type": "subscribe",
+            "id": "01K742SHYGJP4WYBAYHCZVXD2G",
+            "from": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+            "to": "did:key:z6MkAuthorityRelay11111111111111111111111111",
+            "target": "did:key:z6MkNobodyHereAtAll11111111111111111111111111",
+            "events": [
+              "presence"
+            ],
+            "expires_in": 600
+          }
+        },
+        "expect": {
+          "emit": [
+            {
+              "send": {
+                "type": "reject",
+                "to": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+                "session": "01K742SHYGJP4WYBAYHCZVXD2G",
+                "reason": "policy.blocked"
+              }
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "expect": {}
+}

@@ -12,11 +12,13 @@ from . import semantic as SEM
 from .crypto import b64url_decode
 from .session import Endpoint
 from .relay import Relay
+from .broadcast import Authority, Subscriber, evaluate_provenance, select_variant, stream_in_namespace
 from .verdict import Verdict
 
 IMPL_ROOT = Path(__file__).resolve().parents[2]
 VECTOR_DIR = IMPL_ROOT / "vectors"
 HINT_SCHEMA = IMPL_ROOT / "schemas" / "reachability-hint.schema.json"
+PROV_SCHEMA = IMPL_ROOT / "schemas" / "broadcast-provenance.schema.json"
 
 
 @dataclass
@@ -114,21 +116,83 @@ def run_dht_tail(v: dict, verdict: Verdict, ver) -> dict:
     return out
 
 
+_prov_validator = None
+
+
+def prov_validator() -> Draft202012Validator:
+    global _prov_validator
+    if _prov_validator is None:
+        _prov_validator = Draft202012Validator(json.loads(PROV_SCHEMA.read_text()))
+    return _prov_validator
+
+
+def run_broadcast(v: dict) -> dict:
+    """Receiver-side: verify the publication, evaluate provenance statements, select a variant (§22)."""
+    ctx = E.Context.from_vector(v["context"])
+    verdict, ver = E.verify(v["input"]["publication"], ctx)
+    if not verdict.ok:
+        return verdict.to_expect()
+    p = ver.payload
+    if p.get("publisher") != verdict.extra["identity"]:
+        return Verdict.reject("publisher-mismatch").to_expect()
+    if not stream_in_namespace(p.get("stream_id", ""), p["publisher"]):
+        return Verdict.reject("stream-id-namespace").to_expect()
+    pv = SEM.check_payload(p, v["context"])
+    if not pv.ok:
+        return pv.to_expect()
+    out = verdict.to_expect()
+    out["selected_variant"] = select_variant(p.get("variants", []), v["input"].get("capabilities", {}))
+    results, delivered, transcoded = [], [], []
+    for env in v["input"].get("provenance", []):
+        pverdict, pver = E.verify(env, ctx)
+        if not pverdict.ok:
+            results.append(pverdict.to_expect())
+            continue
+        sp = pver.payload
+        vv = SEM.check_version(sp, v["context"].get("supported") or {})
+        if not vv.ok:
+            results.append(vv.to_expect())
+            continue
+        if list(prov_validator().iter_errors(sp)):
+            results.append({"verdict": "reject", "code": "schema-invalid"})
+            continue
+        r = evaluate_provenance(sp, pverdict.extra["identity"], p)
+        results.append(r)
+        if r["verdict"] == "accept":
+            (transcoded if r["operation"] == "transcode" else delivered).append(r["processor"])
+    out["provenance"] = results
+    out["display"] = {"original_publisher": p["publisher"], "delivered_by": delivered, "transcoded_by": transcoded,
+                      "integrity_mode": "derivative-bound" if transcoded else "metadata-only"}
+    return out
+
+
+def snapshot_for(comp, key: str, expected) -> object:
+    if key in ("sessions", "attempts"):
+        return comp.snapshot(expected.keys())
+    if key == "contacts":
+        return comp.contacts_snapshot()
+    if key == "inbox":
+        return comp.inbox_snapshot()
+    if key == "publications":
+        return comp.snapshot_publications()
+    if key == "subscriptions":
+        return comp.snapshot_subscriptions() if isinstance(comp, Authority) else comp.snapshot()
+    raise KeyError(key)
+
+
 def run_state(v: dict) -> tuple[bool, list]:
     ctx = v["context"]
-    comp = Relay(ctx) if ctx.get("component") == "relay" else Endpoint(ctx)
-    key = "attempts" if ctx.get("component") == "relay" else "sessions"
+    component = ctx.get("component", "endpoint")
+    comp = {"relay": Relay, "authority": Authority, "subscriber": Subscriber}.get(component, Endpoint)(ctx)
     results, ok = [], True
     for i, st in enumerate(v["input"]["steps"]):
         emit = comp.step(st["event"])
         exp = st["expect"]
-        snap = comp.snapshot(exp.get(key, {}).keys())
-        actual = {"emit": emit, key: snap}
-        if "contacts" in exp:
-            actual["contacts"] = comp.contacts_snapshot()
-        if "inbox" in exp:
-            actual["inbox"] = comp.inbox_snapshot()
-        step_ok = all(actual.get(k) == exp.get(k) for k in ("emit", key, "contacts", "inbox") if k in exp or k == "emit")
+        actual = {"emit": emit}
+        for k in exp:
+            if k != "emit":
+                actual[k] = snapshot_for(comp, k, exp[k])
+        step_ok = actual == exp
         ok = ok and step_ok
         results.append({"step": i, "ok": step_ok, "expected": exp, "actual": actual})
     return ok, results
@@ -146,6 +210,8 @@ def run_vector(v: dict) -> Result:
             actual = run_payload(v)
         elif kind == "semantic":
             actual = run_semantic(v)
+        elif kind == "broadcast":
+            actual = run_broadcast(v)
         else:
             return Result(v["vector"], False, v["expect"], None, note=f"unknown kind {kind}")
     except Exception as e:  # a crash is a failure, never a pass

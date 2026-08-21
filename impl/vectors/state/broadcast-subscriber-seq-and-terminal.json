@@ -1,0 +1,248 @@
+{
+  "vector": "state/broadcast-subscriber-seq-and-terminal",
+  "format": 1,
+  "kind": "state",
+  "description": "Subscriber discards lower-than-seen seq, treats terminated as final, ignores unknown subscriptions.",
+  "spec_ref": [
+    "§9.3"
+  ],
+  "context": {
+    "component": "subscriber",
+    "start": 1760000000,
+    "identities": {
+      "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu": "did:key:z6MkhzX9qTeXBWkucyMVric1E9JrqUD5LPAkD2BNavakAptf",
+      "did:key:z6MkfhenvjQ7awdpVWzPaeBuPkXCBLwzJKyosCrTL3huMb66": "did:key:z6MkhzX9qTeXBWkucyMVric1E9JrqUD5LPAkD2BNavakAptf",
+      "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+      "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+      "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL": "did:key:z6Mkt5yU6sK3v7gxFHncQbmZ7VQvnVuJBGrDAbqhZp2gDW7G"
+    }
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "local": "subscribe",
+          "id": "01K742SGZ8J9J7XY75S4YY8Y78",
+          "to": "did:key:z6MkAuthorityRelay11111111111111111111111111",
+          "target": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R:radio:main",
+          "events": [
+            "publication"
+          ],
+          "expires_in": 600
+        },
+        "expect": {
+          "emit": [
+            {
+              "send": {
+                "type": "subscribe",
+                "to": "did:key:z6MkAuthorityRelay11111111111111111111111111",
+                "id": "01K742SGZ8J9J7XY75S4YY8Y78",
+                "target": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R:radio:main",
+                "events": [
+                  "publication"
+                ],
+                "expires_in": 600
+              }
+            }
+          ],
+          "subscriptions": {
+            "01K742SGZ8J9J7XY75S4YY8Y78": {
+              "target": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R:radio:main",
+              "state": "pending",
+              "seq": 0
+            }
+          }
+        }
+      },
+      {
+        "event": {
+          "recv": {
+            "type": "notify",
+            "id": "01K742SGZ8C373J57NAX2J8XV7",
+            "from": "did:key:z6MkAuthorityRelay11111111111111111111111111",
+            "subscription": "01K742SGZ8J9J7XY75S4YY8Y78",
+            "seq": 1,
+            "state": "active",
+            "body": {
+              "event": "publication",
+              "state": "live"
+            }
+          }
+        },
+        "expect": {
+          "emit": [
+            {
+              "ui": "notify",
+              "event": "publication",
+              "state": "live"
+            }
+          ],
+          "subscriptions": {
+            "01K742SGZ8J9J7XY75S4YY8Y78": {
+              "target": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R:radio:main",
+              "state": "active",
+              "seq": 1
+            }
+          }
+        }
+      },
+      {
+        "event": {
+          "recv": {
+            "type": "notify",
+            "id": "01K742SGZ8C373J57NAX2J8XV7",
+            "from": "did:key:z6MkAuthorityRelay11111111111111111111111111",
+            "subscription": "01K742SGZ8J9J7XY75S4YY8Y78",
+            "seq": 1,
+            "state": "active",
+            "body": {
+              "event": "publication",
+              "state": "live"
+            }
+          }
+        },
+        "expect": {
+          "emit": [
+            {
+              "drop": "stale-seq"
+            }
+          ]
+        }
+      },
+      {
+        "event": {
+          "recv": {
+            "type": "notify",
+            "id": "01K742SJXR2KSJYWT55HGMARTX",
+            "from": "did:key:z6MkAuthorityRelay11111111111111111111111111",
+            "subscription": "01K742SGZ8J9J7XY75S4YY8Y78",
+            "seq": 3,
+            "state": "active",
+            "body": {
+              "event": "publication",
+              "state": "ended"
+            }
+          }
+        },
+        "expect": {
+          "emit": [
+            {
+              "ui": "notify",
+              "event": "publication",
+              "state": "ended"
+            }
+          ],
+          "subscriptions": {
+            "01K742SGZ8J9J7XY75S4YY8Y78": {
+              "target": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R:radio:main",
+              "state": "active",
+              "seq": 3
+            }
+          }
+        }
+      },
+      {
+        "event": {
+          "recv": {
+            "type": "notify",
+            "id": "01K742SHYGM4S1Z4KPH95D8EB0",
+            "from": "did:key:z6MkAuthorityRelay11111111111111111111111111",
+            "subscription": "01K742SGZ8J9J7XY75S4YY8Y78",
+            "seq": 2,
+            "state": "active",
+            "body": {
+              "event": "publication",
+              "state": "live"
+            }
+          }
+        },
+        "expect": {
+          "emit": [
+            {
+              "drop": "stale-seq"
+            }
+          ]
+        }
+      },
+      {
+        "event": {
+          "recv": {
+            "type": "notify",
+            "id": "01K742SKX0HTM523HFTKK9N37P",
+            "from": "did:key:z6MkAuthorityRelay11111111111111111111111111",
+            "subscription": "01K742SGZ8J9J7XY75S4YY8Y78",
+            "seq": 4,
+            "state": "terminated",
+            "reason": "session.expired",
+            "body": {
+              "event": "publication",
+              "state": "live"
+            }
+          }
+        },
+        "expect": {
+          "emit": [
+            {
+              "ui": "subscription_terminated",
+              "reason": "session.expired"
+            }
+          ],
+          "subscriptions": {
+            "01K742SGZ8J9J7XY75S4YY8Y78": {
+              "target": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R:radio:main",
+              "state": "terminated",
+              "seq": 4
+            }
+          }
+        }
+      },
+      {
+        "event": {
+          "recv": {
+            "type": "notify",
+            "id": "01K742SMW8Q9GZREJT4VMKQ7P5",
+            "from": "did:key:z6MkAuthorityRelay11111111111111111111111111",
+            "subscription": "01K742SGZ8J9J7XY75S4YY8Y78",
+            "seq": 5,
+            "state": "active",
+            "body": {
+              "event": "publication",
+              "state": "live"
+            }
+          }
+        },
+        "expect": {
+          "emit": [
+            {
+              "drop": "terminated-subscription"
+            }
+          ]
+        }
+      },
+      {
+        "event": {
+          "recv": {
+            "type": "notify",
+            "id": "01K742SGZ8M5MPD0Z14GZVQM8X",
+            "from": "did:key:z6MkAuthorityRelay11111111111111111111111111",
+            "subscription": "01K742SHYGJP4WYBAYHCZVXD2G",
+            "seq": 1,
+            "state": "active",
+            "body": {
+              "event": "publication",
+              "state": "live"
+            }
+          }
+        },
+        "expect": {
+          "emit": [
+            {
+              "drop": "unknown-subscription"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "expect": {}
+}

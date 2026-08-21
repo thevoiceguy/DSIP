@@ -1,8 +1,5 @@
-   0.195887371s  INFO prepare_target{force=false package_id=dsip-cli v0.1.0 (/home/siphon/dsip/impl/crates/dsip-cli) target="dsip"}: cargo::core::compiler::fingerprint: stale: changed "/home/siphon/dsip/impl/crates/dsip-transport/src/agent.rs"
-   0.195914511s  INFO prepare_target{force=false package_id=dsip-cli v0.1.0 (/home/siphon/dsip/impl/crates/dsip-cli) target="dsip"}: cargo::core::compiler::fingerprint:           (vs) "/home/siphon/dsip/impl/target/debug/.fingerprint/dsip-transport-7b1b531638dad92e/dep-lib-dsip_transport"
-   0.195917170s  INFO prepare_target{force=false package_id=dsip-cli v0.1.0 (/home/siphon/dsip/impl/crates/dsip-cli) target="dsip"}: cargo::core::compiler::fingerprint:                FileTime { seconds: 1787279249, nanos: 527780833 } < FileTime { seconds: 1787279443, nanos: 372908046 }
-   0.196007773s  INFO prepare_target{force=false package_id=dsip-cli v0.1.0 (/home/siphon/dsip/impl/crates/dsip-cli) target="dsip"}: cargo::core::compiler::fingerprint: fingerprint error for dsip-cli v0.1.0 (/home/siphon/dsip/impl/crates/dsip-cli)/Check { test: false }/TargetInner { name: "dsip", doc: true, ..: with_path("/home/siphon/dsip/impl/crates/dsip-cli/src/main.rs", Edition2021) }
-   0.196023372s  INFO prepare_target{force=false package_id=dsip-cli v0.1.0 (/home/siphon/dsip/impl/crates/dsip-cli) target="dsip"}: cargo::core::compiler::fingerprint:     err: failed to read `/home/siphon/dsip/impl/target/debug/.fingerprint/dsip-cli-bc5e0cf5227a24cd/bin-dsip`
+   0.157680468s  INFO prepare_target{force=false package_id=dsip-relay v0.1.0 (/home/siphon/dsip/impl/crates/dsip-relay) target="dsip-relay"}: cargo::core::compiler::fingerprint: fingerprint error for dsip-relay v0.1.0 (/home/siphon/dsip/impl/crates/dsip-relay)/Check { test: false }/TargetInner { name: "dsip-relay", doc: true, ..: with_path("/home/siphon/dsip/impl/crates/dsip-relay/src/main.rs", Edition2021) }
+   0.157707244s  INFO prepare_target{force=false package_id=dsip-relay v0.1.0 (/home/siphon/dsip/impl/crates/dsip-relay) target="dsip-relay"}: cargo::core::compiler::fingerprint:     err: failed to read `/home/siphon/dsip/impl/target/debug/.fingerprint/dsip-relay-7ca223b5c310526c/bin-dsip-relay`
 
 Caused by:
     No such file or directory (os error 2)
@@ -44,10 +41,8 @@ Stack backtrace:
   24: <unknown>
   25: __libc_start_main
   26: <unknown>
-   0.251182989s  INFO prepare_target{force=false package_id=dsip-transport v0.1.0 (/home/siphon/dsip/impl/crates/dsip-transport) target="dsip_transport"}: cargo::core::compiler::fingerprint: fingerprint dirty for dsip-transport v0.1.0 (/home/siphon/dsip/impl/crates/dsip-transport)/Check { test: false }/TargetInner { name_inferred: true, ..: lib_target("dsip_transport", ["lib"], "/home/siphon/dsip/impl/crates/dsip-transport/src/lib.rs", Edition2021) }
-   0.251213406s  INFO prepare_target{force=false package_id=dsip-transport v0.1.0 (/home/siphon/dsip/impl/crates/dsip-transport) target="dsip_transport"}: cargo::core::compiler::fingerprint:     dirty: FsStatusOutdated(StaleItem(ChangedFile { reference: "/home/siphon/dsip/impl/target/debug/.fingerprint/dsip-transport-7b1b531638dad92e/dep-lib-dsip_transport", reference_mtime: FileTime { seconds: 1787279249, nanos: 527780833 }, stale: "/home/siphon/dsip/impl/crates/dsip-transport/src/agent.rs", stale_mtime: FileTime { seconds: 1787279443, nanos: 372908046 } }))
-   0.257836628s  INFO prepare_target{force=false package_id=dsip-cli v0.1.0 (/home/siphon/dsip/impl/crates/dsip-cli) target="dsip"}: cargo::core::compiler::fingerprint: fingerprint error for dsip-cli v0.1.0 (/home/siphon/dsip/impl/crates/dsip-cli)/Check { test: true }/TargetInner { name: "dsip", doc: true, ..: with_path("/home/siphon/dsip/impl/crates/dsip-cli/src/main.rs", Edition2021) }
-   0.257855133s  INFO prepare_target{force=false package_id=dsip-cli v0.1.0 (/home/siphon/dsip/impl/crates/dsip-cli) target="dsip"}: cargo::core::compiler::fingerprint:     err: failed to read `/home/siphon/dsip/impl/target/debug/.fingerprint/dsip-cli-d9d51834e9dca60e/test-bin-dsip`
+   0.163680156s  INFO prepare_target{force=false package_id=dsip-relay v0.1.0 (/home/siphon/dsip/impl/crates/dsip-relay) target="dsip-relay"}: cargo::core::compiler::fingerprint: fingerprint error for dsip-relay v0.1.0 (/home/siphon/dsip/impl/crates/dsip-relay)/Check { test: true }/TargetInner { name: "dsip-relay", doc: true, ..: with_path("/home/siphon/dsip/impl/crates/dsip-relay/src/main.rs", Edition2021) }
+   0.163693278s  INFO prepare_target{force=false package_id=dsip-relay v0.1.0 (/home/siphon/dsip/impl/crates/dsip-relay) target="dsip-relay"}: cargo::core::compiler::fingerprint:     err: failed to read `/home/siphon/dsip/impl/target/debug/.fingerprint/dsip-relay-eb3c6f153cc35883/test-bin-dsip-relay`
 
 Caused by:
     No such file or directory (os error 2)
@@ -89,61 +84,5 @@ Stack backtrace:
   24: <unknown>
   25: __libc_start_main
   26: <unknown>
-   0.259175775s  INFO prepare_target{force=false package_id=dsip-cli v0.1.0 (/home/siphon/dsip/impl/crates/dsip-cli) target="vectors"}: cargo::core::compiler::fingerprint: fingerprint error for dsip-cli v0.1.0 (/home/siphon/dsip/impl/crates/dsip-cli)/Check { test: true }/TargetInner { kind: "test", name: "vectors", benched: false, ..: with_path("/home/siphon/dsip/impl/crates/dsip-cli/tests/vectors.rs", Edition2021) }
-   0.259187414s  INFO prepare_target{force=false package_id=dsip-cli v0.1.0 (/home/siphon/dsip/impl/crates/dsip-cli) target="vectors"}: cargo::core::compiler::fingerprint:     err: failed to read `/home/siphon/dsip/impl/target/debug/.fingerprint/dsip-cli-fc7a81f20b25987f/test-integration-test-vectors`
-
-Caused by:
-    No such file or directory (os error 2)
-
-Stack backtrace:
-   0: cargo_util::paths::read_bytes
-   1: cargo_util::paths::read
-   2: cargo::core::compiler::fingerprint::_compare_old_fingerprint
-   3: cargo::core::compiler::fingerprint::prepare_target
-   4: cargo::core::compiler::compile
-   5: <cargo::core::compiler::build_runner::BuildRunner>::compile
-   6: cargo::ops::cargo_compile::compile_ws
-   7: cargo::ops::cargo_compile::compile_with_exec
-   8: cargo::ops::cargo_compile::compile
-   9: cargo::commands::check::exec
-  10: <cargo::cli::Exec>::exec
-  11: cargo::main
-  12: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
-  13: std::rt::lang_start::<()>::{closure#0}
-  14: core::ops::function::impls::<impl core::ops::function::FnOnce<A> for &F>::call_once
-             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/core/src/ops/function.rs:287:21
-  15: std::panicking::catch_unwind::do_call
-             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
-  16: std::panicking::catch_unwind
-             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
-  17: std::panic::catch_unwind
-             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
-  18: std::rt::lang_start_internal::{{closure}}
-             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:175:24
-  19: std::panicking::catch_unwind::do_call
-             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:590:40
-  20: std::panicking::catch_unwind
-             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panicking.rs:553:19
-  21: std::panic::catch_unwind
-             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/panic.rs:359:14
-  22: std::rt::lang_start_internal
-             at /rustc/ded5c06cf21d2b93bffd5d884aa6e96934ee4234/library/std/src/rt.rs:171:5
-  23: main
-  24: <unknown>
-  25: __libc_start_main
-  26: <unknown>
-   0.262069143s  INFO prepare_target{force=false package_id=dsip-relay v0.1.0 (/home/siphon/dsip/impl/crates/dsip-relay) target="dsip-relay"}: cargo::core::compiler::fingerprint: fingerprint dirty for dsip-relay v0.1.0 (/home/siphon/dsip/impl/crates/dsip-relay)/Check { test: false }/TargetInner { name: "dsip-relay", doc: true, ..: with_path("/home/siphon/dsip/impl/crates/dsip-relay/src/main.rs", Edition2021) }
-   0.262082996s  INFO prepare_target{force=false package_id=dsip-relay v0.1.0 (/home/siphon/dsip/impl/crates/dsip-relay) target="dsip-relay"}: cargo::core::compiler::fingerprint:     dirty: FsStatusOutdated(StaleDepFingerprint { name: "dsip_transport" })
-   0.263253484s  INFO prepare_target{force=false package_id=dsip-relay v0.1.0 (/home/siphon/dsip/impl/crates/dsip-relay) target="dsip-relay"}: cargo::core::compiler::fingerprint: fingerprint dirty for dsip-relay v0.1.0 (/home/siphon/dsip/impl/crates/dsip-relay)/Check { test: true }/TargetInner { name: "dsip-relay", doc: true, ..: with_path("/home/siphon/dsip/impl/crates/dsip-relay/src/main.rs", Edition2021) }
-   0.263273730s  INFO prepare_target{force=false package_id=dsip-relay v0.1.0 (/home/siphon/dsip/impl/crates/dsip-relay) target="dsip-relay"}: cargo::core::compiler::fingerprint:     dirty: FsStatusOutdated(StaleDepFingerprint { name: "dsip_transport" })
-   0.265010685s  INFO prepare_target{force=false package_id=dsip-transport v0.1.0 (/home/siphon/dsip/impl/crates/dsip-transport) target="dsip_transport"}: cargo::core::compiler::fingerprint: stale: changed "/home/siphon/dsip/impl/crates/dsip-transport/src/agent.rs"
-   0.265018330s  INFO prepare_target{force=false package_id=dsip-transport v0.1.0 (/home/siphon/dsip/impl/crates/dsip-transport) target="dsip_transport"}: cargo::core::compiler::fingerprint:           (vs) "/home/siphon/dsip/impl/target/debug/.fingerprint/dsip-transport-a44c034cf16ad191/dep-test-lib-dsip_transport"
-   0.265019802s  INFO prepare_target{force=false package_id=dsip-transport v0.1.0 (/home/siphon/dsip/impl/crates/dsip-transport) target="dsip_transport"}: cargo::core::compiler::fingerprint:                FileTime { seconds: 1787279249, nanos: 535780870 } < FileTime { seconds: 1787279443, nanos: 372908046 }
-   0.265416096s  INFO prepare_target{force=false package_id=dsip-transport v0.1.0 (/home/siphon/dsip/impl/crates/dsip-transport) target="dsip_transport"}: cargo::core::compiler::fingerprint: fingerprint dirty for dsip-transport v0.1.0 (/home/siphon/dsip/impl/crates/dsip-transport)/Check { test: true }/TargetInner { name_inferred: true, ..: lib_target("dsip_transport", ["lib"], "/home/siphon/dsip/impl/crates/dsip-transport/src/lib.rs", Edition2021) }
-   0.265431369s  INFO prepare_target{force=false package_id=dsip-transport v0.1.0 (/home/siphon/dsip/impl/crates/dsip-transport) target="dsip_transport"}: cargo::core::compiler::fingerprint:     dirty: FsStatusOutdated(StaleItem(ChangedFile { reference: "/home/siphon/dsip/impl/target/debug/.fingerprint/dsip-transport-a44c034cf16ad191/dep-test-lib-dsip_transport", reference_mtime: FileTime { seconds: 1787279249, nanos: 535780870 }, stale: "/home/siphon/dsip/impl/crates/dsip-transport/src/agent.rs", stale_mtime: FileTime { seconds: 1787279443, nanos: 372908046 } }))
-    Checking dsip-transport v0.1.0 (/home/siphon/dsip/impl/crates/dsip-transport)
-    Checking dsip-cli v0.1.0 (/home/siphon/dsip/impl/crates/dsip-cli)
     Checking dsip-relay v0.1.0 (/home/siphon/dsip/impl/crates/dsip-relay)
-error: could not compile `dsip-cli` (bin "dsip" test) due to 1 previous error
-warning: build failed, waiting for other jobs to finish...
-error: could not compile `dsip-cli` (bin "dsip") due to 1 previous error
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.50s

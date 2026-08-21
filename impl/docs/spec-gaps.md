@@ -199,6 +199,44 @@ gap 14). Vectors: `state/relay-store-and-forward-known-offline`,
 **Suggested fix.** Define "known" in §13.3, state that expiry of a held envelope is not
 signaled (or define an `error` for it), and add the mid-attempt leg case to §12.7 explicitly.
 
+## 18. §22.1 — who may publish a stream, and stream_id ownership
+
+**Gap.** The record carries `from` and `publisher`; nothing says they must agree with the
+signature, nor who may update or withdraw a stream, nor how `stream_id` relates to the publisher.
+
+**PoC choice.** `publisher` MUST equal the verified identity (signer or its delegator); `stream_id`
+MUST be the publisher DID or a colon-suffixed extension of it; a record with a lower ULID than the
+held one is stale; `unpublish` MUST be signed by the same identity and name the held
+`publication`. Vectors: `broadcast/publication-publisher-mismatch`,
+`broadcast/publication-stream-outside-namespace`, `state/broadcast-authority-publisher-binding`.
+
+## 19. §9.3 — presence subscriptions: what the authority knows
+
+**Gap.** §9.4 defines signed presence records but not how an authority learns presence.
+**PoC choice.** Presence for an identity derives from whether any of its devices is bound at the
+authority (`available` / `offline`); presence bodies are authority-asserted, not subject-signed;
+targets the authority has never seen get the uniform `policy.blocked`. Vectors:
+`state/broadcast-authority-presence`, `state/broadcast-authority-caps-renewal-terminate`.
+
+Also: §9.3 calls the per-event lifetimes "hard caps" without saying whether an over-cap
+`expires_in` is refused or clamped. The PoC refuses it at the stateless boundary
+(`subscription-lifetime-exceeded`, vector `semantic/subscribe-presence-over-cap`) and the
+authority additionally clamps as defense in depth.
+
+## 20. §22.2 — where the integrity mode is stated
+
+**Gap.** §22.2 defines `metadata-only` / `derivative-bound` but the `publish` schema is closed and
+has no field for it. **PoC choice.** Variants carry `integrity` (variants allow extra
+properties); a verified transcode statement makes the receiver display `derivative-bound`.
+
+## 21. §22.3 — how provenance statements reach receivers
+
+**Gap.** §22.3 shows the statement but not its carriage. **PoC choice.** Processors send the
+statement (type `broadcast.provenance`, extension `broadcast-provenance/1.0`, impl-local schema)
+to the publisher's authority, which attaches processors to the record and lists them in
+`notify.body.provenance`; the CLI receiver fetches statements alongside the record. Vectors:
+`broadcast/provenance-*`, `state/broadcast-authority-provenance`.
+
 ---
 
 ## Already-flagged (schema README / plan §11)

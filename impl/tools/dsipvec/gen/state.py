@@ -840,6 +840,183 @@ def vectors() -> list[dict]:
         sf({"relay": "bind", "device": BPH, "identity": BOB}, [{"deliver": {"leg": BPH, "type": "bye", "id": uid("b", NOW + 20)}}], {}),
     ], component="relay"))
 
+    # ---------------------------------------------------------------- §22 / §9.3 broadcast (Phase 3)
+    STREAM = BOB + ":radio:main"
+    AUTH = "did:key:z6MkAuthorityRelay11111111111111111111111111"
+    VARS = [{"id": "main-opus", "media": ["audio"], "codec": "codec:audio/opus", "transport": "transport:webrtc", "uri": "wss://live.example/main"},
+            {"id": "main-aac-hls", "media": ["audio"], "codec": "codec:audio/aac", "transport": "transport:hls", "uri": "https://live.example/main.m3u8"}]
+    PUB1, PUB2 = uid("pub-1", NOW), uid("pub-2", NOW + 100)
+    SUB1, SUB2, SUB3 = uid("sub-1", NOW + 1), uid("sub-2", NOW + 2), uid("sub-3", NOW + 3)
+
+    def bstep(event, emit, **snaps):
+        return {"event": event, "expect": {"emit": emit, **snaps}}
+
+    def btrace(vid, desc, refs, steps, component="authority"):
+        v = trace(vid, desc, refs, None, steps, component=component)
+        v["context"]["identities"] = IDENTITIES
+        return v
+
+    def publish(label, at=NOW, state="live", ttl=300, publisher=BOB, frm=BPH, stream=STREAM, policy=None):
+        m = {"type": "publish", "id": uid(label, at), "from": frm, "publisher": publisher, "stream_id": stream, "state": state,
+             "variants": VARS, "expires_at": at + ttl}
+        if policy is not None:
+            m["policy"] = policy
+        return m
+
+    def subscribe(label, frm, target, events, expires_in, at=NOW, capability=None):
+        m = {"type": "subscribe", "id": uid(label, at), "from": frm, "to": AUTH, "target": target, "events": events, "expires_in": expires_in}
+        if capability:
+            m["capability"] = capability
+        return m
+
+    def notify(to, sub, seq, state, body, reason=None):
+        d = {"type": "notify", "to": to, "subscription": sub, "seq": seq, "state": state}
+        if reason:
+            d["reason"] = reason
+        d["body"] = body
+        return {"send": d}
+
+    live = {"event": "publication", "state": "live", "publication": PUB1}
+    subsnap = lambda sid, who, target, events, seq, exp: {sid: {"subscriber": who, "target": target, "events": events, "seq": seq, "expires_at": exp}}
+    pubsnap = lambda state, pid=PUB1: {STREAM: {"publication": pid, "publisher": BOB, "state": state}}
+
+    out.append(btrace("broadcast-authority-publish-subscribe-notify",
+                      "Publisher's relay holds the signed record; a subscriber's first notify carries current state; state changes, "
+                      "unpublish and subscription expiry are seq-ordered notifies; lapse ends with session.expired.", ["§22.1", "§9.3"], [
+        bstep({"local": "policy", "target": STREAM, "mode": "public"}, []),
+        bstep({"recv": publish("pub-1")}, [{"publication": {"stream": STREAM, "state": "live"}}], publications=pubsnap("live")),
+        bstep({"recv": subscribe("sub-1", APH, STREAM, ["publication"], 600, NOW + 1)},
+              [notify(APH, SUB1, 1, "active", live)], subscriptions=subsnap(SUB1, ALICE, STREAM, ["publication"], 1, NOW + 600)),
+        bstep({"recv": publish("pub-2", NOW + 100, state="ended")},
+              [{"publication": {"stream": STREAM, "state": "ended"}}, notify(APH, SUB1, 2, "active", {"event": "publication", "state": "ended", "publication": PUB2})],
+              publications=pubsnap("ended", PUB2)),
+        bstep({"recv": {"type": "unpublish", "id": uid("unpub"), "from": BPH, "publisher": BOB, "stream_id": STREAM, "publication": PUB2}},
+              [{"publication": {"stream": STREAM, "state": "withdrawn"}}, notify(APH, SUB1, 3, "active", {"event": "publication", "state": "withdrawn", "publication": PUB2})],
+              publications=pubsnap("withdrawn", PUB2)),
+        bstep({"advance": 600}, [notify(APH, SUB1, 4, "terminated", {"event": "publication", "state": "withdrawn", "publication": PUB2}, "session.expired")],
+              subscriptions={}),
+    ]))
+    out.append(btrace("broadcast-authority-anti-enumeration",
+                      "Unauthorized and nonexistent targets get the identical reject policy.blocked; an allowlisted subscriber and a capability token get in.",
+                      ["§9.3"], [
+        bstep({"local": "policy", "target": STREAM, "mode": "allow", "allow": [ALICE]}, []),
+        bstep({"recv": publish("pub-1")}, [{"publication": {"stream": STREAM, "state": "live"}}]),
+        bstep({"recv": subscribe("sub-1", F.did("carol-phone"), STREAM, ["publication"], 600, NOW + 1)},
+              [S(type="reject", to=F.did("carol-phone"), session=SUB1, reason="policy.blocked")], subscriptions={}),
+        bstep({"recv": subscribe("sub-2", APH, BOB + ":radio:nope", ["publication"], 600, NOW + 2)},
+              [S(type="reject", to=APH, session=SUB2, reason="policy.blocked")], subscriptions={}),
+        bstep({"recv": subscribe("sub-3", APH, STREAM, ["publication"], 600, NOW + 3)},
+              [notify(APH, SUB3, 1, "active", live)], subscriptions=subsnap(SUB3, ALICE, STREAM, ["publication"], 1, NOW + 600)),
+        bstep({"local": "issue_capability", "token": "follow-7f3a", "target": STREAM}, []),
+        bstep({"recv": subscribe("sub-4", F.did("carol-phone"), STREAM, ["publication"], 600, NOW + 4, capability="follow-7f3a")},
+              [notify(F.did("carol-phone"), uid("sub-4", NOW + 4), 1, "active", live)]),
+        bstep({"recv": subscribe("sub-5", F.did("carol-phone"), STREAM, ["publication"], 600, NOW + 5, capability="wrong")},
+              [S(type="reject", to=F.did("carol-phone"), session=uid("sub-5", NOW + 5), reason="policy.blocked")]),
+    ]))
+    out.append(btrace("broadcast-authority-caps-renewal-terminate",
+                      "Lifetimes never exceed the per-event cap (an over-cap request is refused earlier by the stateless check, semantic/subscribe-presence-over-cap); renewal replaces the prior subscription; expires_in 0 terminates.",
+                      ["§9.3"], [
+        bstep({"local": "policy", "target": BOB, "mode": "public"}, []),
+        bstep({"local": "policy", "target": STREAM, "mode": "public"}, []),
+        bstep({"recv": publish("pub-1")}, [{"publication": {"stream": STREAM, "state": "live"}}]),
+        bstep({"recv": subscribe("sub-1", APH, BOB, ["presence"], 3600, NOW + 1)},
+              [notify(APH, SUB1, 1, "active", {"event": "presence", "state": "offline"})],
+              subscriptions=subsnap(SUB1, ALICE, BOB, ["presence"], 1, NOW + 3600)),
+        bstep({"recv": subscribe("sub-2", APH, STREAM, ["publication"], 86400, NOW + 2)},
+              [notify(APH, SUB2, 1, "active", live)],
+              subscriptions={**subsnap(SUB1, ALICE, BOB, ["presence"], 1, NOW + 3600), **subsnap(SUB2, ALICE, STREAM, ["publication"], 1, NOW + 86400)}),
+        bstep({"recv": subscribe("sub-3", APH, STREAM, ["publication"], 600, NOW + 3)},
+              [{"subscription": {"id": SUB2, "state": "replaced"}}, notify(APH, SUB3, 1, "active", live)],
+              subscriptions={**subsnap(SUB1, ALICE, BOB, ["presence"], 1, NOW + 3600), **subsnap(SUB3, ALICE, STREAM, ["publication"], 1, NOW + 600)}),
+        bstep({"recv": subscribe("sub-4", APH, STREAM, ["publication"], 0, NOW + 4)},
+              [{"subscription": {"id": SUB3, "state": "terminated"}}], subscriptions=subsnap(SUB1, ALICE, BOB, ["presence"], 1, NOW + 3600)),
+        bstep({"recv": subscribe("sub-5", APH, STREAM, ["publication"], 0, NOW + 5)}, [{"drop": "no-matching-subscription"}]),
+    ]))
+    out.append(btrace("broadcast-authority-publisher-binding",
+                      "Only the verified publisher (or its delegate) may publish or withdraw its streams; stream_id is namespaced under the publisher; older records never replace newer ones.",
+                      ["§22.1", "§8.1", "§8.3"], [
+        bstep({"recv": publish("pub-x", publisher=ALICE, stream=ALICE + ":radio")}, [{"drop": "publisher-mismatch"}], publications={}),
+        bstep({"recv": publish("pub-y", stream="did:web:wxyz.com:radio")}, [{"drop": "stream-id-namespace"}], publications={}),
+        bstep({"recv": publish("pub-2", NOW + 100)}, [{"publication": {"stream": STREAM, "state": "live"}}], publications=pubsnap("live", PUB2)),
+        bstep({"recv": publish("pub-1")}, [{"drop": "stale-publication"}], publications=pubsnap("live", PUB2)),
+        bstep({"recv": {"type": "unpublish", "id": uid("unpub"), "from": F.did("carol-phone"), "publisher": BOB, "stream_id": STREAM, "publication": PUB2}},
+              [{"drop": "publisher-mismatch"}], publications=pubsnap("live", PUB2)),
+        bstep({"recv": {"type": "unpublish", "id": uid("unpub2"), "from": BPH, "publisher": BOB, "stream_id": STREAM, "publication": PUB1}},
+              [{"drop": "unknown-publication"}], publications=pubsnap("live", PUB2)),
+        bstep({"recv": {"type": "unpublish", "id": uid("unpub3"), "from": F.did("bob-laptop"), "publisher": BOB, "stream_id": STREAM, "publication": PUB2}},
+              [{"publication": {"stream": STREAM, "state": "withdrawn"}}], publications=pubsnap("withdrawn", PUB2)),
+    ]))
+    prov = lambda label, processor=CAROL, frm=F.did("carol-phone"), pub=PUB1, inp="main-opus", op="transcode": {
+        "type": "provenance", "id": uid(label, NOW + 10), "from": frm, "original_stream": STREAM, "original_publication": pub,
+        "processor": processor, "operation": op, "input_variant": inp, "output_variant": "main-aac-hls"}
+    out.append(btrace("broadcast-authority-provenance",
+                      "A processor's statement is attached to the record (never replacing the publisher) and subscribers are notified; mismatched statements are dropped; a replacing record starts with no statements.",
+                      ["§22.3"], [
+        bstep({"local": "policy", "target": STREAM, "mode": "public"}, []),
+        bstep({"recv": publish("pub-1")}, [{"publication": {"stream": STREAM, "state": "live"}}]),
+        bstep({"recv": subscribe("sub-1", APH, STREAM, ["publication"], 600, NOW + 1)}, [notify(APH, SUB1, 1, "active", live)]),
+        bstep({"recv": prov("prov-1")}, [{"provenance": {"stream": STREAM, "processor": CAROL}},
+                                         notify(APH, SUB1, 2, "active", {**live, "provenance": [CAROL]})]),
+        bstep({"recv": prov("prov-2", pub=PUB2)}, [{"drop": "provenance-unknown-publication"}]),
+        bstep({"recv": prov("prov-3", processor=ALICE)}, [{"drop": "provenance-processor-mismatch"}]),
+        bstep({"recv": prov("prov-4", inp="nope")}, [{"drop": "provenance-variant-unknown"}]),
+        bstep({"recv": publish("pub-2", NOW + 100, state="ended")},
+              [{"publication": {"stream": STREAM, "state": "ended"}},
+               notify(APH, SUB1, 3, "active", {"event": "publication", "state": "ended", "publication": PUB2})]),
+    ]))
+    out.append(btrace("broadcast-authority-presence",
+                      "Presence subscriptions (§9.3 event class) follow the target's device bindings; unknown targets get the uniform reject.",
+                      ["§9.3", "§9.2"], [
+        bstep({"local": "policy", "target": BOB, "mode": "public"}, []),
+        bstep({"recv": subscribe("sub-1", APH, BOB, ["presence"], 600, NOW + 1)},
+              [notify(APH, SUB1, 1, "active", {"event": "presence", "state": "offline"})]),
+        bstep({"relay": "bind", "device": BPH, "identity": BOB}, [notify(APH, SUB1, 2, "active", {"event": "presence", "state": "available"})]),
+        bstep({"relay": "unbind", "device": BPH, "identity": BOB}, [notify(APH, SUB1, 3, "active", {"event": "presence", "state": "offline"})]),
+        bstep({"recv": subscribe("sub-2", APH, "did:key:z6MkNobodyHereAtAll11111111111111111111111111", ["presence"], 600, NOW + 2)},
+              [S(type="reject", to=APH, session=SUB2, reason="policy.blocked")]),
+    ]))
+    out.append(btrace("broadcast-authority-publication-expiry",
+                      "A live record past its expires_at is marked expired and subscribers are told.", ["§22.1", "§8.3"], [
+        bstep({"local": "policy", "target": STREAM, "mode": "public"}, []),
+        bstep({"recv": publish("pub-1")}, [{"publication": {"stream": STREAM, "state": "live"}}]),
+        bstep({"recv": subscribe("sub-1", APH, STREAM, ["publication"], 600, NOW + 1)}, [notify(APH, SUB1, 1, "active", live)]),
+        bstep({"advance": 300}, [{"publication": {"stream": STREAM, "state": "expired"}},
+                                 notify(APH, SUB1, 2, "active", {"event": "publication", "state": "expired", "publication": PUB1})],
+              publications=pubsnap("expired")),
+    ]))
+    # subscriber side
+    ntf = lambda sub, seq, state, body=None, reason=None: {k: v for k, v in {"type": "notify", "id": uid(f"n{seq}{sub[-4:]}", NOW + seq), "from": AUTH,
+                                                                            "subscription": sub, "seq": seq, "state": state, "reason": reason,
+                                                                            "body": body or {"event": "publication", "state": "live"}}.items() if v is not None}
+    out.append(btrace("broadcast-subscriber-seq-and-terminal",
+                      "Subscriber discards lower-than-seen seq, treats terminated as final, ignores unknown subscriptions.", ["§9.3"], [
+        bstep({"local": "subscribe", "id": SUB1, "to": AUTH, "target": STREAM, "events": ["publication"], "expires_in": 600},
+              [{"send": {"type": "subscribe", "to": AUTH, "id": SUB1, "target": STREAM, "events": ["publication"], "expires_in": 600}}],
+              subscriptions={SUB1: {"target": STREAM, "state": "pending", "seq": 0}}),
+        bstep({"recv": ntf(SUB1, 1, "active")}, [UI("notify", event="publication", state="live")],
+              subscriptions={SUB1: {"target": STREAM, "state": "active", "seq": 1}}),
+        bstep({"recv": ntf(SUB1, 1, "active")}, [{"drop": "stale-seq"}]),
+        bstep({"recv": ntf(SUB1, 3, "active", {"event": "publication", "state": "ended"})}, [UI("notify", event="publication", state="ended")],
+              subscriptions={SUB1: {"target": STREAM, "state": "active", "seq": 3}}),
+        bstep({"recv": ntf(SUB1, 2, "active")}, [{"drop": "stale-seq"}]),
+        bstep({"recv": ntf(SUB1, 4, "terminated", reason="session.expired")}, [UI("subscription_terminated", reason="session.expired")],
+              subscriptions={SUB1: {"target": STREAM, "state": "terminated", "seq": 4}}),
+        bstep({"recv": ntf(SUB1, 5, "active")}, [{"drop": "terminated-subscription"}]),
+        bstep({"recv": ntf(SUB2, 1, "active")}, [{"drop": "unknown-subscription"}]),
+    ], component="subscriber"))
+    out.append(btrace("broadcast-subscriber-rejected-and-lapse",
+                      "A rejected subscription surfaces its reason; an active one that is not renewed lapses locally.", ["§9.3"], [
+        bstep({"local": "subscribe", "id": SUB1, "to": AUTH, "target": STREAM, "events": ["publication"], "expires_in": 600},
+              [{"send": {"type": "subscribe", "to": AUTH, "id": SUB1, "target": STREAM, "events": ["publication"], "expires_in": 600}}]),
+        bstep({"recv": {"type": "reject", "id": uid("rj"), "from": AUTH, "session": SUB1, "reason": "policy.blocked"}},
+              [UI("subscription_rejected", reason="policy.blocked")], subscriptions={SUB1: {"target": STREAM, "state": "rejected", "seq": 0}}),
+        bstep({"local": "subscribe", "id": SUB2, "to": AUTH, "target": BOB, "events": ["presence"], "expires_in": 60},
+              [{"send": {"type": "subscribe", "to": AUTH, "id": SUB2, "target": BOB, "events": ["presence"], "expires_in": 60}}]),
+        bstep({"recv": ntf(SUB2, 1, "active", {"event": "presence", "state": "available"})}, [UI("notify", event="presence", state="available")]),
+        bstep({"advance": 60}, [UI("subscription_lapsed", subscription=SUB2)],
+              subscriptions={SUB1: {"target": STREAM, "state": "rejected", "seq": 0}, SUB2: {"target": BOB, "state": "lapsed", "seq": 1}}),
+    ], component="subscriber"))
+
     UNKNOWN = "did:key:z6MkNobodyHereAtAll11111111111111111111111111"
     def rinbox(event, emit, inbox, **attempts):
         st = rstep(event, emit, **attempts)

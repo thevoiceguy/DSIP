@@ -1,0 +1,148 @@
+{
+  "vector": "state/broadcast-authority-publication-expiry",
+  "format": 1,
+  "kind": "state",
+  "description": "A live record past its expires_at is marked expired and subscribers are told.",
+  "spec_ref": [
+    "§22.1",
+    "§8.3"
+  ],
+  "context": {
+    "component": "authority",
+    "start": 1760000000,
+    "identities": {
+      "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu": "did:key:z6MkhzX9qTeXBWkucyMVric1E9JrqUD5LPAkD2BNavakAptf",
+      "did:key:z6MkfhenvjQ7awdpVWzPaeBuPkXCBLwzJKyosCrTL3huMb66": "did:key:z6MkhzX9qTeXBWkucyMVric1E9JrqUD5LPAkD2BNavakAptf",
+      "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+      "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+      "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL": "did:key:z6Mkt5yU6sK3v7gxFHncQbmZ7VQvnVuJBGrDAbqhZp2gDW7G"
+    }
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "local": "policy",
+          "target": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R:radio:main",
+          "mode": "public"
+        },
+        "expect": {
+          "emit": []
+        }
+      },
+      {
+        "event": {
+          "recv": {
+            "type": "publish",
+            "id": "01K742SG0074WB0CYKD4EVTQAF",
+            "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "publisher": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+            "stream_id": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R:radio:main",
+            "state": "live",
+            "variants": [
+              {
+                "id": "main-opus",
+                "media": [
+                  "audio"
+                ],
+                "codec": "codec:audio/opus",
+                "transport": "transport:webrtc",
+                "uri": "wss://live.example/main"
+              },
+              {
+                "id": "main-aac-hls",
+                "media": [
+                  "audio"
+                ],
+                "codec": "codec:audio/aac",
+                "transport": "transport:hls",
+                "uri": "https://live.example/main.m3u8"
+              }
+            ],
+            "expires_at": 1760000300
+          }
+        },
+        "expect": {
+          "emit": [
+            {
+              "publication": {
+                "stream": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R:radio:main",
+                "state": "live"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "event": {
+          "recv": {
+            "type": "subscribe",
+            "id": "01K742SGZ8J9J7XY75S4YY8Y78",
+            "from": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+            "to": "did:key:z6MkAuthorityRelay11111111111111111111111111",
+            "target": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R:radio:main",
+            "events": [
+              "publication"
+            ],
+            "expires_in": 600
+          }
+        },
+        "expect": {
+          "emit": [
+            {
+              "send": {
+                "type": "notify",
+                "to": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+                "subscription": "01K742SGZ8J9J7XY75S4YY8Y78",
+                "seq": 1,
+                "state": "active",
+                "body": {
+                  "event": "publication",
+                  "state": "live",
+                  "publication": "01K742SG0074WB0CYKD4EVTQAF"
+                }
+              }
+            }
+          ]
+        }
+      },
+      {
+        "event": {
+          "advance": 300
+        },
+        "expect": {
+          "emit": [
+            {
+              "publication": {
+                "stream": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R:radio:main",
+                "state": "expired"
+              }
+            },
+            {
+              "send": {
+                "type": "notify",
+                "to": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+                "subscription": "01K742SGZ8J9J7XY75S4YY8Y78",
+                "seq": 2,
+                "state": "active",
+                "body": {
+                  "event": "publication",
+                  "state": "expired",
+                  "publication": "01K742SG0074WB0CYKD4EVTQAF"
+                }
+              }
+            }
+          ],
+          "publications": {
+            "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R:radio:main": {
+              "publication": "01K742SG0074WB0CYKD4EVTQAF",
+              "publisher": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+              "state": "expired"
+            }
+          }
+        }
+      }
+    ]
+  },
+  "expect": {}
+}

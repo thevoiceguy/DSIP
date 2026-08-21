@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dsip.org/schema/impl/broadcast-provenance.schema.json",
+  "title": "DSIP broadcast provenance statement (extension broadcast-provenance/1.0; implementation-local)",
+  "description": "A relay or transcoder adds its own signed statement referencing the original publisher record (spec 22.3). Owned by the PoC; candidate text for the Verified Broadcast profile.",
+  "type": "object",
+  "properties": {
+    "dsip": {"type": "object"},
+    "type": {"const": "broadcast.provenance"},
+    "id": {"type": "string", "pattern": "^[0-7][0-9A-HJKMNP-TV-Z]{25}$"},
+    "from": {"type": "string", "pattern": "^did:[a-z0-9]+:[A-Za-z0-9.%_:-]+$"},
+    "original_stream": {"type": "string", "minLength": 1},
+    "original_publication": {"type": "string", "pattern": "^[0-7][0-9A-HJKMNP-TV-Z]{25}$"},
+    "processor": {"type": "string", "pattern": "^did:[a-z0-9]+:[A-Za-z0-9.%_:-]+$"},
+    "operation": {"type": "string", "pattern": "^[a-z][a-z0-9-]*$"},
+    "input_variant": {"type": "string", "minLength": 1},
+    "output_variant": {"type": "string", "minLength": 1},
+    "output_uri": {"type": "string"},
+    "issued_at": {"type": "integer", "minimum": 0},
+    "expires_at": {"type": "integer", "minimum": 0}
+  },
+  "required": ["dsip", "type", "id", "from", "original_stream", "original_publication", "processor", "operation", "input_variant", "output_variant", "issued_at", "expires_at"],
+  "additionalProperties": false
+}

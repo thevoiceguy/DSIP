@@ -294,6 +294,37 @@ exactly, in order.
 | `{"refused": "update-pending"}` | a local request was refused by the engine |
 | `{"drop": REASON}` | message silently ignored (`ended-session`, `unknown-about`, `stale-update-reply`, `duplicate-introduction`, `unknown-introduction`) |
 
+## Kind: `broadcast`
+
+Receiver-side verification of a publication record and its provenance (§22).
+
+```json
+"input":  { "publication": ENVELOPE, "provenance": [ENVELOPE, …], "capabilities": {"codecs": […], "transports": […]} },
+"expect": { "verdict": "accept", "type": "publish", "signer": …, "identity": …,
+            "selected_variant": "main-opus" | null,
+            "provenance": [ {"verdict":"accept","processor":…,"operation":…,"integrity_mode":"derivative-bound","policy_violation"?:…} | {"verdict":"reject","code":…} ],
+            "display": {"original_publisher": …, "delivered_by": […], "transcoded_by": […], "integrity_mode": "metadata-only"|"derivative-bound"} }
+```
+
+Extra codes: `publisher-mismatch` (record `publisher` ≠ verified identity), `stream-id-namespace`
+(`stream_id` not under the publisher DID), and per-statement `provenance-unknown-publication`,
+`provenance-stream-mismatch`, `provenance-processor-mismatch`, `provenance-variant-unknown`.
+Provenance statements use the implementation-local schema `impl/schemas/broadcast-provenance.schema.json`
+(type `broadcast.provenance`, extension `broadcast-provenance/1.0`).
+
+### State components `authority` and `subscriber`
+
+`authority` (a target's relay/domain endpoint, §9.3/§22): events `{"recv": publish|unpublish|subscribe|provenance}`,
+`{"local":"policy","target":T,"mode":"public"|"allow","allow":[…]}`, `{"local":"issue_capability","token":S,"target":T}`,
+`{"relay":"bind"|"unbind",…}` (presence source), `advance`. Emissions: `send notify {to, subscription, seq, state, reason?, body}`,
+`send reject {to, session, reason}`, `{"publication": {"stream", "state"}}`, `{"provenance": {"stream","processor"}}`,
+`{"subscription": {"id","state": "replaced"|"terminated"}}`, `drop` reasons. Snapshots `publications` and `subscriptions`.
+
+`subscriber`: `{"local":"subscribe","id","to","target","events","expires_in"}`, `{"recv": notify|reject}`, `advance`.
+Emissions: `send subscribe`, `{"ui":"notify","event","state"}`, `{"ui":"subscription_terminated","reason"}`,
+`{"ui":"subscription_rejected","reason"}`, `{"ui":"subscription_lapsed","subscription"}`, `drop` (`stale-seq`,
+`terminated-subscription`, `unknown-subscription`). Snapshot `subscriptions: {id: {target, state, seq}}`.
+
 ## Kind: `dht`
 
 Reachability hint records (§8.3, §8.5; plan §10). Input is a hint envelope,
@@ -325,6 +356,10 @@ Each item has a matching `spec-gap` issue draft in `impl/docs/spec-gaps.md`.
 15. §19.4: grant matching (by `grant` reference or by grantee identity), scope check, single-use contact tokens.
 16. §12.12/§16.3: WebRTC binding shapes (SDP in `transports[].sdp`, candidates in `info.data`).
 17. §13.2/§13.3: "unknown recipient" at a store-and-forward relay = never bound here; queued envelopes expire silently.
+18. §22.1: `publisher` MUST equal the verified identity; `stream_id` is namespaced under the publisher; newer ULID replaces.
+19. §9.3: presence derives from device bindings at the authority; targets never seen get the uniform reject.
+20. §22.2: integrity mode is advertised per variant (`integrity`), the closed `publish` schema has no record-level field.
+21. §22.3: provenance statements reach subscribers in `notify.body.provenance`; carriage is otherwise unspecified.
 
 Emission ordering convention for state traces: timer stops → sends → media →
 ui → timer starts. A session ending emits `media stop` (when media was running)
