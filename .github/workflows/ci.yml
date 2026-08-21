@@ -58,6 +58,9 @@ jobs:
       - name: media fallback build (webrtc-rs only, no forge/OpenSSL) still compiles and passes
         run: cargo test -p dsip-media --no-default-features --features webrtc-rs
         working-directory: impl
+      - name: gateway host build + SIP leg on-the-wire test (Phase 4 G1; siphon-rs + forge from git)
+        run: cargo test -p dsip-gateway --features host --test sip_leg_live
+        working-directory: impl
       - name: media demos, both backends paired both ways (forge-media plan step 3)
         # A signalled call through the relay with DTLS-SRTP Opus each way; the script fails unless
         # both sides decrypt media and both Ogg recordings are real. forge→webrtc-rs and
