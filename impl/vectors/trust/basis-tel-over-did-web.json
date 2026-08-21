@@ -1,0 +1,28 @@
+{
+  "vector": "trust/basis-tel-over-did-web",
+  "format": 1,
+  "kind": "trust",
+  "description": "A gateway (did:web) carrying a tel claim shows the caller's basis, not the gateway's domain.",
+  "spec_ref": [
+    "§18.1"
+  ],
+  "context": {},
+  "input": {
+    "check": "basis",
+    "identity": "did:web:gw.example",
+    "claims": [
+      {
+        "type": "brand",
+        "x": 1
+      },
+      {
+        "type": "tel",
+        "number": "+15551234567",
+        "attestation": "A",
+        "verified": true,
+        "verifier": "did:web:gw.example"
+      }
+    ]
+  },
+  "expect": "Gateway attested by gw.example · STIR attestation A (verified)"
+}

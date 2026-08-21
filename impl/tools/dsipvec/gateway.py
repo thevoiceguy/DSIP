@@ -335,6 +335,9 @@ def run(v: dict) -> Any:
         return tel_claim(inp["from_tn"], inp.get("identity"), cnam=inp.get("cnam"))
     if check == "downgrade":
         return downgrade(inp["facts"])
+    if check == "downgrade-error":
+        d = downgrade(inp["facts"])
+        return {"losses": d["lost"]} if d["downgraded"] else None
     if check == "trace":
         call = GatewayCall(ctx)
         steps = []

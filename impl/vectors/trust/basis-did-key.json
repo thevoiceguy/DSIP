@@ -1,0 +1,17 @@
+{
+  "vector": "trust/basis-did-key",
+  "format": 1,
+  "kind": "trust",
+  "description": "A did:key identity → self-issued.",
+  "spec_ref": [
+    "§18.1",
+    "§19.1"
+  ],
+  "context": {},
+  "input": {
+    "check": "basis",
+    "identity": "did:key:z6MkAlicePhone",
+    "claims": []
+  },
+  "expect": "Self-issued identity"
+}

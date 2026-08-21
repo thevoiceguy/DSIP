@@ -1,0 +1,19 @@
+{
+  "vector": "trust/downgrade-plain-trunk",
+  "format": 1,
+  "kind": "trust",
+  "description": "Three losses on a plain-RTP outbound crossing.",
+  "spec_ref": [
+    "§6.3"
+  ],
+  "context": {},
+  "input": {
+    "check": "downgrade",
+    "losses": [
+      "no-srtp-on-trunk",
+      "identity-not-assertable",
+      "policy-unenforceable"
+    ]
+  },
+  "expect": "Trust downgraded crossing the gateway (§6.3): media is not encrypted on the PSTN trunk; your identity could not be asserted into the PSTN; your media policy cannot be enforced past the gateway"
+}

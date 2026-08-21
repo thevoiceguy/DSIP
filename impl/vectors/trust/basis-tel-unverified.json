@@ -1,0 +1,25 @@
+{
+  "vector": "trust/basis-tel-unverified",
+  "format": 1,
+  "kind": "trust",
+  "description": "attestation B not verified → unverified.",
+  "spec_ref": [
+    "§18.1",
+    "§20.4"
+  ],
+  "context": {},
+  "input": {
+    "check": "basis",
+    "identity": "did:web:gw.example",
+    "claims": [
+      {
+        "type": "tel",
+        "number": "+15551234567",
+        "attestation": "B",
+        "verified": false,
+        "verifier": "did:web:gw.example"
+      }
+    ]
+  },
+  "expect": "Gateway attested by gw.example · STIR attestation B (unverified)"
+}

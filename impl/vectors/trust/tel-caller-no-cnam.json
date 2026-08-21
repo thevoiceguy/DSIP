@@ -1,0 +1,21 @@
+{
+  "vector": "trust/tel-caller-no-cnam",
+  "format": 1,
+  "kind": "trust",
+  "description": "Caller headline, number only.",
+  "spec_ref": [
+    "§18.1"
+  ],
+  "context": {},
+  "input": {
+    "check": "tel-caller",
+    "claim": {
+      "type": "tel",
+      "number": "+15551234567",
+      "attestation": "A",
+      "verified": true,
+      "verifier": "did:web:gw.example"
+    }
+  },
+  "expect": "PSTN caller +15551234567"
+}

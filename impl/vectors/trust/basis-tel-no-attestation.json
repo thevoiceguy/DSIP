@@ -1,0 +1,24 @@
+{
+  "vector": "trust/basis-tel-no-attestation",
+  "format": 1,
+  "kind": "trust",
+  "description": "No attestation → the honest 'no attestation' basis.",
+  "spec_ref": [
+    "§18.1"
+  ],
+  "context": {},
+  "input": {
+    "check": "basis",
+    "identity": "did:web:gw.example",
+    "claims": [
+      {
+        "type": "tel",
+        "number": "+15551234567",
+        "attestation": "none",
+        "verified": false,
+        "verifier": "did:web:gw.example"
+      }
+    ]
+  },
+  "expect": "Gateway attested by gw.example · no attestation"
+}

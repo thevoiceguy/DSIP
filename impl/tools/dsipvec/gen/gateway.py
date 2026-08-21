@@ -115,6 +115,13 @@ def vectors() -> list[dict]:
     out.append(gv("downgrade-inbound-no-attestation", "Inbound with SRTP but no attestation: one loss.", ["§6.3", "§18.1"],
                   {"check": "downgrade", "facts": {"direction": "inbound", "trunk_srtp": True, "attestation": "none"}},
                   {"downgraded": True, "lost": ["no-attestation"]}))
+    # ---- gateway.downgraded error detail (§6.3 / G§7); rendered by the callee (trust/ vectors)
+    out.append(gv("downgrade-error-plain-trunk", "The error detail a callee renders when the crossing lost SRTP + identity + policy.", ["§6.3", "§15.4"],
+                  {"check": "downgrade-error", "facts": {"direction": "outbound", "trunk_srtp": False, "identity_assertable": False, "policy_present": True}},
+                  {"losses": ["no-srtp-on-trunk", "identity-not-assertable", "policy-unenforceable"]}))
+    out.append(gv("downgrade-error-none", "A fully-preserved crossing sends no gateway.downgraded.", ["§6.3"],
+                  {"check": "downgrade-error", "facts": {"direction": "outbound", "trunk_srtp": True, "identity_assertable": True, "policy_present": False}}, None))
+
     # ---- controller traces (plan §5)
     CALLING, EARLY, CONF, TERM = "calling", "early", "confirmed", "terminated"
     st = lambda d, s: {"dsip": d, "sip": s}

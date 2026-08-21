@@ -1,0 +1,20 @@
+{
+  "vector": "gateway/downgrade-error-none",
+  "format": 1,
+  "kind": "gateway",
+  "description": "A fully-preserved crossing sends no gateway.downgraded.",
+  "spec_ref": [
+    "§6.3"
+  ],
+  "context": {},
+  "input": {
+    "check": "downgrade-error",
+    "facts": {
+      "direction": "outbound",
+      "trunk_srtp": true,
+      "identity_assertable": true,
+      "policy_present": false
+    }
+  },
+  "expect": null
+}

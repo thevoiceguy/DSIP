@@ -1,0 +1,17 @@
+{
+  "vector": "trust/tel-caller-not-tel",
+  "format": 1,
+  "kind": "trust",
+  "description": "A non-tel claim yields no caller line.",
+  "spec_ref": [
+    "§18.1"
+  ],
+  "context": {},
+  "input": {
+    "check": "tel-caller",
+    "claim": {
+      "type": "brand"
+    }
+  },
+  "expect": null
+}

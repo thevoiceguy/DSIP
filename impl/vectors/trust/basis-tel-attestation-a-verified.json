@@ -1,0 +1,24 @@
+{
+  "vector": "trust/basis-tel-attestation-a-verified",
+  "format": 1,
+  "kind": "trust",
+  "description": "A verified attestation-A tel claim yields the gateway-attested basis.",
+  "spec_ref": [
+    "§18.1"
+  ],
+  "context": {},
+  "input": {
+    "check": "basis",
+    "identity": "did:web:gw.example",
+    "claims": [
+      {
+        "type": "tel",
+        "number": "+15551234567",
+        "attestation": "A",
+        "verified": true,
+        "verifier": "did:web:gw.example"
+      }
+    ]
+  },
+  "expect": "Gateway attested by gw.example · STIR attestation A (verified)"
+}

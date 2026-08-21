@@ -1,0 +1,16 @@
+{
+  "vector": "trust/basis-did-web",
+  "format": 1,
+  "kind": "trust",
+  "description": "A did:web identity with no tel claim → domain verified.",
+  "spec_ref": [
+    "§18.1"
+  ],
+  "context": {},
+  "input": {
+    "check": "basis",
+    "identity": "did:web:example.com:users:bob",
+    "claims": []
+  },
+  "expect": "Domain verified (did:web:example.com:users:bob)"
+}

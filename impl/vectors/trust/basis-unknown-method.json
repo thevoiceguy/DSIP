@@ -1,0 +1,16 @@
+{
+  "vector": "trust/basis-unknown-method",
+  "format": 1,
+  "kind": "trust",
+  "description": "An unrecognized DID method.",
+  "spec_ref": [
+    "§18.1"
+  ],
+  "context": {},
+  "input": {
+    "check": "basis",
+    "identity": "did:example:xyz",
+    "claims": []
+  },
+  "expect": "Unrecognized identity method"
+}

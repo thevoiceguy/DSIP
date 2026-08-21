@@ -1,0 +1,15 @@
+{
+  "vector": "trust/downgrade-empty",
+  "format": 1,
+  "kind": "trust",
+  "description": "Downgrade with no named losses.",
+  "spec_ref": [
+    "§6.3"
+  ],
+  "context": {},
+  "input": {
+    "check": "downgrade",
+    "losses": []
+  },
+  "expect": "Trust downgraded crossing the gateway (§6.3)"
+}

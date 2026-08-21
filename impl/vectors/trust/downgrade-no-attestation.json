@@ -1,0 +1,18 @@
+{
+  "vector": "trust/downgrade-no-attestation",
+  "format": 1,
+  "kind": "trust",
+  "description": "Inbound, no attestation.",
+  "spec_ref": [
+    "§6.3",
+    "§18.1"
+  ],
+  "context": {},
+  "input": {
+    "check": "downgrade",
+    "losses": [
+      "no-attestation"
+    ]
+  },
+  "expect": "Trust downgraded crossing the gateway (§6.3): the caller carried no verified attestation"
+}
