@@ -12,7 +12,7 @@ Status of every gap as input to the v0.7 assembly. *Disposition* is what v0.7 sh
 for gaps 1–13 it is the **Suggested fix** already recorded under each entry. Gaps 14–22
 carry an explicit **v0.7 disposition** paragraph (added 2026-08-21). "adopt" = make the PoC
 choice normative as written; "adopt-with-change" = normative text differs from the PoC and the
-vectors change first; "decision" = the editor must choose between the listed options.
+vectors change first. No gap is awaiting a decision.
 
 | # | sections | disposition | pinned by |
 |---|---|---|---|
@@ -37,7 +37,7 @@ vectors change first; "decision" = the editor must choose between the listed opt
 | 19 | §9.3, §9.4 | adopt (refuse over-cap; authority-asserted presence) | `state/broadcast-authority-presence`, `semantic/subscribe-presence-over-cap` |
 | 20 | §22.2 | **adopt-with-change** (record-level `integrity`) | `broadcast/publication-valid-metadata-only`, `broadcast/provenance-derivative-bound` |
 | 21 | §22.3 | adopt; promote `broadcast.provenance` to a spec schema | `broadcast/provenance-*` |
-| 22 | §7.5 | **decision** (rotation record vs DID-method-only) | `envelope/rotated-did-web-*` |
+| 22 | §7.5 | adopt (c): DID document authoritative + `KeyRotation` record defined | `envelope/rotated-did-web-*` |
 
 ---
 
@@ -365,8 +365,10 @@ log and clients have something to show. State explicitly that `did:key` identiti
 (the DID is the key) and that rotation for them means a new identity plus a signed
 `identity.moved` pointer.
 
-**v0.7 disposition.** **Decision required** between (b) and (c); the PoC vectors are
-compatible with either. Recommendation: (c).
+**v0.7 disposition.** **(c), decided 2026-08-21.** The DID document stays authoritative for
+verification (§8.1; the vectors above stand unchanged) and v0.7 defines the `KeyRotation` record
+with a schema as the §7.5 artifact — what §7.7 logs and clients show as trust metadata. `did:key`
+identities cannot rotate; v0.7 says so and points to `identity.moved`.
 
 ## Already-flagged (schema README / plan §11)
 
