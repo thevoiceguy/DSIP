@@ -1,0 +1,74 @@
+{
+  "vector": "media-binding/candidates-non-party-ignored",
+  "format": 1,
+  "kind": "media-binding",
+  "description": "info from a device that is not party to the session (a released fork leg) is ignored.",
+  "spec_ref": [
+    "B§4.4",
+    "§12.7"
+  ],
+  "context": {
+    "peer": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+  },
+  "input": {
+    "check": "candidates",
+    "steps": [
+      {
+        "event": {
+          "remote_description": true
+        }
+      },
+      {
+        "event": {
+          "remote_info": {
+            "from": "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ",
+            "candidates": [
+              {
+                "candidate": "candidate:1 1 udp 2130706431 192.0.2.1 50001 typ host",
+                "sdp_mid": "0",
+                "sdp_m_line_index": 0
+              }
+            ],
+            "end_of_candidates": false
+          }
+        }
+      },
+      {
+        "event": {
+          "remote_info": {
+            "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "candidates": [
+              {
+                "candidate": "candidate:1 1 udp 2130706431 192.0.2.1 50001 typ host",
+                "sdp_mid": "0",
+                "sdp_m_line_index": 0
+              }
+            ],
+            "end_of_candidates": false
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": []
+      },
+      {
+        "emit": [
+          {
+            "ignore": "not-party"
+          }
+        ]
+      },
+      {
+        "emit": [
+          {
+            "apply": 1
+          }
+        ]
+      }
+    ]
+  }
+}

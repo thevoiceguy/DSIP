@@ -1,0 +1,20 @@
+{
+  "vector": "media-binding/role-actpass-active",
+  "format": 1,
+  "kind": "media-binding",
+  "description": "Offer actpass + answer active: answerer is DTLS client, offerer server.",
+  "spec_ref": [
+    "B§3.3"
+  ],
+  "context": {},
+  "input": {
+    "check": "role",
+    "offer_setup": "actpass",
+    "answer_setup": "active"
+  },
+  "expect": {
+    "verdict": "accept",
+    "offerer": "server",
+    "answerer": "client"
+  }
+}

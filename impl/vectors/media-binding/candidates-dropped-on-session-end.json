@@ -1,0 +1,85 @@
+{
+  "vector": "media-binding/candidates-dropped-on-session-end",
+  "format": 1,
+  "kind": "media-binding",
+  "description": "Buffered candidates are dropped, not applied, when the session ends.",
+  "spec_ref": [
+    "B§4.3"
+  ],
+  "context": {
+    "peer": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+  },
+  "input": {
+    "check": "candidates",
+    "steps": [
+      {
+        "event": {
+          "remote_info": {
+            "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "candidates": [
+              {
+                "candidate": "candidate:1 1 udp 2130706431 192.0.2.1 50001 typ host",
+                "sdp_mid": "0",
+                "sdp_m_line_index": 0
+              }
+            ],
+            "end_of_candidates": false
+          }
+        }
+      },
+      {
+        "event": {
+          "local_candidate": {
+            "candidate": "candidate:2 1 udp 2130706431 192.0.2.2 50002 typ host",
+            "sdp_mid": "0",
+            "sdp_m_line_index": 0
+          }
+        }
+      },
+      {
+        "event": {
+          "session_end": true
+        }
+      },
+      {
+        "event": {
+          "remote_description": true
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "buffer": "remote",
+            "n": 1
+          }
+        ]
+      },
+      {
+        "emit": [
+          {
+            "buffer": "local",
+            "n": 1
+          }
+        ]
+      },
+      {
+        "emit": [
+          {
+            "drop_buffered": 2
+          }
+        ]
+      },
+      {
+        "emit": [
+          {
+            "ignore": "ended"
+          }
+        ]
+      }
+    ]
+  }
+}

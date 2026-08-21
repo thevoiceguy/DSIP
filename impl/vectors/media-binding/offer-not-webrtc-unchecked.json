@@ -1,0 +1,36 @@
+{
+  "vector": "media-binding/offer-not-webrtc-unchecked",
+  "format": 1,
+  "kind": "media-binding",
+  "description": "A non-WebRTC transport is outside this binding; nothing is checked.",
+  "spec_ref": [
+    "B§1"
+  ],
+  "context": {},
+  "input": {
+    "check": "offer",
+    "payload": {
+      "media": [
+        {
+          "type": "audio",
+          "direction": "sendrecv",
+          "codecs": [
+            {
+              "id": "codec:audio/opus"
+            }
+          ]
+        }
+      ],
+      "transports": [
+        {
+          "id": "transport:rtp",
+          "sdp": "v=0"
+        }
+      ]
+    }
+  },
+  "expect": {
+    "verdict": "accept",
+    "binding": "not-webrtc"
+  }
+}

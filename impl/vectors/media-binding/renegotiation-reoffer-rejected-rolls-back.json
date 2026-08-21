@@ -1,0 +1,63 @@
+{
+  "vector": "media-binding/renegotiation-reoffer-rejected-rolls-back",
+  "format": 1,
+  "kind": "media-binding",
+  "description": "A rejected re-offer rolls the local description back; nothing on the transport changed.",
+  "spec_ref": [
+    "B§5.2",
+    "§12.8"
+  ],
+  "context": {
+    "ufrag": "abcd"
+  },
+  "input": {
+    "check": "renegotiation",
+    "steps": [
+      {
+        "event": {
+          "local_reoffer": {
+            "ufrag": "abcd"
+          }
+        }
+      },
+      {
+        "event": {
+          "remote_reject": true
+        }
+      },
+      {
+        "event": {
+          "remote_answer": true
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "local_description": "pending"
+          }
+        ]
+      },
+      {
+        "emit": [
+          {
+            "rollback": true
+          },
+          {
+            "local_description": "current"
+          }
+        ]
+      },
+      {
+        "emit": [
+          {
+            "ignore": "no-pending-offer"
+          }
+        ]
+      }
+    ]
+  }
+}

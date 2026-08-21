@@ -1,0 +1,20 @@
+{
+  "vector": "media-binding/role-answer-actpass-invalid",
+  "format": 1,
+  "kind": "media-binding",
+  "description": "An answer MUST NOT be actpass.",
+  "spec_ref": [
+    "B§3.3"
+  ],
+  "context": {},
+  "input": {
+    "check": "role",
+    "offer_setup": "actpass",
+    "answer_setup": "actpass"
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "binding-setup-invalid",
+    "reason": "media.failed"
+  }
+}

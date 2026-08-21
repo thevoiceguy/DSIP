@@ -1,0 +1,108 @@
+{
+  "vector": "media-binding/candidates-remote-buffered-until-description",
+  "format": 1,
+  "kind": "media-binding",
+  "description": "Remote candidates that overtake the answer are buffered and applied in order once the remote description is applied.",
+  "spec_ref": [
+    "B§4.3"
+  ],
+  "context": {
+    "peer": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+  },
+  "input": {
+    "check": "candidates",
+    "steps": [
+      {
+        "event": {
+          "remote_info": {
+            "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "candidates": [
+              {
+                "candidate": "candidate:1 1 udp 2130706431 192.0.2.1 50001 typ host",
+                "sdp_mid": "0",
+                "sdp_m_line_index": 0
+              },
+              {
+                "candidate": "candidate:2 1 udp 2130706431 192.0.2.2 50002 typ host",
+                "sdp_mid": "0",
+                "sdp_m_line_index": 0
+              }
+            ],
+            "end_of_candidates": false
+          }
+        }
+      },
+      {
+        "event": {
+          "remote_description": true
+        }
+      },
+      {
+        "event": {
+          "remote_info": {
+            "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "candidates": [
+              {
+                "candidate": "candidate:3 1 udp 2130706431 192.0.2.3 50003 typ host",
+                "sdp_mid": "0",
+                "sdp_m_line_index": 0
+              }
+            ],
+            "end_of_candidates": true
+          }
+        }
+      },
+      {
+        "event": {
+          "remote_info": {
+            "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "candidates": [
+              {
+                "candidate": "candidate:4 1 udp 2130706431 192.0.2.4 50004 typ host",
+                "sdp_mid": "0",
+                "sdp_m_line_index": 0
+              }
+            ],
+            "end_of_candidates": false
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "buffer": "remote",
+            "n": 2
+          }
+        ]
+      },
+      {
+        "emit": [
+          {
+            "apply": 2
+          }
+        ]
+      },
+      {
+        "emit": [
+          {
+            "apply": 1
+          },
+          {
+            "remote_end": true
+          }
+        ]
+      },
+      {
+        "emit": [
+          {
+            "ignore": "after-end"
+          }
+        ]
+      }
+    ]
+  }
+}

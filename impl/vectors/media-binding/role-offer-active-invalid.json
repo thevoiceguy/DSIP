@@ -1,0 +1,20 @@
+{
+  "vector": "media-binding/role-offer-active-invalid",
+  "format": 1,
+  "kind": "media-binding",
+  "description": "An offer MUST be actpass.",
+  "spec_ref": [
+    "B§3.3"
+  ],
+  "context": {},
+  "input": {
+    "check": "role",
+    "offer_setup": "active",
+    "answer_setup": "passive"
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "binding-setup-invalid",
+    "reason": "media.unsupported"
+  }
+}

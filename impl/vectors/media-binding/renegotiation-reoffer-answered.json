@@ -1,0 +1,51 @@
+{
+  "vector": "media-binding/renegotiation-reoffer-answered",
+  "format": 1,
+  "kind": "media-binding",
+  "description": "A re-offer keeps the ICE credentials; the pending description becomes current when the answer applies.",
+  "spec_ref": [
+    "B§5.1",
+    "B§5.2"
+  ],
+  "context": {
+    "ufrag": "abcd"
+  },
+  "input": {
+    "check": "renegotiation",
+    "steps": [
+      {
+        "event": {
+          "local_reoffer": {
+            "ufrag": "abcd"
+          }
+        }
+      },
+      {
+        "event": {
+          "remote_answer": true
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "local_description": "pending"
+          }
+        ]
+      },
+      {
+        "emit": [
+          {
+            "apply": "answer"
+          },
+          {
+            "local_description": "current"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,64 @@
+{
+  "vector": "media-binding/renegotiation-ice-restart-refused",
+  "format": 1,
+  "kind": "media-binding",
+  "description": "A remote re-offer that changes the ICE credentials is an ICE restart: rejected media.unsupported, session continues.",
+  "spec_ref": [
+    "B§5.4"
+  ],
+  "context": {
+    "ufrag": "abcd"
+  },
+  "input": {
+    "check": "renegotiation",
+    "steps": [
+      {
+        "event": {
+          "remote_reoffer": {
+            "ufrag": "abcd"
+          }
+        }
+      },
+      {
+        "event": {
+          "answer_update": true
+        }
+      },
+      {
+        "event": {
+          "remote_reoffer": {
+            "ufrag": "zzzz"
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "ui": "update_offered"
+          }
+        ]
+      },
+      {
+        "emit": [
+          {
+            "apply": "remote-offer+answer"
+          }
+        ]
+      },
+      {
+        "emit": [
+          {
+            "reject": {
+              "reason": "media.unsupported",
+              "detail": "ice-restart"
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

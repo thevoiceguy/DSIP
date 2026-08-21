@@ -1,0 +1,20 @@
+{
+  "vector": "media-binding/role-actpass-passive",
+  "format": 1,
+  "kind": "media-binding",
+  "description": "Answer passive (permitted when the answerer cannot act as client): offerer is client.",
+  "spec_ref": [
+    "B§3.3"
+  ],
+  "context": {},
+  "input": {
+    "check": "role",
+    "offer_setup": "actpass",
+    "answer_setup": "passive"
+  },
+  "expect": {
+    "verdict": "accept",
+    "offerer": "client",
+    "answerer": "server"
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "vector": "media-binding/offer-sdp-unparseable",
+  "format": 1,
+  "kind": "media-binding",
+  "description": "sdp that is not SDP.",
+  "spec_ref": [
+    "B§2"
+  ],
+  "context": {},
+  "input": {
+    "check": "offer",
+    "payload": {
+      "media": [
+        {
+          "type": "audio",
+          "direction": "sendrecv",
+          "codecs": [
+            {
+              "id": "codec:audio/opus"
+            }
+          ]
+        }
+      ],
+      "transports": [
+        {
+          "id": "transport:webrtc",
+          "ice": "trickle",
+          "sdp": "hello"
+        }
+      ]
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "binding-sdp-invalid",
+    "reason": "media.unsupported"
+  }
+}

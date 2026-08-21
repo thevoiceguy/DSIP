@@ -1,6 +1,6 @@
 # DSIP reference implementation (PoC)
 
-**Tracks:** DSIP Draft v0.6 + JSON Schema set v0.6. Plan: `docs/dsip_poc_dev_plan.md`.
+**Tracks:** DSIP Draft v0.7 + JSON Schema set v0.7 (tag `poc-v0.7`; v0.6 at `poc-v0.6`). Plan: `docs/dsip_poc_dev_plan.md`.
 **Conformance contract:** `vectors/` (see `vectors/README.md`). Spec-gap issue drafts: `docs/spec-gaps.md`.
 
 ## Layout
@@ -11,7 +11,7 @@ tools/          Python: vector generator, reference harness, parity, spec lint
 schemas/        Implementation-local schemas (DHT reachability hint)
 crates/
   dsip-core     ULIDs, did:key, DID documents, Ed25519, DSIP-JOSE envelope pipeline
-  dsip-schema   v0.6 schemas embedded at build time + stateless semantic checks
+  dsip-schema   v0.7 schemas embedded at build time + stateless semantic checks
   dsip-session  §12 endpoint state engine, timers, races, renegotiation; §12.7 relay leg tracker
   dsip-endpoint IO-free endpoint core: verify → §12 engine → build/sign (shared by native agent and WASM)
   dsip-transport ws/1.0 client binding (wss, hello, caps, reconnect), identity dirs, did:web fetch, the Agent

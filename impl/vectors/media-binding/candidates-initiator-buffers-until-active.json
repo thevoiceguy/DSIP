@@ -1,0 +1,113 @@
+{
+  "vector": "media-binding/candidates-initiator-buffers-until-active",
+  "format": 1,
+  "kind": "media-binding",
+  "description": "Initiator: candidates gathered before the answer are buffered and sent in one info once ACTIVE; gathering completes later → a lone end marker.",
+  "spec_ref": [
+    "B§4.3",
+    "§12.12"
+  ],
+  "context": {
+    "peer": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+  },
+  "input": {
+    "check": "candidates",
+    "steps": [
+      {
+        "event": {
+          "local_candidate": {
+            "candidate": "candidate:1 1 udp 2130706431 192.0.2.1 50001 typ host",
+            "sdp_mid": "0",
+            "sdp_m_line_index": 0
+          }
+        }
+      },
+      {
+        "event": {
+          "local_candidate": {
+            "candidate": "candidate:2 1 udp 2130706431 192.0.2.2 50002 typ host",
+            "sdp_mid": "0",
+            "sdp_m_line_index": 0
+          }
+        }
+      },
+      {
+        "event": {
+          "active": true
+        }
+      },
+      {
+        "event": {
+          "local_candidate": {
+            "candidate": "candidate:3 1 udp 2130706431 192.0.2.3 50003 typ host",
+            "sdp_mid": "0",
+            "sdp_m_line_index": 0
+          }
+        }
+      },
+      {
+        "event": {
+          "gathering_complete": true
+        }
+      },
+      {
+        "event": {
+          "gathering_complete": true
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "buffer": "local",
+            "n": 1
+          }
+        ]
+      },
+      {
+        "emit": [
+          {
+            "buffer": "local",
+            "n": 2
+          }
+        ]
+      },
+      {
+        "emit": [
+          {
+            "send_info": {
+              "candidates": 2,
+              "end_of_candidates": false
+            }
+          }
+        ]
+      },
+      {
+        "emit": [
+          {
+            "send_info": {
+              "candidates": 1,
+              "end_of_candidates": false
+            }
+          }
+        ]
+      },
+      {
+        "emit": [
+          {
+            "send_info": {
+              "candidates": 0,
+              "end_of_candidates": true
+            }
+          }
+        ]
+      },
+      {
+        "emit": []
+      }
+    ]
+  }
+}

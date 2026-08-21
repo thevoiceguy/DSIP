@@ -1,0 +1,62 @@
+{
+  "vector": "media-binding/candidates-gathering-complete-before-active",
+  "format": 1,
+  "kind": "media-binding",
+  "description": "Gathering finished before ACTIVE: the first info carries everything and the end marker together.",
+  "spec_ref": [
+    "B§4.2",
+    "B§4.3"
+  ],
+  "context": {
+    "peer": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+  },
+  "input": {
+    "check": "candidates",
+    "steps": [
+      {
+        "event": {
+          "local_candidate": {
+            "candidate": "candidate:1 1 udp 2130706431 192.0.2.1 50001 typ host",
+            "sdp_mid": "0",
+            "sdp_m_line_index": 0
+          }
+        }
+      },
+      {
+        "event": {
+          "gathering_complete": true
+        }
+      },
+      {
+        "event": {
+          "active": true
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "buffer": "local",
+            "n": 1
+          }
+        ]
+      },
+      {
+        "emit": []
+      },
+      {
+        "emit": [
+          {
+            "send_info": {
+              "candidates": 1,
+              "end_of_candidates": true
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -18,6 +18,7 @@ modules — they are never derived from either implementation's output.
 ```
 vectors/
   envelope/    Signature, header, kid→DID resolution, delegation, replay, ULID/issued_at
+  media-binding/ WebRTC Media Binding 1.0 conformance (descriptor/SDP authority, roles, candidates, renegotiation, one answer)
   payload/     JSON Schema pass/fail per message type (shape only)
   semantic/    Stateless post-schema checks (schema README list of 11)
   state/       Scripted endpoint and relay state-machine traces (§12)
@@ -43,7 +44,7 @@ the `.json` suffix (e.g. `envelope/valid-ed25519`).
 }
 ```
 
-`spec_ref` entries cite v0.7 section numbers (unchanged from v0.6 for every section the vectors cite). Every vector has at least one.
+`spec_ref` entries cite v0.7 section numbers (unchanged from v0.6 for every section the vectors cite); `B§n` cites a section of the WebRTC Media Binding 1.0 companion document. Every vector has at least one.
 
 ## Fixed fixtures
 
@@ -109,6 +110,16 @@ implementation under test MUST emit that token when it signals the failure.
 | `hello-in-reply-to-mismatch` | relay `hello.in_reply_to` ≠ the client hello id actually sent (§13.2, §20.5) | |
 | `hello-required` | session traffic before a verified `hello` (§13.2) | `transport.hello-required` |
 | `hint-subject-mismatch` | DHT hint whose verified identity is not its `subject` (§8.3) | |
+| `binding-ice-mode` | `transports[].ice` absent or not `trickle` (B§2) | `media.unsupported` |
+| `binding-sdp-missing` | webrtc descriptor without `sdp` (B§2) | `media.offer-required` on offers, `media.failed` on answers |
+| `binding-sdp-invalid` | `sdp` is not SDP (B§2) | `media.unsupported` / `media.failed` |
+| `binding-section-count` | live `m=` sections ≠ media descriptors; answer section count ≠ offer's (B§2.1) | `media.unsupported` / `media.failed` |
+| `binding-extra-section` | an `m=application` section (B§2.1) | `media.unsupported` |
+| `binding-kind-mismatch` / `binding-direction-mismatch` / `binding-codec-missing` | descriptor i and `m=` section i disagree (B§2.1) | `media.unsupported` / `media.failed` |
+| `binding-encryption` | plain RTP profile (B§7) | `media.encryption-required` |
+| `binding-rtcp-mux-missing` / `binding-fingerprint-missing` / `binding-ice-credentials-missing` | SDP profile violations (B§2.2) | `media.unsupported` / `media.failed` |
+| `binding-setup-invalid` | offer not `actpass`, or answer not `active`/`passive` (B§3.3) | `media.unsupported` / `media.failed` |
+| `binding-ice-restart` | a local re-offer changed the ICE credentials (B§5.4); a remote one is `reject media.unsupported` | |
 
 ## Pipeline order (normative for parity)
 
@@ -333,6 +344,20 @@ delivered stream `derivative-bound`; a selected variant's own `integrity` overri
 Emissions: `send subscribe`, `{"ui":"notify","event","state"}`, `{"ui":"subscription_terminated","reason"}`,
 `{"ui":"subscription_rejected","reason"}`, `{"ui":"subscription_lapsed","subscription"}`, `drop` (`stale-seq`,
 `terminated-subscription`, `unknown-subscription`). Snapshot `subscriptions: {id: {target, state, seq}}`.
+
+## Kind: `media-binding`
+
+WebRTC Media Binding 1.0 (`v0.7/dsip-webrtc-media-binding-v0.7-draft.md`) conformance, below the
+envelope pipeline: inputs are decoded payloads or event traces. `input.check` selects:
+
+| check | input | expect |
+|---|---|---|
+| `offer` | `payload` = an `invite`/`update` body (`media`, `transports`) | verdict (B§2, B§2.1, B§2.2) |
+| `answer` | `offer` + `payload` (an `answer` body with `from`) | verdict (B§2.1, B§3.1, B§3.3) |
+| `role` | `offer_setup`, `answer_setup` | `{"verdict":"accept","offerer":"server\|client","answerer":…}` or verdict (B§3.3) |
+| `candidates` | `steps` of `local_candidate` / `gathering_complete` / `active` / `remote_description` / `remote_info{from,candidates,end_of_candidates}` / `session_end`; `context.peer` | per-step `emit`: `buffer{local\|remote,n}`, `send_info{candidates,end_of_candidates}`, `apply n`, `remote_end`, `ignore{after-end\|not-party\|ended}`, `drop_buffered n` (B§4.2–B§4.4) |
+| `renegotiation` | `steps` of `local_reoffer{ufrag}` / `remote_answer` / `remote_reject` / `remote_reoffer{ufrag}` / `answer_update`; `context.ufrag` | per-step `emit`: `local_description{pending\|current}`, `apply`, `rollback`, `reject{reason,detail}`, `error binding-ice-restart` (B§5) |
+| `one-answer` | `offer` + `answers[]` | `{"applied": DID, "legs": [{from, applied\|bye[,code]}]}` — first valid answer applied, earlier invalid legs `bye media.failed`, later legs `bye session.already-answered` (B§6.1) |
 
 ## Kind: `dht`
 

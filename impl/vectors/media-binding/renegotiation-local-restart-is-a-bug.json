@@ -1,0 +1,36 @@
+{
+  "vector": "media-binding/renegotiation-local-restart-is-a-bug",
+  "format": 1,
+  "kind": "media-binding",
+  "description": "Our own re-offer MUST keep the credentials; changing them is a sender error, never sent.",
+  "spec_ref": [
+    "B§5.4"
+  ],
+  "context": {
+    "ufrag": "abcd"
+  },
+  "input": {
+    "check": "renegotiation",
+    "steps": [
+      {
+        "event": {
+          "local_reoffer": {
+            "ufrag": "zzzz"
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "error": "binding-ice-restart",
+            "detail": "a re-offer MUST keep the ICE credentials"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "vector": "media-binding/offer-sdp-missing",
+  "format": 1,
+  "kind": "media-binding",
+  "description": "An offer selecting transport:webrtc without sdp is media.offer-required.",
+  "spec_ref": [
+    "B§2"
+  ],
+  "context": {},
+  "input": {
+    "check": "offer",
+    "payload": {
+      "media": [
+        {
+          "type": "audio",
+          "direction": "sendrecv",
+          "codecs": [
+            {
+              "id": "codec:audio/opus"
+            }
+          ]
+        }
+      ],
+      "transports": [
+        {
+          "id": "transport:webrtc",
+          "ice": "trickle"
+        }
+      ]
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "binding-sdp-missing",
+    "reason": "media.offer-required"
+  }
+}

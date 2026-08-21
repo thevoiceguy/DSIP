@@ -1,0 +1,20 @@
+{
+  "vector": "media-binding/role-holdconn-invalid",
+  "format": 1,
+  "kind": "media-binding",
+  "description": "holdconn MUST NOT be used.",
+  "spec_ref": [
+    "B§3.3"
+  ],
+  "context": {},
+  "input": {
+    "check": "role",
+    "offer_setup": "actpass",
+    "answer_setup": "holdconn"
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "binding-setup-invalid",
+    "reason": "media.failed"
+  }
+}

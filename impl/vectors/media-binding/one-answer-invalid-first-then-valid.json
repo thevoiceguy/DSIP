@@ -1,0 +1,90 @@
+{
+  "vector": "media-binding/one-answer-invalid-first-then-valid",
+  "format": 1,
+  "kind": "media-binding",
+  "description": "The first leg's answer is not an answer (actpass) → bye media.failed to it; the second valid one is applied.",
+  "spec_ref": [
+    "B§6.1",
+    "B§8"
+  ],
+  "context": {},
+  "input": {
+    "check": "one-answer",
+    "offer": {
+      "media": [
+        {
+          "type": "audio",
+          "direction": "sendrecv",
+          "codecs": [
+            {
+              "id": "codec:audio/opus"
+            }
+          ]
+        }
+      ],
+      "transports": [
+        {
+          "id": "transport:webrtc",
+          "ice": "trickle",
+          "sdp": "v=0\r\no=- 1 1 IN IP4 127.0.0.1\r\ns=-\r\nt=0 0\r\na=group:BUNDLE 0\r\nm=audio 9 UDP/TLS/RTP/SAVPF 111\r\nc=IN IP4 0.0.0.0\r\na=ice-ufrag:0123456789abcdef0123456789abcdef\r\na=ice-pwd:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\r\na=fingerprint:sha-256 AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99:AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99\r\na=setup:actpass\r\na=mid:0\r\na=sendrecv\r\na=rtcp-mux\r\na=rtpmap:111 opus/48000/2\r\n"
+        }
+      ]
+    },
+    "answers": [
+      {
+        "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+        "media": [
+          {
+            "type": "audio",
+            "direction": "sendrecv",
+            "codecs": [
+              {
+                "id": "codec:audio/opus"
+              }
+            ]
+          }
+        ],
+        "transports": [
+          {
+            "id": "transport:webrtc",
+            "sdp": "v=0\r\no=- 1 1 IN IP4 127.0.0.1\r\ns=-\r\nt=0 0\r\na=group:BUNDLE 0\r\nm=audio 9 UDP/TLS/RTP/SAVPF 111\r\nc=IN IP4 0.0.0.0\r\na=ice-ufrag:0123456789abcdef0123456789abcdef\r\na=ice-pwd:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\r\na=fingerprint:sha-256 AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99:AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99\r\na=setup:actpass\r\na=mid:0\r\na=sendrecv\r\na=rtcp-mux\r\na=rtpmap:111 opus/48000/2\r\n"
+          }
+        ]
+      },
+      {
+        "from": "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ",
+        "media": [
+          {
+            "type": "audio",
+            "direction": "sendrecv",
+            "codecs": [
+              {
+                "id": "codec:audio/opus"
+              }
+            ]
+          }
+        ],
+        "transports": [
+          {
+            "id": "transport:webrtc",
+            "sdp": "v=0\r\no=- 1 1 IN IP4 127.0.0.1\r\ns=-\r\nt=0 0\r\na=group:BUNDLE 0\r\nm=audio 9 UDP/TLS/RTP/SAVPF 111\r\nc=IN IP4 0.0.0.0\r\na=ice-ufrag:0123456789abcdef0123456789abcdef\r\na=ice-pwd:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\r\na=fingerprint:sha-256 AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99:AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99\r\na=setup:active\r\na=mid:0\r\na=sendrecv\r\na=rtcp-mux\r\na=rtpmap:111 opus/48000/2\r\n"
+          }
+        ]
+      }
+    ]
+  },
+  "expect": {
+    "applied": "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ",
+    "legs": [
+      {
+        "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+        "bye": "media.failed",
+        "code": "binding-setup-invalid"
+      },
+      {
+        "from": "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ",
+        "applied": true
+      }
+    ]
+  }
+}

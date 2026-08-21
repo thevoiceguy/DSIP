@@ -58,6 +58,16 @@ jobs:
       - name: media fallback build (webrtc-rs only, no forge/OpenSSL) still compiles and passes
         run: cargo test -p dsip-media --no-default-features --features webrtc-rs
         working-directory: impl
+      - name: media demos, both backends paired both ways (forge-media plan step 3)
+        # A signalled call through the relay with DTLS-SRTP Opus each way; the script fails unless
+        # both sides decrypt media and both Ogg recordings are real. forge→webrtc-rs and
+        # webrtc-rs→forge cover both DTLS roles for each stack; forge→forge is the default path.
+        run: |
+          set -eo pipefail
+          for pair in "forge webrtc-rs" "webrtc-rs forge" "forge forge"; do
+            DEMO_DIR=/tmp/dsip-media-demo-${pair// /-} timeout 240 bash demos/media-demo.sh $pair | tail -6
+          done
+        working-directory: impl
       - name: Rust/Python parity
         run: python3 impl/tools/parity.py
       - name: DHT local testnet (5 nodes)
