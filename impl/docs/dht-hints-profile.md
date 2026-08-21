@@ -40,7 +40,7 @@ A hint is a DSIP-JOSE envelope (§10.2) whose payload is:
 - Envelope rules apply unchanged: 300 s replay window on `issued_at` relative to the verifier's
   clock, ULID/`issued_at` consistency, 65,536-byte cap.
 
-Schema: `impl/schemas/reachability-hint.schema.json` (candidate for the spec schema set).
+Schema: `reachability-hint.schema.json` in the v0.7 spec schema set (promoted from the PoC on 2026-08-21).
 
 ## 3. Keying and transport
 

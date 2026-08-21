@@ -10,7 +10,7 @@ adversarial routing. Everything below is scoped by that.
 ## What was built
 
 - `dsip-dht`: hint records are ordinary DSIP-JOSE envelopes (`type: reachability-hint`,
-  schema `impl/schemas/reachability-hint.schema.json`), keyed by the SHA-256 multihash of the
+  schema `reachability-hint.schema.json`, in the v0.7 spec set), keyed by the SHA-256 multihash of the
   normalized subject DID, carried over libp2p Kademlia (`/dsip/hints/0.6`).
 - **Verification at the storage boundary.** Every node evaluates an inbound PUT with the full
   envelope pipeline (signature over bytes, `kid` → subject key or a presented §7.4 delegation,

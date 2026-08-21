@@ -16,9 +16,9 @@ jobs:
       - run: pip install jsonschema
       - name: regenerate schemas and diff
         run: |
-          python3 v0.6/dsip-schemas-v0.6-draft/dsip-schemas/generate_schemas.py v0.6/dsip-schemas-v0.6-draft/dsip-schemas/schemas
-          git diff --exit-code -- v0.6/dsip-schemas-v0.6-draft/dsip-schemas/schemas
-      - run: python3 v0.6/dsip-schemas-v0.6-draft/dsip-schemas/validate_samples.py
+          python3 v0.7/dsip-schemas-v0.7-draft/dsip-schemas/generate_schemas.py v0.7/dsip-schemas-v0.7-draft/dsip-schemas/schemas
+          git diff --exit-code -- v0.7/dsip-schemas-v0.7-draft/dsip-schemas/schemas
+      - run: python3 v0.7/dsip-schemas-v0.7-draft/dsip-schemas/validate_samples.py
 
   vectors:
     name: vectors regenerate cleanly + Python harness

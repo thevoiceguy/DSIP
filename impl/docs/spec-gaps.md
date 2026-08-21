@@ -31,13 +31,13 @@ vectors change first. No gap is awaiting a decision.
 | 13 | §12.4 | adopt (drop ENDING) | all state traces |
 | 14 | §19.4, §13.2 | adopt | `state/relay-introduction-anti-enumeration` |
 | 15 | §19.4 | adopt | `state/first-contact-*` |
-| 16 | §12.12, §16.3, §26 | adopt → **WebRTC Media Binding** (`v0.7/dsip-webrtc-media-binding-v0.7-draft.md`) | `payload/info-*`, `state/info-active-only` |
+| 16 | §12.12, §16.3, §26 | adopt → **WebRTC Media Binding** (`v0.7/dsip-webrtc-media-binding-v0.7-draft.md`) | `payload/info-*` incl. `info-webrtc-missing-mid` (binding schema, v0.7), `state/info-active-only` |
 | 17 | §13.2, §13.3, §12.7 | adopt | `state/relay-store-and-forward-*`, `state/relay-*-queued-*` |
 | 18 | §22.1 | adopt | `broadcast/publication-*` |
-| 19 | §9.3, §9.4 | adopt (refuse over-cap; authority-asserted presence) | `state/broadcast-authority-presence`, `semantic/subscribe-presence-over-cap` |
-| 20 | §22.2 | **adopt-with-change** (record-level `integrity`) | `broadcast/publication-valid-metadata-only`, `broadcast/provenance-derivative-bound` |
-| 21 | §22.3 | adopt; promote `broadcast.provenance` to a spec schema | `broadcast/provenance-*` |
-| 22 | §7.5 | adopt (c): DID document authoritative + `KeyRotation` record defined | `envelope/rotated-did-web-*` |
+| 19 | §9.3, §9.4 | adopt (refuse over-cap with `error policy.subscription-lifetime`; authority-asserted presence) | `state/broadcast-authority-presence`, `semantic/subscribe-presence-over-cap` (carries the token since v0.7) |
+| 20 | §22.2 | **adopt-with-change** (record-level `integrity`) — done in v0.7 vectors | `broadcast/publication-integrity-*` (3, v0.7), `broadcast/publication-valid-metadata-only`, `broadcast/provenance-derivative-bound` |
+| 21 | §22.3 | adopt; `provenance` is a core message with a spec schema — done in v0.7 vectors | `broadcast/provenance-*`, `payload/provenance-*` (v0.7) |
+| 22 | §7.5 | adopt (c): DID document authoritative + `key-rotation` record defined — schema + checks in v0.7 | `envelope/rotated-did-web-*`, `envelope/key-rotation-signed-by-previous-key`, `payload/key-rotation-*`, `semantic/key-rotation-*` (v0.7) |
 
 ---
 

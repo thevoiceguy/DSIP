@@ -17,8 +17,8 @@ Full plan: `impl/docs/dsip_poc_dev_plan.md`. Read it before large changes.
 ## Repository map
 
 ```
-v0.5/, v0.6/        Spec snapshots. v0.6 is current. NEVER edit v0.5.
-v0.6/dsip-schemas…  Canonical JSON Schemas (draft 2020-12) + generate_schemas.py
+v0.5/, v0.6/, v0.7/  Spec snapshots. v0.7 is current (in assembly). NEVER edit v0.5 or v0.6.
+v0.7/dsip-schemas…  Canonical JSON Schemas (draft 2020-12) + generate_schemas.py
 impl/               PoC Cargo workspace (living code; tracks spec versions via
                     git tags poc-v0.6, poc-v0.7, …, never via folder placement)
 impl/vectors/       Language-neutral JSON test vectors (envelope/ payload/
@@ -56,7 +56,7 @@ shape checks. Never invert this.
    treat a DHT record, cache entry, or relay claim as authoritative.
 
 5. **Schemas are canonical in the spec folder.** Edit
-   `v0.6/…/generate_schemas.py`, never the generated schema files.
+   `v0.7/…/generate_schemas.py`, never the generated schema files.
    `dsip-schema` embeds schemas from the current spec folder at build time;
    the freshness check fails the build on drift. Regenerate after edits.
 
@@ -70,7 +70,7 @@ shape checks. Never invert this.
 ## Documentation standard (enforced)
 
 - Every module, public type, and public function implementing normative
-  behavior carries a rustdoc comment with a `Spec:` line citing the v0.6
+  behavior carries a rustdoc comment with a `Spec:` line citing the v0.7
   section (e.g. `Spec: §12.6`). Grep-able, consistent format.
 - Where code resolves a choice the spec leaves open, add an `Impl:` line
   explaining the decision. `Spec:` = citation, `Impl:` = decision. Never mix.
@@ -89,8 +89,8 @@ shape checks. Never invert this.
 
 ```bash
 # Schemas: regenerate after editing the generator, then sanity-check
-python3 v0.6/dsip-schemas-v0.6-draft/dsip-schemas/generate_schemas.py schemas
-python3 v0.6/dsip-schemas-v0.6-draft/dsip-schemas/validate_samples.py
+python3 v0.7/dsip-schemas-v0.7-draft/dsip-schemas/generate_schemas.py v0.7/dsip-schemas-v0.7-draft/dsip-schemas/schemas
+python3 v0.7/dsip-schemas-v0.7-draft/dsip-schemas/validate_samples.py
 
 # Vectors: regenerate + Python verdicts
 python3 impl/tools/generate_vectors.py
@@ -108,7 +108,7 @@ python3 impl/tools/dht_testnet.py --nodes 5
 
 pip installs in this environment need `--break-system-packages`.
 
-## Key spec sections (v0.6) you will cite constantly
+## Key spec sections (v0.7; numbering unchanged from v0.6) you will cite constantly
 
 | Section | Topic |
 |---|---|
