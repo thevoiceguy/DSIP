@@ -16,10 +16,11 @@ crates/
   dsip-endpoint IO-free endpoint core: verify → §12 engine → build/sign (shared by native agent and WASM)
   dsip-transport ws/1.0 client binding (wss, hello, caps, reconnect), identity dirs, did:web fetch, the Agent
   dsip-wasm     the same verifier/engine/builder for the browser (wasm-bindgen); built into demos/browser/pkg
+  dsip-media    native WebRTC media leg (webrtc-rs): offer/answer, trickle ICE, Opus tone/file source, Ogg recording
   dsip-dht      reachability hints over libp2p Kademlia (experimental §8.5); `dsip-dht-node` binary
   dsip-relay    `dsip-relay` binary: wss listener, hello binding, routing, per-leg forking
   dsip-cli      `dsip` binary: keygen, sign, verify, vectors run, identity, resolve, call, answer
-demos/          phase1-demo.sh, dht-demo.sh, first-contact-demo.sh, browser-demo.sh + browser/ (page, WASM pkg, Node test)
+demos/          phase1-demo.sh, dht-demo.sh, first-contact-demo.sh, browser-demo.sh + browser/, media-demo.sh
 docs/           Plan, spec gaps, coverage cross-index, DHT findings + draft hints profile
 ```
 
@@ -84,6 +85,12 @@ dsip-relay --intro-limit 5 --intro-window 3600 --inbox-cap 100       # §19.4 ra
 demos/browser/build.sh          # wasm-pack → demos/browser/pkg
 node demos/browser/test.mjs     # two WASM endpoints run a full call + first contact in memory
 demos/browser-demo.sh           # relay serves https://127.0.0.1:8443/?as=alice and ?as=bob (accept the self-signed cert once)
+
+# Phase 2: native media (webrtc-rs; needs cmake for the Opus encoder)
+demos/media-demo.sh             # native↔native DTLS-SRTP call: tones exchanged, both sides recorded to Ogg/Opus
+dsip answer --identity ./bob --ca .relay/cert.pem --auto accept --media tone:660 --record bob-heard.ogg
+dsip call --identity ./alice --ca .relay/cert.pem --to <bob did> --media tone --record alice-heard.ogg   # or --media file:clip.ogg
+#   screening: --auto screen gives a recvonly leg; `escalate` adds the source and re-offers sendrecv (§14.4)
 ```
 
 ## Status
@@ -100,4 +107,6 @@ demos/browser-demo.sh           # relay serves https://127.0.0.1:8443/?as=alice 
 | WS-D `dsip-dht` + testnet harness + no-DNS call demo | ✅ `docs/dht-findings.md`, `docs/dht-hints-profile.md` |
 | Phase 2 — first contact (introduction/grant, allowlist, tokens, relay rate limit + anti-enumeration inbox) | ✅ 9 new traces, `demos/first-contact-demo.sh` |
 | Phase 2 — `dsip-endpoint` + `dsip-wasm` + browser demo (WebRTC audio/video, screening, update, first contact, identity display) | ✅ WASM engine tested under Node; media path needs a real browser (`demos/browser-demo.sh`) |
-| Phase 2 — `webrtc-rs` native media endpoint, full relay store-and-forward; Phase 3 | not started |
+| Phase 2 — `dsip-media` native endpoint (webrtc-rs): DTLS-SRTP Opus, trickle ICE via signed `info`, screening/escalation, recording | ✅ `demos/media-demo.sh`; browser↔native shares the same SDP/candidate shapes |
+| Phase 2 — full relay store-and-forward beyond introductions; Phase 3 | not started |
+| forge-media as the media backend | planned — `docs/forge-media-plan.md` |

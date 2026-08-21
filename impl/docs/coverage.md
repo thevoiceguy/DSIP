@@ -7,6 +7,7 @@ unpinned; a section with vectors but no modules is pinned but unimplemented.
 | § | implementing modules | covering vectors |
 |---|---|---|
 | §6 | dsip-session/lib.rs | — |
+| §7 | dsip-media/lib.rs | — |
 | §7.2 | dsip-cli/main.rs, dsip-core/did.rs, dsip-core/keys.rs, dsip-core/lib.rs, dsip-relay/main.rs, dsip-transport/lib.rs, dsip-transport/resolver.rs | 2 vector(s): envelope/delegated-did-web-identity, envelope/kid-did-key-wrong-fragment |
 | §7.3 | dsip-core/keys.rs, dsip-transport/identity.rs | — |
 | §7.4 | dsip-cli/main.rs, dsip-core/delegation.rs, dsip-core/envelope.rs, dsip-core/lib.rs, dsip-dht/lib.rs, dsip-dht/record.rs, dsip-endpoint/core.rs, dsip-session/endpoint.rs, dsip-transport/identity.rs, dsip-wasm/lib.rs | 14 vector(s): dht/non-delegated-signer, dht/valid-delegated-device, envelope/delegated-device-signs-for-identity, envelope/delegated-did-web-identity, envelope/delegation-chain-not-allowed, envelope/delegation-expired … |
@@ -33,18 +34,18 @@ unpinned; a section with vectors but no modules is pinned but unimplemented.
 | §12.5 | dsip-session/endpoint.rs, dsip-session/lib.rs | 4 vector(s): state/race-initiator-cancel-then-answer, state/race-responder-answered-elsewhere-at-answering-leg, state/race-responder-crossed-cancel, state/race-timeout-cancel-then-answer |
 | §12.6 | dsip-cli/console.rs, dsip-core/ulid.rs, dsip-session/endpoint.rs, dsip-session/lib.rs | 5 vector(s): envelope/ulid-backdated, state/glare-equal-ids, state/glare-not-triggered-different-identity, state/glare-we-lose, state/glare-we-win |
 | §12.7 | dsip-relay/main.rs, dsip-session/endpoint.rs, dsip-session/fork.rs, dsip-session/lib.rs | 11 vector(s): state/direct-device-call-no-fork-cancel, state/fork-first-answer-wins, state/fork-responder-answered-elsewhere, state/initiator-rejected-while-proceeding, state/race-responder-answered-elsewhere-at-answering-leg, state/relay-all-legs-expired … |
-| §12.8 | dsip-cli/console.rs, dsip-session/endpoint.rs, dsip-session/lib.rs | 10 vector(s): payload/answer-update-reply, payload/update-no-media, payload/update-valid-escalation, state/invalid-state-messages, state/renegotiation-bye-discards-pending-update, state/renegotiation-inbound-update-answered … |
+| §12.8 | dsip-cli/console.rs, dsip-media/leg.rs, dsip-session/endpoint.rs, dsip-session/lib.rs | 10 vector(s): payload/answer-update-reply, payload/update-no-media, payload/update-valid-escalation, state/invalid-state-messages, state/renegotiation-bye-discards-pending-update, state/renegotiation-inbound-update-answered … |
 | §12.9 | dsip-cli/console.rs, dsip-core/envelope.rs, dsip-core/lib.rs, dsip-dht/record.rs, dsip-endpoint/verify.rs, dsip-session/endpoint.rs, dsip-session/lib.rs, dsip-session/message.rs | 24 vector(s): envelope/duplicate-id, envelope/expiry-before-issued, envelope/expiry-equals-issued, envelope/invite-expired, envelope/non-invite-expired, envelope/replay-window-edge-accepted … |
 | §12.10 | dsip-cli/console.rs, dsip-core/registry.rs, dsip-schema/semantic.rs, dsip-session/endpoint.rs, dsip-session/lib.rs | 12 vector(s): payload/progress-queue-timeout-over-cap, payload/progress-queued-missing-timeout, payload/progress-queued-valid, payload/progress-ringing, payload/progress-unknown-status-shape-ok, semantic/progress-forwarded … |
 | §12.11 | dsip-cli/console.rs, dsip-session/endpoint.rs | 4 vector(s): payload/cancel-valid, state/fork-responder-answered-elsewhere, state/race-responder-cancel-after-post-answer-traffic, state/responder-missed-call-on-user-cancel |
-| §12.12 | dsip-cli/console.rs, dsip-core/registry.rs, dsip-endpoint/core.rs, dsip-endpoint/lib.rs, dsip-session/endpoint.rs, dsip-session/lib.rs | 5 vector(s): payload/info-bad-about, payload/info-missing-data, payload/info-valid-ice, state/info-active-only, state/invalid-state-messages |
+| §12.12 | dsip-cli/console.rs, dsip-core/registry.rs, dsip-endpoint/core.rs, dsip-endpoint/lib.rs, dsip-media/leg.rs, dsip-media/lib.rs, dsip-session/endpoint.rs, dsip-session/lib.rs, dsip-transport/agent.rs | 5 vector(s): payload/info-bad-about, payload/info-missing-data, payload/info-valid-ice, state/info-active-only, state/invalid-state-messages |
 | §13.1 | dsip-transport/lib.rs | — |
 | §13.2 | dsip-cli/console.rs, dsip-cli/main.rs, dsip-cli/vectors.rs, dsip-core/did.rs, dsip-core/envelope.rs, dsip-core/lib.rs, dsip-core/registry.rs, dsip-endpoint/hello.rs, dsip-endpoint/verify.rs, dsip-relay/main.rs, dsip-schema/lib.rs, dsip-schema/semantic.rs, dsip-session/fork.rs, dsip-transport/agent.rs, dsip-transport/conn.rs, dsip-transport/lib.rs, dsip-transport/tls.rs, dsip-wasm/lib.rs | 28 vector(s): envelope/hello-on-behalf-of-no-delegation, envelope/hello-on-behalf-of-valid, envelope/hello-relay-did-web, envelope/hello-relay-did-web-wrong-key, payload/hello-capabilities-without-in-reply-to, payload/hello-client-no-bindings … |
 | §13.3 | dsip-relay/main.rs, dsip-session/fork.rs | 1 vector(s): state/relay-introduction-anti-enumeration |
-| §14.1 | dsip-cli/console.rs | 1 vector(s): payload/answer-valid |
-| §14.2 | dsip-endpoint/core.rs, dsip-endpoint/lib.rs, dsip-schema/lib.rs, dsip-schema/semantic.rs | 13 vector(s): payload/answer-two-transports, payload/answer-valid, payload/invite-no-transports, payload/invite-offerless, payload/invite-valid, semantic/schema-fail-after-version-ok … |
+| §14.1 | dsip-cli/console.rs, dsip-media/leg.rs, dsip-media/lib.rs, dsip-media/source.rs | 1 vector(s): payload/answer-valid |
+| §14.2 | dsip-endpoint/core.rs, dsip-endpoint/lib.rs, dsip-media/leg.rs, dsip-schema/lib.rs, dsip-schema/semantic.rs | 13 vector(s): payload/answer-two-transports, payload/answer-valid, payload/invite-no-transports, payload/invite-offerless, payload/invite-valid, semantic/schema-fail-after-version-ok … |
 | §14.3 | dsip-cli/console.rs, dsip-core/registry.rs, dsip-schema/semantic.rs, dsip-session/endpoint.rs, dsip-session/lib.rs | 6 vector(s): payload/answer-missing-answered-by, payload/answer-unknown-answered-by-shape-ok, semantic/answered-by-gateway, semantic/answered-by-unknown-renders-service, state/screening-initiator, state/unknown-answered-by-renders-service |
-| §14.4 | dsip-cli/console.rs, dsip-endpoint/core.rs, dsip-endpoint/lib.rs, dsip-session/endpoint.rs, dsip-session/event.rs, dsip-session/lib.rs | 5 vector(s): payload/answer-screening, payload/update-valid-escalation, state/screening-declined-with-bye, state/screening-initiator, state/screening-responder |
+| §14.4 | dsip-cli/console.rs, dsip-endpoint/core.rs, dsip-endpoint/lib.rs, dsip-media/leg.rs, dsip-media/lib.rs, dsip-media/source.rs, dsip-session/endpoint.rs, dsip-session/event.rs, dsip-session/lib.rs | 5 vector(s): payload/answer-screening, payload/update-valid-escalation, state/screening-declined-with-bye, state/screening-initiator, state/screening-responder |
 | §15 | dsip-cli/console.rs, dsip-core/verdict.rs, dsip-schema/lib.rs | — |
 | §15.1 | dsip-core/lib.rs, dsip-core/registry.rs, dsip-schema/semantic.rs | 3 vector(s): payload/reject-flat-token, semantic/reason-unknown-category, semantic/reason-unknown-condition-known-category |
 | §15.2 | — | 5 vector(s): payload/cancel-detail-too-long, payload/error-missing-reason, payload/reject-missing-reason, payload/reject-valid, payload/reject-with-detail-retry |
@@ -52,9 +53,10 @@ unpinned; a section with vectors but no modules is pinned but unimplemented.
 | §15.4 | dsip-core/lib.rs, dsip-core/registry.rs | 5 vector(s): payload/error-transport-scoped, semantic/bye-reason-registered, semantic/error-reason-registered, semantic/reason-not-valid-on-type, semantic/reason-registered |
 | §15.6 | — | 1 vector(s): payload/reject-extension-namespace |
 | §16.2 | dsip-endpoint/core.rs, dsip-endpoint/lib.rs | 2 vector(s): payload/invite-bad-direction, payload/invite-codec-bare-string |
-| §16.3 | dsip-endpoint/core.rs, dsip-endpoint/lib.rs | — |
+| §16.3 | dsip-cli/console.rs, dsip-endpoint/core.rs, dsip-endpoint/lib.rs, dsip-media/lib.rs, dsip-transport/agent.rs | — |
 | §16.4 | — | 1 vector(s): payload/invite-policy-bad-value |
 | §17 | dsip-endpoint/core.rs, dsip-transport/agent.rs | — |
+| §17.1 | dsip-media/lib.rs | — |
 | §18.2 | dsip-cli/main.rs, dsip-endpoint/core.rs, dsip-transport/identity.rs | — |
 | §19 | — | 1 vector(s): state/responder-auto-reject-policy |
 | §19.3 | dsip-session/endpoint.rs | — |
