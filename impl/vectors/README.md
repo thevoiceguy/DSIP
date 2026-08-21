@@ -250,6 +250,7 @@ transition depends on (`status`, `ring_timeout`, `queue_timeout`, `reason`,
 | `{"relay":"leg_expired","session":ID,"leg":DEVICE}` | relay's own per-leg delivery expiry |
 | `{"relay":"bind"|"unbind","device":DEVICE,"identity":IDENTITY}` | a device (un)binds via `hello` (§13.2); binding flushes queued introductions |
 | `{"recv": introduction}` / `{"recv": invite}` (without `legs`) | routed by the relay's bindings; introductions to unknown/offline identities are queued with no error (§19.4 anti-enumeration) |
+| `{"recv": any}` to a *known* but unbound identity/device | queued (§13.3 store-and-forward) until `min(expires_at, context.offline_retention_s)`; `advance` expires queues; `bind` flushes them in order, turning queued invites into tracked legs |
 | `{"advance": SECONDS}` | clock |
 
 ### Expectation after each step
@@ -273,7 +274,8 @@ exactly, in order.
 | emission | fields |
 |---|---|
 | `{"send": {...}}` | `type`, `to`, `session`; plus `reason` (cancel/reject/bye/error), `status` (progress), `answered_by` (answer/update when set), `in_reply_to` (answer/reject/error when set), `id` only when the event supplied it |
-| `{"deliver": {"leg": DEVICE, "type": …, "reason": …}}` | relay forwards to a specific leg |
+| `{"deliver": {"leg": DEVICE, "type": …, "reason": …, "id": …}}` | relay forwards to a specific leg (`id` present when delivering a queued envelope or a leg added mid-attempt) |
+| `{"dequeue": {"to": …, "type": …, "why": "expired"\|"cancelled"}}` | relay dropped a queued envelope (§13.3 boundary; the initiator's timers are the backstop) |
 | `{"forward": {"type": …, "reason": …, "from": DEVICE}}` | relay forwards a leg message to the initiator |
 | `{"timer": "start", "name": "T-Ring", "seconds": 120}` / `{"timer":"stop","name":…}` / `{"timer":"fire","name":…}` | timer lifecycle (`T-Establish`, `T-Ring`, `T-Queue`, `T-Ring-Local`); `stop` is emitted only for a running timer; a restart emits only `start` |
 | `{"media": "start" \| "stop" \| "apply_update"}` | media-layer instruction |
@@ -322,6 +324,7 @@ Each item has a matching `spec-gap` issue draft in `impl/docs/spec-gaps.md`.
 14. §19.4 vs §13.2: relay treatment of introductions to unknown recipients (queued silently; no `transport.unknown-recipient`).
 15. §19.4: grant matching (by `grant` reference or by grantee identity), scope check, single-use contact tokens.
 16. §12.12/§16.3: WebRTC binding shapes (SDP in `transports[].sdp`, candidates in `info.data`).
+17. §13.2/§13.3: "unknown recipient" at a store-and-forward relay = never bound here; queued envelopes expire silently.
 
 Emission ordering convention for state traces: timer stops → sends → media →
 ui → timer starts. A session ending emits `media stop` (when media was running)

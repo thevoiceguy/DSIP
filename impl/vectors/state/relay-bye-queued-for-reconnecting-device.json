@@ -1,0 +1,90 @@
+{
+  "vector": "state/relay-bye-queued-for-reconnecting-device",
+  "format": 1,
+  "kind": "state",
+  "description": "A bye addressed to a device that dropped its connection is held within the boundary and delivered on its fresh hello.",
+  "spec_ref": [
+    "§13.2",
+    "§13.3"
+  ],
+  "context": {
+    "component": "relay",
+    "start": 1760000000
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "relay": "bind",
+          "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+          "identity": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R"
+        },
+        "expect": {
+          "emit": [],
+          "attempts": {},
+          "inbox": {}
+        }
+      },
+      {
+        "event": {
+          "relay": "unbind",
+          "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+          "identity": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R"
+        },
+        "expect": {
+          "emit": [],
+          "attempts": {},
+          "inbox": {}
+        }
+      },
+      {
+        "event": {
+          "recv": {
+            "type": "bye",
+            "id": "01K742SG00BHSXRATP7VVC4K89",
+            "from": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+            "session": "01K742SG00YYNVBMYAQK1CB31F",
+            "to": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "reason": "user.hangup",
+            "expires_at": 1760000030
+          }
+        },
+        "expect": {
+          "emit": [
+            {
+              "queue": {
+                "to": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+                "type": "bye"
+              }
+            }
+          ],
+          "attempts": {},
+          "inbox": {
+            "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn": 1
+          }
+        }
+      },
+      {
+        "event": {
+          "relay": "bind",
+          "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+          "identity": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R"
+        },
+        "expect": {
+          "emit": [
+            {
+              "deliver": {
+                "leg": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+                "type": "bye",
+                "id": "01K742SG00BHSXRATP7VVC4K89"
+              }
+            }
+          ],
+          "attempts": {},
+          "inbox": {}
+        }
+      }
+    ]
+  },
+  "expect": {}
+}

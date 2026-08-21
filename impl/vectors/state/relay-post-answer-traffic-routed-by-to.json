@@ -1,0 +1,238 @@
+{
+  "vector": "state/relay-post-answer-traffic-routed-by-to",
+  "format": 1,
+  "kind": "state",
+  "description": "After the answer, update/info/bye and update replies are not attempt-scoped: the relay routes them by `to` (device-addressed), queueing for a device that has dropped its connection.",
+  "spec_ref": [
+    "§13.2",
+    "§12.8",
+    "§13.3"
+  ],
+  "context": {
+    "component": "relay",
+    "start": 1760000000
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "relay": "bind",
+          "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+          "identity": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R"
+        },
+        "expect": {
+          "emit": [],
+          "attempts": {},
+          "inbox": {}
+        }
+      },
+      {
+        "event": {
+          "relay": "bind",
+          "device": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+          "identity": "did:key:z6MkhzX9qTeXBWkucyMVric1E9JrqUD5LPAkD2BNavakAptf"
+        },
+        "expect": {
+          "emit": [],
+          "attempts": {},
+          "inbox": {}
+        }
+      },
+      {
+        "event": {
+          "recv": {
+            "type": "invite",
+            "id": "01K742SG00YYNVBMYAQK1CB31F",
+            "from": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+            "to": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+            "expires_at": 1760000030
+          }
+        },
+        "expect": {
+          "emit": [
+            {
+              "deliver": {
+                "leg": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+                "type": "invite"
+              }
+            }
+          ],
+          "attempts": {
+            "01K742SG00YYNVBMYAQK1CB31F": {
+              "legs": {
+                "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn": "delivered"
+              },
+              "outcome": null
+            }
+          },
+          "inbox": {}
+        }
+      },
+      {
+        "event": {
+          "recv": {
+            "type": "answer",
+            "id": "01K742SMW8VD6RG3ANPVBWAGTY",
+            "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "session": "01K742SG00YYNVBMYAQK1CB31F",
+            "answered_by": "user"
+          }
+        },
+        "expect": {
+          "emit": [
+            {
+              "forward": {
+                "type": "answer",
+                "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+              }
+            }
+          ],
+          "attempts": {
+            "01K742SG00YYNVBMYAQK1CB31F": {
+              "legs": {
+                "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn": "answered"
+              },
+              "outcome": "answered"
+            }
+          },
+          "inbox": {}
+        }
+      },
+      {
+        "event": {
+          "recv": {
+            "type": "update",
+            "id": "01K742SSRG82206KETDDP0K3BM",
+            "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "session": "01K742SG00YYNVBMYAQK1CB31F",
+            "to": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu"
+          }
+        },
+        "expect": {
+          "emit": [
+            {
+              "deliver": {
+                "leg": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+                "type": "update",
+                "id": "01K742SSRG82206KETDDP0K3BM"
+              }
+            }
+          ],
+          "attempts": {},
+          "inbox": {}
+        }
+      },
+      {
+        "event": {
+          "recv": {
+            "type": "answer",
+            "id": "01K742STQRJ1DNH7E3QZB04KVE",
+            "from": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+            "session": "01K742SG00YYNVBMYAQK1CB31F",
+            "to": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "answered_by": "user",
+            "in_reply_to": "01K742SSRG82206KETDDP0K3BM"
+          }
+        },
+        "expect": {
+          "emit": [
+            {
+              "deliver": {
+                "leg": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+                "type": "answer",
+                "id": "01K742STQRJ1DNH7E3QZB04KVE"
+              }
+            }
+          ],
+          "attempts": {},
+          "inbox": {}
+        }
+      },
+      {
+        "event": {
+          "recv": {
+            "type": "info",
+            "id": "01K742SVQ085RY0DJJPBTK3PRS",
+            "from": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+            "session": "01K742SG00YYNVBMYAQK1CB31F",
+            "to": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "about": "transport:webrtc"
+          }
+        },
+        "expect": {
+          "emit": [
+            {
+              "deliver": {
+                "leg": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+                "type": "info",
+                "id": "01K742SVQ085RY0DJJPBTK3PRS"
+              }
+            }
+          ],
+          "attempts": {},
+          "inbox": {}
+        }
+      },
+      {
+        "event": {
+          "relay": "unbind",
+          "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+          "identity": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R"
+        },
+        "expect": {
+          "emit": [],
+          "attempts": {},
+          "inbox": {}
+        }
+      },
+      {
+        "event": {
+          "recv": {
+            "type": "bye",
+            "id": "01K742T3H0BHSXRATP7VVC4K89",
+            "from": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+            "session": "01K742SG00YYNVBMYAQK1CB31F",
+            "to": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "reason": "user.hangup",
+            "expires_at": 1760000050
+          }
+        },
+        "expect": {
+          "emit": [
+            {
+              "queue": {
+                "to": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+                "type": "bye"
+              }
+            }
+          ],
+          "attempts": {},
+          "inbox": {
+            "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn": 1
+          }
+        }
+      },
+      {
+        "event": {
+          "relay": "bind",
+          "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+          "identity": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R"
+        },
+        "expect": {
+          "emit": [
+            {
+              "deliver": {
+                "leg": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+                "type": "bye",
+                "id": "01K742T3H0BHSXRATP7VVC4K89"
+              }
+            }
+          ],
+          "attempts": {},
+          "inbox": {}
+        }
+      }
+    ]
+  },
+  "expect": {}
+}

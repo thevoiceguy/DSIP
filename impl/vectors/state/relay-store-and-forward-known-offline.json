@@ -1,0 +1,138 @@
+{
+  "vector": "state/relay-store-and-forward-known-offline",
+  "format": 1,
+  "kind": "state",
+  "description": "A known identity is offline: the invite is queued (no error); binding flushes it as a tracked leg; the call proceeds.",
+  "spec_ref": [
+    "§13.3",
+    "§13.2",
+    "§12.7"
+  ],
+  "context": {
+    "component": "relay",
+    "start": 1760000000
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "relay": "bind",
+          "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+          "identity": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R"
+        },
+        "expect": {
+          "emit": [],
+          "attempts": {},
+          "inbox": {}
+        }
+      },
+      {
+        "event": {
+          "relay": "unbind",
+          "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+          "identity": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R"
+        },
+        "expect": {
+          "emit": [],
+          "attempts": {},
+          "inbox": {}
+        }
+      },
+      {
+        "event": {
+          "recv": {
+            "type": "invite",
+            "id": "01K742SG004ZPSDPTC3N3YR44W",
+            "from": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+            "to": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+            "expires_at": 1760000030
+          }
+        },
+        "expect": {
+          "emit": [
+            {
+              "queue": {
+                "to": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+                "type": "invite"
+              }
+            }
+          ],
+          "attempts": {},
+          "inbox": {
+            "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R": 1
+          }
+        }
+      },
+      {
+        "event": {
+          "advance": 5
+        },
+        "expect": {
+          "emit": [],
+          "attempts": {},
+          "inbox": {
+            "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R": 1
+          }
+        }
+      },
+      {
+        "event": {
+          "relay": "bind",
+          "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+          "identity": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R"
+        },
+        "expect": {
+          "emit": [
+            {
+              "deliver": {
+                "leg": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+                "type": "invite",
+                "id": "01K742SG004ZPSDPTC3N3YR44W"
+              }
+            }
+          ],
+          "attempts": {
+            "01K742SG004ZPSDPTC3N3YR44W": {
+              "legs": {
+                "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn": "delivered"
+              },
+              "outcome": null
+            }
+          },
+          "inbox": {}
+        }
+      },
+      {
+        "event": {
+          "recv": {
+            "type": "answer",
+            "id": "01K742SQT0ZEW641QMWMTFT7P1",
+            "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "session": "01K742SG004ZPSDPTC3N3YR44W",
+            "answered_by": "user"
+          }
+        },
+        "expect": {
+          "emit": [
+            {
+              "forward": {
+                "type": "answer",
+                "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+              }
+            }
+          ],
+          "attempts": {
+            "01K742SG004ZPSDPTC3N3YR44W": {
+              "legs": {
+                "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn": "answered"
+              },
+              "outcome": "answered"
+            }
+          },
+          "inbox": {}
+        }
+      }
+    ]
+  },
+  "expect": {}
+}

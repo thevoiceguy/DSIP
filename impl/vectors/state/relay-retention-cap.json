@@ -1,0 +1,87 @@
+{
+  "vector": "state/relay-retention-cap",
+  "format": 1,
+  "kind": "state",
+  "description": "The relay's offline_retention_s caps how long an envelope is held even if expires_at is later.",
+  "spec_ref": [
+    "§13.3"
+  ],
+  "context": {
+    "component": "relay",
+    "start": 1760000000,
+    "offline_retention_s": 3600
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "relay": "bind",
+          "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+          "identity": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R"
+        },
+        "expect": {
+          "emit": [],
+          "attempts": {},
+          "inbox": {}
+        }
+      },
+      {
+        "event": {
+          "relay": "unbind",
+          "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+          "identity": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R"
+        },
+        "expect": {
+          "emit": [],
+          "attempts": {},
+          "inbox": {}
+        }
+      },
+      {
+        "event": {
+          "recv": {
+            "type": "introduction",
+            "id": "01K742SG0061ZAQWGBJSGTEB9R",
+            "from": "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL",
+            "to": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+            "purpose": "hi",
+            "expires_at": 1760604800
+          }
+        },
+        "expect": {
+          "emit": [
+            {
+              "queue": {
+                "to": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+                "type": "introduction"
+              }
+            }
+          ],
+          "attempts": {},
+          "inbox": {
+            "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R": 1
+          }
+        }
+      },
+      {
+        "event": {
+          "advance": 3600
+        },
+        "expect": {
+          "emit": [
+            {
+              "dequeue": {
+                "to": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+                "type": "introduction",
+                "why": "expired"
+              }
+            }
+          ],
+          "attempts": {},
+          "inbox": {}
+        }
+      }
+    ]
+  },
+  "expect": {}
+}

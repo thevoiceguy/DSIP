@@ -76,7 +76,8 @@
             {
               "deliver": {
                 "leg": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
-                "type": "introduction"
+                "type": "introduction",
+                "id": "01K742SGZ8BXQKX1G8FND7A64K"
               }
             }
           ],

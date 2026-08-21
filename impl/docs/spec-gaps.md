@@ -179,6 +179,26 @@ buffered by the endpoint. Implemented in `dsip-endpoint` and `demos/browser/app.
 step 8 to say `info`, and state whether a forked invite's single SDP offer may be answered by
 more than one leg (the PoC accepts only the first answer; later legs get `bye`).
 
+## 17. §13.2 / §13.3 — what a store-and-forward relay may call an unknown recipient
+
+**Gap.** §13.2 requires `transport.unknown-recipient` when the relay "has no route"; §13.3
+makes reaching offline devices the relay's job. A relay with store-and-forward therefore needs
+a rule for *offline* versus *unknown*, and for what happens when a held envelope expires.
+
+**PoC choice.** A recipient is *known* if any device has bound (`hello`) for it on this relay;
+known-but-offline envelopes are queued until `min(expires_at, offline_retention_s)` and flushed
+in order on the next binding (queued invites become tracked legs; a device binding while an
+attempt is live becomes a leg mid-attempt, §12.7 rule 3). Expiry dequeues silently — the
+initiator's §12.9 timers are the backstop — and an initiator `cancel` drops a still-queued
+invite. Never-seen recipients still get `transport.unknown-recipient` (introductions excepted,
+gap 14). Vectors: `state/relay-store-and-forward-known-offline`,
+`state/relay-queued-invite-expires`, `state/relay-cancel-drops-queued-invite`,
+`state/relay-leg-added-mid-attempt`, `state/relay-bye-queued-for-reconnecting-device`,
+`state/relay-retention-cap`.
+
+**Suggested fix.** Define "known" in §13.3, state that expiry of a held envelope is not
+signaled (or define an `error` for it), and add the mid-attempt leg case to §12.7 explicitly.
+
 ---
 
 ## Already-flagged (schema README / plan §11)

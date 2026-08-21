@@ -18,9 +18,9 @@ crates/
   dsip-wasm     the same verifier/engine/builder for the browser (wasm-bindgen); built into demos/browser/pkg
   dsip-media    native WebRTC media leg (webrtc-rs): offer/answer, trickle ICE, Opus tone/file source, Ogg recording
   dsip-dht      reachability hints over libp2p Kademlia (experimental §8.5); `dsip-dht-node` binary
-  dsip-relay    `dsip-relay` binary: wss listener, hello binding, routing, per-leg forking
+  dsip-relay    `dsip-relay` binary: wss listener, hello binding, per-leg forking, store-and-forward (§13.3), static page serving
   dsip-cli      `dsip` binary: keygen, sign, verify, vectors run, identity, resolve, call, answer
-demos/          phase1-demo.sh, dht-demo.sh, first-contact-demo.sh, browser-demo.sh + browser/, media-demo.sh
+demos/          phase1, dht, first-contact, browser (+ browser/), media, store-and-forward demos
 docs/           Plan, spec gaps, coverage cross-index, DHT findings + draft hints profile
 ```
 
@@ -80,6 +80,8 @@ dsip answer --identity ./bob --ca .relay/cert.pem --first-contact [--token T]   
 dsip introduce --identity ./carol --ca .relay/cert.pem --to <bob did> --purpose "…" [--token T] [--wait 30]
 dsip call --identity ./carol --ca .relay/cert.pem --to <bob did>     # a held grant is attached automatically (contacts.json)
 dsip-relay --intro-limit 5 --intro-window 3600 --inbox-cap 100       # §19.4 rate limits; introductions to unknown/offline identities are queued, never errored
+dsip-relay --offline-retention 86400                                 # §13.3: hold envelopes for known-but-offline recipients until min(expires_at, retention)
+demos/store-and-forward-demo.sh                                      # offline callee rings when it binds; a device binding mid-attempt becomes a leg
 
 # Phase 2: browser endpoint (needs `rustup target add wasm32-unknown-unknown` + `cargo install wasm-pack`)
 demos/browser/build.sh          # wasm-pack → demos/browser/pkg
@@ -108,5 +110,7 @@ dsip call --identity ./alice --ca .relay/cert.pem --to <bob did> --media tone --
 | Phase 2 — first contact (introduction/grant, allowlist, tokens, relay rate limit + anti-enumeration inbox) | ✅ 9 new traces, `demos/first-contact-demo.sh` |
 | Phase 2 — `dsip-endpoint` + `dsip-wasm` + browser demo (WebRTC audio/video, screening, update, first contact, identity display) | ✅ WASM engine tested under Node; media path needs a real browser (`demos/browser-demo.sh`) |
 | Phase 2 — `dsip-media` native endpoint (webrtc-rs): DTLS-SRTP Opus, trickle ICE via signed `info`, screening/escalation, recording | ✅ `demos/media-demo.sh`; browser↔native shares the same SDP/candidate shapes |
-| Phase 2 — full relay store-and-forward beyond introductions; Phase 3 | not started |
+| Phase 2 — relay store-and-forward within the §13.3 boundary (known-offline queueing, flush on hello, legs added mid-attempt, cancel drops queued, retention cap) | ✅ 6 new relay traces, `demos/store-and-forward-demo.sh` |
+| **M2 Phase 2** | ✅ (browser WebRTC path manually verifiable only) |
+| Phase 3 — Verified Broadcast (§22): publish/unpublish, subscribe/notify, provenance | not started |
 | forge-media as the media backend | planned — `docs/forge-media-plan.md` |

@@ -749,6 +749,97 @@ def vectors() -> list[dict]:
               **{sid: {"legs": {BPH: "answered", BLA: "answered"}, "outcome": "answered"}}),
     ], component="relay"))
 
+    # ---------------------------------------------------------------- §13.3 store-and-forward (Phase 2)
+    def sf(event, emit, inbox, **attempts):
+        st = rstep(event, emit, **attempts)
+        st["expect"]["inbox"] = inbox
+        return st
+    INV = lambda label, at=NOW, ttl=30, to=BOB: msg("invite", label, APH, None, at, to=to, expires_at=at + ttl)
+    sid_q = uid("queued-inv")
+    out.append(trace("relay-store-and-forward-known-offline",
+                     "A known identity is offline: the invite is queued (no error); binding flushes it as a tracked leg; the call proceeds.",
+                     ["§13.3", "§13.2", "§12.7"], None, [
+        sf({"relay": "bind", "device": BPH, "identity": BOB}, [], {}),
+        sf({"relay": "unbind", "device": BPH, "identity": BOB}, [], {}),
+        sf({"recv": INV("queued-inv")}, [{"queue": {"to": BOB, "type": "invite"}}], {BOB: 1}),
+        sf({"advance": 5}, [], {BOB: 1}),
+        sf({"relay": "bind", "device": BPH, "identity": BOB}, [{"deliver": {"leg": BPH, "type": "invite", "id": sid_q}}], {},
+           **{sid_q: {"legs": {BPH: "delivered"}, "outcome": None}}),
+        sf({"recv": msg("answer", "a", BPH, sid_q, NOW + 8, answered_by="user")}, [{"forward": {"type": "answer", "from": BPH}}], {},
+           **{sid_q: {"legs": {BPH: "answered"}, "outcome": "answered"}}),
+    ], component="relay"))
+    out.append(trace("relay-queued-invite-expires",
+                     "A queued invite is held only until its expires_at; after that it is dequeued silently and a late binding gets nothing.",
+                     ["§13.3", "§12.9"], None, [
+        sf({"relay": "bind", "device": BPH, "identity": BOB}, [], {}),
+        sf({"relay": "unbind", "device": BPH, "identity": BOB}, [], {}),
+        sf({"recv": INV("queued-inv")}, [{"queue": {"to": BOB, "type": "invite"}}], {BOB: 1}),
+        sf({"advance": 30}, [{"dequeue": {"to": BOB, "type": "invite", "why": "expired"}}], {}),
+        sf({"relay": "bind", "device": BPH, "identity": BOB}, [], {}),
+    ], component="relay"))
+    out.append(trace("relay-cancel-drops-queued-invite", "The initiator cancels while the invite is still queued: the queued invite is dropped.",
+                     ["§13.3", "§12.11"], None, [
+        sf({"relay": "bind", "device": BPH, "identity": BOB}, [], {}),
+        sf({"relay": "unbind", "device": BPH, "identity": BOB}, [], {}),
+        sf({"recv": INV("queued-inv")}, [{"queue": {"to": BOB, "type": "invite"}}], {BOB: 1}),
+        sf({"recv": msg("cancel", "c", APH, sid_q, NOW + 3, to=BOB, reason="user.cancelled")},
+           [{"dequeue": {"to": BOB, "type": "invite", "why": "cancelled"}}], {}),
+        sf({"relay": "bind", "device": BPH, "identity": BOB}, [], {}),
+    ], component="relay"))
+    out.append(trace("relay-leg-added-mid-attempt",
+                     "A second device binds while the attempt is live: it becomes a leg (§12.7 rule 3 'legs added mid-attempt'); per-leg cancel reaches it.",
+                     ["§12.7", "§13.3"], None, [
+        sf({"relay": "bind", "device": BPH, "identity": BOB}, [], {}),
+        sf({"recv": INV("sess")}, [{"deliver": {"leg": BPH, "type": "invite"}}], {}, **{sid: {"legs": {BPH: "delivered"}, "outcome": None}}),
+        sf({"relay": "bind", "device": BLA, "identity": BOB}, [{"deliver": {"leg": BLA, "type": "invite", "id": sid}}], {},
+           **{sid: {"legs": {BPH: "delivered", BLA: "delivered"}, "outcome": None}}),
+        sf({"recv": msg("answer", "a1", BPH, sid, NOW + 5, answered_by="user")}, [{"forward": {"type": "answer", "from": BPH}}], {},
+           **{sid: {"legs": {BPH: "answered", BLA: "delivered"}, "outcome": "answered"}}),
+        sf({"recv": msg("cancel", "c", APH, sid, NOW + 5, reason="session.answered-elsewhere")},
+           [{"deliver": {"leg": BLA, "type": "cancel", "reason": "session.answered-elsewhere"}}], {},
+           **{sid: {"legs": {BPH: "answered", BLA: "cancelled"}, "outcome": "answered"}}),
+        sf({"relay": "bind", "device": "did:key:z6MkBobTablet111111111111111111111111111111", "identity": BOB}, [], {},
+           **{sid: {"legs": {BPH: "answered", BLA: "cancelled"}, "outcome": "answered"}}),
+    ], component="relay"))
+    out.append(trace("relay-bye-queued-for-reconnecting-device",
+                     "A bye addressed to a device that dropped its connection is held within the boundary and delivered on its fresh hello.",
+                     ["§13.2", "§13.3"], None, [
+        sf({"relay": "bind", "device": BPH, "identity": BOB}, [], {}),
+        sf({"relay": "unbind", "device": BPH, "identity": BOB}, [], {}),
+        sf({"recv": msg("bye", "b", APH, sid, NOW, to=BPH, reason="user.hangup", expires_at=NOW + 30)},
+           [{"queue": {"to": BPH, "type": "bye"}}], {BPH: 1}),
+        sf({"relay": "bind", "device": BPH, "identity": BOB}, [{"deliver": {"leg": BPH, "type": "bye", "id": uid("b")}}], {}),
+    ], component="relay"))
+    out.append(trace("relay-retention-cap", "The relay's offline_retention_s caps how long an envelope is held even if expires_at is later.",
+                     ["§13.3"], None, [
+        sf({"relay": "bind", "device": BPH, "identity": BOB}, [], {}),
+        sf({"relay": "unbind", "device": BPH, "identity": BOB}, [], {}),
+        sf({"recv": {"type": "introduction", "id": uid("intro-long"), "from": F.did("carol-phone"), "to": BOB, "purpose": "hi", "expires_at": NOW + 604800}},
+           [{"queue": {"to": BOB, "type": "introduction"}}], {BOB: 1}),
+        sf({"advance": 3600}, [{"dequeue": {"to": BOB, "type": "introduction", "why": "expired"}}], {}),
+    ], component="relay"))
+    out[-1]["context"]["offline_retention_s"] = 3600
+
+    upd_id = uid("sf-upd", NOW + 10)
+    out.append(trace("relay-post-answer-traffic-routed-by-to",
+                     "After the answer, update/info/bye and update replies are not attempt-scoped: the relay routes them by `to` "
+                     "(device-addressed), queueing for a device that has dropped its connection.", ["§13.2", "§12.8", "§13.3"], None, [
+        sf({"relay": "bind", "device": BPH, "identity": BOB}, [], {}),
+        sf({"relay": "bind", "device": APH, "identity": ALICE}, [], {}),
+        sf({"recv": INV("sess")}, [{"deliver": {"leg": BPH, "type": "invite"}}], {}, **{sid: {"legs": {BPH: "delivered"}, "outcome": None}}),
+        sf({"recv": msg("answer", "a1", BPH, sid, NOW + 5, answered_by="user")}, [{"forward": {"type": "answer", "from": BPH}}], {},
+           **{sid: {"legs": {BPH: "answered"}, "outcome": "answered"}}),
+        sf({"recv": msg("update", "sf-upd", BPH, sid, NOW + 10, to=APH)}, [{"deliver": {"leg": APH, "type": "update", "id": upd_id}}], {}),
+        sf({"recv": msg("answer", "ua", APH, sid, NOW + 11, to=BPH, answered_by="user", in_reply_to=upd_id)},
+           [{"deliver": {"leg": BPH, "type": "answer", "id": uid("ua", NOW + 11)}}], {}),
+        sf({"recv": msg("info", "i", APH, sid, NOW + 12, to=BPH, about="transport:webrtc")},
+           [{"deliver": {"leg": BPH, "type": "info", "id": uid("i", NOW + 12)}}], {}),
+        sf({"relay": "unbind", "device": BPH, "identity": BOB}, [], {}),
+        sf({"recv": msg("bye", "b", APH, sid, NOW + 20, to=BPH, reason="user.hangup", expires_at=NOW + 50)},
+           [{"queue": {"to": BPH, "type": "bye"}}], {BPH: 1}),
+        sf({"relay": "bind", "device": BPH, "identity": BOB}, [{"deliver": {"leg": BPH, "type": "bye", "id": uid("b", NOW + 20)}}], {}),
+    ], component="relay"))
+
     UNKNOWN = "did:key:z6MkNobodyHereAtAll11111111111111111111111111"
     def rinbox(event, emit, inbox, **attempts):
         st = rstep(event, emit, **attempts)
@@ -762,7 +853,7 @@ def vectors() -> list[dict]:
                [{"queue": {"to": UNKNOWN, "type": "introduction"}}], {UNKNOWN: 1}),
         rinbox({"recv": {"type": "introduction", "id": I2, "from": CAR, "to": BOB, "purpose": "hi"}},
                [{"queue": {"to": BOB, "type": "introduction"}}], {BOB: 1, UNKNOWN: 1}),
-        rinbox({"relay": "bind", "device": BPH, "identity": BOB}, [{"deliver": {"leg": BPH, "type": "introduction"}}], {UNKNOWN: 1}),
+        rinbox({"relay": "bind", "device": BPH, "identity": BOB}, [{"deliver": {"leg": BPH, "type": "introduction", "id": I2}}], {UNKNOWN: 1}),
         rinbox({"recv": {"type": "introduction", "id": I9, "from": CAR, "to": BOB, "purpose": "hi again"}},
                [{"deliver": {"leg": BPH, "type": "introduction"}}], {UNKNOWN: 1}),
         rinbox({"recv": msg("invite", "inv-u", APH, None, NOW, to=UNKNOWN)},
