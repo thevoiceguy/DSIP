@@ -235,4 +235,4 @@ PASSporT (`attest: A` for owned numbers) — requires PASSporT **signing** in `s
 verifies today; (b) a non-SP presents `From`/`P-Asserted-Identity` only and crosses with
 `gateway.downgraded`; (c) an RFC 9060 delegate certificate model where a carrier delegates a TN
 range — the most DSIP-shaped path, because the DID document could publish the delegate certificate.
-This version implements (b) and documents (a)/(c).
+This version implements (b) and documents (a)/(c). See `impl/docs/gateway-stir-findings.md` (G4) for the full analysis and the `sip-identity` PASSporT-signing prototype (siphon-rs PR #123) behind path (a)/(c).
