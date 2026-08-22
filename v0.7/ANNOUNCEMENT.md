@@ -1,7 +1,5 @@
 # DSIP v0.7: a spec revision written from an implementation
 
-*Draft announcement — edit freely before posting.*
-
 DSIP (Decentralized Session Initiation Protocol) is an identity-first signaling and media
 negotiation protocol for trusted real-time sessions: DIDs instead of phone numbers, signed
 envelopes instead of trusted intermediaries, explicit media and policy negotiation before any
