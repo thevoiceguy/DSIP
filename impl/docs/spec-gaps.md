@@ -473,6 +473,260 @@ codec set. Written up as `v0.8/dsip-rtp-srtp-media-binding-v0.8-draft.md`.
 **Suggested fix.** Adopt the binding draft; align it with the WebRTC binding's descriptor/SDP
 authority rule.
 
+## v0.8 messaging worklist (gaps 31–43)
+
+**Status (2026-09-15):** filed with the **DSIP Messaging Profile 1.0** draft
+(`v0.8/dsip-messaging-profile-v0.8-draft.md`, cited M§n). Unlike gaps 1–30, these were not found
+by implementing. They are the choices the profile draft makes before implementation, per the
+decisions taken 2026-09-15: companion profile, MLS plus HPKE, SYNC history by default, groups in
+1.0. Every row is **open** until a `messaging/` vector pins it; "draft choice" is what the profile
+text says today. Gap 31 is a v0.7 defect in its own right and does not depend on messaging.
+
+| # | sections | draft choice | pinned by |
+|---|---|---|---|
+| 31 | §12.9, §13.3, §19.4 | type-scoped validity for held introductions (**v0.7 defect**) | — (needs `envelope/introduction-held-*`) |
+| 32 | §3.2, §6.1, §12.1, §24.4 | adopt → **Messaging Profile 1.0** + **Mailbox 1.0** conformance pieces | — (vectors pending) |
+| 33 | §6.2, §20.7 | MLS for conversations, HPKE for sealed introductions; non-repudiation stated | — |
+| 34 | (new; M§6.5) | per-group hub orders MLS commits | — |
+| 35 | (new; M§12) | archive key in the personal group; `sync` default, `queue` opt-out | — |
+| 36 | §19.4 | `dsip.message` scope; `sealed` introductions; grant-gated group adds; invite-grantee voicemail | — |
+| 37 | §8.1, §13.2, DHT Hints | `DSIPMailbox` service type; hint `service`; priority-ordered multiple mailboxes | — |
+| 38 | §15.1 | new reason category `mailbox` | — |
+| 39 | §7.4, §24.2 | delegation capability `dsip.messaging` + a delegation-capability registry | — |
+| 40 | §13.2 | `MAX_MLS_BYTES` = 24,576; blobs over HTTPS | — |
+| 41 | §12, §14 | caller-recorded voicemail; trigger set; no core field | — |
+| 42 | §12.6, §20.6 | duplicate direct conversations / successor groups: lower ULID wins | — |
+| 43 | (new; M§11) | activity keyed by the MLS exporter, not the secret tree | — |
+
+## 31. §12.9 vs §13.3 / §19.4 — the replay window rejects held envelopes
+
+**Gap.** §12.9 requires rejecting any envelope whose `issued_at` is more than 300 s old. §19.4
+gives introductions up to 7 days of validity "because the recipient may be offline for days", and
+§13.2/§13.3 have relays hold them until the recipient's next binding. A held introduction delivered
+more than 300 s after signing therefore fails the recipient's replay check. The PoC confirms it:
+`dsip-core::envelope::verify` applies `REPLAY_WINDOW_S` to every envelope with no type exemption.
+No vector exercises recipient-side verification of a held introduction, which is why the suite is
+green. Held `invite`s are unaffected in practice (their validity is 30 s).
+
+**Choices considered.** (a) Type-scoped validity: for `introduction`, replace the age bound with
+`now < expires_at` (keeping the future bound) and deduplicate its `id` until `expires_at`. Memory
+stays bounded by the 7-day cap and the per-recipient inbox bound of 16. (b) The relay re-wraps held
+envelopes in a fresh relay-signed envelope, which changes what the recipient verifies and makes the
+relay a signer of third-party content. (c) Shorten introduction validity to 300 s, which defeats
+store-and-forward.
+
+**Draft choice.** (a). The Messaging Profile sidesteps the issue by construction: mailboxes deliver
+stored bytes inside fresh `items` envelopes (M§5.1) and authenticate content with MLS. It does not
+fix core.
+
+**Suggested fix.** State (a) in §12.9 and §19.4. Add `envelope/introduction-held-accepted`
+(delivered at +2 days, inside `expires_at`) and `envelope/introduction-held-replayed` (same `id`
+twice inside validity → reject).
+
+## 32. §3.2 / §6.1 / §12.1 / §24.4 — no Messaging Profile exists
+
+**Gap.** §6.1 defers messaging to "a future DSIP Messaging Profile, or reuse MIMI/MLS concepts";
+§3.2 lists full messaging interoperability as out of scope for Core v1.0. No profile, message
+types, or conformance piece exists.
+
+**Choices considered.** (a) A companion profile with its own message types and conformance pieces,
+like the Gateway Profile. (b) Fold a mailbox into core as a fourth core service. That reverses the
+v0.5 scope correction (Appendix A.1) and §5.1.
+
+**Draft choice.** (a): `messaging/1.0`, message types `deposit`, `accepted`, `sync`, `items`,
+`key-packages`, `key-package-fetch`, `blob-put`, `mailbox-config` (outside the §12.1 session set,
+as `reachability-hint` is), and conformance pieces `DSIP Messaging Profile 1.0` and
+`DSIP Mailbox 1.0`.
+
+**Suggested fix.** Add both pieces to §24.4. Add a §12.1 sentence naming profile message types
+alongside `reachability-hint`. Replace §6.1's deferral with a pointer to the profile.
+
+## 33. §6.2 / §20.7 — asynchronous traffic needs end-to-end encryption
+
+**Gap.** §20.7: payloads are signed, not encrypted; a relay can read them. That is tolerable for
+call signaling but not for stored messages. §6.2 says to consider MLS before inventing group key
+management.
+
+**Choices considered.** (a) MLS (RFC 9420): devices as leaves, groups, FS/PCS, IETF standard,
+permissively licensed Rust implementations (OpenMLS, mls-rs), and the choice of MIMI and RCS
+Universal Profile 3.0. It needs an ordering authority (gap 34). (b) The Signal Protocol
+(PQXDH + Double Ratchet, sender keys for groups): excellent pairwise and deniable, but it is
+implementation-defined rather than a standard (libsignal is AGPL-3.0), and multi-device and group
+membership lean on central servers. (c) HPKE to each device: simple, but no FS and no group
+machinery.
+
+**Draft choice.** (a) for all conversations (M§6), with credentials bound to §7.4 delegations and
+leaf signature key = device Ed25519 key. (c) only to seal introduction text (M§6.9). Messages are
+non-repudiable, and the profile says so (M§6.10).
+
+**Suggested fix.** In §20.7, keep the signaling limitation and add that the Messaging Profile's
+content is end-to-end encrypted. In §6.2, record the MLS adoption.
+
+## 34. MLS commit ordering needs an authority
+
+**Gap.** MLS members must apply one commit per epoch. Concurrent commits fork a group, and forks
+cannot be merged. RFC 9420 leaves ordering to a Delivery Service, which DSIP does not define.
+
+**Choices considered.** (a) One hub per group, named in an authenticated GroupContext extension,
+accepting the first valid commit per epoch (MIMI's hub model). (b) Leaderless: members pick among
+conflicting commits deterministically (e.g. lowest hash), which needs fork detection and rollback
+and still loses messages sent on the losing branch. (c) Consensus among member mailboxes, which is
+too heavy for a profile and introduces Sybil questions.
+
+**Draft choice.** (a) (M§6.5). The creator's primary mailbox is hub by default. The hub can be moved
+by commit (M§7.4). If it dies, a successor group takes over (M§7.5). Hub powers and limits are
+stated in M§15.3.
+
+**Suggested fix.** Adopt in the profile; nothing in core.
+
+## 35. New-device history versus forward secrecy
+
+**Gap.** With MLS a device added today cannot decrypt earlier messages. The user requirement
+(2026-09-15) is SYNC: history on new devices.
+
+**Choices considered.** (a) An identity-level archive key, distributed in a personal MLS group, used
+by devices to re-encrypt decrypted content into mailbox-stored archive records. This gives up
+forward secrecy of stored history. (b) Device-to-device history transfer at add time, which needs a
+surviving device online and holding the full history. (c) No history (`queue`). (d) Mailbox-side
+plaintext (rejected: violates the untrusted-mailbox principle).
+
+**Draft choice.** (a) as default `sync` mode, with (c) as opt-in `queue` mode (M§4.4, M§12). The
+first archive per (group, seq) wins at the mailbox. The archive key is rotated on device removal.
+The trade is stated normatively (M§15.2).
+
+**Suggested fix.** Adopt in the profile; recovery-escrow of the archive key goes into §7.6
+deployment guidance.
+
+## 36. §19.4 — first contact for messaging
+
+**Gap.** §19.4's grant scopes are `dsip.invite` and `dsip.subscribe`; nothing authorizes messaging.
+Introduction `purpose` is plaintext to relays. Nothing says who may add an identity to a group.
+
+**Choices considered.** For authorization: (a) new scope `dsip.message`; (b) reuse `dsip.invite`
+for everything. For sealing: (a) optional HPKE `sealed` replacing `purpose`, keyed to the DID
+`keyAgreement` key; (b) leave introductions plaintext. For group adds: (a) the adder must hold a
+`dsip.message` grant from the added identity, or the added identity's mailbox admits `open`;
+(b) any member may add anyone (spam vector).
+
+**Draft choice.** (a) in each case (M§14). A `dsip.invite`-only grantee may create a conversation
+so it can leave voicemail, and the recipient client restricts rendering to `voicemail` and
+`callback-request` until `dsip.message` is granted. Grants are carried in full so mailboxes verify
+them statelessly, and revocation is propagated by `mailbox-config.revoked_grants`.
+
+**Suggested fix.** Register `dsip.message` in `dsip-grant-scope`. Add optional `sealed` to
+`introduction.schema.json` (mutually exclusive with `purpose`). Add a §19.4 sentence pointing to
+the profile.
+
+## 37. §8.1 / §13.2 / DHT Hints — mailbox discovery
+
+**Gap.** Only `DSIPSignaling` service entries exist (§13.2). The hint schema's `endpoints[]` have
+no service discriminator. Nothing defines several mailboxes for one identity.
+
+**Choices considered.** Discovery: (a) a `DSIPMailbox` DID service entry (authoritative) plus a
+hint `service` field for `did:key`; (b) mailbox fields on the relay's `hello` capabilities, which
+are not authoritative and are only visible after connecting. Multiple mailboxes: (a) `priority`
+order for deposit, owner devices sync all and archive to all; (b) exactly one mailbox;
+(c) mailbox-to-mailbox replication, a new trust relationship between operators.
+
+**Draft choice.** (a) and (a) (M§4.2). Hint-sourced mailboxes never replace an established
+conversation's mailbox on their own (M§15.4).
+
+**Suggested fix.** Register the `DSIPMailbox` service type. Add optional `endpoints[].service` to
+the DHT Hints Profile (default `DSIPSignaling`).
+
+## 38. §15.1 — no reason category fits mailbox conditions
+
+**Gap.** The §15.1 category set is closed in the grammar. Commit conflicts, stale epochs, cursors,
+and KeyPackage exhaustion are neither `session` (no session exists) nor `transport`.
+
+**Choices considered.** (a) New core category `mailbox`, with fallback "re-sync, retry once, then
+surface". (b) Extension-prefixed `x-messaging.*` (§15.6), which receivers without the profile map
+to `session.failed`, and whose `x-` wrongly suggests an unofficial extension. (c) Overload
+`session.*` and `policy.*`.
+
+**Draft choice.** (a), with eight tokens (M§16).
+
+**Suggested fix.** Add `mailbox` to the §15.1 grammar and §15.3 table; register the M§16 tokens.
+
+## 39. §7.4 / §24.2 — delegation capabilities have no registry
+
+**Gap.** §7.4's example uses `dsip.signaling` and `dsip.media.interactive`, and verifiers require
+`dsip.signaling`, but §24.2 lists no registry for delegation capabilities. Messaging needs a
+capability so that an identity can delegate a device for calls but not messages, or the reverse.
+
+**Choices considered.** (a) Create `dsip-delegation-capability` with the two existing values plus
+`dsip.messaging`, and require `dsip.messaging` for messaging leaves and mailbox operations. (b)
+Treat `dsip.signaling` as covering messaging, which gives no separation.
+
+**Draft choice.** (a) (M§6.2, M§4.3).
+
+**Suggested fix.** Add the registry to §24.2 and cite it from §7.4.
+
+## 40. §13.2 — 64 KiB cap versus media messages
+
+**Gap.** Voicemail, images, and files exceed the fixed 65,536-byte `ws/1.0` envelope cap, and
+payload bytes are base64url-encoded twice (inside the payload and then as the payload).
+
+**Choices considered.** (a) Cap every MLS value at 24,576 bytes so any envelope carrying one value
+plus a header delegation fits, and move larger payloads to client-encrypted blobs over HTTPS with
+signed `blob-put` upload and capability-URL fetch. (b) Chunk over `ws/1.0`, adding a reassembly
+layer to a binding defined as one envelope per message. (c) A new binding version with a larger cap
+(§13.2 forbids negotiating the constant).
+
+**Draft choice.** (a) (M§5.1, M§8.4). Recipient mailboxes replicate blobs so devices never contact
+the sender's mailbox.
+
+**Suggested fix.** Adopt in the profile. Add a §13.2 note that profiles carry bulk data outside the
+signaling binding.
+
+## 41. §12 / §14 — voicemail
+
+**Gap.** Core has `answered_by: service` for voicemail systems (§14.3), but no end-to-end model, and
+no rule for when a caller may leave a message.
+
+**Choices considered.** (a) The caller records locally and sends an E2EE `voicemail` content object.
+The offer is gated on the callee's `DSIPMailbox.voicemail` advertisement and a fixed set of attempt
+outcomes. (b) A mailbox service answers the call (`answered_by: service`) and records, which gives
+the service plaintext audio. (c) (a) plus a new `reject` field to suppress or permit voicemail per
+attempt, a core schema change.
+
+**Draft choice.** (a) (M§13). (b) remains permitted outside the profile's guarantee. (c) is not
+adopted in 1.0.
+
+**Suggested fix.** Adopt in the profile; no core change.
+
+## 42. §12.6 / §20.6 — concurrent conversation creation
+
+**Gap.** Two identities can create a direct conversation simultaneously, and two members can create
+successor groups for a dead hub simultaneously. Both are glare in a new place.
+
+**Choices considered.** (a) Lower ULID wins (conversation ULID for direct conversations, `group_id`
+ULID for successors), mirroring §12.6, with clients merging histories into one thread. (b) Both
+survive and the UI merges them. That leaves two hubs and doubles metadata exposure. (c) The
+lexicographically lower identity DID wins, which is deterministic but permanently favors some
+identities.
+
+**Draft choice.** (a) (M§7.2, M§7.5). Backdating wins only hub hosting (metadata visibility), and
+the §20.6 tripwire is restated for any future hosting privilege.
+
+**Suggested fix.** Adopt in the profile; cite §20.6.
+
+## 43. Ephemeral activity and the MLS secret tree
+
+**Gap.** Sending typing refreshes as MLS application messages consumes sender ratchet generations.
+A long-offline member then faces generation gaps that can exceed an implementation's maximum
+forward distance, breaking decryption of real content.
+
+**Choices considered.** (a) Seal activity with a per-epoch `MLS-Exporter("dsip activity", …)` key
+and a device signature: no ratchet consumption, not forward-secret within an epoch, acceptable for
+content-free indicators. (b) MLS application messages with a rate cap, which mitigates but does not
+eliminate the problem. (c) Unencrypted activity, which leaks conversation activity to hubs and
+mailboxes.
+
+**Draft choice.** (a) (M§11.1), never stored, ≤ 10 s envelope lifetime.
+
+**Suggested fix.** Adopt in the profile.
+
 ## Already-flagged (schema README / plan §11)
 
 - §15.3 codec example uses bare strings; §16.2 defines objects (schemas follow §16.2).
