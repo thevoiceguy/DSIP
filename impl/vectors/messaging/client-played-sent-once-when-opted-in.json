@@ -1,0 +1,137 @@
+{
+  "vector": "messaging/client-played-sent-once-when-opted-in",
+  "format": 1,
+  "kind": "messaging",
+  "description": "A played receipt is sent once, for media, when opted in.",
+  "spec_ref": [
+    "M§10.4",
+    "M§10.5"
+  ],
+  "context": {
+    "component": "client",
+    "me": "did:web:example.com:users:bob",
+    "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+    "now": 1760000000,
+    "member_identities": 2,
+    "policy": {
+      "delivered": false,
+      "read": false,
+      "played": true,
+      "activity": false
+    }
+  },
+  "input": {
+    "check": "client-trace",
+    "steps": [
+      {
+        "event": {
+          "sync": {
+            "items": [
+              {
+                "seq": 1,
+                "object": {
+                  "object": "content",
+                  "id": "01K742SG00QMDM24RP2ZMSCEB3",
+                  "sender": "did:web:alice.example",
+                  "kind": "audio"
+                }
+              },
+              {
+                "seq": 2,
+                "object": {
+                  "object": "content",
+                  "id": "01K742SG000ZJTETD6Q8F0473W",
+                  "sender": "did:web:alice.example",
+                  "kind": "text"
+                }
+              }
+            ]
+          }
+        }
+      },
+      {
+        "event": {
+          "play": {
+            "id": "01K742SG000ZJTETD6Q8F0473W"
+          }
+        }
+      },
+      {
+        "event": {
+          "play": {
+            "id": "01K742SG00QMDM24RP2ZMSCEB3"
+          }
+        }
+      },
+      {
+        "event": {
+          "play": {
+            "id": "01K742SG00QMDM24RP2ZMSCEB3"
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [],
+        "state": {
+          "timeline": [
+            "01K742SG00QMDM24RP2ZMSCEB3",
+            "01K742SG000ZJTETD6Q8F0473W"
+          ],
+          "delivered": {},
+          "played": {},
+          "read_through": {}
+        }
+      },
+      {
+        "emit": [],
+        "state": {
+          "timeline": [
+            "01K742SG00QMDM24RP2ZMSCEB3",
+            "01K742SG000ZJTETD6Q8F0473W"
+          ],
+          "delivered": {},
+          "played": {},
+          "read_through": {}
+        }
+      },
+      {
+        "emit": [
+          {
+            "send": {
+              "to": "conversation",
+              "receipt": "played",
+              "targets": [
+                "01K742SG00QMDM24RP2ZMSCEB3"
+              ]
+            }
+          }
+        ],
+        "state": {
+          "timeline": [
+            "01K742SG00QMDM24RP2ZMSCEB3",
+            "01K742SG000ZJTETD6Q8F0473W"
+          ],
+          "delivered": {},
+          "played": {},
+          "read_through": {}
+        }
+      },
+      {
+        "emit": [],
+        "state": {
+          "timeline": [
+            "01K742SG00QMDM24RP2ZMSCEB3",
+            "01K742SG000ZJTETD6Q8F0473W"
+          ],
+          "delivered": {},
+          "played": {},
+          "read_through": {}
+        }
+      }
+    ]
+  }
+}

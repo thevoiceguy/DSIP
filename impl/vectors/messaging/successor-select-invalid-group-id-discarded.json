@@ -1,0 +1,24 @@
+{
+  "vector": "messaging/successor-select-invalid-group-id-discarded",
+  "format": 1,
+  "kind": "messaging",
+  "description": "A group_id that is not a ULID cannot win.",
+  "spec_ref": [
+    "M§7.5",
+    "M§6.3"
+  ],
+  "context": {},
+  "input": {
+    "check": "successor-select",
+    "candidates": [
+      "bm90LWEtdWxpZA",
+      "MDFLNzQyU0cwMEg2TkhHMTBLM1RSMkNGV1M"
+    ]
+  },
+  "expect": {
+    "winner": "MDFLNzQyU0cwMEg2TkhHMTBLM1RSMkNGV1M",
+    "discarded": [
+      "bm90LWEtdWxpZA"
+    ]
+  }
+}

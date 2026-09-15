@@ -1,0 +1,62 @@
+{
+  "vector": "messaging/gap-duplicate-seq",
+  "format": 1,
+  "kind": "messaging",
+  "description": "A seq already processed is reported as a duplicate and not processed again.",
+  "spec_ref": [
+    "M§6.5",
+    "M§8.5"
+  ],
+  "context": {
+    "component": "gap",
+    "now": 1760000000,
+    "contiguous": 0
+  },
+  "input": {
+    "check": "gap-trace",
+    "steps": [
+      {
+        "event": {
+          "item": {
+            "seq": 1,
+            "class": "application"
+          }
+        }
+      },
+      {
+        "event": {
+          "item": {
+            "seq": 1,
+            "class": "application"
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "process": 1
+          }
+        ],
+        "state": {
+          "contiguous": 1,
+          "held": []
+        }
+      },
+      {
+        "emit": [
+          {
+            "duplicate": 1
+          }
+        ],
+        "state": {
+          "contiguous": 1,
+          "held": []
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,86 @@
+{
+  "vector": "messaging/client-played-only-for-media",
+  "format": 1,
+  "kind": "messaging",
+  "description": "played applies to audio and video content only.",
+  "spec_ref": [
+    "M§10.4"
+  ],
+  "context": {
+    "component": "client",
+    "me": "did:web:alice.example",
+    "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+    "now": 1760000000,
+    "member_identities": 2,
+    "policy": {
+      "delivered": false,
+      "read": false,
+      "played": false,
+      "activity": false
+    }
+  },
+  "input": {
+    "check": "client-trace",
+    "steps": [
+      {
+        "event": {
+          "sync": {
+            "items": [
+              {
+                "seq": 1,
+                "object": {
+                  "object": "content",
+                  "id": "01K742SG000ZJTETD6Q8F0473W",
+                  "sender": "did:web:alice.example",
+                  "kind": "text"
+                }
+              },
+              {
+                "seq": 2,
+                "object": {
+                  "object": "content",
+                  "id": "01K742SG00QMDM24RP2ZMSCEB3",
+                  "sender": "did:web:alice.example",
+                  "kind": "audio"
+                }
+              },
+              {
+                "seq": 3,
+                "object": {
+                  "object": "receipt",
+                  "kind": "played",
+                  "sender": "did:web:example.com:users:bob",
+                  "sent_at": 1760000000,
+                  "targets": [
+                    "01K742SG000ZJTETD6Q8F0473W",
+                    "01K742SG00QMDM24RP2ZMSCEB3"
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [],
+        "state": {
+          "timeline": [
+            "01K742SG000ZJTETD6Q8F0473W",
+            "01K742SG00QMDM24RP2ZMSCEB3"
+          ],
+          "delivered": {},
+          "played": {
+            "01K742SG00QMDM24RP2ZMSCEB3": {
+              "did:web:example.com:users:bob": 1760000000
+            }
+          },
+          "read_through": {}
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "vector": "messaging/successor-check-valid",
+  "format": 1,
+  "kind": "messaging",
+  "description": "A predecessor member re-creating the group with predecessor members is accepted.",
+  "spec_ref": [
+    "M§7.5"
+  ],
+  "context": {},
+  "input": {
+    "check": "successor-check",
+    "predecessor_roster": [
+      "did:web:alice.example",
+      "did:web:example.com:users:bob",
+      "did:web:carol.example"
+    ],
+    "creator": "did:web:example.com:users:bob",
+    "roster": [
+      "did:web:alice.example",
+      "did:web:example.com:users:bob",
+      "did:web:carol.example"
+    ]
+  },
+  "expect": {
+    "verdict": "accept"
+  }
+}

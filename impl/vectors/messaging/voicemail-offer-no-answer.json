@@ -1,0 +1,25 @@
+{
+  "vector": "messaging/voicemail-offer-no-answer",
+  "format": 1,
+  "kind": "messaging",
+  "description": "reject user.no-answer offers voicemail.",
+  "spec_ref": [
+    "M§13.2"
+  ],
+  "context": {},
+  "input": {
+    "check": "voicemail-offer",
+    "voicemail": {
+      "max_duration_s": 180
+    },
+    "can_send": true,
+    "outcome": {
+      "type": "reject",
+      "reason": "user.no-answer"
+    }
+  },
+  "expect": {
+    "offer": true,
+    "max_duration_s": 180
+  }
+}

@@ -78,6 +78,10 @@ def vectors() -> list[dict]:
     out += object_vectors()
     out += hub_vectors()
     out += mailbox_vectors()
+    out += voicemail_offer_vectors()
+    out += conversation_vectors()
+    out += client_vectors()
+    out += gap_vectors()
     return out
 
 
@@ -633,5 +637,285 @@ def mailbox_vectors():
                      ["M§5.5"], T, mbx_ctx(key_packages={BPH: {"one_time": 90, "last_resort": False}}), [
                          ({"kp_upload": {"id": uid("u1"), "device": BPH, "count": 20}}, [macc(BPH, "u1")],
                           ms(kps={BPH: {"one_time": 100, "last_resort": False}})),
+                     ]))
+    return out
+
+
+# ---------------------------------------------------------------- tranche 2: voicemail offer (M§13.2)
+
+def voicemail_offer_vectors():
+    out = []
+    VM = {"max_duration_s": 180}
+
+    def vo(vid, desc, outcome, expect, voicemail=VM, can_send=True):
+        inp = {"check": "voicemail-offer", "voicemail": voicemail, "can_send": can_send, "outcome": outcome}
+        out.append(mv(f"voicemail-offer-{vid}", desc, ["M§13.2"], inp, expect))
+
+    yes = {"offer": True, "max_duration_s": 180}
+    no = {"offer": False}
+    vo("no-answer", "reject user.no-answer offers voicemail.", {"type": "reject", "reason": "user.no-answer"}, yes)
+    vo("declined", "reject user.declined offers voicemail.", {"type": "reject", "reason": "user.declined"}, yes)
+    vo("busy", "reject endpoint.busy offers voicemail.", {"type": "reject", "reason": "endpoint.busy"}, yes)
+    vo("unavailable", "reject endpoint.unavailable offers voicemail.", {"type": "reject", "reason": "endpoint.unavailable"}, yes)
+    vo("caller-timeout", "The caller's own cancel session.timeout (T-Establish/T-Ring) offers voicemail.",
+       {"type": "cancel", "reason": "session.timeout"}, yes)
+    vo("blocked", "user.blocked never offers voicemail.", {"type": "reject", "reason": "user.blocked"}, no)
+    vo("policy", "policy.* never offers voicemail.", {"type": "reject", "reason": "policy.first-contact-required"}, no)
+    vo("identity", "identity.* never offers voicemail.", {"type": "reject", "reason": "identity.not-in-service"}, no)
+    vo("media", "media.* never offers voicemail.", {"type": "reject", "reason": "media.unsupported"}, no)
+    vo("answered-elsewhere", "session.answered-elsewhere is not a missed call and never offers voicemail.",
+       {"type": "cancel", "reason": "session.answered-elsewhere"}, no)
+    vo("registered-endpoint-capability", "A registered endpoint token outside the list (endpoint.capability) does not offer.",
+       {"type": "reject", "reason": "endpoint.capability"}, no)
+    vo("unregistered-endpoint-condition", "An unregistered endpoint.* condition falls back to its category and offers "
+       "(endpoint state prevented the call, like busy or unavailable).", {"type": "reject", "reason": "endpoint.do-not-disturb"}, yes)
+    vo("unregistered-user-condition", "An unregistered user.* condition does not offer (conservative: it may be block-like).",
+       {"type": "reject", "reason": "user.stepped-out"}, no)
+    vo("not-advertised", "No voicemail advertisement in the callee's DSIPMailbox entry: no offer.",
+       {"type": "reject", "reason": "user.no-answer"}, no, voicemail=None)
+    vo("cannot-send", "No conversation and no authorization to create one: no offer.",
+       {"type": "reject", "reason": "user.no-answer"}, no, can_send=False)
+    vo("no-max-duration", "An advertisement without max_duration_s still offers, with no duration bound in the result.",
+       {"type": "reject", "reason": "user.no-answer"}, {"offer": True}, voicemail={})
+    return out
+
+
+# ---------------------------------------------------------------- tranche 2: conversation convergence (M§7.2, M§7.5)
+
+def conversation_vectors():
+    out = []
+    c_early, c_late = uid("dc-a", NOW - 2), uid("dc-b", NOW)
+    out.append(mv("direct-select-lower-ulid-wins", "Two concurrent direct conversations converge on the lower ULID.", ["M§7.2"],
+                  {"check": "direct-select", "candidates": [{"conversation": c_late, "issued_at": NOW},
+                                                           {"conversation": c_early, "issued_at": NOW - 2}]},
+                  {"winner": c_early, "discarded": []}))
+    backdated = uid("dc-backdated", NOW - 3600)
+    out.append(mv("direct-select-backdated-discarded",
+                  "A conversation ULID backdated an hour against its creating deposit's issued_at cannot win (§20.6 guard).",
+                  ["M§7.2", "§20.6"],
+                  {"check": "direct-select", "candidates": [{"conversation": c_late, "issued_at": NOW},
+                                                           {"conversation": backdated, "issued_at": NOW}]},
+                  {"winner": c_late, "discarded": [backdated]}))
+    out.append(mv("successor-check-valid", "A predecessor member re-creating the group with predecessor members is accepted.",
+                  ["M§7.5"], {"check": "successor-check", "predecessor_roster": [ALICE, BOB, CAROL], "creator": BOB,
+                              "roster": [ALICE, BOB, CAROL]}, accept()))
+    out.append(mv("successor-check-roster-shrink-valid", "A successor may omit predecessor members.", ["M§7.5"],
+                  {"check": "successor-check", "predecessor_roster": [ALICE, BOB, CAROL], "creator": BOB, "roster": [ALICE, BOB]},
+                  accept()))
+    out.append(mv("successor-check-creator-not-member", "A successor created by a non-member is a new conversation, not a successor.",
+                  ["M§7.5"], {"check": "successor-check", "predecessor_roster": [ALICE, BOB], "creator": MALLORY,
+                              "roster": [ALICE, BOB, MALLORY]}, reject("successor-invalid")))
+    out.append(mv("successor-check-adds-outsider", "A successor that adds an identity outside the predecessor roster is rejected.",
+                  ["M§7.5"], {"check": "successor-check", "predecessor_roster": [ALICE, BOB], "creator": BOB,
+                              "roster": [ALICE, BOB, MALLORY]}, reject("successor-invalid")))
+    # Pick two group ULIDs whose base64url text sorts opposite to the ULIDs themselves.
+    ga, gb = None, None
+    for i in range(200):
+        u1, u2 = uid(f"succ-a-{i}", NOW), uid(f"succ-b-{i}", NOW)
+        lo, hi = sorted([u1, u2])
+        b_lo, b_hi = b64url_encode(lo.encode()), b64url_encode(hi.encode())
+        if b_lo > b_hi:
+            ga, gb = b_lo, b_hi
+            break
+    assert ga is not None
+    out.append(mv("successor-select-compares-decoded-ulid",
+                  "Concurrent successors converge on the lowest group_id compared as the decoded ULID; here the base64url "
+                  "text sorts the other way.", ["M§7.5"],
+                  {"check": "successor-select", "candidates": [gb, ga]}, {"winner": ga, "discarded": []}))
+    junk = b64url_encode(b"not-a-ulid")
+    out.append(mv("successor-select-invalid-group-id-discarded", "A group_id that is not a ULID cannot win.", ["M§7.5", "M§6.3"],
+                  {"check": "successor-select", "candidates": [junk, ga]}, {"winner": ga, "discarded": [junk]}))
+    return out
+
+
+# ---------------------------------------------------------------- tranche 2: client receipts and activity (M§10, M§11.2)
+
+def cl_ctx(me=BOB, delivered=True, read=False, played=False, activity=False, members=2):
+    return {"component": "client", "me": me, "device": BPH, "now": NOW, "member_identities": members,
+            "policy": {"delivered": delivered, "read": read, "played": played, "activity": activity}}
+
+
+def cs(timeline=(), delivered=None, played=None, read_through=None):
+    return {"timeline": list(timeline), "delivered": delivered or {}, "played": played or {}, "read_through": read_through or {}}
+
+
+def item(seq, obj):
+    return {"seq": seq, "object": obj}
+
+
+def ct(label, sender=ALICE, kind="text"):
+    return {"object": "content", "id": uid(label), "sender": sender, "kind": kind}
+
+
+def rc(kind, sender, at=NOW, **kw):
+    return {"object": "receipt", "kind": kind, "sender": sender, "sent_at": at, **kw}
+
+
+def sync(*items):
+    return {"sync": {"items": list(items)}}
+
+
+def send(to, receipt, **kw):
+    return {"send": {"to": to, "receipt": receipt, **kw}}
+
+
+def client_vectors():
+    out = []
+    T = "client-trace"
+    m1, m2, m3, vm = uid("m1"), uid("m2"), uid("m3"), uid("vm")
+
+    out.append(trace("client-delivered-sent-once-per-batch",
+                     "After a sync batch the device sends one delivered receipt covering every new item from other identities.",
+                     ["M§10.2"], T, cl_ctx(), [
+                         (sync(item(1, ct("m1")), item(2, ct("m2")), item(3, ct("m3", sender=BOB))),
+                          [send("conversation", "delivered", targets=[m1, m2])], cs([m1, m2, m3])),
+                         (sync(item(1, ct("m1"))), [], cs([m1, m2, m3])),
+                     ]))
+    out.append(trace("client-delivered-suppressed-by-sibling-in-batch",
+                     "A sibling device's delivered receipt later in the same batch suppresses this device's receipt for that item.",
+                     ["M§10.2"], T, cl_ctx(), [
+                         (sync(item(1, ct("m1")), item(2, ct("m2")), item(3, rc("delivered", BOB, targets=[m1]))),
+                          [send("conversation", "delivered", targets=[m2])], cs([m1, m2], delivered={m1: {BOB: NOW}})),
+                     ]))
+    out.append(trace("client-delivered-off-by-policy", "delivered receipts are not sent when the user has them off.",
+                     ["M§10.2", "M§10.5"], T, cl_ctx(delivered=False), [
+                         (sync(item(1, ct("m1"))), [], cs([m1])),
+                     ]))
+    out.append(trace("client-delivered-not-in-large-group", "No delivered receipts in groups over 32 member identities.",
+                     ["M§10.2"], T, cl_ctx(members=33), [
+                         (sync(item(1, ct("m1"))), [], cs([m1])),
+                     ]))
+    out.append(trace("client-receipts-collapse-first-by-seq",
+                     "Duplicate delivered receipts from one identity collapse; the first by seq keeps its timestamp.",
+                     ["M§10.2"], T, cl_ctx(me=ALICE, delivered=False), [
+                         (sync(item(1, ct("m1")), item(2, rc("delivered", BOB, at=NOW + 1, targets=[m1])),
+                               item(3, rc("delivered", BOB, at=NOW + 2, targets=[m1]))),
+                          [], cs([m1], delivered={m1: {BOB: NOW + 1}})),
+                     ]))
+    out.append(trace("client-receipt-from-content-sender-ignored",
+                     "An identity's receipt about its own content is not a sender-visible receipt.", ["M§10.2"], T,
+                     cl_ctx(me=BOB, delivered=False), [
+                         (sync(item(1, ct("m1")), item(2, rc("delivered", ALICE, targets=[m1]))), [], cs([m1])),
+                     ]))
+    out.append(trace("client-played-only-for-media", "played applies to audio and video content only.", ["M§10.4"], T,
+                     cl_ctx(me=ALICE, delivered=False), [
+                         (sync(item(1, ct("m1")), item(2, ct("vm", kind="audio")),
+                               item(3, rc("played", BOB, targets=[m1, vm]))),
+                          [], cs([m1, vm], played={vm: {BOB: NOW}})),
+                     ]))
+    out.append(trace("client-read-watermark-monotone",
+                     "A read watermark only advances; a lower or unknown through is ignored.", ["M§10.3"], T,
+                     cl_ctx(me=ALICE, delivered=False), [
+                         (sync(item(1, ct("m1")), item(2, ct("m2")), item(3, rc("read", BOB, through=m2))),
+                          [], cs([m1, m2], read_through={BOB: m2})),
+                         (sync(item(4, rc("read", BOB, through=m1))), [], cs([m1, m2], read_through={BOB: m2})),
+                         (sync(item(5, rc("read", BOB, through=uid("never-seen")))), [], cs([m1, m2], read_through={BOB: m2})),
+                     ]))
+    out.append(trace("client-read-private-goes-to-personal-group",
+                     "With read receipts off, the device still syncs its watermark, to its personal group only.",
+                     ["M§10.5"], T, cl_ctx(delivered=False, read=False), [
+                         (sync(item(1, ct("m1"))), [], cs([m1])),
+                         ({"read": {"through": m1}}, [send("personal", "read", through=m1)], cs([m1], read_through={BOB: m1})),
+                     ]))
+    out.append(trace("client-read-disclosed-goes-to-conversation",
+                     "With read receipts opted in, the watermark goes to the conversation group.", ["M§10.5", "M§10.3"], T,
+                     cl_ctx(delivered=False, read=True), [
+                         (sync(item(1, ct("m1"))), [], cs([m1])),
+                         ({"read": {"through": m1}}, [send("conversation", "read", through=m1)], cs([m1], read_through={BOB: m1})),
+                     ]))
+    out.append(trace("client-read-sibling-watermark-suppresses",
+                     "A sibling device's watermark already covering the item means reading it here sends nothing.",
+                     ["M§10.3"], T, cl_ctx(delivered=False, read=True), [
+                         (sync(item(1, ct("m1")), item(2, ct("m2")), item(3, rc("read", BOB, through=m2))),
+                          [], cs([m1, m2], read_through={BOB: m2})),
+                         ({"read": {"through": m1}}, [], cs([m1, m2], read_through={BOB: m2})),
+                     ]))
+    out.append(trace("client-read-rate-limited",
+                     "At most one watermark per conversation per 5 s: a later read is held and the latest watermark sent when the "
+                     "interval passes.", ["M§10.3"], T, cl_ctx(delivered=False, read=True), [
+                         (sync(item(1, ct("m1")), item(2, ct("m2")), item(3, ct("m3"))), [], cs([m1, m2, m3])),
+                         ({"read": {"through": m1}}, [send("conversation", "read", through=m1)], cs([m1, m2, m3], read_through={BOB: m1})),
+                         ({"advance": 1}, [], cs([m1, m2, m3], read_through={BOB: m1})),
+                         ({"read": {"through": m2}}, [], cs([m1, m2, m3], read_through={BOB: m2})),
+                         ({"read": {"through": m3}}, [], cs([m1, m2, m3], read_through={BOB: m3})),
+                         ({"advance": 3}, [], cs([m1, m2, m3], read_through={BOB: m3})),
+                         ({"advance": 1}, [send("conversation", "read", through=m3)], cs([m1, m2, m3], read_through={BOB: m3})),
+                     ]))
+    out.append(trace("client-played-sent-once-when-opted-in", "A played receipt is sent once, for media, when opted in.",
+                     ["M§10.4", "M§10.5"], T, cl_ctx(delivered=False, played=True), [
+                         (sync(item(1, ct("vm", kind="audio")), item(2, ct("m1"))), [], cs([vm, m1])),
+                         ({"play": {"id": m1}}, [], cs([vm, m1])),
+                         ({"play": {"id": vm}}, [send("conversation", "played", targets=[vm])], cs([vm, m1])),
+                         ({"play": {"id": vm}}, [], cs([vm, m1])),
+                     ]))
+    out.append(trace("client-played-off-by-default", "played receipts are not sent without opt-in.", ["M§10.5"], T,
+                     cl_ctx(delivered=False), [
+                         (sync(item(1, ct("vm", kind="audio"))), [], cs([vm])),
+                         ({"play": {"id": vm}}, [], cs([vm])),
+                     ]))
+    out.append(trace("client-duplicate-content-collapses",
+                     "The same content id arriving again (another mailbox, a successor group) is collapsed and keeps its first place.",
+                     ["M§8.5"], T, cl_ctx(delivered=False), [
+                         (sync(item(1, ct("m1")), item(2, ct("m2"))), [], cs([m1, m2])),
+                         (sync(item(7, ct("m1"))), [], cs([m1, m2])),
+                     ]))
+    act = lambda a, st: {"activity": {"activity": a, "state": st}}
+    typing = lambda st: {"send": {"to": "conversation", "activity": "typing", "state": st}}
+    out.append(trace("client-activity-refresh-bounded",
+                     "Typing refreshes are sent at most every 5 s; stopped is always sent.", ["M§11.2"], T,
+                     cl_ctx(delivered=False, activity=True), [
+                         (act("typing", "active"), [typing("active")], cs()),
+                         ({"advance": 2}, [], cs()),
+                         (act("typing", "active"), [], cs()),
+                         ({"advance": 3}, [], cs()),
+                         (act("typing", "active"), [typing("active")], cs()),
+                         (act("typing", "stopped"), [typing("stopped")], cs()),
+                         (act("typing", "active"), [typing("active")], cs()),
+                     ]))
+    out.append(trace("client-activity-off-by-default", "Activity is not sent without opt-in.", ["M§11.2", "M§10.5"], T,
+                     cl_ctx(delivered=False), [
+                         (act("typing", "active"), [], cs()),
+                     ]))
+    return out
+
+
+# ---------------------------------------------------------------- tranche 2: seq gaps (M§6.5)
+
+def gap_vectors():
+    out = []
+    T = "gap-trace"
+    ctx = {"component": "gap", "now": NOW, "contiguous": 0}
+    it = lambda seq, cls="application": {"item": {"seq": seq, "class": cls}}
+    g = lambda contiguous, held=(): {"contiguous": contiguous, "held": list(held)}
+    out.append(trace("gap-in-order", "Items in seq order are processed as they arrive.", ["M§6.5"], T, ctx, [
+        (it(1, "handshake"), [{"process": 1}], g(1)),
+        (it(2), [{"process": 2}], g(2)),
+    ]))
+    out.append(trace("gap-application-across-gap-processed",
+                     "An application item beyond a gap is processed; nothing is held.", ["M§6.5"], T, ctx, [
+                         (it(1), [{"process": 1}], g(1)),
+                         (it(3), [{"process": 3}], g(1)),
+                         (it(2), [{"process": 2}], g(3)),
+                     ]))
+    out.append(trace("gap-handshake-held-until-filled",
+                     "A handshake item beyond a gap is held, and so is everything after it, until the gap fills.", ["M§6.5"], T, ctx, [
+                         (it(1), [{"process": 1}], g(1)),
+                         (it(3, "handshake"), [{"hold": 3}], g(1, [3])),
+                         (it(4), [{"hold": 4}], g(1, [3, 4])),
+                         (it(2), [{"process": 2}, {"process": 3}, {"process": 4}], g(4)),
+                     ]))
+    out.append(trace("gap-timeout-rejoins",
+                     "A gap not filled within 300 s of the first held item makes the device re-join by external commit.",
+                     ["M§6.5", "M§6.8"], T, ctx, [
+                         (it(1), [{"process": 1}], g(1)),
+                         (it(3, "handshake"), [{"hold": 3}], g(1, [3])),
+                         ({"advance": 299}, [], g(1, [3])),
+                         ({"advance": 1}, [{"rejoin": {"held": [3]}}], g(3)),
+                         (it(2), [{"duplicate": 2}], g(3)),
+                     ]))
+    out.append(trace("gap-duplicate-seq", "A seq already processed is reported as a duplicate and not processed again.",
+                     ["M§6.5", "M§8.5"], T, ctx, [
+                         (it(1), [{"process": 1}], g(1)),
+                         (it(1), [{"duplicate": 1}], g(1)),
                      ]))
     return out

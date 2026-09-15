@@ -1,0 +1,77 @@
+{
+  "vector": "messaging/client-played-off-by-default",
+  "format": 1,
+  "kind": "messaging",
+  "description": "played receipts are not sent without opt-in.",
+  "spec_ref": [
+    "M§10.5"
+  ],
+  "context": {
+    "component": "client",
+    "me": "did:web:example.com:users:bob",
+    "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+    "now": 1760000000,
+    "member_identities": 2,
+    "policy": {
+      "delivered": false,
+      "read": false,
+      "played": false,
+      "activity": false
+    }
+  },
+  "input": {
+    "check": "client-trace",
+    "steps": [
+      {
+        "event": {
+          "sync": {
+            "items": [
+              {
+                "seq": 1,
+                "object": {
+                  "object": "content",
+                  "id": "01K742SG00QMDM24RP2ZMSCEB3",
+                  "sender": "did:web:alice.example",
+                  "kind": "audio"
+                }
+              }
+            ]
+          }
+        }
+      },
+      {
+        "event": {
+          "play": {
+            "id": "01K742SG00QMDM24RP2ZMSCEB3"
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [],
+        "state": {
+          "timeline": [
+            "01K742SG00QMDM24RP2ZMSCEB3"
+          ],
+          "delivered": {},
+          "played": {},
+          "read_through": {}
+        }
+      },
+      {
+        "emit": [],
+        "state": {
+          "timeline": [
+            "01K742SG00QMDM24RP2ZMSCEB3"
+          ],
+          "delivered": {},
+          "played": {},
+          "read_through": {}
+        }
+      }
+    ]
+  }
+}

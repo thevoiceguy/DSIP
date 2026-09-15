@@ -1,0 +1,176 @@
+{
+  "vector": "messaging/client-activity-refresh-bounded",
+  "format": 1,
+  "kind": "messaging",
+  "description": "Typing refreshes are sent at most every 5 s; stopped is always sent.",
+  "spec_ref": [
+    "M§11.2"
+  ],
+  "context": {
+    "component": "client",
+    "me": "did:web:example.com:users:bob",
+    "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+    "now": 1760000000,
+    "member_identities": 2,
+    "policy": {
+      "delivered": false,
+      "read": false,
+      "played": false,
+      "activity": true
+    }
+  },
+  "input": {
+    "check": "client-trace",
+    "steps": [
+      {
+        "event": {
+          "activity": {
+            "activity": "typing",
+            "state": "active"
+          }
+        }
+      },
+      {
+        "event": {
+          "advance": 2
+        }
+      },
+      {
+        "event": {
+          "activity": {
+            "activity": "typing",
+            "state": "active"
+          }
+        }
+      },
+      {
+        "event": {
+          "advance": 3
+        }
+      },
+      {
+        "event": {
+          "activity": {
+            "activity": "typing",
+            "state": "active"
+          }
+        }
+      },
+      {
+        "event": {
+          "activity": {
+            "activity": "typing",
+            "state": "stopped"
+          }
+        }
+      },
+      {
+        "event": {
+          "activity": {
+            "activity": "typing",
+            "state": "active"
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "send": {
+              "to": "conversation",
+              "activity": "typing",
+              "state": "active"
+            }
+          }
+        ],
+        "state": {
+          "timeline": [],
+          "delivered": {},
+          "played": {},
+          "read_through": {}
+        }
+      },
+      {
+        "emit": [],
+        "state": {
+          "timeline": [],
+          "delivered": {},
+          "played": {},
+          "read_through": {}
+        }
+      },
+      {
+        "emit": [],
+        "state": {
+          "timeline": [],
+          "delivered": {},
+          "played": {},
+          "read_through": {}
+        }
+      },
+      {
+        "emit": [],
+        "state": {
+          "timeline": [],
+          "delivered": {},
+          "played": {},
+          "read_through": {}
+        }
+      },
+      {
+        "emit": [
+          {
+            "send": {
+              "to": "conversation",
+              "activity": "typing",
+              "state": "active"
+            }
+          }
+        ],
+        "state": {
+          "timeline": [],
+          "delivered": {},
+          "played": {},
+          "read_through": {}
+        }
+      },
+      {
+        "emit": [
+          {
+            "send": {
+              "to": "conversation",
+              "activity": "typing",
+              "state": "stopped"
+            }
+          }
+        ],
+        "state": {
+          "timeline": [],
+          "delivered": {},
+          "played": {},
+          "read_through": {}
+        }
+      },
+      {
+        "emit": [
+          {
+            "send": {
+              "to": "conversation",
+              "activity": "typing",
+              "state": "active"
+            }
+          }
+        ],
+        "state": {
+          "timeline": [],
+          "delivered": {},
+          "played": {},
+          "read_through": {}
+        }
+      }
+    ]
+  }
+}

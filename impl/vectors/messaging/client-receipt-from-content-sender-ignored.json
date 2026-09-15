@@ -1,0 +1,71 @@
+{
+  "vector": "messaging/client-receipt-from-content-sender-ignored",
+  "format": 1,
+  "kind": "messaging",
+  "description": "An identity's receipt about its own content is not a sender-visible receipt.",
+  "spec_ref": [
+    "M§10.2"
+  ],
+  "context": {
+    "component": "client",
+    "me": "did:web:example.com:users:bob",
+    "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+    "now": 1760000000,
+    "member_identities": 2,
+    "policy": {
+      "delivered": false,
+      "read": false,
+      "played": false,
+      "activity": false
+    }
+  },
+  "input": {
+    "check": "client-trace",
+    "steps": [
+      {
+        "event": {
+          "sync": {
+            "items": [
+              {
+                "seq": 1,
+                "object": {
+                  "object": "content",
+                  "id": "01K742SG000ZJTETD6Q8F0473W",
+                  "sender": "did:web:alice.example",
+                  "kind": "text"
+                }
+              },
+              {
+                "seq": 2,
+                "object": {
+                  "object": "receipt",
+                  "kind": "delivered",
+                  "sender": "did:web:alice.example",
+                  "sent_at": 1760000000,
+                  "targets": [
+                    "01K742SG000ZJTETD6Q8F0473W"
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [],
+        "state": {
+          "timeline": [
+            "01K742SG000ZJTETD6Q8F0473W"
+          ],
+          "delivered": {},
+          "played": {},
+          "read_through": {}
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "vector": "messaging/voicemail-offer-answered-elsewhere",
+  "format": 1,
+  "kind": "messaging",
+  "description": "session.answered-elsewhere is not a missed call and never offers voicemail.",
+  "spec_ref": [
+    "M§13.2"
+  ],
+  "context": {},
+  "input": {
+    "check": "voicemail-offer",
+    "voicemail": {
+      "max_duration_s": 180
+    },
+    "can_send": true,
+    "outcome": {
+      "type": "cancel",
+      "reason": "session.answered-elsewhere"
+    }
+  },
+  "expect": {
+    "offer": false
+  }
+}

@@ -1,0 +1,110 @@
+{
+  "vector": "messaging/gap-handshake-held-until-filled",
+  "format": 1,
+  "kind": "messaging",
+  "description": "A handshake item beyond a gap is held, and so is everything after it, until the gap fills.",
+  "spec_ref": [
+    "M§6.5"
+  ],
+  "context": {
+    "component": "gap",
+    "now": 1760000000,
+    "contiguous": 0
+  },
+  "input": {
+    "check": "gap-trace",
+    "steps": [
+      {
+        "event": {
+          "item": {
+            "seq": 1,
+            "class": "application"
+          }
+        }
+      },
+      {
+        "event": {
+          "item": {
+            "seq": 3,
+            "class": "handshake"
+          }
+        }
+      },
+      {
+        "event": {
+          "item": {
+            "seq": 4,
+            "class": "application"
+          }
+        }
+      },
+      {
+        "event": {
+          "item": {
+            "seq": 2,
+            "class": "application"
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "process": 1
+          }
+        ],
+        "state": {
+          "contiguous": 1,
+          "held": []
+        }
+      },
+      {
+        "emit": [
+          {
+            "hold": 3
+          }
+        ],
+        "state": {
+          "contiguous": 1,
+          "held": [
+            3
+          ]
+        }
+      },
+      {
+        "emit": [
+          {
+            "hold": 4
+          }
+        ],
+        "state": {
+          "contiguous": 1,
+          "held": [
+            3,
+            4
+          ]
+        }
+      },
+      {
+        "emit": [
+          {
+            "process": 2
+          },
+          {
+            "process": 3
+          },
+          {
+            "process": 4
+          }
+        ],
+        "state": {
+          "contiguous": 4,
+          "held": []
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "vector": "messaging/direct-select-backdated-discarded",
+  "format": 1,
+  "kind": "messaging",
+  "description": "A conversation ULID backdated an hour against its creating deposit's issued_at cannot win (§20.6 guard).",
+  "spec_ref": [
+    "M§7.2",
+    "§20.6"
+  ],
+  "context": {},
+  "input": {
+    "check": "direct-select",
+    "candidates": [
+      {
+        "conversation": "01K742SG00A32NMBFVPVPMW8QT",
+        "issued_at": 1760000000
+      },
+      {
+        "conversation": "01K73ZBMC0Q87TF7FK1503REWJ",
+        "issued_at": 1760000000
+      }
+    ]
+  },
+  "expect": {
+    "winner": "01K742SG00A32NMBFVPVPMW8QT",
+    "discarded": [
+      "01K73ZBMC0Q87TF7FK1503REWJ"
+    ]
+  }
+}

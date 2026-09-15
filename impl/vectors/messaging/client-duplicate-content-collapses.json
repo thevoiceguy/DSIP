@@ -1,0 +1,98 @@
+{
+  "vector": "messaging/client-duplicate-content-collapses",
+  "format": 1,
+  "kind": "messaging",
+  "description": "The same content id arriving again (another mailbox, a successor group) is collapsed and keeps its first place.",
+  "spec_ref": [
+    "M§8.5"
+  ],
+  "context": {
+    "component": "client",
+    "me": "did:web:example.com:users:bob",
+    "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+    "now": 1760000000,
+    "member_identities": 2,
+    "policy": {
+      "delivered": false,
+      "read": false,
+      "played": false,
+      "activity": false
+    }
+  },
+  "input": {
+    "check": "client-trace",
+    "steps": [
+      {
+        "event": {
+          "sync": {
+            "items": [
+              {
+                "seq": 1,
+                "object": {
+                  "object": "content",
+                  "id": "01K742SG000ZJTETD6Q8F0473W",
+                  "sender": "did:web:alice.example",
+                  "kind": "text"
+                }
+              },
+              {
+                "seq": 2,
+                "object": {
+                  "object": "content",
+                  "id": "01K742SG00MXS791W8S1ZXMFDN",
+                  "sender": "did:web:alice.example",
+                  "kind": "text"
+                }
+              }
+            ]
+          }
+        }
+      },
+      {
+        "event": {
+          "sync": {
+            "items": [
+              {
+                "seq": 7,
+                "object": {
+                  "object": "content",
+                  "id": "01K742SG000ZJTETD6Q8F0473W",
+                  "sender": "did:web:alice.example",
+                  "kind": "text"
+                }
+              }
+            ]
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [],
+        "state": {
+          "timeline": [
+            "01K742SG000ZJTETD6Q8F0473W",
+            "01K742SG00MXS791W8S1ZXMFDN"
+          ],
+          "delivered": {},
+          "played": {},
+          "read_through": {}
+        }
+      },
+      {
+        "emit": [],
+        "state": {
+          "timeline": [
+            "01K742SG000ZJTETD6Q8F0473W",
+            "01K742SG00MXS791W8S1ZXMFDN"
+          ],
+          "delivered": {},
+          "played": {},
+          "read_through": {}
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "vector": "messaging/successor-check-creator-not-member",
+  "format": 1,
+  "kind": "messaging",
+  "description": "A successor created by a non-member is a new conversation, not a successor.",
+  "spec_ref": [
+    "M§7.5"
+  ],
+  "context": {},
+  "input": {
+    "check": "successor-check",
+    "predecessor_roster": [
+      "did:web:alice.example",
+      "did:web:example.com:users:bob"
+    ],
+    "creator": "did:web:mallory.example",
+    "roster": [
+      "did:web:alice.example",
+      "did:web:example.com:users:bob",
+      "did:web:mallory.example"
+    ]
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "successor-invalid"
+  }
+}
