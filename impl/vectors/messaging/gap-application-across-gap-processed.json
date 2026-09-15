@@ -1,0 +1,80 @@
+{
+  "vector": "messaging/gap-application-across-gap-processed",
+  "format": 1,
+  "kind": "messaging",
+  "description": "An application item beyond a gap is processed; nothing is held.",
+  "spec_ref": [
+    "M§6.5"
+  ],
+  "context": {
+    "component": "gap",
+    "now": 1760000000,
+    "contiguous": 0
+  },
+  "input": {
+    "check": "gap-trace",
+    "steps": [
+      {
+        "event": {
+          "item": {
+            "seq": 1,
+            "class": "application"
+          }
+        }
+      },
+      {
+        "event": {
+          "item": {
+            "seq": 3,
+            "class": "application"
+          }
+        }
+      },
+      {
+        "event": {
+          "item": {
+            "seq": 2,
+            "class": "application"
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "process": 1
+          }
+        ],
+        "state": {
+          "contiguous": 1,
+          "held": []
+        }
+      },
+      {
+        "emit": [
+          {
+            "process": 3
+          }
+        ],
+        "state": {
+          "contiguous": 1,
+          "held": []
+        }
+      },
+      {
+        "emit": [
+          {
+            "process": 2
+          }
+        ],
+        "state": {
+          "contiguous": 3,
+          "held": []
+        }
+      }
+    ]
+  }
+}

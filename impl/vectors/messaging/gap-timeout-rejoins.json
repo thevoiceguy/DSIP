@@ -1,0 +1,117 @@
+{
+  "vector": "messaging/gap-timeout-rejoins",
+  "format": 1,
+  "kind": "messaging",
+  "description": "A gap not filled within 300 s of the first held item makes the device re-join by external commit.",
+  "spec_ref": [
+    "M§6.5",
+    "M§6.8"
+  ],
+  "context": {
+    "component": "gap",
+    "now": 1760000000,
+    "contiguous": 0
+  },
+  "input": {
+    "check": "gap-trace",
+    "steps": [
+      {
+        "event": {
+          "item": {
+            "seq": 1,
+            "class": "application"
+          }
+        }
+      },
+      {
+        "event": {
+          "item": {
+            "seq": 3,
+            "class": "handshake"
+          }
+        }
+      },
+      {
+        "event": {
+          "advance": 299
+        }
+      },
+      {
+        "event": {
+          "advance": 1
+        }
+      },
+      {
+        "event": {
+          "item": {
+            "seq": 2,
+            "class": "application"
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "process": 1
+          }
+        ],
+        "state": {
+          "contiguous": 1,
+          "held": []
+        }
+      },
+      {
+        "emit": [
+          {
+            "hold": 3
+          }
+        ],
+        "state": {
+          "contiguous": 1,
+          "held": [
+            3
+          ]
+        }
+      },
+      {
+        "emit": [],
+        "state": {
+          "contiguous": 1,
+          "held": [
+            3
+          ]
+        }
+      },
+      {
+        "emit": [
+          {
+            "rejoin": {
+              "held": [
+                3
+              ]
+            }
+          }
+        ],
+        "state": {
+          "contiguous": 3,
+          "held": []
+        }
+      },
+      {
+        "emit": [
+          {
+            "duplicate": 2
+          }
+        ],
+        "state": {
+          "contiguous": 3,
+          "held": []
+        }
+      }
+    ]
+  }
+}

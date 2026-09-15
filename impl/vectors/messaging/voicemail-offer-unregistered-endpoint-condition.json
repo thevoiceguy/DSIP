@@ -1,0 +1,25 @@
+{
+  "vector": "messaging/voicemail-offer-unregistered-endpoint-condition",
+  "format": 1,
+  "kind": "messaging",
+  "description": "An unregistered endpoint.* condition falls back to its category and offers (endpoint state prevented the call, like busy or unavailable).",
+  "spec_ref": [
+    "M§13.2"
+  ],
+  "context": {},
+  "input": {
+    "check": "voicemail-offer",
+    "voicemail": {
+      "max_duration_s": 180
+    },
+    "can_send": true,
+    "outcome": {
+      "type": "reject",
+      "reason": "endpoint.do-not-disturb"
+    }
+  },
+  "expect": {
+    "offer": true,
+    "max_duration_s": 180
+  }
+}

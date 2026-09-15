@@ -509,6 +509,233 @@ class Mailbox:
                 "key_packages": {dv: dict(k) for dv, k in sorted(self.kp.items())}}
 
 
+# ---------------------------------------------------------------- tranche 2: client rules (M§6.5, M§7.2, M§7.5, M§10, M§11, M§13.2)
+
+VOICEMAIL_REJECT_REASONS = {"user.no-answer", "user.declined", "endpoint.busy", "endpoint.unavailable"}  # M§13.2
+MEDIA_KINDS = ("audio", "video")
+DELIVERED_MAX_GROUP = 32      # M§10.2: no delivered receipts in larger groups
+RECEIPT_MAX_TARGETS = 256     # M§10.2
+READ_MIN_INTERVAL_S = 5       # M§10.3
+ACTIVITY_REFRESH_S = 5        # M§11.2
+GAP_TIMEOUT_S = 300           # M§6.5
+
+
+def voicemail_offer(inp: dict) -> dict:
+    """M§13.2: may the caller's client offer to record a voicemail after this attempt outcome?"""
+    from .registry import REASONS
+    vm = inp.get("voicemail")
+    if not isinstance(vm, dict) or not inp.get("can_send"):
+        return {"offer": False}
+    out = inp.get("outcome", {})
+    t, reason = out.get("type"), out.get("reason", "")
+    if t == "reject":
+        ok = reason in VOICEMAIL_REJECT_REASONS or (reason not in REASONS and reason.split(".")[0] == "endpoint")
+    else:
+        ok = t == "cancel" and reason == "session.timeout"
+    if not ok:
+        return {"offer": False}
+    res = {"offer": True}
+    if "max_duration_s" in vm:
+        res["max_duration_s"] = vm["max_duration_s"]
+    return res
+
+
+def select_direct(candidates: list) -> dict:
+    """M§7.2: converge on the lowest conversation ULID, after the §20.6 consistency check."""
+    kept, discarded = [], []
+    for c in candidates:
+        conv = c["conversation"]
+        if not U.is_valid(conv) or abs(U.timestamp_ms(conv) // 1000 - c["issued_at"]) > ULID_TOLERANCE_S:
+            discarded.append(conv)
+        else:
+            kept.append(conv)
+    return {"winner": min(kept) if kept else None, "discarded": discarded}
+
+
+def check_successor(inp: dict) -> dict:
+    """M§7.5: a successor is accepted only from a predecessor member re-adding predecessor members."""
+    pred = set(inp["predecessor_roster"])
+    if inp["creator"] in pred and set(inp["roster"]) <= pred:
+        return accept()
+    return reject("successor-invalid")
+
+
+def select_successor(candidates: list) -> dict:
+    """M§7.5: lowest group_id wins, compared as the decoded ULID, not as base64url text."""
+    from .crypto import b64url_decode
+    kept, discarded = [], []
+    for g in candidates:
+        try:
+            u = b64url_decode(g).decode("ascii")
+        except (ValueError, UnicodeDecodeError):
+            u = None
+        if u is not None and U.is_valid(u):
+            kept.append((u, g))
+        else:
+            discarded.append(g)
+    return {"winner": min(kept)[1] if kept else None, "discarded": discarded}
+
+
+class Client:
+    """One device's view of one conversation: receipt collapse, watermarks, and what it sends (M§10, M§11)."""
+
+    def __init__(self, ctx: dict):
+        self.now = ctx["now"]
+        self.me = ctx["me"]
+        self.policy = ctx.get("policy", {})
+        self.members = ctx.get("member_identities", 2)
+        self.content: dict[str, dict] = {}      # id -> {sender, seq, kind}
+        self.timeline: list[str] = []
+        self.delivered: dict[str, dict] = {}
+        self.played: dict[str, dict] = {}
+        self.read_seq: dict[str, int] = {}
+        self.read_through: dict[str, str] = {}
+        self.sent_delivered: set[str] = set()
+        self.sent_played: set[str] = set()
+        self.last_read_sent: int | None = None
+        self.pending_read = False
+        self.last_activity: dict[str, int] = {}
+
+    def step(self, ev: dict) -> list:
+        (name, e), = ev.items()
+        return getattr(self, "_" + name)(e)
+
+    def _sync(self, e: dict) -> list:
+        fresh = []
+        for it in e["items"]:
+            o, seq = it["object"], it["seq"]
+            if o["object"] == "content":
+                if o["id"] in self.content:  # M§8.5: duplicates collapse silently
+                    continue
+                self.content[o["id"]] = {"sender": o["sender"], "seq": seq, "kind": o["kind"]}
+                self.timeline.append(o["id"])
+                fresh.append(o["id"])
+            elif o["object"] == "receipt":
+                self._receipt(o)
+        out = []
+        if self.policy.get("delivered") and self.members <= DELIVERED_MAX_GROUP:
+            # M§10.2: the whole batch is processed first, so a sibling's receipt in it suppresses ours
+            targets = [i for i in fresh if self.content[i]["sender"] != self.me
+                       and self.me not in self.delivered.get(i, {}) and i not in self.sent_delivered]
+            for k in range(0, len(targets), RECEIPT_MAX_TARGETS):
+                chunk = targets[k:k + RECEIPT_MAX_TARGETS]
+                out.append({"send": {"to": "conversation", "receipt": "delivered", "targets": chunk}})
+            self.sent_delivered |= set(targets)
+        return out
+
+    def _receipt(self, o: dict) -> None:
+        kind, who = o["kind"], o["sender"]
+        if kind in ("delivered", "played"):
+            book = self.delivered if kind == "delivered" else self.played
+            for t in o.get("targets", []):
+                c = self.content.get(t)
+                if c is None or c["sender"] == who:  # the content's own identity does not receipt itself
+                    continue
+                if kind == "played" and c["kind"] not in MEDIA_KINDS:
+                    continue
+                book.setdefault(t, {}).setdefault(who, o["sent_at"])  # first by seq wins
+        elif kind == "read":
+            c = self.content.get(o.get("through"))
+            if c is not None and c["seq"] > self.read_seq.get(who, 0):  # M§10.3: monotone
+                self.read_seq[who], self.read_through[who] = c["seq"], o["through"]
+
+    def _read_send(self) -> list:
+        self.last_read_sent, self.pending_read = self.now, False
+        to = "conversation" if self.policy.get("read") else "personal"  # M§10.5
+        return [{"send": {"to": to, "receipt": "read", "through": self.read_through[self.me]}}]
+
+    def _read(self, e: dict) -> list:
+        c = self.content.get(e["through"])
+        if c is None or c["seq"] <= self.read_seq.get(self.me, 0):
+            return []
+        self.read_seq[self.me], self.read_through[self.me] = c["seq"], e["through"]
+        if self.last_read_sent is not None and self.now - self.last_read_sent < READ_MIN_INTERVAL_S:
+            self.pending_read = True
+            return []
+        return self._read_send()
+
+    def _advance(self, n: int) -> list:
+        self.now += n
+        if self.pending_read and self.now - self.last_read_sent >= READ_MIN_INTERVAL_S:
+            return self._read_send()
+        return []
+
+    def _play(self, e: dict) -> list:
+        i = e["id"]
+        c = self.content.get(i)
+        if (c is None or c["kind"] not in MEDIA_KINDS or not self.policy.get("played")
+                or self.me in self.played.get(i, {}) or i in self.sent_played):
+            return []
+        self.sent_played.add(i)
+        return [{"send": {"to": "conversation", "receipt": "played", "targets": [i]}}]
+
+    def _activity(self, e: dict) -> list:
+        if not self.policy.get("activity"):  # M§11.2: same opt-in as read receipts
+            return []
+        a, state = e["activity"], e["state"]
+        if state == "active":
+            last = self.last_activity.get(a)
+            if last is not None and self.now - last < ACTIVITY_REFRESH_S:
+                return []
+            self.last_activity[a] = self.now
+        else:
+            self.last_activity.pop(a, None)
+        return [{"send": {"to": "conversation", "activity": a, "state": state}}]
+
+    def snapshot(self) -> dict:
+        return {"timeline": list(self.timeline),
+                "delivered": {i: dict(m) for i, m in sorted(self.delivered.items()) if m},
+                "played": {i: dict(m) for i, m in sorted(self.played.items()) if m},
+                "read_through": dict(sorted(self.read_through.items()))}
+
+
+class GapTracker:
+    """M§6.5: a device holds handshake items (and anything after them) across a seq gap; rejoin on timeout."""
+
+    def __init__(self, ctx: dict):
+        self.now = ctx["now"]
+        self.contiguous = ctx.get("contiguous", 0)
+        self.seen: set[int] = set()
+        self.held: list[int] = []
+        self.gap_since: int | None = None
+
+    def step(self, ev: dict) -> list:
+        if "advance" in ev:
+            self.now += ev["advance"]
+            if self.held and self.now - self.gap_since >= GAP_TIMEOUT_S:
+                out = [{"rejoin": {"held": list(self.held)}}]
+                self.contiguous = max(self.held + list(self.seen))
+                self.seen.clear()
+                self.held, self.gap_since = [], None
+                return out
+            return []
+        it = ev["item"]
+        seq, cls = it["seq"], it["class"]
+        if seq <= self.contiguous or seq in self.seen:
+            return [{"duplicate": seq}]
+        self.seen.add(seq)
+        out = []
+        blocked = cls == "handshake" and seq > self.contiguous + 1
+        if blocked or (self.held and seq > self.held[0]):
+            self.held = sorted(self.held + [seq])
+            if self.gap_since is None:
+                self.gap_since = self.now
+            out.append({"hold": seq})
+        else:
+            out.append({"process": seq})
+        while self.contiguous + 1 in self.seen:
+            self.contiguous += 1
+            self.seen.discard(self.contiguous)
+        while self.held and self.held[0] <= self.contiguous:
+            out.append({"process": self.held.pop(0)})
+        if not self.held:
+            self.gap_since = None
+        return out
+
+    def snapshot(self) -> dict:
+        return {"contiguous": self.contiguous, "held": list(self.held)}
+
+
 # ---------------------------------------------------------------- runner
 
 def run(v: dict) -> dict:
@@ -523,8 +750,16 @@ def run(v: dict) -> dict:
         return check_object(inp["object"], v["context"])
     if check == "conversation-ext":
         return check_conversation_ext(inp["extension"])
-    if check in ("hub-trace", "mailbox-trace"):
-        comp = (Hub if check == "hub-trace" else Mailbox)(v["context"])
+    if check == "voicemail-offer":
+        return voicemail_offer(inp)
+    if check == "direct-select":
+        return select_direct(inp["candidates"])
+    if check == "successor-check":
+        return check_successor(inp)
+    if check == "successor-select":
+        return select_successor(inp["candidates"])
+    if check in ("hub-trace", "mailbox-trace", "client-trace", "gap-trace"):
+        comp = {"hub-trace": Hub, "mailbox-trace": Mailbox, "client-trace": Client, "gap-trace": GapTracker}[check](v["context"])
         steps = []
         for st in inp["steps"]:
             emit = comp.step(st["event"])

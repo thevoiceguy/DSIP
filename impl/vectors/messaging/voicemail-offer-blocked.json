@@ -1,0 +1,24 @@
+{
+  "vector": "messaging/voicemail-offer-blocked",
+  "format": 1,
+  "kind": "messaging",
+  "description": "user.blocked never offers voicemail.",
+  "spec_ref": [
+    "M§13.2"
+  ],
+  "context": {},
+  "input": {
+    "check": "voicemail-offer",
+    "voicemail": {
+      "max_duration_s": 180
+    },
+    "can_send": true,
+    "outcome": {
+      "type": "reject",
+      "reason": "user.blocked"
+    }
+  },
+  "expect": {
+    "offer": false
+  }
+}

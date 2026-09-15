@@ -1,0 +1,22 @@
+{
+  "vector": "messaging/voicemail-offer-no-max-duration",
+  "format": 1,
+  "kind": "messaging",
+  "description": "An advertisement without max_duration_s still offers, with no duration bound in the result.",
+  "spec_ref": [
+    "M§13.2"
+  ],
+  "context": {},
+  "input": {
+    "check": "voicemail-offer",
+    "voicemail": {},
+    "can_send": true,
+    "outcome": {
+      "type": "reject",
+      "reason": "user.no-answer"
+    }
+  },
+  "expect": {
+    "offer": true
+  }
+}

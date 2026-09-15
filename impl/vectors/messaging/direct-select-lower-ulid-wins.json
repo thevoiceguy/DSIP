@@ -1,0 +1,27 @@
+{
+  "vector": "messaging/direct-select-lower-ulid-wins",
+  "format": 1,
+  "kind": "messaging",
+  "description": "Two concurrent direct conversations converge on the lower ULID.",
+  "spec_ref": [
+    "M§7.2"
+  ],
+  "context": {},
+  "input": {
+    "check": "direct-select",
+    "candidates": [
+      {
+        "conversation": "01K742SG00A32NMBFVPVPMW8QT",
+        "issued_at": 1760000000
+      },
+      {
+        "conversation": "01K742SE1GGTG24AGR83HW1PTW",
+        "issued_at": 1759999998
+      }
+    ]
+  },
+  "expect": {
+    "winner": "01K742SE1GGTG24AGR83HW1PTW",
+    "discarded": []
+  }
+}

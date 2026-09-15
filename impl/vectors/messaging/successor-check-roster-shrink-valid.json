@@ -1,0 +1,26 @@
+{
+  "vector": "messaging/successor-check-roster-shrink-valid",
+  "format": 1,
+  "kind": "messaging",
+  "description": "A successor may omit predecessor members.",
+  "spec_ref": [
+    "M§7.5"
+  ],
+  "context": {},
+  "input": {
+    "check": "successor-check",
+    "predecessor_roster": [
+      "did:web:alice.example",
+      "did:web:example.com:users:bob",
+      "did:web:carol.example"
+    ],
+    "creator": "did:web:example.com:users:bob",
+    "roster": [
+      "did:web:alice.example",
+      "did:web:example.com:users:bob"
+    ]
+  },
+  "expect": {
+    "verdict": "accept"
+  }
+}

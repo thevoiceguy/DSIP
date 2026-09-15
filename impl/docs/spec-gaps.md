@@ -481,8 +481,8 @@ by implementing. They are the choices the profile draft makes before implementat
 decisions taken 2026-09-15: companion profile, MLS plus HPKE, SYNC history by default, groups in
 1.0. Every row is **open** until the profile text and its vectors agree; "draft choice" is what the profile
 text says today. Tranche 1 of `messaging/` (101 vectors, 2026-09-15: message/object rules, hub
-and mailbox traces) pins gaps 34–36, 38, 40 and 43 at Rust/Python parity; client traces (receipt
-collapse, watermarks, conversation glare, voicemail offer) are tranche 2. Gap 31 is a v0.7 defect in its own right and does not depend on messaging.
+and mailbox traces) pins gaps 34–36, 38, 40 and 43 at Rust/Python parity. Tranche 2 (46 vectors: voicemail offer, conversation and successor
+convergence, client receipts/watermarks/activity, seq gaps) pins 41 and 42. Gap 31 is a v0.7 defect in its own right and does not depend on messaging.
 
 | # | sections | draft choice | pinned by |
 |---|---|---|---|
@@ -496,8 +496,8 @@ collapse, watermarks, conversation glare, voicemail offer) are tranche 2. Gap 31
 | 38 | §15.1 | new reason category `mailbox` | `messaging/deposit-unknown-class-refused`, `messaging/mailbox-*` error tokens |
 | 39 | §7.4, §24.2 | delegation capability `dsip.messaging` + a delegation-capability registry | — |
 | 40 | §13.2 | `MAX_MLS_BYTES` = 24,576; blobs over HTTPS | `messaging/deposit-mls-at-cap-accepted`, `messaging/deposit-mls-over-cap-refused` |
-| 41 | §12, §14 | caller-recorded voicemail; trigger set; no core field | — |
-| 42 | §12.6, §20.6 | duplicate direct conversations / successor groups: lower ULID wins | — (client traces, tranche 2) |
+| 41 | §12, §14 | caller-recorded voicemail; trigger set; no core field | `messaging/voicemail-offer-*` (16) |
+| 42 | §12.6, §20.6 | duplicate direct conversations / successor groups: lower ULID wins | `messaging/direct-select-*`, `messaging/successor-*` |
 | 43 | (new; M§11) | activity keyed by the MLS exporter, not the secret tree | `messaging/deposit-ephemeral-*`, `messaging/hub-ephemeral-*`, `messaging/mailbox-ephemeral-pushed-never-stored` |
 
 ## 31. §12.9 vs §13.3 / §19.4 — the replay window rejects held envelopes
@@ -702,7 +702,9 @@ the service plaintext audio. (c) (a) plus a new `reject` field to suppress or pe
 attempt, a core schema change.
 
 **Draft choice.** (a) (M§13). (b) remains permitted outside the profile's guarantee. (c) is not
-adopted in 1.0.
+adopted in 1.0. Vectors (2026-09-15) added the unregistered-token rule the list left open: an
+unregistered `endpoint.*` rejection offers by category fallback; an unregistered condition in any other
+category does not, and registered tokens outside the list (e.g. `endpoint.capability`) never do.
 
 **Suggested fix.** Adopt in the profile; no core change.
 
@@ -718,7 +720,9 @@ lexicographically lower identity DID wins, which is deterministic but permanentl
 identities.
 
 **Draft choice.** (a) (M§7.2, M§7.5). Backdating wins only hub hosting (metadata visibility), and
-the §20.6 tripwire is restated for any future hosting privilege.
+the §20.6 tripwire is restated for any future hosting privilege. Vectors (2026-09-15) pin two details:
+a candidate failing the ULID/`issued_at` check cannot win, and successor `group_id`s compare as
+decoded ULIDs, because base64url text does not sort like the ULID it encodes.
 
 **Suggested fix.** Adopt in the profile; cite §20.6.
 

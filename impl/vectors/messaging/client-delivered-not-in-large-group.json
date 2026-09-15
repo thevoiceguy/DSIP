@@ -1,0 +1,59 @@
+{
+  "vector": "messaging/client-delivered-not-in-large-group",
+  "format": 1,
+  "kind": "messaging",
+  "description": "No delivered receipts in groups over 32 member identities.",
+  "spec_ref": [
+    "M§10.2"
+  ],
+  "context": {
+    "component": "client",
+    "me": "did:web:example.com:users:bob",
+    "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+    "now": 1760000000,
+    "member_identities": 33,
+    "policy": {
+      "delivered": true,
+      "read": false,
+      "played": false,
+      "activity": false
+    }
+  },
+  "input": {
+    "check": "client-trace",
+    "steps": [
+      {
+        "event": {
+          "sync": {
+            "items": [
+              {
+                "seq": 1,
+                "object": {
+                  "object": "content",
+                  "id": "01K742SG000ZJTETD6Q8F0473W",
+                  "sender": "did:web:alice.example",
+                  "kind": "text"
+                }
+              }
+            ]
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [],
+        "state": {
+          "timeline": [
+            "01K742SG000ZJTETD6Q8F0473W"
+          ],
+          "delivered": {},
+          "played": {},
+          "read_through": {}
+        }
+      }
+    ]
+  }
+}

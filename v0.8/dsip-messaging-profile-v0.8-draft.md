@@ -593,10 +593,12 @@ The hub MUST:
 A committing member MUST NOT apply its own commit until it holds the hub's `accepted`. On
 `mailbox.commit-conflict` it syncs, processes the winning commit, and re-proposes if still needed.
 
-A device that sees a `seq` gap for a group MUST NOT process later **handshake** items until the gap
-fills. If it does not fill within `gap_timeout` (RECOMMENDED 300 s after a later item arrives), the
-device re-joins by external commit (M§6.8). Application items across a gap within an epoch remain
-decryptable.
+A device that sees a `seq` gap for a group MUST NOT process a **handshake** item beyond the gap, or
+any item after a held one, until the gap fills. Application items beyond a gap with no held
+handshake before them are processed (within an epoch they remain decryptable). If the gap does not
+fill within `gap_timeout` (RECOMMENDED 300 s) of the first item being held, the device re-joins by
+external commit (M§6.8) and treats every seq up to the highest it has seen as passed; a missing item
+arriving later is a duplicate.
 
 **What the hub cannot do** (MLS guarantees, not policy): read content, forge content, add or remove
 members, or change the hub without a member's signed commit. **What it can do:** withhold or delay
@@ -673,8 +675,8 @@ concurrently, two exist for one identity pair. Each client MUST converge on the 
 the winner, and leaves the loser once its own pending content is re-sent. As in §20.6, the ULID
 timestamp is sender-chosen, so a party can backdate to win. The only asymmetry is which identity's
 mailbox hosts the hub (metadata visibility, M§15.1). Receivers MUST apply the §20.6 ULID/`issued_at`
-consistency check to the creating deposit, and any future feature that attaches privilege to
-hosting MUST re-evaluate this rule (the §20.6 tripwire).
+consistency check to the creating deposit; a conversation that fails it cannot win. Any future feature
+that attaches privilege to hosting MUST re-evaluate this rule (the §20.6 tripwire).
 
 ### M§7.3 Group conversations and membership
 
@@ -712,10 +714,11 @@ own primary mailbox as hub, the dead group's last known roster (by identity) add
 - Member mailboxes accept the resulting `welcome` without a grant if `successor_of` names a group
   registered for their owner (M§6.6).
 - Receiving clients MUST verify that the successor's creator was a member of the predecessor and
-  that every added identity was in the predecessor's last roster. Otherwise they MUST treat it as a
-  new conversation subject to normal first contact (M§14).
-- If several successors appear, clients converge on the one with the lowest `group_id` ULID (same
-  rule as M§7.2).
+  that every added identity was in the predecessor's last roster (a successor may omit members, never
+  add them). Otherwise they MUST treat it as a new conversation subject to normal first contact (M§14).
+- If several successors appear, clients converge on the one with the lowest `group_id`, compared as
+  the decoded ULID, not as its base64url text, whose sort order differs (same rule as M§7.2). A
+  `group_id` that does not decode to a ULID cannot win.
 
 ## M§8 Content
 
@@ -888,9 +891,12 @@ A `receipt` object is an MLS application message to the conversation group:
 - `delivered` means some device of the recipient identity has decrypted and stored the target.
 - It is **identity-level**. A device MUST NOT send `delivered` for a target for which it has already
   seen a `delivered` from any device of its own identity. Its sibling devices are group members and
-  see those receipts. Concurrent duplicates still occur, so receivers MUST collapse receipts by
-  (identity, `kind`, target) and take the timestamp of the lowest `seq`.
-- `targets` holds at most 256 ids, which allows batching after a sync.
+  see those receipts. A device decides after processing a whole sync batch (a live push is a batch of
+  one), so a sibling's receipt later in the same batch suppresses its own; it then sends one receipt
+  covering every remaining new item from other identities. Concurrent duplicates still occur, so
+  receivers MUST collapse receipts by (identity, `kind`, target) and take the timestamp of the lowest
+  `seq`. A receipt from the identity that sent the target content is ignored.
+- `targets` holds at most 256 ids; more targets are split across receipts.
 - In group conversations with more than 32 member identities, clients SHOULD NOT send `delivered`.
 
 ### M§10.3 Read: a per-conversation watermark
@@ -898,15 +904,18 @@ A `receipt` object is an MLS application message to the conversation group:
 - `kind: read` carries `through` (a content id) instead of `targets`. It means the identity has read
   every content item in the conversation up to and including the `seq` of `through`.
 - A watermark is monotone: receivers ignore one that does not advance past the identity's current
-  watermark.
+  watermark, and one whose `through` names content they do not hold.
 - Because it is identity-level and monotone, reading on the phone and then on the desktop yields
   one deterministic state, satisfying multi-device reconciliation without per-device read receipts.
-- Clients SHOULD send at most one read watermark per conversation per 5 s.
+- Clients SHOULD send at most one read watermark per conversation per 5 s. A read inside the interval
+  is not sent; when the interval passes, the client sends its latest watermark once. A local read at
+  or below the identity's current watermark (including one a sibling device set) sends nothing.
 
 ### M§10.4 Played
 
-`kind: played` with `targets` applies to `audio` and `video` content, including voicemail. It is
-identity-level and collapsed like `delivered`.
+`kind: played` with `targets` applies to `audio` and `video` content, including voicemail; receivers
+ignore it for other kinds. It is identity-level, sent at most once per target, and collapsed like
+`delivered`.
 
 ### M§10.5 Privacy
 
@@ -951,7 +960,9 @@ encrypts it with AES-256-GCM under `activity_key`: random 12-byte nonce, AAD = `
 ### M§11.2 Lifetime
 
 - The carrying deposit's `expires_at − issued_at` MUST NOT exceed 10 s.
-- A sender refreshes at most every 5 s while the activity continues and MAY send `stopped`.
+- A sender refreshes at most every 5 s while the activity continues (an `active` for the same activity
+  within 5 s of the last one sent is not sent) and MAY send `stopped`, which is always sent and resets
+  the interval.
 - A receiver MUST clear the indicator when no refresh arrives before the last one's `expires_at`.
 - Hubs and mailboxes MUST NOT store `ephemeral` deposits: they push to currently bound devices and
   otherwise drop them, and they MUST drop them at `expires_at`. An offline user never receives stale
@@ -1058,7 +1069,10 @@ hold:
    - the caller's own `cancel` `session.timeout` (T-Establish or T-Ring expiry, §12.9)
 
 It MUST NOT offer voicemail after `user.blocked`, any `policy.*`, `identity.*`, or `media.*` reason,
-or `session.answered-elsewhere`.
+`session.answered-elsewhere`, or any other registered token not listed above (e.g.
+`endpoint.capability`). An **unregistered** rejection token falls back by category (§15.1): an
+`endpoint.*` condition offers (endpoint state prevented the call, like busy or unavailable); an
+unregistered condition in any other category does not, because it may be block-like.
 
 - Recording MUST stop at `voicemail.max_duration_s`.
 - The object carries `session` (the invite `id`) and `duration_ms`.
@@ -1267,7 +1281,9 @@ stated above; none is a closed enum (CLAUDE.md engineering rule).
 
 **Vectors.** Conformance is pinned by a `messaging/` category, written before code. Tranche 1
 (101 vectors, 2026-09-15, Rust/Python parity) covers message and object rules, hub traces and
-mailbox traces; client traces and MLS encoding vectors follow. The full plan:
+mailbox traces; tranche 2 (46 vectors) covers the voicemail offer, conversation and successor
+convergence, client receipt/watermark/activity traces, and seq-gap handling. MLS encoding vectors
+follow. The full plan:
 
 - payload shapes for every message type and content object
 - mailbox and hub state traces: sequencing, commit conflict, stale epoch, idempotent re-deposit,

@@ -1,0 +1,88 @@
+{
+  "vector": "messaging/client-read-disclosed-goes-to-conversation",
+  "format": 1,
+  "kind": "messaging",
+  "description": "With read receipts opted in, the watermark goes to the conversation group.",
+  "spec_ref": [
+    "M§10.5",
+    "M§10.3"
+  ],
+  "context": {
+    "component": "client",
+    "me": "did:web:example.com:users:bob",
+    "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+    "now": 1760000000,
+    "member_identities": 2,
+    "policy": {
+      "delivered": false,
+      "read": true,
+      "played": false,
+      "activity": false
+    }
+  },
+  "input": {
+    "check": "client-trace",
+    "steps": [
+      {
+        "event": {
+          "sync": {
+            "items": [
+              {
+                "seq": 1,
+                "object": {
+                  "object": "content",
+                  "id": "01K742SG000ZJTETD6Q8F0473W",
+                  "sender": "did:web:alice.example",
+                  "kind": "text"
+                }
+              }
+            ]
+          }
+        }
+      },
+      {
+        "event": {
+          "read": {
+            "through": "01K742SG000ZJTETD6Q8F0473W"
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [],
+        "state": {
+          "timeline": [
+            "01K742SG000ZJTETD6Q8F0473W"
+          ],
+          "delivered": {},
+          "played": {},
+          "read_through": {}
+        }
+      },
+      {
+        "emit": [
+          {
+            "send": {
+              "to": "conversation",
+              "receipt": "read",
+              "through": "01K742SG000ZJTETD6Q8F0473W"
+            }
+          }
+        ],
+        "state": {
+          "timeline": [
+            "01K742SG000ZJTETD6Q8F0473W"
+          ],
+          "delivered": {},
+          "played": {},
+          "read_through": {
+            "did:web:example.com:users:bob": "01K742SG000ZJTETD6Q8F0473W"
+          }
+        }
+      }
+    ]
+  }
+}

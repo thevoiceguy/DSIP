@@ -1,0 +1,87 @@
+{
+  "vector": "messaging/client-receipts-collapse-first-by-seq",
+  "format": 1,
+  "kind": "messaging",
+  "description": "Duplicate delivered receipts from one identity collapse; the first by seq keeps its timestamp.",
+  "spec_ref": [
+    "M§10.2"
+  ],
+  "context": {
+    "component": "client",
+    "me": "did:web:alice.example",
+    "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+    "now": 1760000000,
+    "member_identities": 2,
+    "policy": {
+      "delivered": false,
+      "read": false,
+      "played": false,
+      "activity": false
+    }
+  },
+  "input": {
+    "check": "client-trace",
+    "steps": [
+      {
+        "event": {
+          "sync": {
+            "items": [
+              {
+                "seq": 1,
+                "object": {
+                  "object": "content",
+                  "id": "01K742SG000ZJTETD6Q8F0473W",
+                  "sender": "did:web:alice.example",
+                  "kind": "text"
+                }
+              },
+              {
+                "seq": 2,
+                "object": {
+                  "object": "receipt",
+                  "kind": "delivered",
+                  "sender": "did:web:example.com:users:bob",
+                  "sent_at": 1760000001,
+                  "targets": [
+                    "01K742SG000ZJTETD6Q8F0473W"
+                  ]
+                }
+              },
+              {
+                "seq": 3,
+                "object": {
+                  "object": "receipt",
+                  "kind": "delivered",
+                  "sender": "did:web:example.com:users:bob",
+                  "sent_at": 1760000002,
+                  "targets": [
+                    "01K742SG000ZJTETD6Q8F0473W"
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [],
+        "state": {
+          "timeline": [
+            "01K742SG000ZJTETD6Q8F0473W"
+          ],
+          "delivered": {
+            "01K742SG000ZJTETD6Q8F0473W": {
+              "did:web:example.com:users:bob": 1760000001
+            }
+          },
+          "played": {},
+          "read_through": {}
+        }
+      }
+    ]
+  }
+}

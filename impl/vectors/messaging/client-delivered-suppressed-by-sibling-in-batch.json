@@ -1,0 +1,95 @@
+{
+  "vector": "messaging/client-delivered-suppressed-by-sibling-in-batch",
+  "format": 1,
+  "kind": "messaging",
+  "description": "A sibling device's delivered receipt later in the same batch suppresses this device's receipt for that item.",
+  "spec_ref": [
+    "M§10.2"
+  ],
+  "context": {
+    "component": "client",
+    "me": "did:web:example.com:users:bob",
+    "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+    "now": 1760000000,
+    "member_identities": 2,
+    "policy": {
+      "delivered": true,
+      "read": false,
+      "played": false,
+      "activity": false
+    }
+  },
+  "input": {
+    "check": "client-trace",
+    "steps": [
+      {
+        "event": {
+          "sync": {
+            "items": [
+              {
+                "seq": 1,
+                "object": {
+                  "object": "content",
+                  "id": "01K742SG000ZJTETD6Q8F0473W",
+                  "sender": "did:web:alice.example",
+                  "kind": "text"
+                }
+              },
+              {
+                "seq": 2,
+                "object": {
+                  "object": "content",
+                  "id": "01K742SG00MXS791W8S1ZXMFDN",
+                  "sender": "did:web:alice.example",
+                  "kind": "text"
+                }
+              },
+              {
+                "seq": 3,
+                "object": {
+                  "object": "receipt",
+                  "kind": "delivered",
+                  "sender": "did:web:example.com:users:bob",
+                  "sent_at": 1760000000,
+                  "targets": [
+                    "01K742SG000ZJTETD6Q8F0473W"
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "send": {
+              "to": "conversation",
+              "receipt": "delivered",
+              "targets": [
+                "01K742SG00MXS791W8S1ZXMFDN"
+              ]
+            }
+          }
+        ],
+        "state": {
+          "timeline": [
+            "01K742SG000ZJTETD6Q8F0473W",
+            "01K742SG00MXS791W8S1ZXMFDN"
+          ],
+          "delivered": {
+            "01K742SG000ZJTETD6Q8F0473W": {
+              "did:web:example.com:users:bob": 1760000000
+            }
+          },
+          "played": {},
+          "read_through": {}
+        }
+      }
+    ]
+  }
+}

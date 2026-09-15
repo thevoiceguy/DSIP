@@ -1,0 +1,24 @@
+{
+  "vector": "messaging/voicemail-offer-unregistered-user-condition",
+  "format": 1,
+  "kind": "messaging",
+  "description": "An unregistered user.* condition does not offer (conservative: it may be block-like).",
+  "spec_ref": [
+    "M§13.2"
+  ],
+  "context": {},
+  "input": {
+    "check": "voicemail-offer",
+    "voicemail": {
+      "max_duration_s": 180
+    },
+    "can_send": true,
+    "outcome": {
+      "type": "reject",
+      "reason": "user.stepped-out"
+    }
+  },
+  "expect": {
+    "offer": false
+  }
+}

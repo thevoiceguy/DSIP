@@ -1,0 +1,61 @@
+{
+  "vector": "messaging/gap-in-order",
+  "format": 1,
+  "kind": "messaging",
+  "description": "Items in seq order are processed as they arrive.",
+  "spec_ref": [
+    "M§6.5"
+  ],
+  "context": {
+    "component": "gap",
+    "now": 1760000000,
+    "contiguous": 0
+  },
+  "input": {
+    "check": "gap-trace",
+    "steps": [
+      {
+        "event": {
+          "item": {
+            "seq": 1,
+            "class": "handshake"
+          }
+        }
+      },
+      {
+        "event": {
+          "item": {
+            "seq": 2,
+            "class": "application"
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "process": 1
+          }
+        ],
+        "state": {
+          "contiguous": 1,
+          "held": []
+        }
+      },
+      {
+        "emit": [
+          {
+            "process": 2
+          }
+        ],
+        "state": {
+          "contiguous": 2,
+          "held": []
+        }
+      }
+    ]
+  }
+}

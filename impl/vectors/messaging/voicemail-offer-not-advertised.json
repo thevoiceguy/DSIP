@@ -1,0 +1,22 @@
+{
+  "vector": "messaging/voicemail-offer-not-advertised",
+  "format": 1,
+  "kind": "messaging",
+  "description": "No voicemail advertisement in the callee's DSIPMailbox entry: no offer.",
+  "spec_ref": [
+    "M§13.2"
+  ],
+  "context": {},
+  "input": {
+    "check": "voicemail-offer",
+    "voicemail": null,
+    "can_send": true,
+    "outcome": {
+      "type": "reject",
+      "reason": "user.no-answer"
+    }
+  },
+  "expect": {
+    "offer": false
+  }
+}

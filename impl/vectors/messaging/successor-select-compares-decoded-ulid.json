@@ -1,0 +1,21 @@
+{
+  "vector": "messaging/successor-select-compares-decoded-ulid",
+  "format": 1,
+  "kind": "messaging",
+  "description": "Concurrent successors converge on the lowest group_id compared as the decoded ULID; here the base64url text sorts the other way.",
+  "spec_ref": [
+    "M§7.5"
+  ],
+  "context": {},
+  "input": {
+    "check": "successor-select",
+    "candidates": [
+      "MDFLNzQyU0cwME5OMUJWMVhXMEFaWFcyUDY",
+      "MDFLNzQyU0cwMEg2TkhHMTBLM1RSMkNGV1M"
+    ]
+  },
+  "expect": {
+    "winner": "MDFLNzQyU0cwMEg2TkhHMTBLM1RSMkNGV1M",
+    "discarded": []
+  }
+}
