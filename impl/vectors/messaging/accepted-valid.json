@@ -1,0 +1,36 @@
+{
+  "vector": "messaging/accepted-valid",
+  "format": 1,
+  "kind": "messaging",
+  "description": "Hub acceptance with seq.",
+  "spec_ref": [
+    "M§5.3"
+  ],
+  "context": {},
+  "input": {
+    "check": "message",
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "messaging/1.0"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "accepted",
+      "id": "01K742SG001G2G47SXH8QYY2A4",
+      "from": "did:web:mbx.alice.example",
+      "to": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+      "in_reply_to": "01K742SG00J3DENTFY56PR9Y3S",
+      "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+      "seq": 42,
+      "issued_at": 1760000000,
+      "expires_at": 1760000030
+    }
+  },
+  "expect": {
+    "verdict": "accept"
+  }
+}

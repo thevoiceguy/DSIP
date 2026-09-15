@@ -1,0 +1,34 @@
+{
+  "vector": "messaging/content-unknown-kind-without-blob-is-unsupported",
+  "format": 1,
+  "kind": "messaging",
+  "description": "Unknown kind with no blob renders as an unsupported-message placeholder.",
+  "spec_ref": [
+    "M§8.2"
+  ],
+  "context": {
+    "conversation": "01K742SG00AX1F6HVTRWBW227R",
+    "conversation_kind": "direct",
+    "leaf_identity": "did:web:alice.example"
+  },
+  "input": {
+    "check": "object",
+    "object": {
+      "object": "content",
+      "id": "01K742SG00FHWQGZJ5KY55HFF2",
+      "conversation": "01K742SG00AX1F6HVTRWBW227R",
+      "sender": "did:web:alice.example",
+      "sent_at": 1760000000,
+      "kind": "poll",
+      "purpose": "message",
+      "question": "Pizza?"
+    }
+  },
+  "expect": {
+    "verdict": "accept",
+    "effective": {
+      "kind": "unsupported",
+      "purpose": "message"
+    }
+  }
+}

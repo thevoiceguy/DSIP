@@ -16,6 +16,7 @@ from .broadcast import Authority, Subscriber, evaluate_provenance, select_varian
 from . import binding as BINDING
 from . import gateway as GATEWAY
 from . import trust as TRUST
+from . import messaging as MESSAGING
 from .verdict import Verdict
 
 IMPL_ROOT = Path(__file__).resolve().parents[2]
@@ -219,6 +220,8 @@ def run_vector(v: dict) -> Result:
             actual = GATEWAY.run(v)
         elif kind == "trust":
             actual = TRUST.run(v)
+        elif kind == "messaging":
+            actual = MESSAGING.run(v)
         else:
             return Result(v["vector"], False, v["expect"], None, note=f"unknown kind {kind}")
     except Exception as e:  # a crash is a failure, never a pass

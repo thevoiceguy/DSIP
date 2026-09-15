@@ -1,0 +1,39 @@
+{
+  "vector": "messaging/content-blob-key-wrong-length",
+  "format": 1,
+  "kind": "messaging",
+  "description": "A blob key is exactly 32 bytes (43 base64url characters).",
+  "spec_ref": [
+    "M§8.4"
+  ],
+  "context": {
+    "conversation": "01K742SG00AX1F6HVTRWBW227R",
+    "conversation_kind": "direct",
+    "leaf_identity": "did:web:alice.example"
+  },
+  "input": {
+    "check": "object",
+    "object": {
+      "object": "content",
+      "id": "01K742SG00T15KFP6PB9XXY09A",
+      "conversation": "01K742SG00AX1F6HVTRWBW227R",
+      "sender": "did:web:alice.example",
+      "sent_at": 1760000000,
+      "kind": "audio",
+      "purpose": "voice-message",
+      "duration_ms": 5000,
+      "blob": {
+        "uri": "https://mbx.alice.example/blobs/9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+        "sha256": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+        "size": 482220,
+        "key": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwd",
+        "alg": "A256GCM",
+        "content_type": "audio/ogg; codecs=opus"
+      }
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "schema-invalid"
+  }
+}

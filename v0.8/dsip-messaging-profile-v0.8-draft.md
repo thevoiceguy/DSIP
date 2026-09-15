@@ -221,10 +221,18 @@ The profile separates **carriage** from **content**:
 rides in the protected header `delegations` array (§7.4) whenever the receiver may not hold it.
 
 **Size constant.** `MAX_MLS_BYTES` = **24,576**. A receiver MUST refuse an `mls`, `welcome`,
-`group_info`, or `archive` value whose decoded length exceeds it (`mailbox.object-too-large`).
+`group_info`, `sealed`, or `archive` value whose decoded length exceeds it
+(`mailbox.object-too-large`). The decoded length is computed from the base64url text as
+⌊length × 3 / 4⌋, so decoders that differ on non-canonical trailing bits cannot disagree about the
+limit (the alphabet itself is a schema check).
 Double base64url expansion (value inside payload) keeps every envelope carrying one such value,
 plus a header delegation, under the 65,536-byte `ws/1.0` cap (§13.2). Anything larger is a blob
 (M§8.4).
+
+**Refusals** of profile messages that break these rules, in the order a receiver checks them:
+schema, then lifetime (over 60 s; over 10 s for `ephemeral`), then for a deposit the class
+(unregistered → `mailbox.unsupported-class`), the class field table below, and the size constant.
+Schemas: `v0.8/dsip-messaging-schemas-draft/` (generated; normative for shape).
 
 ### M§5.2 `deposit`
 
@@ -392,7 +400,9 @@ The mailbox is its owners' MLS KeyPackage directory.
 
 The mailbox MUST verify that each KeyPackage's leaf credential names the uploading device and
 satisfies M§6.2, and answers `accepted`. It keeps at most a bounded number per device
-(RECOMMENDED 100) and exactly one `last_resort` per device (the newest replaces the older).
+(RECOMMENDED 100) and exactly one `last_resort` per device (the newest replaces the older). A
+`key-packages` message MUST carry at least one KeyPackage, and an upload from a device that is not a
+registered device of the owner is refused `policy.blocked`.
 
 **Fetch** — any identity's device asks for a target's KeyPackages:
 
@@ -556,11 +566,16 @@ The hub MUST:
 
 1. **Authenticate depositors.** Accept a `handshake` or `application` deposit only from a device
    whose identity currently has at least one leaf in the group, or (for a `handshake` external
-   commit) from a joiner authorized by M§6.8.
+   commit) from a joiner authorized by M§6.8; refuse others with `policy.blocked`. A hub orders only
+   `handshake`, `application` and `ephemeral` deposits; any other class is refused
+   `mailbox.unsupported-class`.
 2. **Order commits.** Track the group's epoch and public tree from the commits it accepts. For the
    current epoch *e*, accept the **first** commit that validates (framing signature by a current
    member leaf, M§7.3 authorization, credentials per M§6.2); assign it the next `seq`; advance to
-   *e + 1*. Refuse any later commit for *e* with `mailbox.commit-conflict`.
+   *e + 1*. Refuse any later commit for *e* (which now arrives at epoch *e + 1*) with
+   `mailbox.commit-conflict`, a commit that fails validation or M§7.3 with `policy.blocked`, and any
+   handshake message for another epoch with `mailbox.stale-epoch`. A standalone proposal for the
+   current epoch is sequenced and fanned out without advancing the epoch.
 3. **Bound staleness.** Accept application messages for epoch *e* or *e − 1*; refuse older ones with
    `mailbox.stale-epoch`. Discard pending standalone proposals when the epoch advances.
 4. **Sequence.** Assign every accepted `handshake` and `application` item a `seq`: a per-group
@@ -569,7 +584,9 @@ The hub MUST:
 5. **Fan out in order.** Deposit each item, with its `seq`, to the primary mailbox of every member
    identity (including the sender's own identity, which is how a user's other devices see sent
    messages), and for a commit that removes identities, to those identities too. Deliver to each
-   mailbox in `seq` order, retrying an unacknowledged deposit before sending later ones.
+   mailbox in `seq` order, retrying an unacknowledged deposit before sending later ones. A commit
+   that adds identities also sends a `welcome` to each added identity; a commit that is an external
+   join sends none, since the joiner joined by its own commit.
 6. **Keep only what ordering needs.** The hub retains the epoch, the public tree, the latest
    GroupInfo, and its retry queue. It is not a history store.
 
@@ -591,7 +608,8 @@ A mailbox accepts hub fan-out only for groups registered for its owner:
 
 - Accepting a valid `welcome` deposit (authorized per M§14.2) registers `(group, hub)` as
   **pending**. A pending group admits hub deposits up to a bounded size (RECOMMENDED 1 MiB, 500
-  items).
+  items); beyond it the mailbox refuses `mailbox.quota-exceeded`. A hub deposit is admitted only
+  from the hub registered for the group.
 - An owner device confirms with `mailbox-config` `groups[].state: joined`, or ends it with `left`.
   An unconfirmed pending group is dropped, with its items, after `pending_group_ttl`
   (RECOMMENDED 604,800 s).
@@ -937,7 +955,8 @@ encrypts it with AES-256-GCM under `activity_key`: random 12-byte nonce, AAD = `
 - A receiver MUST clear the indicator when no refresh arrives before the last one's `expires_at`.
 - Hubs and mailboxes MUST NOT store `ephemeral` deposits: they push to currently bound devices and
   otherwise drop them, and they MUST drop them at `expires_at`. An offline user never receives stale
-  activity.
+  activity. A hub forwards activity to the member identities **other than the sender's** (the
+  sender's own devices have no use for it), assigns no `seq`, and sends no `accepted`.
 - Activity is subject to the same opt-in rule as `read` receipts (M§10.5).
 - Activity is lower-assurance by design: it is authenticated by device signature and confidential
   to the group for the epoch, but not forward-secret within an epoch. It never carries content.
@@ -1198,7 +1217,8 @@ re-sync, retry once, then surface the failure.
 | `mailbox.object-too-large` | A value exceeds `MAX_MLS_BYTES`, or a blob exceeds `max_blob_bytes` | error |
 | `mailbox.quota-exceeded` | The owner's quota is exhausted; `retry_after` MAY be present | error |
 | `mailbox.no-key-packages` | No KeyPackage or last resort is available for any device of the target | error |
-| `mailbox.unsupported-class` | Unknown deposit `class`, or one the owner's mode refuses | error |
+| `mailbox.unsupported-class` | Unknown deposit `class`, or one the receiver (hub, or the owner's mode) refuses | error |
+| `mailbox.unsupported-mode` | `mailbox-config.mode` is not a registered mode; nothing is changed | error |
 
 Existing tokens used unchanged: `policy.first-contact-required`, `policy.blocked`,
 `policy.rate-limited`, `transport.unknown-recipient`, `transport.envelope-too-large`.
@@ -1245,7 +1265,9 @@ stated above; none is a closed enum (CLAUDE.md engineering rule).
 - implement M§7.4, the M§8.4 blob endpoint, M§9.3 idempotence, the M§11.2 non-storage rule, the
   M§12.2 archive rules, M§14.2 authorization, and M§16
 
-**Vectors.** Conformance is pinned by a `messaging/` category, to be written before code:
+**Vectors.** Conformance is pinned by a `messaging/` category, written before code. Tranche 1
+(101 vectors, 2026-09-15, Rust/Python parity) covers message and object rules, hub traces and
+mailbox traces; client traces and MLS encoding vectors follow. The full plan:
 
 - payload shapes for every message type and content object
 - mailbox and hub state traces: sequencing, commit conflict, stale epoch, idempotent re-deposit,

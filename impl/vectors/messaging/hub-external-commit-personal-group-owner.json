@@ -1,0 +1,72 @@
+{
+  "vector": "messaging/hub-external-commit-personal-group-owner",
+  "format": 1,
+  "kind": "messaging",
+  "description": "The owner may re-join its own personal group by external commit even with no surviving leaf.",
+  "spec_ref": [
+    "M§6.8",
+    "M§7.1"
+  ],
+  "context": {
+    "component": "hub",
+    "hub": "did:web:mbx.alice.example",
+    "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+    "kind": "personal",
+    "now": 1760000000,
+    "epoch": 1,
+    "roster": {},
+    "owner": "did:web:example.com:users:bob"
+  },
+  "input": {
+    "check": "hub-trace",
+    "steps": [
+      {
+        "event": {
+          "deposit": {
+            "id": "01K742SG00WD3KP7RB2G8DRMFP",
+            "device": "did:key:z6MkBobTablet",
+            "identity": "did:web:example.com:users:bob",
+            "class": "handshake",
+            "epoch": 1,
+            "digest": "ext-own",
+            "commit": {
+              "external": true,
+              "adds": [
+                {
+                  "identity": "did:web:example.com:users:bob",
+                  "device": "did:key:z6MkBobTablet"
+                }
+              ],
+              "removes": []
+            }
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "accepted": {
+              "to": "did:key:z6MkBobTablet",
+              "in_reply_to": "01K742SG00WD3KP7RB2G8DRMFP",
+              "seq": 1
+            }
+          }
+        ],
+        "state": {
+          "epoch": 2,
+          "next_seq": 2,
+          "roster": {
+            "did:web:example.com:users:bob": [
+              "did:key:z6MkBobTablet"
+            ]
+          },
+          "pending": {}
+        }
+      }
+    ]
+  }
+}

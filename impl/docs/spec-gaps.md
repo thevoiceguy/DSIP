@@ -479,24 +479,26 @@ authority rule.
 (`v0.8/dsip-messaging-profile-v0.8-draft.md`, cited M§n). Unlike gaps 1–30, these were not found
 by implementing. They are the choices the profile draft makes before implementation, per the
 decisions taken 2026-09-15: companion profile, MLS plus HPKE, SYNC history by default, groups in
-1.0. Every row is **open** until a `messaging/` vector pins it; "draft choice" is what the profile
-text says today. Gap 31 is a v0.7 defect in its own right and does not depend on messaging.
+1.0. Every row is **open** until the profile text and its vectors agree; "draft choice" is what the profile
+text says today. Tranche 1 of `messaging/` (101 vectors, 2026-09-15: message/object rules, hub
+and mailbox traces) pins gaps 34–36, 38, 40 and 43 at Rust/Python parity; client traces (receipt
+collapse, watermarks, conversation glare, voicemail offer) are tranche 2. Gap 31 is a v0.7 defect in its own right and does not depend on messaging.
 
 | # | sections | draft choice | pinned by |
 |---|---|---|---|
 | 31 | §12.9, §13.3, §19.4 | **adopted in the PoC** (2026-09-15): type-scoped validity for held introductions + enforced 7-day cap (**v0.7 defect**) | `envelope/introduction-held-*` (3), `envelope/introduction-future-rejected`, `envelope/introduction-validity-over-cap` |
-| 32 | §3.2, §6.1, §12.1, §24.4 | adopt → **Messaging Profile 1.0** + **Mailbox 1.0** conformance pieces | — (vectors pending) |
+| 32 | §3.2, §6.1, §12.1, §24.4 | adopt → **Messaging Profile 1.0** + **Mailbox 1.0** conformance pieces | `messaging/*` (101, tranche 1) |
 | 33 | §6.2, §20.7 | MLS for conversations, HPKE for sealed introductions; non-repudiation stated | — |
-| 34 | (new; M§6.5) | per-group hub orders MLS commits | — |
-| 35 | (new; M§12) | archive key in the personal group; `sync` default, `queue` opt-out | — |
-| 36 | §19.4 | `dsip.message` scope; `sealed` introductions; grant-gated group adds; invite-grantee voicemail | — |
+| 34 | (new; M§6.5) | per-group hub orders MLS commits | `messaging/hub-*` (19) |
+| 35 | (new; M§12) | archive key in the personal group; `sync` default, `queue` opt-out | `messaging/mailbox-archive-*`, `messaging/mailbox-sync-mode-retains-after-ack`, `messaging/mailbox-queue-mode-*` |
+| 36 | §19.4 | `dsip.message` scope; `sealed` introductions; grant-gated group adds; invite-grantee voicemail | `messaging/mailbox-welcome-*` (11), `messaging/mailbox-key-package-fetch-unauthorized` |
 | 37 | §8.1, §13.2, DHT Hints | `DSIPMailbox` service type; hint `service`; priority-ordered multiple mailboxes | — |
-| 38 | §15.1 | new reason category `mailbox` | — |
+| 38 | §15.1 | new reason category `mailbox` | `messaging/deposit-unknown-class-refused`, `messaging/mailbox-*` error tokens |
 | 39 | §7.4, §24.2 | delegation capability `dsip.messaging` + a delegation-capability registry | — |
-| 40 | §13.2 | `MAX_MLS_BYTES` = 24,576; blobs over HTTPS | — |
+| 40 | §13.2 | `MAX_MLS_BYTES` = 24,576; blobs over HTTPS | `messaging/deposit-mls-at-cap-accepted`, `messaging/deposit-mls-over-cap-refused` |
 | 41 | §12, §14 | caller-recorded voicemail; trigger set; no core field | — |
-| 42 | §12.6, §20.6 | duplicate direct conversations / successor groups: lower ULID wins | — |
-| 43 | (new; M§11) | activity keyed by the MLS exporter, not the secret tree | — |
+| 42 | §12.6, §20.6 | duplicate direct conversations / successor groups: lower ULID wins | — (client traces, tranche 2) |
+| 43 | (new; M§11) | activity keyed by the MLS exporter, not the secret tree | `messaging/deposit-ephemeral-*`, `messaging/hub-ephemeral-*`, `messaging/mailbox-ephemeral-pushed-never-stored` |
 
 ## 31. §12.9 vs §13.3 / §19.4 — the replay window rejects held envelopes
 

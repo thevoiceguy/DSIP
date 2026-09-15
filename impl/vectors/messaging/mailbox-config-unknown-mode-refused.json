@@ -1,0 +1,38 @@
+{
+  "vector": "messaging/mailbox-config-unknown-mode-refused",
+  "format": 1,
+  "kind": "messaging",
+  "description": "An unregistered mailbox mode is refused.",
+  "spec_ref": [
+    "M§4.4",
+    "M§16"
+  ],
+  "context": {},
+  "input": {
+    "check": "message",
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "messaging/1.0"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "mailbox-config",
+      "id": "01K742SG005PDBE0A6T4NQ7R87",
+      "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+      "to": "did:web:mbx.bob.example",
+      "subject": "did:web:example.com:users:bob",
+      "mode": "archive-forever",
+      "issued_at": 1760000000,
+      "expires_at": 1760000030
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "mailbox-mode-unsupported",
+    "reason": "mailbox.unsupported-mode"
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "vector": "messaging/content-location-valid",
+  "format": 1,
+  "kind": "messaging",
+  "description": "Location uses integer degrees × 10⁷.",
+  "spec_ref": [
+    "M§8.2",
+    "§10.3"
+  ],
+  "context": {
+    "conversation": "01K742SG00AX1F6HVTRWBW227R",
+    "conversation_kind": "direct",
+    "leaf_identity": "did:web:alice.example"
+  },
+  "input": {
+    "check": "object",
+    "object": {
+      "object": "content",
+      "id": "01K742SG00VXFQ8GKN24EBYRTJ",
+      "conversation": "01K742SG00AX1F6HVTRWBW227R",
+      "sender": "did:web:alice.example",
+      "sent_at": 1760000000,
+      "kind": "location",
+      "purpose": "message",
+      "lat_e7": 430481000,
+      "lon_e7": -761474000,
+      "accuracy_m": 20
+    }
+  },
+  "expect": {
+    "verdict": "accept",
+    "effective": {
+      "kind": "location",
+      "purpose": "message"
+    }
+  }
+}

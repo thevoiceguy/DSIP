@@ -1,0 +1,35 @@
+{
+  "vector": "messaging/content-reaction-valid",
+  "format": 1,
+  "kind": "messaging",
+  "description": "Reaction: one emoji replying to a target.",
+  "spec_ref": [
+    "M§8.2"
+  ],
+  "context": {
+    "conversation": "01K742SG00AX1F6HVTRWBW227R",
+    "conversation_kind": "direct",
+    "leaf_identity": "did:web:alice.example"
+  },
+  "input": {
+    "check": "object",
+    "object": {
+      "object": "content",
+      "id": "01K742SG00SCSR8GKE82YBXK8X",
+      "conversation": "01K742SG00AX1F6HVTRWBW227R",
+      "sender": "did:web:alice.example",
+      "sent_at": 1760000000,
+      "kind": "text",
+      "purpose": "reaction",
+      "text": "👍",
+      "reply_to": "01K742SG000ZJTETD6Q8F0473W"
+    }
+  },
+  "expect": {
+    "verdict": "accept",
+    "effective": {
+      "kind": "text",
+      "purpose": "reaction"
+    }
+  }
+}

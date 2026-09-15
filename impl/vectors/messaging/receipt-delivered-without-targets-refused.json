@@ -1,0 +1,29 @@
+{
+  "vector": "messaging/receipt-delivered-without-targets-refused",
+  "format": 1,
+  "kind": "messaging",
+  "description": "delivered names its targets.",
+  "spec_ref": [
+    "M§10.2"
+  ],
+  "context": {
+    "conversation": "01K742SG00AX1F6HVTRWBW227R",
+    "conversation_kind": "direct",
+    "leaf_identity": "did:web:alice.example"
+  },
+  "input": {
+    "check": "object",
+    "object": {
+      "object": "receipt",
+      "id": "01K742SG00501D078XMM3J4GWJ",
+      "conversation": "01K742SG00AX1F6HVTRWBW227R",
+      "sender": "did:web:alice.example",
+      "sent_at": 1760000000,
+      "kind": "delivered"
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "receipt-shape"
+  }
+}

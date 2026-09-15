@@ -1,0 +1,40 @@
+{
+  "vector": "messaging/deposit-archive-missing-akid",
+  "format": 1,
+  "kind": "messaging",
+  "description": "An archive item without its archive key id cannot be decrypted later.",
+  "spec_ref": [
+    "M§5.2",
+    "M§12.2"
+  ],
+  "context": {},
+  "input": {
+    "check": "message",
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "messaging/1.0"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "deposit",
+      "id": "01K742SG005GJMVRX7JCH2Y5ZH",
+      "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+      "to": "did:web:mbx.bob.example",
+      "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+      "class": "archive",
+      "archive": "YXJjaGl2ZQ",
+      "ref_group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+      "ref_seq": 42,
+      "issued_at": 1760000000,
+      "expires_at": 1760000030
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "deposit-fields"
+  }
+}

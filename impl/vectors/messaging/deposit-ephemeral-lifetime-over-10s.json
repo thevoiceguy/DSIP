@@ -1,0 +1,37 @@
+{
+  "vector": "messaging/deposit-ephemeral-lifetime-over-10s",
+  "format": 1,
+  "kind": "messaging",
+  "description": "Ephemeral activity may not outlive 10 s on the wire.",
+  "spec_ref": [
+    "M§11.2"
+  ],
+  "context": {},
+  "input": {
+    "check": "message",
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "messaging/1.0"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "deposit",
+      "id": "01K742SG00J3DENTFY56PR9Y3S",
+      "from": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+      "to": "did:web:mbx.alice.example",
+      "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+      "class": "ephemeral",
+      "sealed": "c2VhbGVkLWFjdGl2aXR5",
+      "issued_at": 1760000000,
+      "expires_at": 1760000011
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "lifetime-exceeded"
+  }
+}

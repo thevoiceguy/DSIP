@@ -1,0 +1,38 @@
+{
+  "vector": "messaging/deposit-application-with-archive-refused",
+  "format": 1,
+  "kind": "messaging",
+  "description": "An application deposit may not carry archive fields.",
+  "spec_ref": [
+    "M§5.2"
+  ],
+  "context": {},
+  "input": {
+    "check": "message",
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "messaging/1.0"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "deposit",
+      "id": "01K742SG00J3DENTFY56PR9Y3S",
+      "from": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+      "to": "did:web:mbx.alice.example",
+      "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+      "class": "application",
+      "mls": "AAFtbHMtbWVzc2FnZQ",
+      "archive": "YXJjaGl2ZQ",
+      "issued_at": 1760000000,
+      "expires_at": 1760000030
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "deposit-fields"
+  }
+}

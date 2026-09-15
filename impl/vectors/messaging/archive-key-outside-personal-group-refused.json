@@ -1,0 +1,27 @@
+{
+  "vector": "messaging/archive-key-outside-personal-group-refused",
+  "format": 1,
+  "kind": "messaging",
+  "description": "An archive key in a direct conversation would disclose it to the peer.",
+  "spec_ref": [
+    "M§12.1"
+  ],
+  "context": {
+    "conversation": "01K742SG00AX1F6HVTRWBW227R",
+    "conversation_kind": "direct",
+    "leaf_identity": "did:web:alice.example"
+  },
+  "input": {
+    "check": "object",
+    "object": {
+      "object": "archive-key",
+      "akid": "01K742SG00FGJFA787KKTJ1Z45",
+      "key": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+      "created_at": 1760000000
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "personal-group-only"
+  }
+}

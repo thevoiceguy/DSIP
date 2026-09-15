@@ -1,0 +1,36 @@
+{
+  "vector": "messaging/content-text-valid",
+  "format": 1,
+  "kind": "messaging",
+  "description": "Plain text message.",
+  "spec_ref": [
+    "M§8.1",
+    "M§8.2"
+  ],
+  "context": {
+    "conversation": "01K742SG00AX1F6HVTRWBW227R",
+    "conversation_kind": "direct",
+    "leaf_identity": "did:web:alice.example"
+  },
+  "input": {
+    "check": "object",
+    "object": {
+      "object": "content",
+      "id": "01K742SG000ZJTETD6Q8F0473W",
+      "conversation": "01K742SG00AX1F6HVTRWBW227R",
+      "sender": "did:web:alice.example",
+      "sent_at": 1760000000,
+      "kind": "text",
+      "purpose": "message",
+      "content_type": "text/plain",
+      "text": "Dinner at 7?"
+    }
+  },
+  "expect": {
+    "verdict": "accept",
+    "effective": {
+      "kind": "text",
+      "purpose": "message"
+    }
+  }
+}

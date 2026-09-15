@@ -1,0 +1,41 @@
+{
+  "vector": "messaging/content-unknown-kind-with-blob-is-file",
+  "format": 1,
+  "kind": "messaging",
+  "description": "Unknown kind carrying a blob is offered as a file.",
+  "spec_ref": [
+    "M§8.2"
+  ],
+  "context": {
+    "conversation": "01K742SG00AX1F6HVTRWBW227R",
+    "conversation_kind": "direct",
+    "leaf_identity": "did:web:alice.example"
+  },
+  "input": {
+    "check": "object",
+    "object": {
+      "object": "content",
+      "id": "01K742SG00KN921RQR0920VQJ5",
+      "conversation": "01K742SG00AX1F6HVTRWBW227R",
+      "sender": "did:web:alice.example",
+      "sent_at": 1760000000,
+      "kind": "hologram",
+      "purpose": "message",
+      "blob": {
+        "uri": "https://mbx.alice.example/blobs/9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+        "sha256": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+        "size": 482220,
+        "key": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+        "alg": "A256GCM",
+        "content_type": "model/gltf-binary"
+      }
+    }
+  },
+  "expect": {
+    "verdict": "accept",
+    "effective": {
+      "kind": "file",
+      "purpose": "message"
+    }
+  }
+}
