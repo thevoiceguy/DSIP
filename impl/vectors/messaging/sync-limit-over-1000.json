@@ -1,0 +1,36 @@
+{
+  "vector": "messaging/sync-limit-over-1000",
+  "format": 1,
+  "kind": "messaging",
+  "description": "sync.limit is capped at 1000.",
+  "spec_ref": [
+    "M§5.4"
+  ],
+  "context": {},
+  "input": {
+    "check": "message",
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "messaging/1.0"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "sync",
+      "id": "01K742SG005JWNKT5MAZXREYYJ",
+      "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+      "to": "did:web:mbx.bob.example",
+      "since": null,
+      "limit": 1001,
+      "issued_at": 1760000000,
+      "expires_at": 1760000030
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "schema-invalid"
+  }
+}

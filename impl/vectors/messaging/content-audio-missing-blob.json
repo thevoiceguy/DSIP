@@ -1,0 +1,31 @@
+{
+  "vector": "messaging/content-audio-missing-blob",
+  "format": 1,
+  "kind": "messaging",
+  "description": "Audio content must carry its blob and duration.",
+  "spec_ref": [
+    "M§8.2"
+  ],
+  "context": {
+    "conversation": "01K742SG00AX1F6HVTRWBW227R",
+    "conversation_kind": "direct",
+    "leaf_identity": "did:web:alice.example"
+  },
+  "input": {
+    "check": "object",
+    "object": {
+      "object": "content",
+      "id": "01K742SG009ASSTXEF0BCXZ9G5",
+      "conversation": "01K742SG00AX1F6HVTRWBW227R",
+      "sender": "did:web:alice.example",
+      "sent_at": 1760000000,
+      "kind": "audio",
+      "purpose": "voice-message",
+      "duration_ms": 5000
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "content-body"
+  }
+}

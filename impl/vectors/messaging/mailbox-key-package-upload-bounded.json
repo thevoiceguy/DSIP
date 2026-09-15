@@ -1,0 +1,71 @@
+{
+  "vector": "messaging/mailbox-key-package-upload-bounded",
+  "format": 1,
+  "kind": "messaging",
+  "description": "A mailbox keeps at most 100 one-time KeyPackages per device.",
+  "spec_ref": [
+    "M§5.5"
+  ],
+  "context": {
+    "component": "mailbox",
+    "mailbox": "did:web:mbx.bob.example",
+    "owner": "did:web:example.com:users:bob",
+    "serves": [
+      "did:web:example.com:users:bob"
+    ],
+    "devices": [
+      "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ",
+      "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+    ],
+    "now": 1760000000,
+    "mode": "sync",
+    "admit": "grant",
+    "pending_group_ttl": 604800,
+    "pending_group_max_items": 2,
+    "groups": {},
+    "key_packages": {
+      "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn": {
+        "one_time": 90,
+        "last_resort": false
+      }
+    }
+  },
+  "input": {
+    "check": "mailbox-trace",
+    "steps": [
+      {
+        "event": {
+          "kp_upload": {
+            "id": "01K742SG00TAD7YQWQXKGQYEWH",
+            "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "count": 20
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "accepted": {
+              "to": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+              "in_reply_to": "01K742SG00TAD7YQWQXKGQYEWH"
+            }
+          }
+        ],
+        "state": {
+          "items": [],
+          "groups": {},
+          "key_packages": {
+            "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn": {
+              "one_time": 100,
+              "last_resort": false
+            }
+          }
+        }
+      }
+    ]
+  }
+}

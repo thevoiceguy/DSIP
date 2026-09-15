@@ -1,0 +1,75 @@
+{
+  "vector": "messaging/mailbox-key-package-fetch-unauthorized",
+  "format": 1,
+  "kind": "messaging",
+  "description": "A fetch without authorization is refused and consumes nothing.",
+  "spec_ref": [
+    "M§5.5",
+    "M§14.2"
+  ],
+  "context": {
+    "component": "mailbox",
+    "mailbox": "did:web:mbx.bob.example",
+    "owner": "did:web:example.com:users:bob",
+    "serves": [
+      "did:web:example.com:users:bob"
+    ],
+    "devices": [
+      "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ",
+      "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+    ],
+    "now": 1760000000,
+    "mode": "sync",
+    "admit": "grant",
+    "pending_group_ttl": 604800,
+    "pending_group_max_items": 2,
+    "groups": {},
+    "key_packages": {
+      "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn": {
+        "one_time": 3,
+        "last_resort": true
+      }
+    }
+  },
+  "input": {
+    "check": "mailbox-trace",
+    "steps": [
+      {
+        "event": {
+          "kp_fetch": {
+            "id": "01K742SG00G687MHBKVSG7M9EP",
+            "from": "did:key:z6MkrQ4CKj5x3MGbqmYBbfSXyh865wpvDStxi3HeGvfyJw8H",
+            "from_identity": "did:web:mallory.example",
+            "target": "did:web:example.com:users:bob",
+            "grant": null
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "error": {
+              "to": "did:key:z6MkrQ4CKj5x3MGbqmYBbfSXyh865wpvDStxi3HeGvfyJw8H",
+              "in_reply_to": "01K742SG00G687MHBKVSG7M9EP",
+              "reason": "policy.first-contact-required"
+            }
+          }
+        ],
+        "state": {
+          "items": [],
+          "groups": {},
+          "key_packages": {
+            "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn": {
+              "one_time": 3,
+              "last_resort": true
+            }
+          }
+        }
+      }
+    ]
+  }
+}

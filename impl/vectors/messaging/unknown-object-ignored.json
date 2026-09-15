@@ -1,0 +1,27 @@
+{
+  "vector": "messaging/unknown-object-ignored",
+  "format": 1,
+  "kind": "messaging",
+  "description": "Unknown object types are ignored.",
+  "spec_ref": [
+    "M§8.1"
+  ],
+  "context": {
+    "conversation": "01K742SG00AX1F6HVTRWBW227R",
+    "conversation_kind": "direct",
+    "leaf_identity": "did:web:alice.example"
+  },
+  "input": {
+    "check": "object",
+    "object": {
+      "object": "poll-vote",
+      "choice": 2
+    }
+  },
+  "expect": {
+    "verdict": "accept",
+    "effective": {
+      "render": "ignore"
+    }
+  }
+}

@@ -1,0 +1,91 @@
+{
+  "vector": "messaging/mailbox-trace-config-unknown-mode-refused",
+  "format": 1,
+  "kind": "messaging",
+  "description": "An unregistered mode is refused and nothing changes.",
+  "spec_ref": [
+    "M§4.4",
+    "M§16"
+  ],
+  "context": {
+    "component": "mailbox",
+    "mailbox": "did:web:mbx.bob.example",
+    "owner": "did:web:example.com:users:bob",
+    "serves": [
+      "did:web:example.com:users:bob"
+    ],
+    "devices": [
+      "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ",
+      "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+    ],
+    "now": 1760000000,
+    "mode": "sync",
+    "admit": "grant",
+    "pending_group_ttl": 604800,
+    "pending_group_max_items": 2,
+    "groups": {},
+    "key_packages": {}
+  },
+  "input": {
+    "check": "mailbox-trace",
+    "steps": [
+      {
+        "event": {
+          "config": {
+            "id": "01K742SG00CRGV1XBJ61930SY8",
+            "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "mode": "forever"
+          }
+        }
+      },
+      {
+        "event": {
+          "archive": {
+            "id": "01K742SG007787506H6S5JPGG1",
+            "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "ref_group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+            "ref_seq": 1
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "error": {
+              "to": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+              "in_reply_to": "01K742SG00CRGV1XBJ61930SY8",
+              "reason": "mailbox.unsupported-mode"
+            }
+          }
+        ],
+        "state": {
+          "items": [],
+          "groups": {},
+          "key_packages": {}
+        }
+      },
+      {
+        "emit": [
+          {
+            "accepted": {
+              "to": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+              "in_reply_to": "01K742SG007787506H6S5JPGG1",
+              "cursor": "c:0000000000000001"
+            }
+          }
+        ],
+        "state": {
+          "items": [
+            "c:0000000000000001"
+          ],
+          "groups": {},
+          "key_packages": {}
+        }
+      }
+    ]
+  }
+}

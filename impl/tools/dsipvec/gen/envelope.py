@@ -191,6 +191,32 @@ def vectors() -> list[dict]:
              "issued_at": NOW, "expires_at": NOW + 604800}
     out.append(env_vector("introduction-valid-7-day", "Introduction with the maximum 7-day validity.", ["§19.4"],
                           signed(intro, "carol-phone"), accept(type="introduction", signer=F.did("carol-phone"), identity=F.did("carol-phone"))))
+    # --- held introductions (§19.4 validity vs §12.9 window; Impl: spec-gap 31)
+    held_at = NOW - 172800  # held two days by the recipient's relay (§13.3)
+    held = {**intro, "id": uid("intro-held", held_at), "issued_at": held_at, "expires_at": held_at + 604800}
+    carol = F.did("carol-phone")
+    out.append(env_vector("introduction-held-accepted",
+                          "Introduction delivered two days after signing, inside its 7-day validity: the 300 s age bound "
+                          "does not apply to introductions (Impl: spec-gap 31).", ["§19.4", "§12.9", "§13.3"],
+                          signed(held, "carol-phone"), accept(type="introduction", signer=carol, identity=carol)))
+    out.append(env_vector("introduction-held-replayed",
+                          "A held introduction whose id was already seen is a duplicate: introduction ids are tracked "
+                          "until expires_at, not for 300 s (Impl: spec-gap 31).", ["§19.4", "§12.9"],
+                          signed(held, "carol-phone"), reject("duplicate-id"), ctx=default_context(seen_ids=[held["id"]])))
+    stale_at = NOW - 604900
+    stale = {**intro, "id": uid("intro-stale", stale_at), "issued_at": stale_at, "expires_at": stale_at + 604800}
+    out.append(env_vector("introduction-held-expired",
+                          "Held introduction delivered after its expires_at is rejected as expired.", ["§19.4", "§12.9"],
+                          signed(stale, "carol-phone"), reject("expired")))
+    fut_intro = {**intro, "id": uid("intro-future", NOW + 301), "issued_at": NOW + 301, "expires_at": NOW + 301 + 604800}
+    out.append(env_vector("introduction-future-rejected",
+                          "The future bound of the replay window still applies to introductions (Impl: spec-gap 31).",
+                          ["§19.4", "§12.9"], signed(fut_intro, "carol-phone"), reject("replay-window")))
+    over = {**intro, "id": uid("intro-over"), "expires_at": NOW + 604801}
+    out.append(env_vector("introduction-validity-over-cap",
+                          "Introduction validity one second over the 604,800 s cap is rejected: the cap bounds how long "
+                          "its id stays replay-tracked (Impl: spec-gap 31).", ["§19.4", "§12.9"],
+                          signed(over, "carol-phone"), reject("introduction-validity")))
     big = {**intro, "identity": {"display_name": "Carol", "claims": [{"blob": "x" * 4000}]}}
     out.append(env_vector("introduction-too-large", "Encoded introduction envelope exceeds the 4,096-byte core constant.", ["§19.4"],
                           signed(big, "carol-phone"), reject("introduction-too-large")))

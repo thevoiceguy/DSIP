@@ -1,0 +1,37 @@
+{
+  "vector": "messaging/deposit-ephemeral-valid",
+  "format": 1,
+  "kind": "messaging",
+  "description": "Ephemeral deposit with sealed activity and a 10 s lifetime.",
+  "spec_ref": [
+    "M§5.2",
+    "M§11.2"
+  ],
+  "context": {},
+  "input": {
+    "check": "message",
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "messaging/1.0"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "deposit",
+      "id": "01K742SG00J3DENTFY56PR9Y3S",
+      "from": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+      "to": "did:web:mbx.alice.example",
+      "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+      "class": "ephemeral",
+      "sealed": "c2VhbGVkLWFjdGl2aXR5",
+      "issued_at": 1760000000,
+      "expires_at": 1760000010
+    }
+  },
+  "expect": {
+    "verdict": "accept"
+  }
+}

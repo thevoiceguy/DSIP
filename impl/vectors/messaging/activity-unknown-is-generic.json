@@ -1,0 +1,30 @@
+{
+  "vector": "messaging/activity-unknown-is-generic",
+  "format": 1,
+  "kind": "messaging",
+  "description": "Unknown activity renders as a generic active indicator.",
+  "spec_ref": [
+    "M§11.1"
+  ],
+  "context": {
+    "conversation": "01K742SG00AX1F6HVTRWBW227R",
+    "conversation_kind": "direct",
+    "leaf_identity": "did:web:alice.example"
+  },
+  "input": {
+    "check": "object",
+    "object": {
+      "object": "activity",
+      "conversation": "01K742SG00AX1F6HVTRWBW227R",
+      "sender": "did:web:alice.example",
+      "state": "active",
+      "activity": "drawing"
+    }
+  },
+  "expect": {
+    "verdict": "accept",
+    "effective": {
+      "activity": "active"
+    }
+  }
+}

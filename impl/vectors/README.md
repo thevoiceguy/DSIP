@@ -20,6 +20,7 @@ vectors/
   envelope/    Signature, header, kid→DID resolution, delegation, replay, ULID/issued_at
   media-binding/ WebRTC Media Binding 1.0 conformance (descriptor/SDP authority, roles, candidates, renegotiation, one answer)
   gateway/     SIP/PSTN gateway (Phase 4): §15.5 reason mapping both ways, SDP ⇄ descriptors, PSTN caller claims, downgrade rule, B2BUA controller traces
+  messaging/   Messaging Profile 1.0 (v0.8 draft, M§n): profile message and content-object rules, hub traces, mailbox traces
   payload/     JSON Schema pass/fail per message type (shape only)
   semantic/    Stateless post-schema checks (schema README list of 11)
   state/       Scripted endpoint and relay state-machine traces (§12)
@@ -94,7 +95,10 @@ implementation under test MUST emit that token when it signals the failure.
 | `delegation-expired` | delegation not valid at `now` (`issued_at ≤ now < expires_at` required) | `transport.hello-rejected` on `hello` |
 | `delegation-capability` | delegation lacks `dsip.signaling` | `transport.hello-rejected` on `hello` |
 | `expiry-order` | `expires_at ≤ issued_at` (check 1) | |
-| `replay-window` | `issued_at` outside `[now − 300, now + 300]` (§12.9, check 1) | |
+| `replay-window` | `issued_at` outside `[now − 300, now + 300]` (§12.9, check 1); for `introduction` only the future bound applies (Impl, spec-gap 31) | |
+| `introduction-validity` | `introduction` with `expires_at − issued_at` > 604,800 s (§19.4; Impl, spec-gap 31) | |
+| `lifetime-exceeded` / `deposit-class-unsupported` / `deposit-fields` / `object-too-large` / `mailbox-mode-unsupported` / `key-packages-empty` | Messaging Profile message rules (M§5; kind `messaging`) | `mailbox.unsupported-class` / — / — / `mailbox.object-too-large` / `mailbox.unsupported-mode` / — |
+| `sender-mismatch` / `conversation-mismatch` / `ulid-sent-at-mismatch` / `personal-group-only` / `content-body` / `reaction-invalid` / `receipt-shape` | Messaging Profile content-object rules (M§8, M§10, M§12; kind `messaging`) | |
 | `expired` | `expires_at < now` (§12.9) | `session.expired` on `invite` |
 | `duplicate-id` | `id` already seen within the replay window (§12.9) | |
 | `ulid-issued-at-mismatch` | ULID timestamp component differs from `issued_at` by more than 300 s (§20.6, check 2) | |
@@ -137,7 +141,7 @@ runs 13 only; `kind: semantic` runs 12–14).
 6. `payload-not-utf8` → `payload-not-json` → `payload-float` → `payload-shape`
 7. `signer-mismatch` / `delegation-*` (binding `kid` to `from`; on `hello` with `on_behalf_of`, additionally binding `from` to `on_behalf_of`)
 8. `expiry-order`
-9. `replay-window` → `expired`
+9. `introduction-validity` (introductions only) → `replay-window` → `expired`
 10. `duplicate-id`
 11. `ulid-issued-at-mismatch`
 11b. `hello-required` (transport binding state: `context.hello_verified` is `false` and the type is not `hello`)
@@ -375,6 +379,27 @@ carry, pinned before the gateway exists. `input.check` selects:
 | `downgrade` | `facts` (`direction`, `trunk_srtp`, `identity_assertable`, `attestation`, `policy_present`) | `{downgraded, lost: [no-srtp-on-trunk \| identity-not-assertable \| no-attestation \| policy-unenforceable]}` (§6.3) |
 | `trace` | `steps` of `{dsip: MSG}` / `{sip: {status}\|{request, …}}` / `{timer: "C"}`; `context.direction`, `context.early_media` | per-step `emit` (what each leg is told: `{sip: "INVITE"\|"ACK"\|"CANCEL"\|{response, direction?, q850?, reason_header?}\|{request, …}}`, `{dsip: {local: …}}`, `{media: bridge\|release}`) and `state: {dsip, sip}` |
 
+## Kind: `messaging`
+
+DSIP Messaging Profile 1.0 (`v0.8/dsip-messaging-profile-v0.8-draft.md`, cited `M§n`), tranche 1.
+Written **before** any implementation. The profile schema set is staged at
+`v0.8/dsip-messaging-schemas-draft/` (generated, freshness-checked like the core set). MLS is
+abstracted: traces carry what a hub or mailbox observes (epoch, commit adds/removes, validity, a
+digest of the MLS bytes), just as relay traces abstract signatures. `input.check` selects:
+
+| check | input | expect |
+|---|---|---|
+| `payload` | `schema`, `payload` | `accept` / `schema-invalid` |
+| `message` | a profile message `payload` | `accept`, or the first failing rule: `unknown-type` → `schema-invalid` → `lifetime-exceeded` (> 60 s; ephemeral > 10 s) → `deposit-class-unsupported` (`mailbox.unsupported-class`) → `deposit-fields` (M§5.2 class table) → `object-too-large` (`mailbox.object-too-large`, decoded length > 24,576 computed as `len·3/4`); `mailbox-mode-unsupported` (`mailbox.unsupported-mode`); `key-packages-empty` |
+| `object` | a decrypted content `object`; `context.conversation`, `conversation_kind`, `leaf_identity` | `payload-float` → unknown object `accept {effective: {render: ignore}}` → `schema-invalid` → `sender-mismatch` → `conversation-mismatch` → `ulid-sent-at-mismatch` (> 300 s) → `personal-group-only`; content: `content-body`, `reaction-invalid`, `accept {effective: {kind, purpose}}` (unknown kind → `file` with a blob, else `unsupported`; unknown purpose → `message`); receipt: `receipt-shape`, `effective.receipt` or `render: ignore`; activity: `effective.activity` (unknown → `active`) |
+| `conversation-ext` | `extension` | `schema-invalid` or `effective.kind` (unknown → `group`) |
+| `hub-trace` | `steps` of `{deposit: {id, device, identity, class, epoch?, digest, commit?: {adds, removes, valid?, external?}, expires_at?}}` / `{ack: {identity, seq}}` / `{advance: s}`; `context.epoch`, `roster`, `kind`, `owner?` | per step `emit` (`accepted {to, in_reply_to, seq, duplicate?}`, `error {to, in_reply_to, reason}`, `fanout {to, seq, class}` / `fanout {to, class: welcome}`, `forward {to, class: ephemeral}`) and `state {epoch, next_seq, roster, pending}` |
+| `mailbox-trace` | `steps` of `welcome`, `hub_deposit`, `sync`, `unbind`, `config`, `archive`, `kp_upload`, `kp_fetch`, `advance`; `context.owner`, `serves`, `devices`, `mode`, `admit`, `groups`, `key_packages`, `pending_group_ttl`, `pending_group_max_items` | per step `emit` (`accepted {to, in_reply_to, cursor?, duplicate?}`, `error`, `items {to, in_reply_to, cursors, next}`, `push {to, cursor}` / `push {to, class: ephemeral}`, `key_packages {to, in_reply_to, devices}`) and `state {items: [cursor], groups: {group: pending\|joined}, key_packages}` |
+
+Trace emission order: `accepted`/`error` first, then fan-out or pushes in identity/device order,
+then welcomes. Cursors are `c:` + 16 lowercase hex digits (Impl). Grants in mailbox traces are
+presented already verified; their signatures are the envelope pipeline's concern.
+
 ## Kind: `dht`
 
 Reachability hint records (§8.3, §8.5; plan §10). Input is a hint envelope,
@@ -411,6 +436,8 @@ Each item has a matching `spec-gap` issue draft in `impl/docs/spec-gaps.md`.
 20. §22.2: integrity mode is advertised per variant (`integrity`), the closed `publish` schema has no record-level field.
 21. §22.3: provenance statements reach subscribers in `notify.body.provenance`; carriage is otherwise unspecified.
 22. §7.5: rotation has no wire record; vectors pin only what a verifier observes through the rotated DID document (`envelope/rotated-did-web-*`).
+31. §12.9 vs §19.4: held introductions — no 300 s age bound, 604,800 s validity cap enforced, id tracked until `expires_at` (`envelope/introduction-*`).
+34–43. Messaging Profile draft choices (hub ordering, archive first-wins, first-contact authorization, `mailbox` tokens, `MAX_MLS_BYTES`, ephemeral lifetime) pinned by `messaging/*`; see the v0.8 messaging worklist in `impl/docs/spec-gaps.md`.
 
 Emission ordering convention for state traces: timer stops → sends → media →
 ui → timer starts. A session ending emits `media stop` (when media was running)

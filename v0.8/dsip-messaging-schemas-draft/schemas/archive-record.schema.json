@@ -1,0 +1,174 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dsip.org/schema/messaging/1.0/archive-record.schema.json",
+  "title": "DSIP messaging/1.0 archive-record object",
+  "description": "Plaintext of an archive item before archive-key encryption (M\u00a712.2).",
+  "type": "object",
+  "properties": {
+    "object": {
+      "const": "archive-record"
+    },
+    "conversation": {
+      "$ref": "#/$defs/ulid"
+    },
+    "group": {
+      "$ref": "#/$defs/b64url"
+    },
+    "seq": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "sender": {
+      "$ref": "#/$defs/did"
+    },
+    "sender_device": {
+      "$ref": "#/$defs/did"
+    },
+    "received_at": {
+      "$ref": "#/$defs/timestamp"
+    },
+    "payload": {
+      "type": "object",
+      "required": [
+        "object"
+      ]
+    }
+  },
+  "required": [
+    "object",
+    "conversation",
+    "group",
+    "seq",
+    "sender",
+    "sender_device",
+    "received_at",
+    "payload"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "ulid": {
+      "type": "string",
+      "pattern": "^[0-7][0-9A-HJKMNP-TV-Z]{25}$"
+    },
+    "did": {
+      "type": "string",
+      "pattern": "^did:[a-z0-9]+:[A-Za-z0-9.%_:-]+$"
+    },
+    "timestamp": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "versionToken": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+$"
+    },
+    "profileId": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*/\\d+\\.\\d+$"
+    },
+    "versionBlock": {
+      "type": "object",
+      "properties": {
+        "core": {
+          "$ref": "#/$defs/versionToken"
+        },
+        "min_core": {
+          "$ref": "#/$defs/versionToken"
+        },
+        "profiles": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/profileId"
+          }
+        },
+        "extensions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/profileId"
+          }
+        },
+        "critical": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/profileId"
+          }
+        }
+      },
+      "required": [
+        "core",
+        "min_core",
+        "profiles",
+        "extensions",
+        "critical"
+      ],
+      "additionalProperties": false
+    },
+    "b64url": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9_-]+$",
+      "description": "Unpadded base64url."
+    },
+    "token": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$",
+      "description": "Registry token; membership is a semantic check with a stated fallback."
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "Lowercase hex SHA-256."
+    },
+    "cursor": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "description": "Opaque mailbox cursor (M\u00a75.4)."
+    },
+    "httpsUri": {
+      "type": "string",
+      "pattern": "^https://"
+    },
+    "wssUri": {
+      "type": "string",
+      "pattern": "^wss://"
+    },
+    "blobRef": {
+      "type": "object",
+      "properties": {
+        "uri": {
+          "$ref": "#/$defs/httpsUri"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "size": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "required": [
+        "uri",
+        "sha256",
+        "size"
+      ],
+      "additionalProperties": false,
+      "description": "Ciphertext manifest entry (M\u00a75.2, M\u00a78.4): never carries a key."
+    },
+    "hubRef": {
+      "type": "object",
+      "properties": {
+        "did": {
+          "$ref": "#/$defs/did"
+        },
+        "uri": {
+          "$ref": "#/$defs/wssUri"
+        }
+      },
+      "required": [
+        "did"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

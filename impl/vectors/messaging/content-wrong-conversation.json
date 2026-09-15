@@ -1,0 +1,33 @@
+{
+  "vector": "messaging/content-wrong-conversation",
+  "format": 1,
+  "kind": "messaging",
+  "description": "content.conversation must match the group's dsip_conversation.",
+  "spec_ref": [
+    "M§8.1",
+    "M§6.3"
+  ],
+  "context": {
+    "conversation": "01K742SG00AX1F6HVTRWBW227R",
+    "conversation_kind": "direct",
+    "leaf_identity": "did:web:alice.example"
+  },
+  "input": {
+    "check": "object",
+    "object": {
+      "object": "content",
+      "id": "01K742SG000ZJTETD6Q8F0473W",
+      "conversation": "01K742SG00DN3HER0ZH4F35W45",
+      "sender": "did:web:alice.example",
+      "sent_at": 1760000000,
+      "kind": "text",
+      "purpose": "message",
+      "content_type": "text/plain",
+      "text": "Dinner at 7?"
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "conversation-mismatch"
+  }
+}

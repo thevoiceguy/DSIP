@@ -17,6 +17,7 @@ from . import ulid as ulid_mod
 
 REPLAY_WINDOW_S = 300          # §12.9
 ULID_TOLERANCE_S = 300         # §20.6, Impl: tolerance = replay window (spec-gap 6)
+INTRODUCTION_MAX_VALIDITY_S = 604800  # §19.4; Impl: enforced at stage 9 (spec-gap 31)
 WS_MAX_ENVELOPE_BYTES = 65536  # §13.2
 SIGNALING_CAPABILITY = "dsip.signaling"
 
@@ -245,7 +246,15 @@ def verify(envelope: Any, ctx: Context, frame_text: str | None = None) -> tuple[
     ia, ea = p["issued_at"], p["expires_at"]
     if ea <= ia:
         return Verdict.reject("expiry-order"), None
-    if ia < ctx.now - REPLAY_WINDOW_S or ia > ctx.now + REPLAY_WINDOW_S:
+    if msg_type == "introduction":
+        # §19.4: introductions are store-and-forward by design, valid up to 604,800 s. Impl (spec-gap 31):
+        # the cap is enforced here, the 300 s age bound is replaced by expires_at (checked next), the
+        # future bound stays, and receivers track the id until expires_at.
+        if ea - ia > INTRODUCTION_MAX_VALIDITY_S:
+            return Verdict.reject("introduction-validity"), None
+        if ia > ctx.now + REPLAY_WINDOW_S:
+            return Verdict.reject("replay-window"), None
+    elif ia < ctx.now - REPLAY_WINDOW_S or ia > ctx.now + REPLAY_WINDOW_S:
         return Verdict.reject("replay-window"), None
     if ea < ctx.now:
         return Verdict.reject("expired", "session.expired" if msg_type == "invite" else None), None

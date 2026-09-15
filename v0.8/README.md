@@ -10,8 +10,9 @@ Contents:
 |---|---|---|
 | `dsip-gateway-profile-v0.8-draft.md` | DSIP↔SIP/PSTN Gateway Profile 1.0 — identity, controller state machine, reason mapping both ways, PSTN caller claims, downgrade rule, early media, DTMF | `impl/vectors/gateway/` (53 vectors, Rust/Python parity) |
 | `dsip-rtp-srtp-media-binding-v0.8-draft.md` | RTP/SRTP Media Binding 1.0 (`transport:rtp`) — SDES/DTLS keying, encryption floor + plain-RTP exception, codec mapping, DTMF | G§6 SDP-mapping vectors; a `media-binding-rtp/` category follows when the binding lands in code |
+| `dsip-messaging-profile-v0.8-draft.md` | DSIP Messaging Profile 1.0 (`messaging/1.0`) — unified mailbox (text, voice/video messages, voicemail, files), MLS end-to-end encryption with per-group hubs, groups, multi-device SYNC history via an archive key, receipts, ephemeral activity, first contact via `introduction`/`grant` | none yet — written **before** implementation; a `messaging/` vector category pins it next (spec-gaps 31–43) |
 
-Both are transcribed from the reference gateway (`impl/crates/dsip-gateway`), whose tables and
+The gateway and RTP/SRTP documents are transcribed from the reference gateway (`impl/crates/dsip-gateway`), whose tables and
 controller are already vector-pinned — the same "write the spec from the implementation" method as
 the WebRTC Media Binding (v0.7).
 

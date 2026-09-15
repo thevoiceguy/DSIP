@@ -1,0 +1,41 @@
+{
+  "vector": "messaging/deposit-welcome-with-seq-refused",
+  "format": 1,
+  "kind": "messaging",
+  "description": "Only handshake and application items carry a hub seq.",
+  "spec_ref": [
+    "M§5.2"
+  ],
+  "context": {},
+  "input": {
+    "check": "message",
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "messaging/1.0"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "deposit",
+      "id": "01K742SG00J3DENTFY56PR9Y3S",
+      "from": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+      "to": "did:web:mbx.alice.example",
+      "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+      "class": "welcome",
+      "mls": "AAFtbHMtbWVzc2FnZQ",
+      "hub": {
+        "did": "did:web:mbx.alice.example"
+      },
+      "seq": 3,
+      "issued_at": 1760000000,
+      "expires_at": 1760000030
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "deposit-fields"
+  }
+}

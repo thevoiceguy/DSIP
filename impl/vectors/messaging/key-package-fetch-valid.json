@@ -1,0 +1,36 @@
+{
+  "vector": "messaging/key-package-fetch-valid",
+  "format": 1,
+  "kind": "messaging",
+  "description": "Fetch with a grant.",
+  "spec_ref": [
+    "M§5.5",
+    "M§14.2"
+  ],
+  "context": {},
+  "input": {
+    "check": "message",
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "messaging/1.0"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "key-package-fetch",
+      "id": "01K742SG00V7DT03WR4VM2KXJJ",
+      "from": "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL",
+      "to": "did:web:mbx.bob.example",
+      "target": "did:web:example.com:users:bob",
+      "grant": "eyJ.grant.sig",
+      "issued_at": 1760000000,
+      "expires_at": 1760000030
+    }
+  },
+  "expect": {
+    "verdict": "accept"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "vector": "messaging/content-ulid-sent-at-mismatch",
+  "format": 1,
+  "kind": "messaging",
+  "description": "Content id timestamp more than 300 s from sent_at.",
+  "spec_ref": [
+    "M§8.1",
+    "§20.6"
+  ],
+  "context": {
+    "conversation": "01K742SG00AX1F6HVTRWBW227R",
+    "conversation_kind": "direct",
+    "leaf_identity": "did:web:alice.example"
+  },
+  "input": {
+    "check": "object",
+    "object": {
+      "object": "content",
+      "id": "01K73ZBMC0VMRGC8CZNM1TZFMT",
+      "conversation": "01K742SG00AX1F6HVTRWBW227R",
+      "sender": "did:web:alice.example",
+      "sent_at": 1760000000,
+      "kind": "text",
+      "purpose": "message",
+      "content_type": "text/plain",
+      "text": "Dinner at 7?"
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "ulid-sent-at-mismatch"
+  }
+}

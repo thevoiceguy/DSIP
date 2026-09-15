@@ -1,0 +1,46 @@
+{
+  "vector": "messaging/items-valid",
+  "format": 1,
+  "kind": "messaging",
+  "description": "Items response with one application item.",
+  "spec_ref": [
+    "M§5.4"
+  ],
+  "context": {},
+  "input": {
+    "check": "message",
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "messaging/1.0"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "items",
+      "id": "01K742SG00QGMBSMMNBC565XV4",
+      "from": "did:web:mbx.bob.example",
+      "to": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+      "in_reply_to": "01K742SG005Z9REX749BHFHD7X",
+      "next": null,
+      "items": [
+        {
+          "cursor": "c:0000000000000004",
+          "stored_at": 1760000000,
+          "class": "application",
+          "source": "did:web:mbx.alice.example",
+          "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+          "seq": 42,
+          "mls": "AAFtbHMtbWVzc2FnZQ"
+        }
+      ],
+      "issued_at": 1760000000,
+      "expires_at": 1760000030
+    }
+  },
+  "expect": {
+    "verdict": "accept"
+  }
+}

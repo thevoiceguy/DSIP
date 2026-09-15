@@ -1,0 +1,219 @@
+{
+  "vector": "messaging/mailbox-key-packages-single-use-then-last-resort",
+  "format": 1,
+  "kind": "messaging",
+  "description": "Each fetch consumes one KeyPackage per device; an exhausted device falls back to its last resort, and a device with neither is omitted.",
+  "spec_ref": [
+    "M§5.5"
+  ],
+  "context": {
+    "component": "mailbox",
+    "mailbox": "did:web:mbx.bob.example",
+    "owner": "did:web:example.com:users:bob",
+    "serves": [
+      "did:web:example.com:users:bob"
+    ],
+    "devices": [
+      "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ",
+      "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+    ],
+    "now": 1760000000,
+    "mode": "sync",
+    "admit": "grant",
+    "pending_group_ttl": 604800,
+    "pending_group_max_items": 2,
+    "groups": {},
+    "key_packages": {
+      "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ": {
+        "one_time": 1,
+        "last_resort": true
+      },
+      "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn": {
+        "one_time": 0,
+        "last_resort": false
+      }
+    }
+  },
+  "input": {
+    "check": "mailbox-trace",
+    "steps": [
+      {
+        "event": {
+          "kp_fetch": {
+            "id": "01K742SG00G687MHBKVSG7M9EP",
+            "from": "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL",
+            "from_identity": "did:web:carol.example",
+            "target": "did:web:example.com:users:bob",
+            "grant": {
+              "id": "01K742SG00J1XCHR8G1856E6KZ",
+              "from": "did:web:example.com:users:bob",
+              "to": "did:web:carol.example",
+              "scope": [
+                "dsip.message"
+              ],
+              "valid_until": 1760086400
+            }
+          }
+        }
+      },
+      {
+        "event": {
+          "kp_fetch": {
+            "id": "01K742SG006E43N5VA759CVATA",
+            "from": "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL",
+            "from_identity": "did:web:carol.example",
+            "target": "did:web:example.com:users:bob",
+            "grant": {
+              "id": "01K742SG00J1XCHR8G1856E6KZ",
+              "from": "did:web:example.com:users:bob",
+              "to": "did:web:carol.example",
+              "scope": [
+                "dsip.message"
+              ],
+              "valid_until": 1760086400
+            }
+          }
+        }
+      },
+      {
+        "event": {
+          "kp_upload": {
+            "id": "01K742SG00TAD7YQWQXKGQYEWH",
+            "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "count": 2,
+            "last_resort": true
+          }
+        }
+      },
+      {
+        "event": {
+          "kp_fetch": {
+            "id": "01K742SG00SPE96C1TQQG63ZYM",
+            "from": "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL",
+            "from_identity": "did:web:carol.example",
+            "target": "did:web:example.com:users:bob",
+            "grant": {
+              "id": "01K742SG00J1XCHR8G1856E6KZ",
+              "from": "did:web:example.com:users:bob",
+              "to": "did:web:carol.example",
+              "scope": [
+                "dsip.message"
+              ],
+              "valid_until": 1760086400
+            }
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "key_packages": {
+              "to": "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL",
+              "in_reply_to": "01K742SG00G687MHBKVSG7M9EP",
+              "devices": {
+                "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ": "one-time"
+              }
+            }
+          }
+        ],
+        "state": {
+          "items": [],
+          "groups": {},
+          "key_packages": {
+            "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ": {
+              "one_time": 0,
+              "last_resort": true
+            },
+            "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn": {
+              "one_time": 0,
+              "last_resort": false
+            }
+          }
+        }
+      },
+      {
+        "emit": [
+          {
+            "key_packages": {
+              "to": "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL",
+              "in_reply_to": "01K742SG006E43N5VA759CVATA",
+              "devices": {
+                "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ": "last-resort"
+              }
+            }
+          }
+        ],
+        "state": {
+          "items": [],
+          "groups": {},
+          "key_packages": {
+            "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ": {
+              "one_time": 0,
+              "last_resort": true
+            },
+            "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn": {
+              "one_time": 0,
+              "last_resort": false
+            }
+          }
+        }
+      },
+      {
+        "emit": [
+          {
+            "accepted": {
+              "to": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+              "in_reply_to": "01K742SG00TAD7YQWQXKGQYEWH"
+            }
+          }
+        ],
+        "state": {
+          "items": [],
+          "groups": {},
+          "key_packages": {
+            "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ": {
+              "one_time": 0,
+              "last_resort": true
+            },
+            "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn": {
+              "one_time": 2,
+              "last_resort": true
+            }
+          }
+        }
+      },
+      {
+        "emit": [
+          {
+            "key_packages": {
+              "to": "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL",
+              "in_reply_to": "01K742SG00SPE96C1TQQG63ZYM",
+              "devices": {
+                "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ": "last-resort",
+                "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn": "one-time"
+              }
+            }
+          }
+        ],
+        "state": {
+          "items": [],
+          "groups": {},
+          "key_packages": {
+            "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ": {
+              "one_time": 0,
+              "last_resort": true
+            },
+            "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn": {
+              "one_time": 1,
+              "last_resort": true
+            }
+          }
+        }
+      }
+    ]
+  }
+}

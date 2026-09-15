@@ -1,0 +1,65 @@
+{
+  "vector": "messaging/mailbox-hub-deposit-unregistered-group",
+  "format": 1,
+  "kind": "messaging",
+  "description": "Hub fan-out for a group not registered for the owner is refused.",
+  "spec_ref": [
+    "M§6.6"
+  ],
+  "context": {
+    "component": "mailbox",
+    "mailbox": "did:web:mbx.bob.example",
+    "owner": "did:web:example.com:users:bob",
+    "serves": [
+      "did:web:example.com:users:bob"
+    ],
+    "devices": [
+      "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ",
+      "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+    ],
+    "now": 1760000000,
+    "mode": "sync",
+    "admit": "grant",
+    "pending_group_ttl": 604800,
+    "pending_group_max_items": 2,
+    "groups": {},
+    "key_packages": {}
+  },
+  "input": {
+    "check": "mailbox-trace",
+    "steps": [
+      {
+        "event": {
+          "hub_deposit": {
+            "id": "01K742SG002WHVBMHZXKS2T47Q",
+            "from": "did:web:mbx.alice.example",
+            "recipient": "did:web:example.com:users:bob",
+            "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+            "seq": 1,
+            "class": "application"
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "error": {
+              "to": "did:web:mbx.alice.example",
+              "in_reply_to": "01K742SG002WHVBMHZXKS2T47Q",
+              "reason": "mailbox.unknown-group"
+            }
+          }
+        ],
+        "state": {
+          "items": [],
+          "groups": {},
+          "key_packages": {}
+        }
+      }
+    ]
+  }
+}

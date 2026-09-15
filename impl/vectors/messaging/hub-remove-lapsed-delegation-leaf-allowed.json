@@ -1,0 +1,105 @@
+{
+  "vector": "messaging/hub-remove-lapsed-delegation-leaf-allowed",
+  "format": 1,
+  "kind": "messaging",
+  "description": "Any member may remove a leaf whose delegation no longer verifies.",
+  "spec_ref": [
+    "M§7.3",
+    "M§6.2"
+  ],
+  "context": {
+    "component": "hub",
+    "hub": "did:web:mbx.alice.example",
+    "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+    "kind": "group",
+    "now": 1760000000,
+    "epoch": 1,
+    "roster": {
+      "did:web:alice.example": [
+        "did:key:z6MkfhenvjQ7awdpVWzPaeBuPkXCBLwzJKyosCrTL3huMb66",
+        "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu"
+      ],
+      "did:web:example.com:users:bob": [
+        "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ",
+        "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+      ]
+    }
+  },
+  "input": {
+    "check": "hub-trace",
+    "steps": [
+      {
+        "event": {
+          "deposit": {
+            "id": "01K742SG00VQHBB3NP1HTN4Y6Q",
+            "device": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+            "identity": "did:web:alice.example",
+            "class": "handshake",
+            "epoch": 1,
+            "digest": "rm-lapsed",
+            "commit": {
+              "adds": [],
+              "removes": [
+                {
+                  "identity": "did:web:example.com:users:bob",
+                  "device": "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ",
+                  "delegation_valid": false
+                }
+              ]
+            }
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "accepted": {
+              "to": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+              "in_reply_to": "01K742SG00VQHBB3NP1HTN4Y6Q",
+              "seq": 1
+            }
+          },
+          {
+            "fanout": {
+              "to": "did:web:alice.example",
+              "seq": 1,
+              "class": "handshake"
+            }
+          },
+          {
+            "fanout": {
+              "to": "did:web:example.com:users:bob",
+              "seq": 1,
+              "class": "handshake"
+            }
+          }
+        ],
+        "state": {
+          "epoch": 2,
+          "next_seq": 2,
+          "roster": {
+            "did:web:alice.example": [
+              "did:key:z6MkfhenvjQ7awdpVWzPaeBuPkXCBLwzJKyosCrTL3huMb66",
+              "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu"
+            ],
+            "did:web:example.com:users:bob": [
+              "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+            ]
+          },
+          "pending": {
+            "did:web:alice.example": [
+              1
+            ],
+            "did:web:example.com:users:bob": [
+              1
+            ]
+          }
+        }
+      }
+    ]
+  }
+}

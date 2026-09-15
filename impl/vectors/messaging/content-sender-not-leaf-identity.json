@@ -1,0 +1,33 @@
+{
+  "vector": "messaging/content-sender-not-leaf-identity",
+  "format": 1,
+  "kind": "messaging",
+  "description": "content.sender must be the identity of the MLS sender leaf.",
+  "spec_ref": [
+    "M§8.1",
+    "M§6.2"
+  ],
+  "context": {
+    "conversation": "01K742SG00AX1F6HVTRWBW227R",
+    "conversation_kind": "direct",
+    "leaf_identity": "did:web:alice.example"
+  },
+  "input": {
+    "check": "object",
+    "object": {
+      "object": "content",
+      "id": "01K742SG000ZJTETD6Q8F0473W",
+      "conversation": "01K742SG00AX1F6HVTRWBW227R",
+      "sender": "did:web:example.com:users:bob",
+      "sent_at": 1760000000,
+      "kind": "text",
+      "purpose": "message",
+      "content_type": "text/plain",
+      "text": "Dinner at 7?"
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "sender-mismatch"
+  }
+}

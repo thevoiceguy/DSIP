@@ -1,0 +1,27 @@
+{
+  "vector": "messaging/conversation-ext-unknown-kind-is-group",
+  "format": 1,
+  "kind": "messaging",
+  "description": "Unknown conversation kind is handled as group.",
+  "spec_ref": [
+    "M§6.3"
+  ],
+  "context": {},
+  "input": {
+    "check": "conversation-ext",
+    "extension": {
+      "conversation": "01K742SG00AX1F6HVTRWBW227R",
+      "kind": "channel",
+      "hub": {
+        "did": "did:web:mbx.alice.example"
+      },
+      "successor_of": null
+    }
+  },
+  "expect": {
+    "verdict": "accept",
+    "effective": {
+      "kind": "group"
+    }
+  }
+}

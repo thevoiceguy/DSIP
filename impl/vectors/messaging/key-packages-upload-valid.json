@@ -1,0 +1,39 @@
+{
+  "vector": "messaging/key-packages-upload-valid",
+  "format": 1,
+  "kind": "messaging",
+  "description": "KeyPackage upload with a last resort.",
+  "spec_ref": [
+    "M§5.5"
+  ],
+  "context": {},
+  "input": {
+    "check": "message",
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "messaging/1.0"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "key-packages",
+      "id": "01K742SG00W5D24D2CKQAGQ5NR",
+      "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+      "to": "did:web:mbx.bob.example",
+      "subject": "did:web:example.com:users:bob",
+      "key_packages": [
+        "AAFtbHMtbWVzc2FnZQ",
+        "AAFtbHMtbWVzc2FnZQ"
+      ],
+      "last_resort": "AAFtbHMtbWVzc2FnZQ",
+      "issued_at": 1760000000,
+      "expires_at": 1760000030
+    }
+  },
+  "expect": {
+    "verdict": "accept"
+  }
+}
