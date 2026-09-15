@@ -484,7 +484,7 @@ text says today. Gap 31 is a v0.7 defect in its own right and does not depend on
 
 | # | sections | draft choice | pinned by |
 |---|---|---|---|
-| 31 | §12.9, §13.3, §19.4 | type-scoped validity for held introductions (**v0.7 defect**) | — (needs `envelope/introduction-held-*`) |
+| 31 | §12.9, §13.3, §19.4 | **adopted in the PoC** (2026-09-15): type-scoped validity for held introductions + enforced 7-day cap (**v0.7 defect**) | `envelope/introduction-held-*` (3), `envelope/introduction-future-rejected`, `envelope/introduction-validity-over-cap` |
 | 32 | §3.2, §6.1, §12.1, §24.4 | adopt → **Messaging Profile 1.0** + **Mailbox 1.0** conformance pieces | — (vectors pending) |
 | 33 | §6.2, §20.7 | MLS for conversations, HPKE for sealed introductions; non-repudiation stated | — |
 | 34 | (new; M§6.5) | per-group hub orders MLS commits | — |
@@ -519,9 +519,18 @@ store-and-forward.
 stored bytes inside fresh `items` envelopes (M§5.1) and authenticate content with MLS. It does not
 fix core.
 
-**Suggested fix.** State (a) in §12.9 and §19.4. Add `envelope/introduction-held-accepted`
-(delivered at +2 days, inside `expires_at`) and `envelope/introduction-held-replayed` (same `id`
-twice inside validity → reject).
+**PoC choice (2026-09-15).** (a), plus enforcing the §19.4 cap, which nothing enforced before.
+Without the cap the relaxed age bound would let an introduction claiming a year of validity stay
+replayable, with its id tracked, for a year. Envelope stage 9 for `introduction`:
+`expires_at − issued_at > 604,800` → `introduction-validity`; `issued_at > now + 300` →
+`replay-window`; `expires_at < now` → `expired`. Receivers track the id until `expires_at`
+(`dsip-endpoint::verify::SeenIds`). Every other type keeps the symmetric 300 s window. Vectors:
+`envelope/introduction-held-accepted` (delivered at +2 days), `introduction-held-replayed`,
+`introduction-held-expired`, `introduction-future-rejected`, `introduction-validity-over-cap`.
+The existing `introduction-valid-7-day` pins the cap edge and `replay-window-too-old` pins that
+invites are unaffected.
+
+**Suggested fix.** State (a) and the enforced cap in §12.9 and §19.4 for v0.8.
 
 ## 32. §3.2 / §6.1 / §12.1 / §24.4 — no Messaging Profile exists
 

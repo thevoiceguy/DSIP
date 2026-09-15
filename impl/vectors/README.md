@@ -94,7 +94,8 @@ implementation under test MUST emit that token when it signals the failure.
 | `delegation-expired` | delegation not valid at `now` (`issued_at ≤ now < expires_at` required) | `transport.hello-rejected` on `hello` |
 | `delegation-capability` | delegation lacks `dsip.signaling` | `transport.hello-rejected` on `hello` |
 | `expiry-order` | `expires_at ≤ issued_at` (check 1) | |
-| `replay-window` | `issued_at` outside `[now − 300, now + 300]` (§12.9, check 1) | |
+| `replay-window` | `issued_at` outside `[now − 300, now + 300]` (§12.9, check 1); for `introduction` only the future bound applies (Impl, spec-gap 31) | |
+| `introduction-validity` | `introduction` with `expires_at − issued_at` > 604,800 s (§19.4; Impl, spec-gap 31) | |
 | `expired` | `expires_at < now` (§12.9) | `session.expired` on `invite` |
 | `duplicate-id` | `id` already seen within the replay window (§12.9) | |
 | `ulid-issued-at-mismatch` | ULID timestamp component differs from `issued_at` by more than 300 s (§20.6, check 2) | |
@@ -137,7 +138,7 @@ runs 13 only; `kind: semantic` runs 12–14).
 6. `payload-not-utf8` → `payload-not-json` → `payload-float` → `payload-shape`
 7. `signer-mismatch` / `delegation-*` (binding `kid` to `from`; on `hello` with `on_behalf_of`, additionally binding `from` to `on_behalf_of`)
 8. `expiry-order`
-9. `replay-window` → `expired`
+9. `introduction-validity` (introductions only) → `replay-window` → `expired`
 10. `duplicate-id`
 11. `ulid-issued-at-mismatch`
 11b. `hello-required` (transport binding state: `context.hello_verified` is `false` and the type is not `hello`)
@@ -411,6 +412,7 @@ Each item has a matching `spec-gap` issue draft in `impl/docs/spec-gaps.md`.
 20. §22.2: integrity mode is advertised per variant (`integrity`), the closed `publish` schema has no record-level field.
 21. §22.3: provenance statements reach subscribers in `notify.body.provenance`; carriage is otherwise unspecified.
 22. §7.5: rotation has no wire record; vectors pin only what a verifier observes through the rotated DID document (`envelope/rotated-did-web-*`).
+31. §12.9 vs §19.4: held introductions — no 300 s age bound, 604,800 s validity cap enforced, id tracked until `expires_at` (`envelope/introduction-*`).
 
 Emission ordering convention for state traces: timer stops → sends → media →
 ui → timer starts. A session ending emits `media stop` (when media was running)
