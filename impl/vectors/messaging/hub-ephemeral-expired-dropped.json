@@ -57,7 +57,8 @@
             ]
           },
           "pending": {},
-          "group_info": false
+          "group_info": false,
+          "moved_to": null
         }
       }
     ]

@@ -53,6 +53,14 @@
           "hub": {
             "$ref": "#/$defs/did"
           },
+          "hub_uri": {
+            "$ref": "#/$defs/wssUri"
+          },
+          "handover_seq": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "With a hub other than the registered one: the seq of the commit that moved the group (M\u00a77.4, spec-gap 60)."
+          },
           "state": {
             "enum": [
               "joined",

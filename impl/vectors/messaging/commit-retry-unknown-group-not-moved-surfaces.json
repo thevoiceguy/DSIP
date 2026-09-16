@@ -1,0 +1,63 @@
+{
+  "vector": "messaging/commit-retry-unknown-group-not-moved-surfaces",
+  "format": 1,
+  "kind": "messaging",
+  "description": "If the sync shows no move, mailbox.unknown-group is final and surfaced.",
+  "spec_ref": [
+    "M§7.4",
+    "M§6.6"
+  ],
+  "context": {
+    "component": "commit-retry",
+    "max_attempts": 3
+  },
+  "input": {
+    "check": "commit-retry-trace",
+    "steps": [
+      {
+        "event": {
+          "answer": {
+            "reason": "mailbox.unknown-group"
+          }
+        }
+      },
+      {
+        "event": {
+          "synced": {
+            "still_needed": true,
+            "hub_moved": false
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "discard": {}
+          },
+          {
+            "sync": {}
+          }
+        ],
+        "state": {
+          "attempt": 1,
+          "state": "syncing"
+        }
+      },
+      {
+        "emit": [
+          {
+            "surface": "mailbox.unknown-group"
+          }
+        ],
+        "state": {
+          "attempt": 1,
+          "state": "surfaced"
+        }
+      }
+    ]
+  }
+}

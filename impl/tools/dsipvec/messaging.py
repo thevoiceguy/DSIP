@@ -69,7 +69,7 @@ DEPOSIT_ALLOWED = {
     "handshake": {"mls", "seq", "welcome", "group_info", "ratchet_tree_blob", "grants"},
     "application": {"mls", "seq", "blobs"},
     "welcome": {"mls", "hub", "grants", "origin", "successor_of", "ratchet_tree_blob"},
-    "group-info": {"mls", "ratchet_tree_blob"},
+    "group-info": {"mls", "ratchet_tree_blob", "handover_seq"},
     "ephemeral": {"sealed"},
     "archive": {"archive", "akid", "ref_group", "ref_seq"},
     "introduction": {"envelope"},
@@ -222,6 +222,16 @@ def check_content(o: dict) -> dict:
     return accept(effective={"kind": eff_kind, "purpose": eff_purpose})
 
 
+def check_conversation_update(before: dict, after: dict) -> dict:
+    """M§6.3, M§7.4 (spec-gap 60): a GroupContextExtensions commit may change only the hub; `moves_to` names a new hub DID."""
+    if not schema_ok("dsip-conversation", before) or not schema_ok("dsip-conversation", after):
+        return reject("schema-invalid")
+    if any(before.get(k) != after.get(k) for k in ("conversation", "kind", "successor_of")):
+        return reject("conversation-immutable")
+    moved = before["hub"]["did"] != after["hub"]["did"]
+    return accept(effective={"moves_to": after["hub"]["did"] if moved else None, "hub": after["hub"]})
+
+
 def check_conversation_ext(ext: dict) -> dict:
     if not schema_ok("dsip-conversation", ext):
         return reject("schema-invalid")
@@ -242,6 +252,7 @@ class Hub:
         self.seq_class: dict[int, str] = {}
         self.pending: dict[str, list[int]] = {}
         self.group_info = False
+        self.moved_to: str | None = None
 
     def step(self, ev: dict) -> list:
         if "advance" in ev:
@@ -259,6 +270,9 @@ class Hub:
 
     def _deposit(self, d: dict) -> list:
         cls, ident = d["class"], d["identity"]
+        if self.moved_to is not None:
+            # M§7.4: after ordering the commit that moved the group, the old hub refuses further deposits for it
+            return self._error(d, "mailbox.unknown-group")
         if cls not in ("handshake", "application", "ephemeral", "group-info"):
             return self._error(d, "mailbox.unsupported-class")
         if cls == "group-info":
@@ -323,6 +337,8 @@ class Hub:
         for a in commit.get("adds", []):
             self.roster.setdefault(a["identity"], set()).add(a["device"])
         self.epoch += 1
+        if commit.get("moves_to"):  # M§7.4: ordered and fanned out here; everything after goes to the new hub
+            self.moved_to = commit["moves_to"]
         if not external:  # an external joiner joined by its own commit; welcomes go only to identities others added
             # spec-gap 50: to every identity that gained a device, including a member adding its own new device
             gained = {a["identity"] for a in commit.get("adds", []) if a["device"] not in before.get(a["identity"], set())}
@@ -335,8 +351,9 @@ class Hub:
         state = json.loads(json.dumps({
             "now": self.now, "kind": self.kind, "owner": self.owner, "epoch": self.epoch, "next_seq": self.next_seq,
             "roster": {i: sorted(d) for i, d in self.roster.items()}, "digests": self.digests,
-            "seq_class": {str(k): v for k, v in self.seq_class.items()}, "pending": self.pending, "group_info": self.group_info}))
-        for k in ("now", "kind", "owner", "epoch", "next_seq", "digests", "pending", "group_info"):
+            "seq_class": {str(k): v for k, v in self.seq_class.items()}, "pending": self.pending, "group_info": self.group_info,
+            "moved_to": self.moved_to}))
+        for k in ("now", "kind", "owner", "epoch", "next_seq", "digests", "pending", "group_info", "moved_to"):
             setattr(self, k, state[k])
         self.roster = {i: set(d) for i, d in state["roster"].items()}
         self.seq_class = {int(k): v for k, v in state["seq_class"].items()}
@@ -368,7 +385,7 @@ class Hub:
         return {"epoch": self.epoch, "next_seq": self.next_seq,
                 "roster": {i: sorted(d) for i, d in sorted(self.roster.items())},
                 "pending": {i: list(q) for i, q in sorted(self.pending.items()) if q},
-                "group_info": self.group_info}
+                "group_info": self.group_info, "moved_to": self.moved_to}
 
 
 # ---------------------------------------------------------------- mailbox (M§4.4, M§5, M§6.6, M§12.2, M§14.2)
@@ -488,8 +505,19 @@ class Mailbox:
         if e["recipient"] not in self.serves:
             return self._error(e["from"], e["id"], "transport.unknown-recipient")
         reg = self.groups.get(e["group"])
-        if reg is None or reg["hub"] != e["from"]:  # M§6.6
+        prev = reg.get("previous") if reg else None
+        if reg is not None and prev is not None and e["from"] == prev["hub"] and reg["hub"] != e["from"]:
+            # spec-gap 60: the previous hub still delivers what it ordered, through the commit that moved the group
+            if e.get("seq") is None or e["seq"] > prev["through"]:
+                return self._error(e["from"], e["id"], "mailbox.unknown-group")
+        elif reg is None or reg["hub"] != e["from"]:  # M§6.6
             return self._error(e["from"], e["id"], "mailbox.unknown-group")
+        elif prev is not None:
+            if reg.get("high_seq", 0) < prev["through"]:
+                # spec-gap 60: not before the previous hub's items through the move are stored (the new hub retries)
+                return self._error(e["from"], e["id"], "mailbox.unknown-group")
+            if e.get("seq") is not None and e["seq"] <= prev["through"]:
+                return self._error(e["from"], e["id"], "policy.blocked")  # spec-gap 60: the new hub continues the numbering
         if e["class"] == "ephemeral":  # M§11.2: pushed to bound devices, never stored, never acknowledged
             if e.get("expires_at") is not None and e["expires_at"] < self.now:
                 return []  # M§11.2: dropped at expires_at (spec-gap 49: the originating deposit's)
@@ -562,7 +590,13 @@ class Mailbox:
             if g["state"] == "left":
                 self.groups.pop(g["group"], None)
             elif g["group"] in self.groups:
-                self.groups[g["group"]]["state"] = "joined"
+                reg = self.groups[g["group"]]
+                reg["state"] = "joined"
+                if "hub" in g and g["hub"] != reg["hub"]:
+                    # M§7.4 (spec-gap 60): an owner device that processed the commit moving the group names the new hub
+                    # and the seq of that commit; the old hub's items through it are still admitted
+                    reg["previous"] = {"hub": reg["hub"], "through": g.get("handover_seq", reg.get("high_seq", 0))}
+                    reg["hub"] = g["hub"]
             elif "hub" in g:
                 self.groups[g["group"]] = {"hub": g["hub"], "state": "joined", "since": self.now, "items": 0}
         self.revoked |= set(e.get("revoked_grants", []))
@@ -958,17 +992,19 @@ class CommitRetry:
     accepted → merge. `mailbox.commit-conflict` and `mailbox.stale-epoch` → discard the pending commit, sync until the
     winning commit is processed, and re-propose if the operation is still needed, at most `max_attempts` proposals in
     all, then surface. An unregistered `mailbox.*` condition takes the category fallback (core §15.3): re-sync, retry
-    once, then surface. Any other refusal — `policy.blocked`, a registered token of any other kind, an unknown
-    category — is discarded and surfaced without retry.
+    once, then surface. `mailbox.unknown-group` from a hub (spec-gap 60) is handled like a conflict when the sync shows
+    the group moved to another hub (M§7.4), and surfaced otherwise. Any other refusal — `policy.blocked`, a registered
+    token of any other kind, an unknown category — is discarded and surfaced without retry.
     """
 
-    RETRY_REASONS = ("mailbox.commit-conflict", "mailbox.stale-epoch")
+    RETRY_REASONS = ("mailbox.commit-conflict", "mailbox.stale-epoch", "mailbox.unknown-group")
 
     def __init__(self, ctx: dict):
         self.max_attempts = ctx.get("max_attempts", 3)
         self.attempt = 1
         self.state = "pending"
         self.unknown_retry_used = False
+        self.last_reason = None
 
     def step(self, ev: dict) -> list:
         (name, e), = ev.items()
@@ -980,6 +1016,7 @@ class CommitRetry:
 
     def _answer(self, e: dict) -> list:
         reason = e.get("reason")
+        self.last_reason = reason
         if reason is None:
             self.state = "merged"
             return [{"merge": {}}]
@@ -995,6 +1032,10 @@ class CommitRetry:
         return [{"discard": {}}, {"sync": {}}]
 
     def _synced(self, e: dict) -> list:
+        if self.last_reason == "mailbox.unknown-group" and not e.get("hub_moved", False):
+            # spec-gap 60: the old hub of a moved group answers unknown-group; unless the sync showed a move, it is final
+            self.state = "surfaced"
+            return [{"surface": self.last_reason}]
         if not e["still_needed"]:
             self.state = "done"
             return [{"done": "no-longer-needed"}]
@@ -1442,6 +1483,8 @@ def run(v: dict) -> dict:
         return check_object(inp["object"], v["context"])
     if check == "conversation-ext":
         return check_conversation_ext(inp["extension"])
+    if check == "conversation-update":
+        return check_conversation_update(inp["before"], inp["after"])
     if check == "mailbox-select":
         return select_mailbox(inp)
     if check == "mailbox-switch":

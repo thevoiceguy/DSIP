@@ -1143,6 +1143,48 @@ the next profile revision.
 
 **Suggested fix.** Carry the M§6.5 and M§6.6 text into the next profile revision; consider queuing welcomes.
 
+## 60. M§7.4 — moving a group to another hub
+
+**Gap.** M§7.4 gives the move in four sentences: a GroupContextExtensions commit changes the hub, the old hub
+orders it and then refuses the group, members deposit to the new hub, which initializes from the latest
+GroupInfo. Running it needs answers the text does not give. (1) Numbering: devices track per-group `seq`
+(M§6.5, M§8.5) and archive records are sealed to `(group_id, seq)` (M§12.2), so a new hub starting at 1 would
+make new items look like redeliveries and collide archive records — but nothing tells the new hub where the
+old one stopped. (2) Member mailboxes admit fan-out only from the registered hub (M§6.6) and forward only to it
+(spec-gap 45): who changes the registration, and when, without letting the new hub's items overtake the old
+hub's last ones? (3) What a member that missed the move does with the old hub's `mailbox.unknown-group`.
+(4) Whether a GroupContextExtensions commit may change anything else in `dsip_conversation`.
+
+**Choices considered.** Numbering: (a) continue — the committer carries the moving commit's `seq`
+(`handover_seq`) to the new hub; (b) restart per hub — breaks the archive AAD and every device's
+duplicate test; (c) the old hub hands over directly — nothing binds the old hub's identity for the new
+hub to check, and a dying old hub strands the move. Registration: (a) the owner's device, after processing
+the MLS-verified commit, names the new hub and `handover_seq` in `mailbox-config`; (b) the mailbox follows
+the old hub's word — lets a hub redirect a group it no longer orders. Missed move: (a) sync, re-send if the
+sync shows a move, else final; (b) surface every `unknown-group` — a routine move becomes a user error.
+
+**Draft choice.** (a) throughout, in M§7.4 as a 1.0 erratum: only the hub may change; the old hub orders
+the move then refuses the group while its queues drain; the new hub starts at `handover_seq + 1` and hosts
+a group only if `dsip_conversation` names it; a mailbox switches on its owner's `mailbox-config` (new
+fields `hub_uri`, `handover_seq`), keeps admitting the old hub through `handover_seq`, holds the new hub off
+(`mailbox.unknown-group`, retried) until those items are stored, and refuses the new hub's items at or below
+it (`policy.blocked`, so a wrong handover fails loudly instead of being dropped as duplicates); a device that
+gets `unknown-group` syncs and re-sends only if the group moved. A wrong `handover_seq` from a member is
+detected, not prevented: too low is refused by every mailbox, too high is a gap (M§6.5 rejoin).
+
+Vectors: `hub-move-*` (ordered then refused, queues drain, numbering continues), `mailbox-hub-move-*`
+(switch, old-hub redelivery, waiting for the handover, renumbering refused), `commit-retry-unknown-group-*`,
+`conversation-update-*` (only the hub changes), and the new wire fields. Real MLS (`dsip-mls` e2e): the
+public view recognises the move and refuses a commit changing `kind`. `demos/hub-change-demo.sh` moves a
+three-member group from Alice's mailbox to Bob's while Carol's device is offline; Carol posts before syncing,
+is refused by the old hub, syncs and re-sends. A mailbox ignoring the switch, a new hub restarting at 1, a
+device not re-sending, and an old hub that keeps ordering each fail it.
+
+**Open.** If the old hub dies after ordering the move but before delivering it to some mailbox, that mailbox
+holds the new hub off indefinitely; the owner's device can still recover by successor group (M§7.5).
+
+**Suggested fix.** Carry the M§7.4 text into the next profile revision; register `hub_uri` and `handover_seq`.
+
 ## Already-flagged (schema README / plan §11)
 
 - §15.3 codec example uses bare strings; §16.2 defines objects (schemas follow §16.2).

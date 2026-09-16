@@ -1,0 +1,81 @@
+{
+  "vector": "messaging/commit-retry-unknown-group-hub-moved",
+  "format": 1,
+  "kind": "messaging",
+  "description": "A deposit refused mailbox.unknown-group by a hub the group has left: the device syncs, processes the move, and re-proposes to the new hub.",
+  "spec_ref": [
+    "M§7.4",
+    "M§6.5"
+  ],
+  "context": {
+    "component": "commit-retry",
+    "max_attempts": 3
+  },
+  "input": {
+    "check": "commit-retry-trace",
+    "steps": [
+      {
+        "event": {
+          "answer": {
+            "reason": "mailbox.unknown-group"
+          }
+        }
+      },
+      {
+        "event": {
+          "synced": {
+            "still_needed": true,
+            "hub_moved": true
+          }
+        }
+      },
+      {
+        "event": {
+          "answer": {}
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "discard": {}
+          },
+          {
+            "sync": {}
+          }
+        ],
+        "state": {
+          "attempt": 1,
+          "state": "syncing"
+        }
+      },
+      {
+        "emit": [
+          {
+            "repropose": {
+              "attempt": 2
+            }
+          }
+        ],
+        "state": {
+          "attempt": 2,
+          "state": "pending"
+        }
+      },
+      {
+        "emit": [
+          {
+            "merge": {}
+          }
+        ],
+        "state": {
+          "attempt": 2,
+          "state": "merged"
+        }
+      }
+    ]
+  }
+}
