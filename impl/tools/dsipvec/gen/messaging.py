@@ -94,6 +94,7 @@ def vectors() -> list[dict]:
     out += first_contact_vectors()
     out += revocation_vectors()
     out += restart_vectors()
+    out += hub_change_vectors()
     return out
 
 
@@ -270,8 +271,9 @@ def hub_ctx(epoch=1, roster=None, kind="direct", owner=None):
     return ctx
 
 
-def hs(epoch, next_seq, roster, pending=None, group_info=False):
-    return {"epoch": epoch, "next_seq": next_seq, "roster": roster, "pending": pending or {}, "group_info": group_info}
+def hs(epoch, next_seq, roster, pending=None, group_info=False, moved_to=None):
+    return {"epoch": epoch, "next_seq": next_seq, "roster": roster, "pending": pending or {}, "group_info": group_info,
+            "moved_to": moved_to}
 
 
 def dep(label, device, identity, cls, epoch=None, digest=None, **kw):
@@ -2025,4 +2027,157 @@ def restart_vectors():
                          (dep("a1", BPH, BOB, "application", 2), [acc(BPH, "a1", 2), fan(ALICE, 2), fan(BOB, 2)],
                           hs(2, 3, RR, {ALICE: [2], BOB: [2]})),
                      ]))
+    return out
+
+
+# ---------------------------------------------------------------- moving a group to another hub (M§7.4; spec-gap 60)
+
+def hub_change_vectors():
+    out = []
+    HUB_B = "did:web:mbx.bob.example"
+    R = {ALICE: [ALA, APH], BOB: [BPH]}
+    refs = ["M§7.4", "M§6.5"]
+    move = {"adds": [], "removes": [], "moves_to": HUB_B}
+
+    out.append(trace("hub-move-ordered-then-refuses",
+                     "The commit moving the group is ordered and fanned out like any other; afterwards the old hub refuses every "
+                     "deposit for the group with mailbox.unknown-group.", refs, "hub-trace", hub_ctx(), [
+                         (dep("mv", BPH, BOB, "handshake", 1, commit=move),
+                          [acc(BPH, "mv", 1), fan(ALICE, 1, "handshake"), fan(BOB, 1, "handshake")],
+                          hs(2, 2, R, {ALICE: [1], BOB: [1]}, moved_to=HUB_B)),
+                         (dep("a1", APH, ALICE, "application", 1), [err(APH, "a1", "mailbox.unknown-group")],
+                          hs(2, 2, R, {ALICE: [1], BOB: [1]}, moved_to=HUB_B)),
+                         (dep("k2", APH, ALICE, "handshake", 2, commit={"adds": [], "removes": []}), [err(APH, "k2", "mailbox.unknown-group")],
+                          hs(2, 2, R, {ALICE: [1], BOB: [1]}, moved_to=HUB_B)),
+                         (dep("gi", APH, ALICE, "group-info"), [err(APH, "gi", "mailbox.unknown-group")],
+                          hs(2, 2, R, {ALICE: [1], BOB: [1]}, moved_to=HUB_B)),
+                         (dep("ty", APH, ALICE, "ephemeral", expires_at=NOW + 10), [err(APH, "ty", "mailbox.unknown-group")],
+                          hs(2, 2, R, {ALICE: [1], BOB: [1]}, moved_to=HUB_B)),
+                     ]))
+    out.append(trace("hub-move-drains-queues",
+                     "What the old hub ordered before and including the move is still delivered, in order, as mailboxes acknowledge.",
+                     refs, "hub-trace", hub_ctx(), [
+                         (dep("a1", APH, ALICE, "application", 1), [acc(APH, "a1", 1), fan(ALICE, 1), fan(BOB, 1)],
+                          hs(1, 2, R, {ALICE: [1], BOB: [1]})),
+                         (dep("mv", BPH, BOB, "handshake", 1, commit=move), [acc(BPH, "mv", 2)],
+                          hs(2, 3, R, {ALICE: [1, 2], BOB: [1, 2]}, moved_to=HUB_B)),
+                         ({"ack": {"identity": ALICE, "seq": 1}}, [fan(ALICE, 2, "handshake")], hs(2, 3, R, {ALICE: [2], BOB: [1, 2]}, moved_to=HUB_B)),
+                         ({"ack": {"identity": BOB, "seq": 1}}, [fan(BOB, 2, "handshake")], hs(2, 3, R, {ALICE: [2], BOB: [2]}, moved_to=HUB_B)),
+                     ]))
+    out.append(trace("hub-move-new-hub-continues-numbering",
+                     "The new hub starts after the seq the old hub gave the moving commit (handover_seq), so (group, seq) stays "
+                     "unique for the conversation's life — archive records are bound to it (M§12.2).", refs + ["M§12.2"], "hub-trace",
+                     {**hub_ctx(epoch=2), "hub": HUB_B, "next_seq": 3}, [
+                         (dep("a2", APH, ALICE, "application", 2), [acc(APH, "a2", 3), fan(ALICE, 3), fan(BOB, 3)],
+                          hs(2, 4, R, {ALICE: [3], BOB: [3]})),
+                     ]))
+
+    # --- member mailboxes
+    T = "mailbox-trace"
+    J = {GROUP: "joined"}
+    JA = {GROUP: {"hub": HUB_A, "state": "joined"}}
+    mrefs = ["M§7.4", "M§6.6"]
+
+    def hd(label, seq, frm, cls="application"):
+        return hubdep(label, seq, cls=cls, frm=frm)
+
+    def cfg(label="cfg", handover=2, hub=HUB_B):
+        g = {"group": GROUP, "state": "joined", "hub": hub}
+        if handover is not None:
+            g["handover_seq"] = handover
+        return {"config": {"id": uid(label), "device": BPH, "groups": [g]}}
+
+    def fwd(label, to):
+        return {"forward": {"id": uid(label), "device": BPH, "identity": BOB, "group": GROUP, "to": to}}
+
+    out.append(trace("mailbox-hub-move-switches-registration",
+                     "An owner device that processed the moving commit names the new hub and that commit's seq: fan-out and "
+                     "forwarding now go by the new hub, and the old hub's later deposits are refused.", mrefs + ["M§5.2"], T,
+                     mbx_ctx(groups=JA), [
+                         (hd("h1", 1, HUB_A), [macc(HUB_A, "h1", c(1))], ms([c(1)], J)),
+                         (hd("h2", 2, HUB_A, "handshake"), [macc(HUB_A, "h2", c(2))], ms([c(1), c(2)], J)),
+                         (cfg(), [macc(BPH, "cfg")], ms([c(1), c(2)], J)),
+                         (hd("b3", 3, HUB_B), [macc(HUB_B, "b3", c(3))], ms([c(1), c(2), c(3)], J)),
+                         (hd("a3", 3, HUB_A), [err(HUB_A, "a3", "mailbox.unknown-group")], ms([c(1), c(2), c(3)], J)),
+                         (fwd("f1", HUB_B), [{"forward": {"to": HUB_B, "id": uid("f1")}}], ms([c(1), c(2), c(3)], J)),
+                         (fwd("f2", HUB_A), [err(BPH, "f2", "mailbox.unknown-group")], ms([c(1), c(2), c(3)], J)),
+                     ]))
+    out.append(trace("mailbox-hub-move-previous-hub-redelivery",
+                     "The old hub retrying an item it ordered before the move (its acknowledgement was lost) gets a duplicate "
+                     "acknowledgement, so its queue drains.", mrefs + ["M§6.5"], T, mbx_ctx(groups=JA), [
+                         (hd("h1", 1, HUB_A), [macc(HUB_A, "h1", c(1))], ms([c(1)], J)),
+                         (hd("h2", 2, HUB_A, "handshake"), [macc(HUB_A, "h2", c(2))], ms([c(1), c(2)], J)),
+                         (cfg(), [macc(BPH, "cfg")], ms([c(1), c(2)], J)),
+                         (hd("h2-retry", 2, HUB_A, "handshake"), [macc(HUB_A, "h2-retry", c(2), dup=True)], ms([c(1), c(2)], J)),
+                     ]))
+    out.append(trace("mailbox-hub-move-new-hub-waits-for-handover",
+                     "The committing device can name the new hub before the old hub's fan-out of the move reaches its own mailbox: "
+                     "the new hub is refused (and retries) until the old hub's items through handover_seq are stored, so the "
+                     "mailbox keeps seq order.", mrefs + ["M§6.5"], T, mbx_ctx(groups=JA), [
+                         (hd("h1", 1, HUB_A), [macc(HUB_A, "h1", c(1))], ms([c(1)], J)),
+                         (cfg(), [macc(BPH, "cfg")], ms([c(1)], J)),
+                         (hd("b3", 3, HUB_B), [err(HUB_B, "b3", "mailbox.unknown-group")], ms([c(1)], J)),
+                         (hd("h2", 2, HUB_A, "handshake"), [macc(HUB_A, "h2", c(2))], ms([c(1), c(2)], J)),
+                         (hd("b3-retry", 3, HUB_B), [macc(HUB_B, "b3-retry", c(3))], ms([c(1), c(2), c(3)], J)),
+                     ]))
+    out.append(trace("mailbox-hub-move-new-hub-renumbering-refused",
+                     "A new hub whose numbering does not continue past handover_seq (a wrong handover) is refused policy.blocked "
+                     "rather than having its items taken for redeliveries and silently dropped.", mrefs + ["M§6.5"], T,
+                     mbx_ctx(groups=JA), [
+                         (hd("h1", 1, HUB_A), [macc(HUB_A, "h1", c(1))], ms([c(1)], J)),
+                         (hd("h2", 2, HUB_A, "handshake"), [macc(HUB_A, "h2", c(2))], ms([c(1), c(2)], J)),
+                         (cfg(), [macc(BPH, "cfg")], ms([c(1), c(2)], J)),
+                         (hd("b1", 1, HUB_B), [err(HUB_B, "b1", "policy.blocked")], ms([c(1), c(2)], J)),
+                         (hd("b2", 2, HUB_B), [err(HUB_B, "b2", "policy.blocked")], ms([c(1), c(2)], J)),
+                     ]))
+
+    # --- a device whose deposit reaches the old hub
+    ctx = {"component": "commit-retry", "max_attempts": 3}
+    retry = [{"discard": {}}, {"sync": {}}]
+    out.append(trace("commit-retry-unknown-group-hub-moved",
+                     "A deposit refused mailbox.unknown-group by a hub the group has left: the device syncs, processes the move, "
+                     "and re-proposes to the new hub.", ["M§7.4", "M§6.5"], "commit-retry-trace", ctx, [
+                         ({"answer": {"reason": "mailbox.unknown-group"}}, retry, {"attempt": 1, "state": "syncing"}),
+                         ({"synced": {"still_needed": True, "hub_moved": True}}, [{"repropose": {"attempt": 2}}], {"attempt": 2, "state": "pending"}),
+                         ({"answer": {}}, [{"merge": {}}], {"attempt": 2, "state": "merged"}),
+                     ]))
+    out.append(trace("commit-retry-unknown-group-not-moved-surfaces",
+                     "If the sync shows no move, mailbox.unknown-group is final and surfaced.", ["M§7.4", "M§6.6"],
+                     "commit-retry-trace", ctx, [
+                         ({"answer": {"reason": "mailbox.unknown-group"}}, retry, {"attempt": 1, "state": "syncing"}),
+                         ({"synced": {"still_needed": True, "hub_moved": False}}, [{"surface": "mailbox.unknown-group"}],
+                          {"attempt": 1, "state": "surfaced"}),
+                     ]))
+
+    # --- what the moving commit may change
+    before = {"conversation": CONV, "kind": "group", "hub": {"did": HUB_A, "uri": "wss://mbx.alice.example/dsip"}, "successor_of": None}
+    newhub = {"did": HUB_B, "uri": "wss://mbx.bob.example/dsip"}
+
+    def cu(vid, desc, after, expect):
+        out.append(mv(vid, desc, ["M§6.3", "M§7.4"], {"check": "conversation-update", "before": before, "after": after}, expect))
+    cu("conversation-update-hub-move", "A GroupContextExtensions commit replacing the hub moves the group.",
+       {**before, "hub": newhub}, accept(effective={"moves_to": HUB_B, "hub": newhub}))
+    cu("conversation-update-hub-endpoint-only", "The same hub at a new endpoint is not a move; members use the new uri.",
+       {**before, "hub": {"did": HUB_A, "uri": "wss://mbx2.alice.example/dsip"}},
+       accept(effective={"moves_to": None, "hub": {"did": HUB_A, "uri": "wss://mbx2.alice.example/dsip"}}))
+    cu("conversation-update-conversation-change-refused", "The conversation ULID is stable for the conversation's life (M§6.3).",
+       {**before, "hub": newhub, "conversation": uid("other-conversation")}, reject("conversation-immutable"))
+    cu("conversation-update-kind-change-refused", "A group does not change kind: a direct conversation stays direct.",
+       {**before, "kind": "direct"}, reject("conversation-immutable"))
+    cu("conversation-update-successor-change-refused", "successor_of is fixed when a group is created (M§7.5).",
+       {**before, "successor_of": GROUP2}, reject("conversation-immutable"))
+
+    # --- the wire fields
+    def m(vid, desc, payload, expect):
+        out.append(mv(vid, desc, ["M§7.4", "M§5.2"], {"check": "message", "payload": payload}, expect))
+    m("deposit-group-info-handover-seq-valid", "The committer bootstraps the new hub with the latest GroupInfo and the moving commit's seq.",
+      deposit(cls="group-info", handover_seq=7), accept())
+    m("deposit-application-handover-seq-refused", "handover_seq belongs to a group-info deposit only.",
+      deposit(handover_seq=7), reject("deposit-fields"))
+    m("mailbox-config-hub-move-valid", "An owner device names the group's new hub, its endpoint and the moving commit's seq.",
+      msg("mailbox-config", "cfgm", BPH, MBX_B, subject=BOB,
+          groups=[{"group": GROUP, "hub": HUB_B, "hub_uri": "wss://mbx.bob.example/dsip", "handover_seq": 7, "state": "joined"}]), accept())
+    m("mailbox-config-handover-seq-zero-refused", "A seq starts at 1.",
+      msg("mailbox-config", "cfgz", BPH, MBX_B, subject=BOB,
+          groups=[{"group": GROUP, "hub": HUB_B, "handover_seq": 0, "state": "joined"}]), reject("schema-invalid"))
     return out

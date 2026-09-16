@@ -101,7 +101,8 @@
             ]
           },
           "pending": {},
-          "group_info": true
+          "group_info": true,
+          "moved_to": null
         }
       },
       {
@@ -138,7 +139,8 @@
             ]
           },
           "pending": {},
-          "group_info": true
+          "group_info": true,
+          "moved_to": null
         }
       },
       {
@@ -185,7 +187,8 @@
               1
             ]
           },
-          "group_info": true
+          "group_info": true,
+          "moved_to": null
         }
       }
     ]

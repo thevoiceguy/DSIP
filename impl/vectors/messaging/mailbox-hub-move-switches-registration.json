@@ -1,0 +1,278 @@
+{
+  "vector": "messaging/mailbox-hub-move-switches-registration",
+  "format": 1,
+  "kind": "messaging",
+  "description": "An owner device that processed the moving commit names the new hub and that commit's seq: fan-out and forwarding now go by the new hub, and the old hub's later deposits are refused.",
+  "spec_ref": [
+    "M§7.4",
+    "M§6.6",
+    "M§5.2"
+  ],
+  "context": {
+    "component": "mailbox",
+    "mailbox": "did:web:mbx.bob.example",
+    "owner": "did:web:example.com:users:bob",
+    "serves": [
+      "did:web:example.com:users:bob"
+    ],
+    "devices": [
+      "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ",
+      "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+    ],
+    "now": 1760000000,
+    "mode": "sync",
+    "admit": "grant",
+    "pending_group_ttl": 604800,
+    "pending_group_max_items": 2,
+    "groups": {
+      "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M": {
+        "hub": "did:web:mbx.alice.example",
+        "state": "joined"
+      }
+    },
+    "key_packages": {}
+  },
+  "input": {
+    "check": "mailbox-trace",
+    "steps": [
+      {
+        "event": {
+          "hub_deposit": {
+            "id": "01K742SG002WHVBMHZXKS2T47Q",
+            "from": "did:web:mbx.alice.example",
+            "recipient": "did:web:example.com:users:bob",
+            "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+            "seq": 1,
+            "class": "application"
+          }
+        }
+      },
+      {
+        "event": {
+          "hub_deposit": {
+            "id": "01K742SG00WNBRGVCKQRP4FHNK",
+            "from": "did:web:mbx.alice.example",
+            "recipient": "did:web:example.com:users:bob",
+            "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+            "seq": 2,
+            "class": "handshake"
+          }
+        }
+      },
+      {
+        "event": {
+          "config": {
+            "id": "01K742SG00CRGV1XBJ61930SY8",
+            "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "groups": [
+              {
+                "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+                "state": "joined",
+                "hub": "did:web:mbx.bob.example",
+                "handover_seq": 2
+              }
+            ]
+          }
+        }
+      },
+      {
+        "event": {
+          "hub_deposit": {
+            "id": "01K742SG00MT2Z4MDBK8MPM2G3",
+            "from": "did:web:mbx.bob.example",
+            "recipient": "did:web:example.com:users:bob",
+            "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+            "seq": 3,
+            "class": "application"
+          }
+        }
+      },
+      {
+        "event": {
+          "hub_deposit": {
+            "id": "01K742SG00JVVJSRV8JRXMDJ4B",
+            "from": "did:web:mbx.alice.example",
+            "recipient": "did:web:example.com:users:bob",
+            "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+            "seq": 3,
+            "class": "application"
+          }
+        }
+      },
+      {
+        "event": {
+          "forward": {
+            "id": "01K742SG00G687MHBKVSG7M9EP",
+            "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "identity": "did:web:example.com:users:bob",
+            "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+            "to": "did:web:mbx.bob.example"
+          }
+        }
+      },
+      {
+        "event": {
+          "forward": {
+            "id": "01K742SG006E43N5VA759CVATA",
+            "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "identity": "did:web:example.com:users:bob",
+            "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+            "to": "did:web:mbx.alice.example"
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "accepted": {
+              "to": "did:web:mbx.alice.example",
+              "in_reply_to": "01K742SG002WHVBMHZXKS2T47Q",
+              "cursor": "c:0000000000000001"
+            }
+          }
+        ],
+        "state": {
+          "items": [
+            "c:0000000000000001"
+          ],
+          "groups": {
+            "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M": "joined"
+          },
+          "key_packages": {}
+        }
+      },
+      {
+        "emit": [
+          {
+            "accepted": {
+              "to": "did:web:mbx.alice.example",
+              "in_reply_to": "01K742SG00WNBRGVCKQRP4FHNK",
+              "cursor": "c:0000000000000002"
+            }
+          }
+        ],
+        "state": {
+          "items": [
+            "c:0000000000000001",
+            "c:0000000000000002"
+          ],
+          "groups": {
+            "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M": "joined"
+          },
+          "key_packages": {}
+        }
+      },
+      {
+        "emit": [
+          {
+            "accepted": {
+              "to": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+              "in_reply_to": "01K742SG00CRGV1XBJ61930SY8"
+            }
+          }
+        ],
+        "state": {
+          "items": [
+            "c:0000000000000001",
+            "c:0000000000000002"
+          ],
+          "groups": {
+            "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M": "joined"
+          },
+          "key_packages": {}
+        }
+      },
+      {
+        "emit": [
+          {
+            "accepted": {
+              "to": "did:web:mbx.bob.example",
+              "in_reply_to": "01K742SG00MT2Z4MDBK8MPM2G3",
+              "cursor": "c:0000000000000003"
+            }
+          }
+        ],
+        "state": {
+          "items": [
+            "c:0000000000000001",
+            "c:0000000000000002",
+            "c:0000000000000003"
+          ],
+          "groups": {
+            "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M": "joined"
+          },
+          "key_packages": {}
+        }
+      },
+      {
+        "emit": [
+          {
+            "error": {
+              "to": "did:web:mbx.alice.example",
+              "in_reply_to": "01K742SG00JVVJSRV8JRXMDJ4B",
+              "reason": "mailbox.unknown-group"
+            }
+          }
+        ],
+        "state": {
+          "items": [
+            "c:0000000000000001",
+            "c:0000000000000002",
+            "c:0000000000000003"
+          ],
+          "groups": {
+            "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M": "joined"
+          },
+          "key_packages": {}
+        }
+      },
+      {
+        "emit": [
+          {
+            "forward": {
+              "to": "did:web:mbx.bob.example",
+              "id": "01K742SG00G687MHBKVSG7M9EP"
+            }
+          }
+        ],
+        "state": {
+          "items": [
+            "c:0000000000000001",
+            "c:0000000000000002",
+            "c:0000000000000003"
+          ],
+          "groups": {
+            "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M": "joined"
+          },
+          "key_packages": {}
+        }
+      },
+      {
+        "emit": [
+          {
+            "error": {
+              "to": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+              "in_reply_to": "01K742SG006E43N5VA759CVATA",
+              "reason": "mailbox.unknown-group"
+            }
+          }
+        ],
+        "state": {
+          "items": [
+            "c:0000000000000001",
+            "c:0000000000000002",
+            "c:0000000000000003"
+          ],
+          "groups": {
+            "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M": "joined"
+          },
+          "key_packages": {}
+        }
+      }
+    ]
+  }
+}

@@ -98,7 +98,8 @@
               1
             ]
           },
-          "group_info": false
+          "group_info": false,
+          "moved_to": null
         }
       },
       {
@@ -132,7 +133,8 @@
               1
             ]
           },
-          "group_info": false
+          "group_info": false,
+          "moved_to": null
         }
       }
     ]

@@ -1,0 +1,44 @@
+{
+  "vector": "messaging/mailbox-config-handover-seq-zero-refused",
+  "format": 1,
+  "kind": "messaging",
+  "description": "A seq starts at 1.",
+  "spec_ref": [
+    "M§7.4",
+    "M§5.2"
+  ],
+  "context": {},
+  "input": {
+    "check": "message",
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "messaging/1.0"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "mailbox-config",
+      "id": "01K742SG00FBXBRJ807CQSQCMX",
+      "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+      "to": "did:web:mbx.bob.example",
+      "subject": "did:web:example.com:users:bob",
+      "groups": [
+        {
+          "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+          "hub": "did:web:mbx.bob.example",
+          "handover_seq": 0,
+          "state": "joined"
+        }
+      ],
+      "issued_at": 1760000000,
+      "expires_at": 1760000030
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "schema-invalid"
+  }
+}

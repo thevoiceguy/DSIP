@@ -1,0 +1,36 @@
+{
+  "vector": "messaging/conversation-update-successor-change-refused",
+  "format": 1,
+  "kind": "messaging",
+  "description": "successor_of is fixed when a group is created (M§7.5).",
+  "spec_ref": [
+    "M§6.3",
+    "M§7.4"
+  ],
+  "context": {},
+  "input": {
+    "check": "conversation-update",
+    "before": {
+      "conversation": "01K742SG00AX1F6HVTRWBW227R",
+      "kind": "group",
+      "hub": {
+        "did": "did:web:mbx.alice.example",
+        "uri": "wss://mbx.alice.example/dsip"
+      },
+      "successor_of": null
+    },
+    "after": {
+      "conversation": "01K742SG00AX1F6HVTRWBW227R",
+      "kind": "group",
+      "hub": {
+        "did": "did:web:mbx.alice.example",
+        "uri": "wss://mbx.alice.example/dsip"
+      },
+      "successor_of": "MDFLNzQyU0cwMDVCWTdRQzVDQkg4MUdSUVQ"
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "conversation-immutable"
+  }
+}

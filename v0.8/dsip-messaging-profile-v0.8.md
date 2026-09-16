@@ -823,6 +823,29 @@ commit that changes `dsip_conversation.hub`. The old hub orders and fans out tha
 refuses further deposits for the group with `mailbox.unknown-group`. Members then deposit to the new
 hub, which initializes its state from the latest `group-info`.
 
+(spec-gap 60) Precisely:
+
+- **What may change.** The commit changes `dsip_conversation.hub` and nothing else: `conversation`,
+  `kind` and `successor_of` are fixed for a group's life. A hub validating a commit that changes any of
+  them treats it as invalid. The same `did` at a new `uri` is not a move; members use the new `uri`.
+- **The old hub** orders the commit like any other, keeps delivering what it ordered through it (its
+  queues drain as mailboxes acknowledge), and refuses every later deposit for the group with
+  `mailbox.unknown-group`.
+- **The new hub continues the numbering.** The committer's `group-info` deposit to the new hub carries
+  `handover_seq`, the `seq` the old hub gave the moving commit; the new hub's first item is
+  `handover_seq + 1`. `(group, seq)` therefore stays unique for the group, as archive records require
+  (M§12.2). A hub hosts a group only if its `dsip_conversation.hub.did` names that hub.
+- **Member mailboxes follow their owner's devices.** A device that processes the moving commit (or the
+  committer, on `accepted`) sends its mailbox `mailbox-config` with the group, the new `hub`, its
+  `hub_uri` and `handover_seq`. From then on the mailbox admits fan-out from, and forwards to, the new
+  hub; it still admits the old hub's deposits with `seq` up to `handover_seq` (a redelivery is a
+  duplicate, M§6.6). Until the old hub's items through `handover_seq` are stored it refuses the new hub
+  with `mailbox.unknown-group` (the hub retries, M§6.6), so items stay in `seq` order; a deposit from the
+  new hub with `seq` ≤ `handover_seq` is refused `policy.blocked`.
+- **A member that missed the move** deposits to the old hub and gets `mailbox.unknown-group`. It syncs;
+  if the group has moved, it re-proposes a commit (M§6.5) or re-encrypts and re-sends an application
+  message to the new hub; otherwise the refusal is final.
+
 ### M§7.5 Successor groups (the hub is gone)
 
 If a hub is permanently unreachable, no commit can be ordered. Any member MAY create a **successor

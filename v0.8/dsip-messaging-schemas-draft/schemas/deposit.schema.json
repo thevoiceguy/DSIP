@@ -90,6 +90,11 @@
     "successor_of": {
       "$ref": "#/$defs/b64url"
     },
+    "handover_seq": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "On a group-info deposit to a group's new hub: the seq the previous hub gave the commit that moved the group; the new hub continues from the next (M\u00a77.4, spec-gap 60)."
+    },
     "envelope": {
       "type": "string",
       "minLength": 1,

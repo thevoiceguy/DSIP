@@ -142,6 +142,9 @@ MESSAGES = {
         "grants": {"type": "array", "items": {"type": "string", "minLength": 1}},
         "origin": {"type": "string", "minLength": 1},
         "successor_of": {"$ref": "#/$defs/b64url"},
+        "handover_seq": {"type": "integer", "minimum": 1,
+                         "description": "On a group-info deposit to a group's new hub: the seq the previous hub gave the commit that "
+                                        "moved the group; the new hub continues from the next (M§7.4, spec-gap 60)."},
         "envelope": {"type": "string", "minLength": 1, "description": "A compact signed core envelope (introduction or grant, spec-gap 54)."},
     }, ["class"], "Place one item into a mailbox or submit it to a hub (M§5.2). Class-dependent field rules are semantic (M§5.2 table)."),
     "accepted": envelope_payload("accepted", {
@@ -220,6 +223,10 @@ MESSAGES = {
         "groups": {"type": "array", "items": {
             "type": "object",
             "properties": {"group": {"$ref": "#/$defs/b64url"}, "hub": {"$ref": "#/$defs/did"},
+                           "hub_uri": {"$ref": "#/$defs/wssUri"},
+                           "handover_seq": {"type": "integer", "minimum": 1,
+                                            "description": "With a hub other than the registered one: the seq of the commit that "
+                                                           "moved the group (M§7.4, spec-gap 60)."},
                            "state": {"enum": ["joined", "left"]}},
             "required": ["group", "state"],
             "additionalProperties": False,

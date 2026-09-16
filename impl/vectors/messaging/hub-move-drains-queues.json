@@ -1,11 +1,11 @@
 {
-  "vector": "messaging/hub-restart-keeps-epoch-and-digests",
+  "vector": "messaging/hub-move-drains-queues",
   "format": 1,
   "kind": "messaging",
-  "description": "A hub restart keeps the epoch, the sequence counter and the deposit digests: a retried deposit is still a duplicate, a commit for the old epoch still conflicts, and new items continue the sequence.",
+  "description": "What the old hub ordered before and including the move is still delivered, in order, as mailboxes acknowledge.",
   "spec_ref": [
-    "M§6.5",
-    "M§9.3"
+    "M§7.4",
+    "M§6.5"
   ],
   "context": {
     "component": "hub",
@@ -30,81 +30,45 @@
       {
         "event": {
           "deposit": {
-            "id": "01K742SG00TSB8EPCQHNSGSESD",
-            "device": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
-            "identity": "did:web:alice.example",
-            "class": "handshake",
-            "epoch": 1,
-            "digest": "k1",
-            "commit": {
-              "adds": [],
-              "removes": []
-            }
-          }
-        }
-      },
-      {
-        "event": {
-          "ack": {
-            "identity": "did:web:alice.example",
-            "seq": 1
-          }
-        }
-      },
-      {
-        "event": {
-          "ack": {
-            "identity": "did:web:example.com:users:bob",
-            "seq": 1
-          }
-        }
-      },
-      {
-        "event": {
-          "restart": {}
-        }
-      },
-      {
-        "event": {
-          "deposit": {
-            "id": "01K742SG003T1BACYTGT64Y8ER",
-            "device": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
-            "identity": "did:web:alice.example",
-            "class": "handshake",
-            "epoch": 1,
-            "digest": "k1",
-            "commit": {
-              "adds": [],
-              "removes": []
-            }
-          }
-        }
-      },
-      {
-        "event": {
-          "deposit": {
-            "id": "01K742SG00KKV8ZKQ491WCA8PF",
-            "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
-            "identity": "did:web:example.com:users:bob",
-            "class": "handshake",
-            "epoch": 1,
-            "digest": "k2",
-            "commit": {
-              "adds": [],
-              "removes": []
-            }
-          }
-        }
-      },
-      {
-        "event": {
-          "deposit": {
             "id": "01K742SG00VD6RG3ANPVBWAGTY",
+            "device": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+            "identity": "did:web:alice.example",
+            "class": "application",
+            "epoch": 1,
+            "digest": "a1"
+          }
+        }
+      },
+      {
+        "event": {
+          "deposit": {
+            "id": "01K742SG00JD5Q2KRGAGNJ7ZMJ",
             "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
             "identity": "did:web:example.com:users:bob",
-            "class": "application",
-            "epoch": 2,
-            "digest": "a1"
+            "class": "handshake",
+            "epoch": 1,
+            "digest": "mv",
+            "commit": {
+              "adds": [],
+              "removes": [],
+              "moves_to": "did:web:mbx.bob.example"
+            }
+          }
+        }
+      },
+      {
+        "event": {
+          "ack": {
+            "identity": "did:web:alice.example",
+            "seq": 1
+          }
+        }
+      },
+      {
+        "event": {
+          "ack": {
+            "identity": "did:web:example.com:users:bob",
+            "seq": 1
           }
         }
       }
@@ -117,7 +81,7 @@
           {
             "accepted": {
               "to": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
-              "in_reply_to": "01K742SG00TSB8EPCQHNSGSESD",
+              "in_reply_to": "01K742SG00VD6RG3ANPVBWAGTY",
               "seq": 1
             }
           },
@@ -125,19 +89,19 @@
             "fanout": {
               "to": "did:web:alice.example",
               "seq": 1,
-              "class": "handshake"
+              "class": "application"
             }
           },
           {
             "fanout": {
               "to": "did:web:example.com:users:bob",
               "seq": 1,
-              "class": "handshake"
+              "class": "application"
             }
           }
         ],
         "state": {
-          "epoch": 2,
+          "epoch": 1,
           "next_seq": 2,
           "roster": {
             "did:web:alice.example": [
@@ -161,142 +125,83 @@
         }
       },
       {
-        "emit": [],
-        "state": {
-          "epoch": 2,
-          "next_seq": 2,
-          "roster": {
-            "did:web:alice.example": [
-              "did:key:z6MkfhenvjQ7awdpVWzPaeBuPkXCBLwzJKyosCrTL3huMb66",
-              "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu"
-            ],
-            "did:web:example.com:users:bob": [
-              "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
-            ]
-          },
-          "pending": {
-            "did:web:example.com:users:bob": [
-              1
-            ]
-          },
-          "group_info": false,
-          "moved_to": null
-        }
-      },
-      {
-        "emit": [],
-        "state": {
-          "epoch": 2,
-          "next_seq": 2,
-          "roster": {
-            "did:web:alice.example": [
-              "did:key:z6MkfhenvjQ7awdpVWzPaeBuPkXCBLwzJKyosCrTL3huMb66",
-              "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu"
-            ],
-            "did:web:example.com:users:bob": [
-              "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
-            ]
-          },
-          "pending": {},
-          "group_info": false,
-          "moved_to": null
-        }
-      },
-      {
-        "emit": [],
-        "state": {
-          "epoch": 2,
-          "next_seq": 2,
-          "roster": {
-            "did:web:alice.example": [
-              "did:key:z6MkfhenvjQ7awdpVWzPaeBuPkXCBLwzJKyosCrTL3huMb66",
-              "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu"
-            ],
-            "did:web:example.com:users:bob": [
-              "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
-            ]
-          },
-          "pending": {},
-          "group_info": false,
-          "moved_to": null
-        }
-      },
-      {
-        "emit": [
-          {
-            "accepted": {
-              "to": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
-              "in_reply_to": "01K742SG003T1BACYTGT64Y8ER",
-              "seq": 1,
-              "duplicate": true
-            }
-          }
-        ],
-        "state": {
-          "epoch": 2,
-          "next_seq": 2,
-          "roster": {
-            "did:web:alice.example": [
-              "did:key:z6MkfhenvjQ7awdpVWzPaeBuPkXCBLwzJKyosCrTL3huMb66",
-              "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu"
-            ],
-            "did:web:example.com:users:bob": [
-              "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
-            ]
-          },
-          "pending": {},
-          "group_info": false,
-          "moved_to": null
-        }
-      },
-      {
-        "emit": [
-          {
-            "error": {
-              "to": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
-              "in_reply_to": "01K742SG00KKV8ZKQ491WCA8PF",
-              "reason": "mailbox.commit-conflict"
-            }
-          }
-        ],
-        "state": {
-          "epoch": 2,
-          "next_seq": 2,
-          "roster": {
-            "did:web:alice.example": [
-              "did:key:z6MkfhenvjQ7awdpVWzPaeBuPkXCBLwzJKyosCrTL3huMb66",
-              "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu"
-            ],
-            "did:web:example.com:users:bob": [
-              "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
-            ]
-          },
-          "pending": {},
-          "group_info": false,
-          "moved_to": null
-        }
-      },
-      {
         "emit": [
           {
             "accepted": {
               "to": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
-              "in_reply_to": "01K742SG00VD6RG3ANPVBWAGTY",
+              "in_reply_to": "01K742SG00JD5Q2KRGAGNJ7ZMJ",
               "seq": 2
             }
+          }
+        ],
+        "state": {
+          "epoch": 2,
+          "next_seq": 3,
+          "roster": {
+            "did:web:alice.example": [
+              "did:key:z6MkfhenvjQ7awdpVWzPaeBuPkXCBLwzJKyosCrTL3huMb66",
+              "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu"
+            ],
+            "did:web:example.com:users:bob": [
+              "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+            ]
           },
+          "pending": {
+            "did:web:alice.example": [
+              1,
+              2
+            ],
+            "did:web:example.com:users:bob": [
+              1,
+              2
+            ]
+          },
+          "group_info": false,
+          "moved_to": "did:web:mbx.bob.example"
+        }
+      },
+      {
+        "emit": [
           {
             "fanout": {
               "to": "did:web:alice.example",
               "seq": 2,
-              "class": "application"
+              "class": "handshake"
             }
+          }
+        ],
+        "state": {
+          "epoch": 2,
+          "next_seq": 3,
+          "roster": {
+            "did:web:alice.example": [
+              "did:key:z6MkfhenvjQ7awdpVWzPaeBuPkXCBLwzJKyosCrTL3huMb66",
+              "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu"
+            ],
+            "did:web:example.com:users:bob": [
+              "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+            ]
           },
+          "pending": {
+            "did:web:alice.example": [
+              2
+            ],
+            "did:web:example.com:users:bob": [
+              1,
+              2
+            ]
+          },
+          "group_info": false,
+          "moved_to": "did:web:mbx.bob.example"
+        }
+      },
+      {
+        "emit": [
           {
             "fanout": {
               "to": "did:web:example.com:users:bob",
               "seq": 2,
-              "class": "application"
+              "class": "handshake"
             }
           }
         ],
@@ -321,7 +226,7 @@
             ]
           },
           "group_info": false,
-          "moved_to": null
+          "moved_to": "did:web:mbx.bob.example"
         }
       }
     ]
