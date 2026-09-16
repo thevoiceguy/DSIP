@@ -1,0 +1,87 @@
+{
+  "vector": "messaging/history-prejoin-mls-skipped",
+  "format": 1,
+  "kind": "messaging",
+  "description": "MLS items from epochs before the device joined cannot be decrypted by it and are skipped; its join epoch onward is shown.",
+  "spec_ref": [
+    "M§12.2",
+    "M§12.3",
+    "M§8.5"
+  ],
+  "context": {
+    "component": "history",
+    "keys": [],
+    "joined": {}
+  },
+  "input": {
+    "check": "history-trace",
+    "steps": [
+      {
+        "event": {
+          "joined": {
+            "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+            "epoch": 3
+          }
+        }
+      },
+      {
+        "event": {
+          "mls": {
+            "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+            "seq": 4,
+            "epoch": 2,
+            "id": "m4"
+          }
+        }
+      },
+      {
+        "event": {
+          "mls": {
+            "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+            "seq": 5,
+            "epoch": 3,
+            "id": "m5"
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [],
+        "state": {
+          "timeline": [],
+          "held": [],
+          "current_akid": null
+        }
+      },
+      {
+        "emit": [
+          {
+            "prejoin": 4
+          }
+        ],
+        "state": {
+          "timeline": [],
+          "held": [],
+          "current_akid": null
+        }
+      },
+      {
+        "emit": [
+          {
+            "show": "m5"
+          }
+        ],
+        "state": {
+          "timeline": [
+            "m5"
+          ],
+          "held": [],
+          "current_akid": null
+        }
+      }
+    ]
+  }
+}

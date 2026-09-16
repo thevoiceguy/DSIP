@@ -1,0 +1,23 @@
+{
+  "vector": "messaging/registration-on-removal-sibling-remains",
+  "format": 1,
+  "kind": "messaging",
+  "description": "A device removed while another device of its identity stays in the group must not end the identity's registration.",
+  "spec_ref": [
+    "M§5.7",
+    "M§6.6",
+    "M§12.4"
+  ],
+  "context": {},
+  "input": {
+    "check": "registration-on-removal",
+    "me": "did:web:example.com:users:bob",
+    "remaining_identities": [
+      "did:web:alice.example",
+      "did:web:example.com:users:bob"
+    ]
+  },
+  "expect": {
+    "left": false
+  }
+}

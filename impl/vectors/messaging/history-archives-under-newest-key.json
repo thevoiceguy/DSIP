@@ -1,0 +1,90 @@
+{
+  "vector": "messaging/history-archives-under-newest-key",
+  "format": 1,
+  "kind": "messaging",
+  "description": "After a rotation the current key is the one created last, and new archive records use it.",
+  "spec_ref": [
+    "M§12.2",
+    "M§12.3",
+    "M§8.5",
+    "M§12.4",
+    "M§12.1"
+  ],
+  "context": {
+    "component": "history",
+    "keys": [],
+    "joined": {}
+  },
+  "input": {
+    "check": "history-trace",
+    "steps": [
+      {
+        "event": {
+          "archive_key": {
+            "akid": "01K742SG00WE5SBZQG1HH80GM7",
+            "created_at": 1760000000
+          }
+        }
+      },
+      {
+        "event": {
+          "archive_key": {
+            "akid": "01K742SG00FGJFA787KKTJ1Z45",
+            "created_at": 1760000060
+          }
+        }
+      },
+      {
+        "event": {
+          "mls": {
+            "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+            "seq": 1,
+            "epoch": 1,
+            "id": "m1"
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [],
+        "state": {
+          "timeline": [],
+          "held": [],
+          "current_akid": "01K742SG00WE5SBZQG1HH80GM7"
+        }
+      },
+      {
+        "emit": [],
+        "state": {
+          "timeline": [],
+          "held": [],
+          "current_akid": "01K742SG00FGJFA787KKTJ1Z45"
+        }
+      },
+      {
+        "emit": [
+          {
+            "show": "m1"
+          },
+          {
+            "archive": {
+              "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+              "seq": 1,
+              "akid": "01K742SG00FGJFA787KKTJ1Z45"
+            }
+          }
+        ],
+        "state": {
+          "timeline": [
+            "m1"
+          ],
+          "held": [],
+          "current_akid": "01K742SG00FGJFA787KKTJ1Z45"
+        }
+      }
+    ]
+  }
+}

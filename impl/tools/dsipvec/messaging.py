@@ -159,7 +159,10 @@ def check_object(o: dict, ctx: dict) -> dict:
     if name in ("content", "receipt", "activity"):
         if o["sender"] != ctx.get("leaf_identity"):  # M§8.1: sender = MLS leaf identity
             return reject("sender-mismatch")
-        if o["conversation"] != ctx.get("conversation"):
+        # spec-gap 52: an undisclosed read watermark travels in the personal group (M§10.5) and names the
+        # conversation it describes, not the personal group's own
+        private_read = name == "receipt" and o.get("kind") == "read" and ctx.get("conversation_kind") == "personal"
+        if o["conversation"] != ctx.get("conversation") and not private_read:
             return reject("conversation-mismatch")
     if name in ("content", "receipt"):
         if abs(U.timestamp_ms(o["id"]) // 1000 - o["sent_at"]) > ULID_TOLERANCE_S:
@@ -298,7 +301,7 @@ class Hub:
                 return self._error(d, "policy.blocked")
         targets = sorted(self.roster)
         out = self._sequence(d, targets)
-        before = set(self.roster)
+        before = {i: set(devs) for i, devs in self.roster.items()}
         for r in commit.get("removes", []):
             devs = self.roster.get(r["identity"])
             if devs is not None:
@@ -309,7 +312,9 @@ class Hub:
             self.roster.setdefault(a["identity"], set()).add(a["device"])
         self.epoch += 1
         if not external:  # an external joiner joined by its own commit; welcomes go only to identities others added
-            out += [{"fanout": {"to": i, "class": "welcome"}} for i in sorted(set(self.roster) - before)]
+            # spec-gap 50: to every identity that gained a device, including a member adding its own new device
+            gained = {a["identity"] for a in commit.get("adds", []) if a["device"] not in before.get(a["identity"], set())}
+            out += [{"fanout": {"to": i, "class": "welcome"}} for i in sorted(gained)]
         return out
 
     def _sequence(self, d: dict, targets: list) -> list:
@@ -789,6 +794,77 @@ class GapTracker:
         return {"contiguous": self.contiguous, "held": list(self.held)}
 
 
+class History:
+    """One device's conversation history from MLS items and archive records (M§12.2, M§12.3, M§8.5; spec-gap 51).
+
+    Archive records under an archive key the device does not hold yet are held (a new device syncs from null and
+    meets records before the personal-group welcome that brings the key) and released when the key arrives. MLS
+    items from epochs before the device joined the group are skipped: their history comes from archive. Archive
+    and MLS copies of one object collapse by its key; the timeline is in (group, seq) order whatever the arrival
+    order. A device archives what it shows from MLS, including its own sent content, under the current key: the
+    one with the greatest `created_at`, ties broken by `akid`.
+    """
+
+    def __init__(self, ctx: dict):
+        self.keys = {k["akid"]: k["created_at"] for k in ctx.get("keys", [])}
+        self.joined = dict(ctx.get("joined", {}))
+        self.held: list[dict] = []
+        self.shown: dict[str, tuple] = {}
+
+    def step(self, ev: dict) -> list:
+        (name, e), = ev.items()
+        return getattr(self, "_" + name)(e)
+
+    def _current(self):
+        return max(self.keys.items(), key=lambda kv: (kv[1], kv[0]))[0] if self.keys else None
+
+    def _show(self, e: dict) -> dict:
+        if e["id"] in self.shown:
+            return {"duplicate": e["id"]}
+        self.shown[e["id"]] = (e["group"], e["seq"])
+        return {"show": e["id"]}
+
+    def _joined(self, e: dict) -> list:
+        self.joined[e["group"]] = e["epoch"]
+        return []
+
+    def _archive_key(self, e: dict) -> list:
+        self.keys[e["akid"]] = e["created_at"]
+        out, keep = [], []
+        for h in self.held:
+            if h["akid"] == e["akid"]:
+                out.append(self._show(h))
+            else:
+                keep.append(h)
+        self.held = keep
+        return out
+
+    def _archive(self, e: dict) -> list:
+        if e["akid"] not in self.keys:
+            self.held.append(e)
+            return [{"hold": e["cursor"]}]
+        return [self._show(e)]
+
+    def _mls(self, e: dict) -> list:
+        if e["group"] in self.joined and e["epoch"] < self.joined[e["group"]]:
+            return [{"prejoin": e["seq"]}]
+        return self._from_mls(e)
+
+    def _sent(self, e: dict) -> list:
+        return self._from_mls(e)
+
+    def _from_mls(self, e: dict) -> list:
+        shown = self._show(e)
+        out = [shown]
+        if "show" in shown and self._current() is not None:
+            out.append({"archive": {"group": e["group"], "seq": e["seq"], "akid": self._current()}})
+        return out
+
+    def snapshot(self) -> dict:
+        order = sorted(self.shown.items(), key=lambda kv: kv[1])
+        return {"timeline": [k for k, _ in order], "held": [h["cursor"] for h in self.held], "current_akid": self._current()}
+
+
 SEQUENCED_CLASSES = ("handshake", "application")
 
 
@@ -823,6 +899,12 @@ class Resume:
                 out.append({"crash": it["cursor"]})  # processed in memory, never committed: rolled back
                 break
             dup = self._duplicate(it)
+            if not dup and it.get("sibling"):
+                # spec-gap 51: a welcome for another device of this identity holds none of this device's
+                # KeyPackages; it is acknowledged but is not a join, so this device's own welcome still counts
+                out.append({"sibling": it["cursor"]})
+                self.cursor = it["cursor"]
+                continue
             out.append({"duplicate" if dup else "process": it["cursor"]})
             # commit: the cursor advances past duplicates too, so they are acknowledged
             self.cursor = it["cursor"]
@@ -1005,6 +1087,12 @@ def open_sealed(inp: dict) -> dict:
     return accept(plaintext_hex=pt.hex())
 
 
+def registration_on_removal(inp: dict) -> dict:
+    """M§5.7, M§6.6 (spec-gap 53): a group registration belongs to the identity, so a device removed from a group
+    ends it (`left`) only when no leaf of its identity remains in the group."""
+    return {"left": inp["me"] not in inp["remaining_identities"]}
+
+
 # ---------------------------------------------------------------- blob endpoint (M§5.6, M§8.4)
 
 def blob_put(inp: dict) -> dict:
@@ -1105,6 +1193,8 @@ def run(v: dict) -> dict:
         return seal(inp)
     if check == "open":
         return open_sealed(inp)
+    if check == "registration-on-removal":
+        return registration_on_removal(inp)
     if check == "blob-put":
         return blob_put(inp)
     if check == "blob-get":
@@ -1117,9 +1207,9 @@ def run(v: dict) -> dict:
         return check_successor(inp)
     if check == "successor-select":
         return select_successor(inp["candidates"])
-    if check in ("hub-trace", "mailbox-trace", "client-trace", "gap-trace", "resume-trace"):
+    if check in ("hub-trace", "mailbox-trace", "client-trace", "gap-trace", "resume-trace", "history-trace"):
         comp = {"hub-trace": Hub, "mailbox-trace": Mailbox, "client-trace": Client, "gap-trace": GapTracker,
-                "resume-trace": Resume}[check](v["context"])
+                "resume-trace": Resume, "history-trace": History}[check](v["context"])
         steps = []
         for st in inp["steps"]:
             emit = comp.step(st["event"])

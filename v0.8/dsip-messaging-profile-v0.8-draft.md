@@ -4,7 +4,7 @@
 Unlike the Gateway Profile and the WebRTC Media Binding, this document is written *before* the
 reference implementation: per the project's vectors-first rule, a `messaging/` vector category
 pins it next, and where the vectors and this text disagree the disagreement is resolved
-explicitly (vector bug or text bug), never papered over. Spec-gaps 31–49
+explicitly (vector bug or text bug), never papered over. Spec-gaps 31–53
 (`impl/docs/spec-gaps.md`) record every choice this draft makes that core does not already
 settle.
 **Profile identifier:** `messaging/1.0`. **Conformance pieces:** `DSIP Messaging Profile 1.0`
@@ -112,6 +112,10 @@ The profile is additive except for the following core items, each filed as a spe
 | 47 | (new) | A device's own items fanned back to it are recognised by the `accepted` seq (or their bytes), never decrypted. |
 | 48 | §15.1 | Blob endpoint statuses and refusal order; new token `mailbox.blob-mismatch`. |
 | 49 | (new) | Ephemeral items reach devices without a cursor, carrying the originating `expires_at` end to end. |
+| 50 | (new) | A member adding its own new device gets a `welcome` for it. |
+| 51 | (new) | A new device's history: held archive, pre-join skip, sibling welcomes, own content archived, current key. |
+| 52 | (new) | A private read watermark in the personal group names the conversation it describes. |
+| 53 | (new) | Mailbox group registration is per identity: a removed device sends `left` only for its identity's last leaf. |
 
 ## M§4 The mailbox service
 
@@ -531,7 +535,9 @@ An owner device configures its own mailbox:
   stored value (for `groups`, per group entry).
 - `admit` ∈ {`grant`, `open`} (default `grant`): whether first contact requires a grant (M§14.2).
   `open` suits businesses and public services.
-- `groups[].state` ∈ {`joined`, `left`}: confirms a pending registration (M§6.6) or ends one.
+- `groups[].state` ∈ {`joined`, `left`}: confirms a pending registration (M§6.6) or ends one. A
+  registration belongs to the identity, not to a device (spec-gap 53): a device removed from a group
+  sends `left` only when no leaf of its identity remains in the group, so its siblings keep receiving.
 - `revoked_grants` lists grant ids the owner has revoked; the mailbox MUST refuse authorization by
   them from then on (§19.4 "revocation is local policy at the granting side" — this is its
   propagation to the mailbox).
@@ -640,7 +646,10 @@ The hub MUST:
    messages), and for a commit that removes identities, to those identities too. Deliver to each
    mailbox in `seq` order, retrying an unacknowledged deposit before sending later ones. A commit
    that adds identities also sends a `welcome` to each added identity; a commit that is an external
-   join sends none, since the joiner joined by its own commit.
+   join sends none, since the joiner joined by its own commit. (spec-gap 50) "Added identity" means
+   every identity that gains a device the group did not have, including a member identity adding its
+   own new device (M§6.7, M§12.3): that device is not in the group yet and learns of it only by the
+   `welcome`.
 6. **Keep only what ordering needs.** The hub retains the epoch, the public tree, the latest
    GroupInfo, and its retry queue. It is not a history store. A group's creator publishes the first
    GroupInfo before its first commit: that is what bootstraps the hub's public view, and every
@@ -997,7 +1006,10 @@ ignore it for other kinds. It is identity-level, sent at most once per target, a
 - No sender can require a receipt. Senders MUST NOT interpret the absence of a receipt as anything,
   as with silence in §19.4.
 - When read receipts are off, the client still sends its `read` watermark, but **only to its
-  personal group**, so the identity's own devices stay in sync without disclosure.
+  personal group**, so the identity's own devices stay in sync without disclosure. (spec-gap 52) Such a
+  `read` receipt names the conversation it describes in `conversation`; it is the one object exempt
+  from M§8.1's rule that `conversation` equals the carrying group's, and receiving devices apply it to
+  that conversation.
 
 ## M§11 Ephemeral activity
 
@@ -1056,7 +1068,8 @@ mode, history survives through an identity-level **archive key**:
 - The first device creates a random 32-byte archive key with id `akid` (a ULID) and sends it as an
   `archive-key` object to the personal group: `{"object": "archive-key", "akid": …, "key": …,
   "created_at": …}`.
-- The newest `akid` is current. Devices keep all prior keys, which are needed to read older archive.
+- The newest `akid` is current: the greatest `created_at`, ties broken by `akid` (spec-gap 51). Devices
+  keep all prior keys, which are needed to read older archive.
 
 ### M§12.2 Archiving
 
@@ -1078,6 +1091,9 @@ The device encrypts it with AES-256-GCM under the current archive key: random no
 - Once an MLS item has been archived and acknowledged by every registered device, the mailbox MAY
   delete the MLS item before `mls_retention_s`.
 - `queue`-mode mailboxes refuse `archive` deposits with `mailbox.unsupported-class`.
+- (spec-gap 51) A device archives what it shows from MLS **including its own sent content**, using the
+  `seq` of its `accepted`, so a later device sees both sides of a conversation. In `items` an archive
+  item is filed under `group` = `ref_group` with `seq` = `ref_seq`: a device needs both to open it.
 
 ### M§12.3 Adding a device
 
@@ -1088,7 +1104,12 @@ The device encrypts it with AES-256-GCM under the current archive key: random no
    `archive-key` object in the first epoch after its commit.
 4. The existing device adds it to conversation groups (M§6.7).
 5. The new device syncs from `null`. It decrypts archive records for history and MLS items from its
-   join epoch onward.
+   join epoch onward. (spec-gap 51) Syncing from `null`, it meets items in cursor order, before the
+   welcomes that let it read them. It MUST keep an archive record whose `akid` it does not hold
+   (durably, still encrypted) and open it when that key arrives; MUST skip, without error, MLS items of
+   groups it has not joined and items for epochs before its join epoch; MUST treat a `welcome` that holds
+   none of its KeyPackages (a sibling's) as acknowledged but not as a join (M§8.5); and collapses an
+   archive record and an MLS copy of the same object (M§8.5).
 
 If no existing device is available, the new device joins the personal group and its conversation
 groups by external commit (M§6.8). It then has archive keys only if the identity's recovery
@@ -1387,7 +1408,12 @@ mailbox. Receipts and activity run over the wire too (`impl/demos/receipts-demo.
 `delivered`, `read` and `played` only when disclosed, an undisclosed read kept off the conversation,
 and typing sealed under the exporter key, refresh-bounded, cleared at its `expires_at` and on
 `stopped`, and never stored for a disconnected device (spec-gap 49, `messaging/items-ephemeral-*`,
-`messaging/client-activity-*`). The full plan:
+`messaging/client-activity-*`). Multiple devices run too (`impl/demos/multidevice-demo.sh`): a personal
+group and archive key, a second device added with its history read from archive (held until the key
+arrives), live traffic on both devices, a private read watermark synced through the personal group, and
+the device removed from every group with the archive key rotated (spec-gaps 50–53,
+`messaging/history-*`, `messaging/hub-commit-adds-own-device-sends-welcome`,
+`messaging/resume-sibling-welcome-is-not-a-join`, `messaging/registration-on-removal-*`). The full plan:
 
 - payload shapes for every message type and content object
 - mailbox and hub state traces: sequencing, commit conflict, stale epoch, idempotent re-deposit,
