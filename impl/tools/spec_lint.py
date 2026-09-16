@@ -19,7 +19,7 @@ from pathlib import Path
 IMPL = Path(__file__).resolve().parents[1]
 CRATES = IMPL / "crates"
 VECTORS = IMPL / "vectors"
-# `§n` = Core section; `B§n` = WebRTC Media Binding 1.0 section (v0.7 companion document).
+# `§n` = Core section; `B§n` = WebRTC Media Binding 1.0 section (v0.8 companion document).
 SECTION_RE = re.compile(r"(B?)§(\d+(?:\.\d+)*)")
 
 

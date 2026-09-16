@@ -1,6 +1,6 @@
 # DSIP Conformance Test Vectors
 
-**Tracks:** DSIP Draft v0.7 + JSON Schema set v0.7 (draft 2020-12)
+**Tracks:** DSIP Draft v0.8 + JSON Schema set v0.8 (draft 2020-12); the Messaging Profile schema set for `messaging/`
 **Format version:** 1
 
 These vectors are the language-neutral conformance contract for DSIP Core v1.0.
@@ -20,7 +20,7 @@ vectors/
   envelope/    Signature, header, kid→DID resolution, delegation, replay, ULID/issued_at
   media-binding/ WebRTC Media Binding 1.0 conformance (descriptor/SDP authority, roles, candidates, renegotiation, one answer)
   gateway/     SIP/PSTN gateway (Phase 4): §15.5 reason mapping both ways, SDP ⇄ descriptors, PSTN caller claims, downgrade rule, B2BUA controller traces
-  messaging/   Messaging Profile 1.0 (v0.8 draft, M§n): profile message and content-object rules, hub traces, mailbox traces
+  messaging/   Messaging Profile 1.0 (M§n): profile messages, content objects, hub/mailbox/client/history traces, MLS layer, HPKE, blobs, first contact
   payload/     JSON Schema pass/fail per message type (shape only)
   semantic/    Stateless post-schema checks (schema README list of 11)
   state/       Scripted endpoint and relay state-machine traces (§12)
@@ -46,7 +46,7 @@ the `.json` suffix (e.g. `envelope/valid-ed25519`).
 }
 ```
 
-`spec_ref` entries cite v0.7 section numbers (unchanged from v0.6 for every section the vectors cite); `B§n` cites a section of the WebRTC Media Binding 1.0 companion document. Every vector has at least one.
+`spec_ref` entries cite v0.8 section numbers (unchanged from v0.6 and v0.7 for every section the vectors cite); `B§n` cites a section of the WebRTC Media Binding 1.0 companion document. Every vector has at least one.
 
 ## Fixed fixtures
 
@@ -69,6 +69,8 @@ All vectors share the fixture set in `fixtures.json` (also generated):
   They are supplied under `context.delegations` (and MAY also appear in the
   protected header `delegations` array — see `Impl` note in the envelope
   pipeline below).
+- **Revocations** (§7.4, v0.8) are `delegation-revocation` envelopes the receiver holds, under
+  `context.revocations`; a `did:web` document may also publish them (`dsipDelegationRevocations`, compact form).
 - **Clock:** `context.now` is the receiver's clock at receipt, integer seconds.
 
 ## Verdict codes
@@ -93,10 +95,13 @@ implementation under test MUST emit that token when it signals the failure.
 | `signer-mismatch` | `kid` DID ≠ `from` DID and no delegation presented linking them (§7.4, check 3) | `transport.hello-rejected` on `hello` |
 | `delegation-invalid` | presented delegation fails: bad signature, wrong subject/device, not signed by subject controller | `transport.hello-rejected` on `hello` |
 | `delegation-expired` | delegation not valid at `now` (`issued_at ≤ now < expires_at` required) | `transport.hello-rejected` on `hello` |
-| `delegation-capability` | delegation lacks `dsip.signaling` | `transport.hello-rejected` on `hello` |
+| `delegation-capability` | delegation lacks `dsip.signaling` (every envelope binds under it; spec-gap 56) | `transport.hello-rejected` on `hello` |
+| `delegation-revoked` | a `delegation-revocation` signed by the subject covers the delegation (held, or in the subject's document) (§7.4, v0.8) | `transport.hello-rejected` on `hello` |
 | `expiry-order` | `expires_at ≤ issued_at` (check 1) | |
-| `replay-window` | `issued_at` outside `[now − 300, now + 300]` (§12.9, check 1); for `introduction` only the future bound applies (Impl, spec-gap 31) | |
-| `introduction-validity` | `introduction` with `expires_at − issued_at` > 604,800 s (§19.4; Impl, spec-gap 31) | |
+| `replay-window` | `issued_at` outside `[now − 300, now + 300]` (§12.9, check 1); for `introduction` only the future bound applies (§12.9, v0.8; spec-gap 31) | |
+| `introduction-validity` | `introduction` with `expires_at − issued_at` > 604,800 s (§12.9, §19.4; spec-gap 31) | |
+| `introduction-purpose-and-sealed` | an `introduction` carries both `purpose` and `sealed` (§19.4, v0.8) | |
+| `revocation-subject-mismatch` / `revocation-signer-not-subject` | `delegation-revocation.from` ≠ `subject`; signed by a key other than the subject's (§7.4, v0.8; `context.signer_kid`) | |
 | `lifetime-exceeded` / `deposit-class-unsupported` / `deposit-fields` / `object-too-large` / `mailbox-mode-unsupported` / `key-packages-empty` | Messaging Profile message rules (M§5; kind `messaging`) | `mailbox.unsupported-class` / — / — / `mailbox.object-too-large` / `mailbox.unsupported-mode` / — |
 | `sender-mismatch` / `conversation-mismatch` / `ulid-sent-at-mismatch` / `personal-group-only` / `content-body` / `reaction-invalid` / `receipt-shape` | Messaging Profile content-object rules (M§8, M§10, M§12; kind `messaging`) | |
 | `successor-invalid` | successor group not created by a predecessor member, or adding outsiders (M§7.5; kind `messaging`) | |
@@ -356,7 +361,7 @@ Emissions: `send subscribe`, `{"ui":"notify","event","state"}`, `{"ui":"subscrip
 
 ## Kind: `media-binding`
 
-WebRTC Media Binding 1.0 (`v0.7/dsip-webrtc-media-binding-v0.7.md`) conformance, below the
+WebRTC Media Binding 1.0 (`v0.8/dsip-webrtc-media-binding-v0.8.md`) conformance, below the
 envelope pipeline: inputs are decoded payloads or event traces. `input.check` selects:
 
 | check | input | expect |
