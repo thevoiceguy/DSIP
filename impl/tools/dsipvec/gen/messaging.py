@@ -86,6 +86,7 @@ def vectors() -> list[dict]:
     out += resume_vectors()
     out += mls_layer_vectors()
     out += discovery_vectors()
+    out += blob_vectors()
     return out
 
 
@@ -1386,4 +1387,52 @@ def discovery_vectors():
     ]:
         out.append(mv(f"mailbox-service-{vid}", desc, ["M§4.2"], {"check": "payload", "schema": "mailbox-service", "payload": e},
                       accept() if ok else reject("schema-invalid")))
+    return out
+
+
+# ---------------------------------------------------------------- blob endpoint (M§5.6, M§8.4, spec-gap 48)
+
+def blob_vectors():
+    out = []
+    sha = SHA
+    other = "0" * 64
+    MBX = {"did": HUB_A, "serves": [ALICE], "max_blob_bytes": 1048576}
+
+    def put(label, desc, refs, expect, auth="ok", to=HUB_A, identity=ALICE, size=482220, path=sha, body_size=None,
+            body_sha=None, stored=(), mbx=MBX):
+        a = None
+        if auth == "ok":
+            a = {"identity": identity, "payload": {"type": "blob-put", "id": uid("bp"), "from": APH, "to": to,
+                                                   "sha256": sha, "size": size}}
+        inp = {"check": "blob-put", "mailbox": mbx, "authorization": a,
+               "request": {"path_sha256": path, "body_size": size if body_size is None else body_size,
+                           "body_sha256": sha if body_sha is None else body_sha},
+               "stored": list(stored)}
+        return mv(f"blob-put-{label}", desc, refs, inp, expect)
+
+    acc = lambda dup=False: {"in_reply_to": uid("bp"), **({"duplicate": True} if dup else {})}
+    R = ["M§5.6", "M§8.4"]
+    out.append(put("stored-201", "An authorized upload whose body matches is stored: 201 with a signed accepted.", R,
+                   {"status": 201, "accepted": acc()}))
+    out.append(put("same-hash-again-200", "Re-uploading a stored hash is an idempotent success: 200, accepted with duplicate.",
+                   R + ["M§9.3"], {"status": 200, "accepted": acc(True)}, stored=[sha]))
+    out.append(put("unauthorized-401", "No verifiable Authorization: DSIP envelope: 401 policy.blocked.", R,
+                   {"status": 401, "reason": "policy.blocked"}, auth=None))
+    out.append(put("other-mailbox-403", "An authorization minted for another mailbox cannot be replayed here: 403 policy.blocked.",
+                   R, {"status": 403, "reason": "policy.blocked"}, to=MBX_B))
+    out.append(put("unserved-identity-403", "A device of an identity this mailbox does not serve: 403 transport.unknown-recipient.",
+                   R + ["M§15.5"], {"status": 403, "reason": "transport.unknown-recipient"}, identity=BOB))
+    out.append(put("path-mismatch-400", "The URL must name the hash the envelope authorizes: 400 policy.blocked.", R,
+                   {"status": 400, "reason": "policy.blocked"}, path=other))
+    out.append(put("over-max-413", "A declared size over max_blob_bytes is refused before the body is read: 413 mailbox.object-too-large.",
+                   R + ["M§16"], {"status": 413, "reason": "mailbox.object-too-large"}, size=1048577))
+    out.append(put("at-max-201", "A blob of exactly max_blob_bytes is accepted.", R, {"status": 201, "accepted": acc()}, size=1048576))
+    out.append(put("body-size-mismatch-400", "A body whose length differs from the authorized size: 400 mailbox.blob-mismatch.",
+                   R, {"status": 400, "reason": "mailbox.blob-mismatch"}, body_size=482219))
+    out.append(put("body-hash-mismatch-400", "A body whose SHA-256 differs from the authorized hash: 400 mailbox.blob-mismatch.",
+                   R, {"status": 400, "reason": "mailbox.blob-mismatch"}, body_sha=other))
+    out.append(mv("blob-get-stored-200", "GET of a stored hash returns its ciphertext; the hash is the capability.", ["M§8.4"],
+                  {"check": "blob-get", "path_sha256": sha, "stored": [sha]}, {"status": 200}))
+    out.append(mv("blob-get-unknown-404", "GET of a hash the mailbox does not hold: 404.", ["M§8.4"],
+                  {"check": "blob-get", "path_sha256": other, "stored": [sha]}, {"status": 404}))
     return out
