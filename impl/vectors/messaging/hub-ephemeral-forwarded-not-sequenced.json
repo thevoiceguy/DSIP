@@ -63,7 +63,8 @@
               "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
             ]
           },
-          "pending": {}
+          "pending": {},
+          "group_info": false
         }
       }
     ]

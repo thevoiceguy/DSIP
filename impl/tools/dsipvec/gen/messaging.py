@@ -238,8 +238,8 @@ def hub_ctx(epoch=1, roster=None, kind="direct", owner=None):
     return ctx
 
 
-def hs(epoch, next_seq, roster, pending=None):
-    return {"epoch": epoch, "next_seq": next_seq, "roster": roster, "pending": pending or {}}
+def hs(epoch, next_seq, roster, pending=None, group_info=False):
+    return {"epoch": epoch, "next_seq": next_seq, "roster": roster, "pending": pending or {}, "group_info": group_info}
 
 
 def dep(label, device, identity, cls, epoch=None, digest=None, **kw):
@@ -256,6 +256,11 @@ def acc(device, label, seq, dup=False):
     if dup:
         a["duplicate"] = True
     return {"accepted": a}
+
+
+def acc_nc(device, label):
+    """Acceptance with no seq: the item was stored but not sequenced."""
+    return {"accepted": {"to": device, "in_reply_to": uid(label)}}
 
 
 def err(device, label, reason):
@@ -398,9 +403,26 @@ def hub_vectors():
                      ["M§11.2"], "hub-trace", hub_ctx(), [
                          (dep("typ-old", APH, ALICE, "ephemeral", expires_at=NOW - 1), [], hs(1, 1, R)),
                      ]))
-    out.append(trace("hub-unsupported-class-refused", "A hub orders only handshake, application and ephemeral traffic.",
+    out.append(trace("hub-unsupported-class-refused", "A hub stores no history: an archive deposit is refused.",
                      ["M§6.5", "M§5.2"], "hub-trace", hub_ctx(), [
                          (dep("arch", APH, ALICE, "archive"), [err(APH, "arch", "mailbox.unsupported-class")], hs(1, 1, R)),
+                     ]))
+    out.append(trace("hub-group-info-accepted-not-sequenced",
+                     "The hub keeps each group's latest GroupInfo — what a returning device external-joins from — and "
+                     "forwards it to the members' mailboxes. It is not sequenced and does not advance the epoch.",
+                     ["M§6.5", "M§6.8"], "hub-trace", hub_ctx(), [
+                         (dep("gi1", APH, ALICE, "group-info", 1),
+                          [acc_nc(APH, "gi1"), {"fanout": {"to": ALICE, "class": "group-info"}},
+                           {"fanout": {"to": BOB, "class": "group-info"}}], hs(1, 1, R, group_info=True)),
+                         (dep("gi2", APH, ALICE, "group-info", 1, digest="gi2"),
+                          [acc_nc(APH, "gi2"), {"fanout": {"to": ALICE, "class": "group-info"}},
+                           {"fanout": {"to": BOB, "class": "group-info"}}], hs(1, 1, R, group_info=True)),
+                         (dep("a1", APH, ALICE, "application", 1), [acc(APH, "a1", 1), fan(ALICE, 1), fan(BOB, 1)],
+                          hs(1, 2, R, {ALICE: [1], BOB: [1]}, group_info=True)),
+                     ]))
+    out.append(trace("hub-group-info-from-non-member-refused",
+                     "Only a member may publish the group's GroupInfo.", ["M§6.5"], "hub-trace", hub_ctx(), [
+                         (dep("gi-m", MPH, MALLORY, "group-info", 1), [err(MPH, "gi-m", "policy.blocked")], hs(1, 1, R)),
                      ]))
     return out
 
@@ -538,6 +560,14 @@ def mailbox_vectors():
                          (hubdep("h2", 2), [macc(HUB_A, "h2", c(2)), {"push": {"to": BPH, "cursor": c(2)}}], ms([c(1), c(2)], J)),
                          ({"unbind": {"device": BPH}}, [], ms([c(1), c(2)], J)),
                          (hubdep("h3", 3), [macc(HUB_A, "h3", c(3))], ms([c(1), c(2), c(3)], J)),
+                     ]))
+    out.append(trace("mailbox-group-info-supersedes",
+                     "A mailbox keeps only the latest GroupInfo per group; a new one replaces the stored copy "
+                     "(M§5.2 class table), while other classes accumulate.",
+                     ["M§5.2", "M§6.6"], T, mbx_ctx(groups={GROUP: {"hub": HUB_A, "state": "joined"}}), [
+                         (hubdep("gi1", None, cls="group-info"), [macc(HUB_A, "gi1", c(1))], ms([c(1)], J)),
+                         (hubdep("h1", 1), [macc(HUB_A, "h1", c(2))], ms([c(1), c(2)], J)),
+                         (hubdep("gi2", None, cls="group-info"), [macc(HUB_A, "gi2", c(3))], ms([c(2), c(3)], J)),
                      ]))
     out.append(trace("mailbox-sync-cursor-invalid", "A cursor the mailbox never issued is refused; the device re-syncs from null.",
                      ["M§5.4"], T, mbx_ctx(), [

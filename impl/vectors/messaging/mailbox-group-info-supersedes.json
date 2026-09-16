@@ -1,0 +1,141 @@
+{
+  "vector": "messaging/mailbox-group-info-supersedes",
+  "format": 1,
+  "kind": "messaging",
+  "description": "A mailbox keeps only the latest GroupInfo per group; a new one replaces the stored copy (M§5.2 class table), while other classes accumulate.",
+  "spec_ref": [
+    "M§5.2",
+    "M§6.6"
+  ],
+  "context": {
+    "component": "mailbox",
+    "mailbox": "did:web:mbx.bob.example",
+    "owner": "did:web:example.com:users:bob",
+    "serves": [
+      "did:web:example.com:users:bob"
+    ],
+    "devices": [
+      "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ",
+      "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+    ],
+    "now": 1760000000,
+    "mode": "sync",
+    "admit": "grant",
+    "pending_group_ttl": 604800,
+    "pending_group_max_items": 2,
+    "groups": {
+      "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M": {
+        "hub": "did:web:mbx.alice.example",
+        "state": "joined"
+      }
+    },
+    "key_packages": {}
+  },
+  "input": {
+    "check": "mailbox-trace",
+    "steps": [
+      {
+        "event": {
+          "hub_deposit": {
+            "id": "01K742SG0084BPVDM46FKADFMZ",
+            "from": "did:web:mbx.alice.example",
+            "recipient": "did:web:example.com:users:bob",
+            "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+            "seq": null,
+            "class": "group-info"
+          }
+        }
+      },
+      {
+        "event": {
+          "hub_deposit": {
+            "id": "01K742SG002WHVBMHZXKS2T47Q",
+            "from": "did:web:mbx.alice.example",
+            "recipient": "did:web:example.com:users:bob",
+            "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+            "seq": 1,
+            "class": "application"
+          }
+        }
+      },
+      {
+        "event": {
+          "hub_deposit": {
+            "id": "01K742SG003HQF07MCAJNKTTQS",
+            "from": "did:web:mbx.alice.example",
+            "recipient": "did:web:example.com:users:bob",
+            "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+            "seq": null,
+            "class": "group-info"
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "accepted": {
+              "to": "did:web:mbx.alice.example",
+              "in_reply_to": "01K742SG0084BPVDM46FKADFMZ",
+              "cursor": "c:0000000000000001"
+            }
+          }
+        ],
+        "state": {
+          "items": [
+            "c:0000000000000001"
+          ],
+          "groups": {
+            "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M": "joined"
+          },
+          "key_packages": {}
+        }
+      },
+      {
+        "emit": [
+          {
+            "accepted": {
+              "to": "did:web:mbx.alice.example",
+              "in_reply_to": "01K742SG002WHVBMHZXKS2T47Q",
+              "cursor": "c:0000000000000002"
+            }
+          }
+        ],
+        "state": {
+          "items": [
+            "c:0000000000000001",
+            "c:0000000000000002"
+          ],
+          "groups": {
+            "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M": "joined"
+          },
+          "key_packages": {}
+        }
+      },
+      {
+        "emit": [
+          {
+            "accepted": {
+              "to": "did:web:mbx.alice.example",
+              "in_reply_to": "01K742SG003HQF07MCAJNKTTQS",
+              "cursor": "c:0000000000000003"
+            }
+          }
+        ],
+        "state": {
+          "items": [
+            "c:0000000000000002",
+            "c:0000000000000003"
+          ],
+          "groups": {
+            "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M": "joined"
+          },
+          "key_packages": {}
+        }
+      }
+    ]
+  }
+}

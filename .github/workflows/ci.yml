@@ -77,6 +77,10 @@ jobs:
             DEMO_DIR=/tmp/dsip-media-demo-${pair// /-} timeout 240 bash demos/media-demo.sh $pair | tail -6
           done
         working-directory: impl
+      - name: messaging over the wire (two mailboxes, federated hub, real MLS)
+        # Self-verifying: fails unless the MLS-encrypted text arrives live and after a disconnect.
+        run: timeout 300 bash demos/messaging-demo.sh | tail -8
+        working-directory: impl
       - name: Rust/Python parity
         run: python3 impl/tools/parity.py
       - name: DHT local testnet (5 nodes)

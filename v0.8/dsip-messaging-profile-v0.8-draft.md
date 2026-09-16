@@ -580,9 +580,11 @@ The hub MUST:
 
 1. **Authenticate depositors.** Accept a `handshake` or `application` deposit only from a device
    whose identity currently has at least one leaf in the group, or (for a `handshake` external
-   commit) from a joiner authorized by M§6.8; refuse others with `policy.blocked`. A hub orders only
-   `handshake`, `application` and `ephemeral` deposits; any other class is refused
-   `mailbox.unsupported-class`.
+   commit) from a joiner authorized by M§6.8; refuse others with `policy.blocked`. A hub orders
+   `handshake` and `application` deposits and forwards `ephemeral` ones. It also accepts a
+   `group-info` deposit from a member: that one is stored as the group's latest GroupInfo and
+   forwarded to the members' mailboxes **without a `seq`**, since it is state, not conversation.
+   Any other class is refused `mailbox.unsupported-class`.
 2. **Order commits.** Track the group's epoch and public tree from the commits it accepts. For the
    current epoch *e*, accept the **first** commit that validates (framing signature by a current
    member leaf, M§7.3 authorization, credentials per M§6.2); assign it the next `seq`; advance to
@@ -602,7 +604,10 @@ The hub MUST:
    that adds identities also sends a `welcome` to each added identity; a commit that is an external
    join sends none, since the joiner joined by its own commit.
 6. **Keep only what ordering needs.** The hub retains the epoch, the public tree, the latest
-   GroupInfo, and its retry queue. It is not a history store.
+   GroupInfo, and its retry queue. It is not a history store. A group's creator publishes the first
+   GroupInfo before its first commit: that is what bootstraps the hub's public view, and every
+   committer republishes it afterwards so the hub and the members' mailboxes hold a current one for
+   external joins (M§6.8).
 
 A committing member MUST NOT apply its own commit until it holds the hub's `accepted`. On
 `mailbox.commit-conflict` it syncs, processes the winning commit, and re-proposes if still needed.
@@ -1301,7 +1306,11 @@ covers the MLS layer: extension wire encoding, the leaf authentication service, 
 bytes, and the AES-256-GCM formats for blobs, activity and archive. The reference implementation also
 runs the profile end to end on OpenMLS (`impl/crates/dsip-mls`, `tests/e2e.rs`): DSIP device keys as
 MLS signers, a hub validating real commits from public group state, a mailbox, a text message, a
-voicemail blob, activity and archive sealing, and a commit conflict. The full plan:
+voicemail blob, activity and archive sealing, and a commit conflict — and over the wire
+(`impl/crates/dsip-mailbox`, `impl/demos/messaging-demo.sh`): two identities, each with its own
+mailbox service, a hub federating fan-out to the peer mailbox, discovery through published DID
+documents, first contact by grant, and MLS-encrypted text delivered both live and after the
+recipient's device disconnects. The full plan:
 
 - payload shapes for every message type and content object
 - mailbox and hub state traces: sequencing, commit conflict, stale epoch, idempotent re-deposit,

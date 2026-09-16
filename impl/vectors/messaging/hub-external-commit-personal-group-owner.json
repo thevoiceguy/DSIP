@@ -64,7 +64,8 @@
               "did:key:z6MkBobTablet"
             ]
           },
-          "pending": {}
+          "pending": {},
+          "group_info": false
         }
       }
     ]

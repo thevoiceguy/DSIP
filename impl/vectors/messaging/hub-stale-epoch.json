@@ -97,7 +97,8 @@
             "did:web:example.com:users:bob": [
               1
             ]
-          }
+          },
+          "group_info": false
         }
       },
       {
@@ -129,7 +130,8 @@
             "did:web:example.com:users:bob": [
               1
             ]
-          }
+          },
+          "group_info": false
         }
       }
     ]
