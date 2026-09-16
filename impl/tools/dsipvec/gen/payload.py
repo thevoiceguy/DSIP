@@ -202,6 +202,27 @@ def vectors() -> list[dict]:
     out.append(pv("key-rotation-missing-next-key", "key-rotation", "next_public_key_multibase is required.", ["§7.5"],
                   {k: v for k, v in rot.items() if k != "next_public_key_multibase"}, ok=False))
 
+    # v0.8: sealed introductions (§19.4, spec-gap 36), delegation revocation (§7.4, spec-gap 57)
+    intro = {"dsip": V, "type": "introduction", "id": uid("intro"), "from": F.did("alice"), "to": F.BOB_WEB,
+             "identity": {"display_name": "Alice"}, "issued_at": NOW, "expires_at": NOW + 604800}
+    sealed = {"alg": "hpke-base-x25519-sha256-aes128gcm", "enc": "N_2jVnvb1ijohmjDyNfpfR0SU7bU6m1EwVD3QfG_RDE",
+              "ct": "-ThVi11y8aI4ELS-KrT4QzGswC_JeavFOlKughijVamGh3CsjNB76ofhPFEq"}
+    out.append(pv("introduction-sealed-valid", "introduction", "An introduction may carry sealed instead of purpose (v0.8).", ["§19.4"],
+                  {**intro, "sealed": sealed}))
+    out.append(pv("introduction-sealed-missing-enc", "introduction", "A sealed body names alg, enc and ct.", ["§19.4"],
+                  {**intro, "sealed": {k: v for k, v in sealed.items() if k != "enc"}}, ok=False))
+    out.append(pv("introduction-sealed-extra-field", "introduction", "Nothing else rides in a sealed body.", ["§19.4"],
+                  {**intro, "sealed": {**sealed, "purpose": "leak"}}, ok=False))
+    rev = {"dsip": V, "type": "delegation-revocation", "id": uid("rev"), "from": F.BOB_WEB, "subject": F.BOB_WEB,
+           "device": BPH, "revoked_at": NOW, "reason": "lost", "issued_at": NOW, "expires_at": NOW + 300}
+    out.append(pv("delegation-revocation-valid", "delegation-revocation", "Revocation record (§7.4, v0.8).", ["§7.4"], rev))
+    out.append(pv("delegation-revocation-missing-revoked-at", "delegation-revocation", "revoked_at is required: it is what allows re-enrollment.",
+                  ["§7.4"], {k: v for k, v in rev.items() if k != "revoked_at"}, ok=False))
+    out.append(pv("delegation-revocation-missing-device", "delegation-revocation", "A revocation names one device.", ["§7.4"],
+                  {k: v for k, v in rev.items() if k != "device"}, ok=False))
+    out.append(pv("delegation-revocation-bad-reason-token", "delegation-revocation", "reason must be a token.", ["§7.4"],
+                  {**rev, "reason": "Lost!"}, ok=False))
+
     # envelope schema (shape only)
     from .common import signed
     env = signed(inv, "alice-phone")

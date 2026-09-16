@@ -1,0 +1,52 @@
+{
+  "vector": "semantic/introduction-purpose-and-sealed",
+  "format": 1,
+  "kind": "semantic",
+  "description": "purpose and sealed MUST NOT both be present (v0.8, spec-gap 36).",
+  "spec_ref": [
+    "§19.4"
+  ],
+  "context": {
+    "now": 1760000000,
+    "supported": {
+      "core": "1.0",
+      "profiles": [
+        "interactive-media/1.0",
+        "verified-broadcast/1.0"
+      ],
+      "extensions": []
+    }
+  },
+  "input": {
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "interactive-media/1.0"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "introduction",
+      "id": "01K742SG00Z41R1RN63EB956CH",
+      "from": "did:key:z6MkhzX9qTeXBWkucyMVric1E9JrqUD5LPAkD2BNavakAptf",
+      "to": "did:web:example.com:users:bob",
+      "identity": {
+        "display_name": "Alice"
+      },
+      "issued_at": 1760000000,
+      "expires_at": 1760604800,
+      "sealed": {
+        "alg": "hpke-base-x25519-sha256-aes128gcm",
+        "enc": "N_2jVnvb1ijohmjDyNfpfR0SU7bU6m1EwVD3QfG_RDE",
+        "ct": "-ThVi11y8aI4ELS-KrT4QzGswC_JeavFOlKughijVamGh3CsjNB76ofhPFEq"
+      },
+      "purpose": "Hello"
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "introduction-purpose-and-sealed"
+  }
+}

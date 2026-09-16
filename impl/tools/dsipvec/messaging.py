@@ -1229,7 +1229,8 @@ def sealed_aad(p: dict) -> bytes:
 
 def check_introduction(p: dict) -> dict:
     """M§14.1: an introduction under the profile — core §19.4 shape plus `sealed`, never both `purpose` and `sealed`."""
-    if not schema_ok("introduction", p):
+    from .schema import schema_errors  # the core v0.8 introduction schema carries `sealed`
+    if schema_errors("introduction", p):
         return reject("schema-invalid")
     if "purpose" in p and "sealed" in p:
         return reject("introduction-purpose-and-sealed")
@@ -1374,22 +1375,6 @@ def run(v: dict) -> dict:
         return check_introduction(inp["payload"])
     if check == "sealed-introduction-open":
         return open_sealed_introduction(inp["payload"], bytes.fromhex(inp["recipient_ed25519_seed_hex"]))
-    if check == "delegation":
-        from . import envelope as E
-        d = E._as_envelope(inp["delegation"])
-        v = E.verify_delegation(d, inp["subject"], inp["device"], E.Context.from_vector(v["context"]), capability=inp["capability"])
-        return accept() if v.ok else reject(v.code)
-    if check == "binding":
-        from . import envelope as E
-        v = E.check_binding(inp["subject"], inp["device"], inp["presented"], E.Context.from_vector(v["context"]))
-        return accept() if v.ok else reject(v.code)
-    if check == "revocation-record":
-        p = inp["payload"]
-        if not schema_ok("delegation-revocation", p):
-            return reject("schema-invalid")
-        if p["from"] != p["subject"]:
-            return reject("revocation-from-not-subject")  # only the identity revokes its own delegations
-        return accept()
     if check == "registration-on-removal":
         return registration_on_removal(inp)
     if check == "blob-put":

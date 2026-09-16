@@ -1,0 +1,113 @@
+{
+  "vector": "envelope/hello-revoked-device-rejected",
+  "format": 1,
+  "kind": "envelope",
+  "description": "A revoked device's hello on behalf of the identity is refused (transport.hello-rejected): a service stops serving it at its next binding.",
+  "spec_ref": [
+    "§7.4",
+    "§8.1",
+    "§13.2"
+  ],
+  "context": {
+    "now": 1760000000,
+    "did_documents": {
+      "did:web:example.com:users:bob": {
+        "@context": [
+          "https://www.w3.org/ns/did/v1",
+          "https://w3id.org/security/multikey/v1"
+        ],
+        "id": "did:web:example.com:users:bob",
+        "verificationMethod": [
+          {
+            "id": "did:web:example.com:users:bob#key-1",
+            "type": "Multikey",
+            "controller": "did:web:example.com:users:bob",
+            "publicKeyMultibase": "z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R"
+          }
+        ],
+        "authentication": [
+          "did:web:example.com:users:bob#key-1"
+        ],
+        "assertionMethod": [
+          "did:web:example.com:users:bob#key-1"
+        ],
+        "service": [
+          {
+            "id": "did:web:example.com:users:bob#dsip-signaling",
+            "type": "DSIPSignaling",
+            "serviceEndpoint": {
+              "uri": "wss://relay.example.com/dsip",
+              "bindings": [
+                "ws/1.0"
+              ]
+            }
+          }
+        ],
+        "dsipDelegationRevocations": [
+          "eyJhbGciOiJFZERTQSIsImtpZCI6ImRpZDp3ZWI6ZXhhbXBsZS5jb206dXNlcnM6Ym9iI2tleS0xIiwidHlwIjoiZHNpcCtqc29uIn0.eyJkc2lwIjp7ImNvcmUiOiIxLjAiLCJtaW5fY29yZSI6IjEuMCIsInByb2ZpbGVzIjpbImludGVyYWN0aXZlLW1lZGlhLzEuMCJdLCJleHRlbnNpb25zIjpbXSwiY3JpdGljYWwiOltdfSwidHlwZSI6ImRlbGVnYXRpb24tcmV2b2NhdGlvbiIsImlkIjoiMDFLNzQyUU5EMFdCSjU1RTZTM1ExQjlLM1MiLCJmcm9tIjoiZGlkOndlYjpleGFtcGxlLmNvbTp1c2Vyczpib2IiLCJzdWJqZWN0IjoiZGlkOndlYjpleGFtcGxlLmNvbTp1c2Vyczpib2IiLCJkZXZpY2UiOiJkaWQ6a2V5Ono2TWtqMkJ4eVpRYzFZblVkUE5rUkRBZDFHUDJaaWdQUGhoNlpmWXdmNUhSTXJ0SiIsInJldm9rZWRfYXQiOjE3NTk5OTk5NDAsInJlYXNvbiI6Imxvc3QiLCJpc3N1ZWRfYXQiOjE3NTk5OTk5NDAsImV4cGlyZXNfYXQiOjE3NjAwMDAyNDB9.lEpBytTAXpCc-E7BpIf9hV-NDuATSXaBFfHo8Td7cgWcGFyUZu2bBIkNieMUisA9JOuCZQE3Ug5CDoRToIOGBw"
+        ]
+      },
+      "did:web:relay.example.com": {
+        "@context": [
+          "https://www.w3.org/ns/did/v1",
+          "https://w3id.org/security/multikey/v1"
+        ],
+        "id": "did:web:relay.example.com",
+        "verificationMethod": [
+          {
+            "id": "did:web:relay.example.com#key-1",
+            "type": "Multikey",
+            "controller": "did:web:relay.example.com",
+            "publicKeyMultibase": "z6MkoHY5EaJMeCtA8b5zwzWxJYBuGFpTTJDKh1GahNeB3eeE"
+          }
+        ],
+        "authentication": [
+          "did:web:relay.example.com#key-1"
+        ],
+        "assertionMethod": [
+          "did:web:relay.example.com#key-1"
+        ],
+        "service": [
+          {
+            "id": "did:web:relay.example.com#dsip-signaling",
+            "type": "DSIPSignaling",
+            "serviceEndpoint": {
+              "uri": "wss://relay.example.com/dsip",
+              "bindings": [
+                "ws/1.0"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "delegations": [
+      {
+        "protected": "eyJhbGciOiJFZERTQSIsImtpZCI6ImRpZDp3ZWI6ZXhhbXBsZS5jb206dXNlcnM6Ym9iI2tleS0xIiwidHlwIjoiZHNpcCtqc29uIn0",
+        "payload": "eyJ0eXBlIjoiRGV2aWNlRGVsZWdhdGlvbiIsInN1YmplY3QiOiJkaWQ6d2ViOmV4YW1wbGUuY29tOnVzZXJzOmJvYiIsImRldmljZSI6ImRpZDprZXk6ejZNa2oyQnh5WlFjMVluVWRQTmtSREFkMUdQMlppZ1BQaGg2WmZZd2Y1SFJNcnRKIiwiY2FwYWJpbGl0aWVzIjpbImRzaXAuc2lnbmFsaW5nIiwiZHNpcC5tZWRpYS5pbnRlcmFjdGl2ZSJdLCJpc3N1ZWRfYXQiOjE3NTk5MTM2MDAsImV4cGlyZXNfYXQiOjE3NjI1OTIwMDB9",
+        "signature": "fgm_XmGfT2UO0K5Y-FHt02axj9c74cVekr8A2TxdiCzjJlvl_2ZRrzaJUxckbBOY3GkAj3Wn3U4nA6IcaV4gDQ"
+      }
+    ],
+    "seen_ids": [],
+    "supported": {
+      "core": "1.0",
+      "profiles": [
+        "interactive-media/1.0",
+        "verified-broadcast/1.0"
+      ],
+      "extensions": []
+    }
+  },
+  "input": {
+    "envelope": {
+      "protected": "eyJhbGciOiJFZERTQSIsImtpZCI6ImRpZDprZXk6ejZNa2oyQnh5WlFjMVluVWRQTmtSREFkMUdQMlppZ1BQaGg2WmZZd2Y1SFJNcnRKI3o2TWtqMkJ4eVpRYzFZblVkUE5rUkRBZDFHUDJaaWdQUGhoNlpmWXdmNUhSTXJ0SiIsInR5cCI6ImRzaXAranNvbiJ9",
+      "payload": "eyJkc2lwIjp7ImNvcmUiOiIxLjAiLCJtaW5fY29yZSI6IjEuMCIsInByb2ZpbGVzIjpbXSwiZXh0ZW5zaW9ucyI6W10sImNyaXRpY2FsIjpbXX0sInR5cGUiOiJoZWxsbyIsImlkIjoiMDFLNzQyU0cwMEtKSlhLSDJUOEVNNEdBRVgiLCJmcm9tIjoiZGlkOmtleTp6Nk1rajJCeHlaUWMxWW5VZFBOa1JEQWQxR1AyWmlnUFBoaDZaZll3ZjVIUk1ydEoiLCJiaW5kaW5ncyI6WyJ3cy8xLjAiXSwiaXNzdWVkX2F0IjoxNzYwMDAwMDAwLCJleHBpcmVzX2F0IjoxNzYwMDAwMDMwLCJvbl9iZWhhbGZfb2YiOiJkaWQ6d2ViOmV4YW1wbGUuY29tOnVzZXJzOmJvYiJ9",
+      "signature": "4UOk_M2xRXP-ZwrLXygf8dalKJXLR7aHmIhENo5yZTYHPXp-3HoA2TN4iuY9fR67QhCXfSy2i0Bst-TqqcynCw"
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "delegation-revoked",
+    "reason": "transport.hello-rejected"
+  }
+}

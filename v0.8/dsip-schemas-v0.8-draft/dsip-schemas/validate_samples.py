@@ -281,6 +281,18 @@ cases.append(("webrtc-info-data", {"candidates": [], "end_of_candidates": True},
 cases.append(("webrtc-info-data", {"candidates": [{"candidate": "candidate:1 1 udp 2130706431 192.0.2.1 5000 typ host"}], "end_of_candidates": False},
               False, "candidate without sdp_mid"))
 
+# ---- v0.8 additions: introduction.sealed, delegation-revocation
+INTRO = {"dsip": DSIP, "type": "introduction", "id": "01J5Y0QJ1NT00AAAAAAAAAAAAF", "from": ALICE, "to": BOB,
+         "identity": {"display_name": "Alice"}, "issued_at": NOW, "expires_at": NOW + 604800}
+SEALED = {"alg": "hpke-base-x25519-sha256-aes128gcm", "enc": "N_2jVnvb1ijohmjDyNfpfR0SU7bU6m1EwVD3QfG_RDE", "ct": "-ThVi11y8aI4ELS-KrT4QzGswC_JeavFOlKughijVamGh3CsjNB76ofhPFEq"}
+cases.append(("introduction", {**INTRO, "sealed": SEALED}, True, "introduction with a sealed purpose"))
+cases.append(("introduction", {**INTRO, "sealed": {k: v for k, v in SEALED.items() if k != "ct"}}, False, "sealed without ct"))
+REV = {"dsip": DSIP, "type": "delegation-revocation", "id": "01J5Y0QJR0T00AAAAAAAAAAAAH", "from": BOB, "subject": BOB,
+       "device": BOB_DEV, "revoked_at": NOW, "reason": "lost", "issued_at": NOW, "expires_at": NOW + 300}
+cases.append(("delegation-revocation", REV, True, "valid delegation revocation"))
+cases.append(("delegation-revocation", {k: v for k, v in REV.items() if k != "revoked_at"}, False, "revocation without revoked_at"))
+cases.append(("delegation-revocation", {**REV, "reason": "Lost!"}, False, "revocation reason must be a token"))
+
 def run():
     validators, failures = {}, 0
     for name in {c[0] for c in cases}:

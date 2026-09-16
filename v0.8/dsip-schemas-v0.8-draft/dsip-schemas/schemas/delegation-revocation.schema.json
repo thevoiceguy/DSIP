@@ -1,15 +1,15 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://dsip.org/schema/1.0/grant.schema.json",
-  "title": "DSIP grant payload",
-  "description": "Signed contact grant answering an introduction (spec 19.4); session references the introduction id. The consent receipt in message form: scoped, time-bounded via valid_until, revocable at the granting side.",
+  "$id": "https://dsip.org/schema/1.0/delegation-revocation.schema.json",
+  "title": "DSIP delegation-revocation payload",
+  "description": "Delegation revocation record (spec 7.4, v0.8): revokes every delegation of one device for the subject issued at or before revoked_at. Signed directly by a verification key of the subject; from equals subject (semantic check). Verifiers find it in the subject's DID document (dsipDelegationRevocations) or in any store they hold; it can only remove authority.",
   "type": "object",
   "properties": {
     "dsip": {
       "$ref": "#/$defs/versionBlock"
     },
     "type": {
-      "const": "grant"
+      "const": "delegation-revocation"
     },
     "id": {
       "$ref": "#/$defs/ulid"
@@ -23,24 +23,20 @@
     "expires_at": {
       "$ref": "#/$defs/timestamp"
     },
-    "to": {
+    "subject": {
       "$ref": "#/$defs/did"
     },
-    "session": {
-      "$ref": "#/$defs/ulid"
+    "device": {
+      "$ref": "#/$defs/did"
     },
-    "scope": {
-      "type": "array",
-      "minItems": 1,
-      "items": {
-        "type": "string",
-        "pattern": "^dsip\\.[a-z][a-z0-9.-]*$"
-      },
-      "description": "Registered grant scopes (dsip-grant-scope): dsip.invite, dsip.subscribe, dsip.message (v0.8)."
-    },
-    "valid_until": {
+    "revoked_at": {
       "$ref": "#/$defs/timestamp",
-      "description": "Grant lifetime, independent of the envelope delivery expiry."
+      "description": "Delegations of device issued at or before this instant are revoked; a later delegation re-enrolls it."
+    },
+    "reason": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$",
+      "description": "Registry dsip-revocation-reason: lost, compromised, retired, policy."
     }
   },
   "required": [
@@ -50,10 +46,10 @@
     "from",
     "issued_at",
     "expires_at",
-    "to",
-    "session",
-    "scope",
-    "valid_until"
+    "subject",
+    "device",
+    "revoked_at",
+    "reason"
   ],
   "additionalProperties": false,
   "$defs": {

@@ -57,6 +57,13 @@ def vectors() -> list[dict]:
     out.append(sv("reason-not-valid-on-type", "user.hangup is registered for bye only; on reject it is accepted with a warning (Impl, spec-gap 10).",
                   ["§15.4"], {**rej, "reason": "user.hangup"},
                   accept(effective={"reason": "user.hangup", "fallback": "none"}, warnings=["reason-not-valid-on-type"])))
+    err_mbx = {"dsip": F.VERSION, "type": "error", "id": uid("errm"), "from": "did:web:mbx.example.com", "to": BPH,
+               "reason": "mailbox.commit-conflict", "issued_at": NOW + 5, "expires_at": NOW + 35}
+    out.append(sv("reason-mailbox-registered", "mailbox is a core reason category (v0.8, spec-gap 38); its tokens are registered for error.",
+                  ["§15.1", "§15.4"], err_mbx, accept(effective={"reason": "mailbox.commit-conflict", "fallback": "none"})))
+    out.append(sv("reason-mailbox-unknown-condition", "An unregistered mailbox condition falls back by category, not to session.failed.",
+                  ["§15.1", "§15.3"], {**err_mbx, "reason": "mailbox.archive-full"},
+                  accept(effective={"reason": "mailbox.archive-full", "fallback": "category"})))
     bye = session_msg("bye", "bye", sid, APH, BPH, NOW + 300, reason="user.hangup")
     out.append(sv("bye-reason-registered", "user.hangup on bye.", ["§15.4"], bye, accept(effective={"reason": "user.hangup", "fallback": "none"})))
     ans = session_msg("answer", "ans", sid, BPH, APH, NOW + 5, answered_by="butler", media=AUDIO_SELECTION, transports=ONE_TRANSPORT)
@@ -134,6 +141,22 @@ def vectors() -> list[dict]:
                   reject("rotation-next-same-as-previous"), ctx={"signer_kid": k1}))
     out.append(sv("key-rotation-subject-mismatch", "from MUST be the subject: only the identity rotates its own keys.", ["§7.5"],
                   {**rot, "from": F.did("alice")}, reject("rotation-subject-mismatch"), ctx={"signer_kid": k1}))
+    # --- sealed introductions and delegation revocation (v0.8)
+    intro = {"dsip": F.VERSION, "type": "introduction", "id": uid("intro"), "from": F.did("alice"), "to": F.BOB_WEB,
+             "identity": {"display_name": "Alice"}, "issued_at": NOW, "expires_at": NOW + 604800,
+             "sealed": {"alg": "hpke-base-x25519-sha256-aes128gcm", "enc": "N_2jVnvb1ijohmjDyNfpfR0SU7bU6m1EwVD3QfG_RDE",
+                        "ct": "-ThVi11y8aI4ELS-KrT4QzGswC_JeavFOlKughijVamGh3CsjNB76ofhPFEq"}}
+    out.append(sv("introduction-sealed", "A sealed introduction without purpose is accepted.", ["§19.4"], intro, accept()))
+    out.append(sv("introduction-purpose-and-sealed", "purpose and sealed MUST NOT both be present (v0.8, spec-gap 36).", ["§19.4"],
+                  {**intro, "purpose": "Hello"}, reject("introduction-purpose-and-sealed")))
+    rev = {"dsip": F.VERSION, "type": "delegation-revocation", "id": uid("rev"), "from": F.BOB_WEB, "subject": F.BOB_WEB,
+           "device": BPH, "revoked_at": NOW, "reason": "lost", "issued_at": NOW, "expires_at": NOW + 300}
+    out.append(sv("delegation-revocation-by-subject", "The identity revokes a device's delegation with its own key.", ["§7.4"], rev,
+                  accept(), ctx={"signer_kid": F.web_kid(F.BOB_WEB)}))
+    out.append(sv("delegation-revocation-subject-mismatch", "from MUST be the subject: only the identity revokes its own delegations.", ["§7.4"],
+                  {**rev, "from": F.did("alice")}, reject("revocation-subject-mismatch"), ctx={"signer_kid": F.web_kid(F.BOB_WEB)}))
+    out.append(sv("delegation-revocation-signed-by-device", "A device cannot revoke itself or a sibling: the signer must be a key of the subject.",
+                  ["§7.4"], rev, reject("revocation-signer-not-subject"), ctx={"signer_kid": F.KEYS["bob-laptop"].kid}))
     ntf = {"dsip": F.VERSION, "type": "notify", "id": uid("ntf"), "from": "did:web:example.com", "to": APH, "subscription": sub["id"],
            "seq": 3, "state": "terminated", "reason": "session.expired", "body": {}, "issued_at": NOW + 1, "expires_at": NOW + 31}
     out.append(sv("notify-terminated-reason", "Terminal notify reason resolves through the registry.", ["§9.3"], ntf,

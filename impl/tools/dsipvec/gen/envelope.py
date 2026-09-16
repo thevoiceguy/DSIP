@@ -142,6 +142,60 @@ def vectors() -> list[dict]:
                           ["§7.5", "§8.1"], signed(rot, "bob", kid=F.web_kid(F.BOB_WEB)),
                           accept(type="key-rotation", signer=F.BOB_WEB, identity=F.BOB_WEB)))
 
+    # --- delegation revocation (§7.4, v0.8, spec-gap 57): a verification stage inside delegation checking
+    web_dlg = lambda device, ia=NOW - 86400: F.make_delegation(F.KEYS["bob"], F.BOB_WEB, device, issued_at=ia,
+                                                                signer_kid=F.web_kid(F.BOB_WEB))
+    def revocation(device=BLA, revoked_at=NOW - 60, signer="bob", kid=None, label="rev"):
+        p = {"dsip": F.VERSION, "type": "delegation-revocation", "id": uid(label, revoked_at), "from": F.BOB_WEB, "subject": F.BOB_WEB,
+             "device": device, "revoked_at": revoked_at, "reason": "lost", "issued_at": revoked_at, "expires_at": revoked_at + 300}
+        return signed(p, signer, kid=kid or (F.web_kid(F.BOB_WEB) if signer == "bob" else None))
+    def docs_with(*revs):
+        docs = F.did_documents()
+        docs[F.BOB_WEB] = {**docs[F.BOB_WEB], "dsipDelegationRevocations": [f"{r['protected']}.{r['payload']}.{r['signature']}" for r in revs]}
+        return docs
+    prog_laptop = session_msg("progress", "prog-bla", inv["id"], F.BOB_WEB, APH, NOW + 1, status="ringing")
+    ok_laptop = accept(type="progress", signer=BLA, identity=F.BOB_WEB, effective={"status": "ringing"})
+    R = ["§7.4", "§8.1"]
+    out.append(env_vector("delegation-revoked-in-document", "A revocation published in the subject's DID document (dsipDelegationRevocations, "
+                          "authoritative) revokes the device's delegation: its envelopes no longer bind to the identity (v0.8).", R,
+                          signed(prog_laptop, "bob-laptop"), reject("delegation-revoked"),
+                          ctx=default_context(did_documents=docs_with(revocation()), delegations=[web_dlg(BLA)])))
+    out.append(env_vector("delegation-revoked-held-by-verifier", "A validly signed revocation the verifier holds revokes too: it can only remove authority.",
+                          R, signed(prog_laptop, "bob-laptop"), reject("delegation-revoked"),
+                          ctx=default_context(delegations=[web_dlg(BLA)], revocations=[revocation()])))
+    out.append(env_vector("delegation-not-revoked", "The same device and delegation with no revocation in sight binds.", R,
+                          signed(prog_laptop, "bob-laptop"), ok_laptop, ctx=default_context(delegations=[web_dlg(BLA)])))
+    out.append(env_vector("delegation-revoked-at-boundary", "A delegation issued exactly at revoked_at is revoked.", R,
+                          signed(prog_laptop, "bob-laptop"), reject("delegation-revoked"),
+                          ctx=default_context(delegations=[web_dlg(BLA, ia=NOW - 60)], revocations=[revocation(revoked_at=NOW - 60)])))
+    out.append(env_vector("delegation-reenrolled-after-revocation", "A delegation issued after revoked_at re-enrolls the device.", R,
+                          signed(prog_laptop, "bob-laptop"), ok_laptop,
+                          ctx=default_context(delegations=[web_dlg(BLA, ia=NOW - 30)], revocations=[revocation(revoked_at=NOW - 60)])))
+    out.append(env_vector("delegation-revocation-other-device-unaffected", "A revocation names one device; its siblings keep their delegations.", R,
+                          signed(session_msg("progress", "prog-bph", inv["id"], F.BOB_WEB, APH, NOW + 1, status="ringing"), "bob-phone"),
+                          accept(type="progress", signer=BPH, identity=F.BOB_WEB, effective={"status": "ringing"}),
+                          ctx=default_context(delegations=[web_dlg(BPH)], revocations=[revocation(device=BLA)])))
+    out.append(env_vector("delegation-revocation-not-by-subject-ignored", "A revocation signed by any key but the subject's is ignored.", R,
+                          signed(prog_laptop, "bob-laptop"), ok_laptop,
+                          ctx=default_context(delegations=[web_dlg(BLA)], revocations=[revocation(signer="mallory")])))
+    out.append(env_vector("delegation-revocation-by-device-ignored", "Nor may a device revoke itself or a sibling with its own key.", R,
+                          signed(prog_laptop, "bob-laptop"), ok_laptop,
+                          ctx=default_context(delegations=[web_dlg(BLA)], revocations=[revocation(signer="bob-laptop")])))
+    out.append(env_vector("hello-revoked-device-rejected", "A revoked device's hello on behalf of the identity is refused (transport.hello-rejected): "
+                          "a service stops serving it at its next binding.", R + ["§13.2"],
+                          signed(hello_client(frm=BLA, on_behalf_of=F.BOB_WEB), "bob-laptop"), reject("delegation-revoked", "transport.hello-rejected"),
+                          ctx=default_context(did_documents=docs_with(revocation()), delegations=[web_dlg(BLA)])))
+    out.append(env_vector("delegation-revocation-record-verifies", "The record itself is an envelope signed by the subject's key.", R,
+                          revocation(), accept(type="delegation-revocation", signer=F.BOB_WEB, identity=F.BOB_WEB)))
+    # spec-gap 56 disposition (b): the binding capability stays dsip.signaling for every envelope, so a device delegated
+    # for messaging only cannot bind — messaging devices carry dsip.signaling as well.
+    msg_only = F.make_delegation(F.KEYS["bob"], F.BOB_WEB, BLA, capabilities=("dsip.messaging",), signer_kid=F.web_kid(F.BOB_WEB))
+    out.append(env_vector("hello-messaging-only-delegation-rejected", "Binding requires dsip.signaling for every envelope, hello included; a "
+                          "delegation for dsip.messaging alone does not bind (v0.8, spec-gap 56).", ["§7.4", "§13.2"],
+                          signed(hello_client(frm=BLA, on_behalf_of=F.BOB_WEB), "bob-laptop"),
+                          reject("delegation-capability", "transport.hello-rejected"),
+                          ctx=default_context(delegations=[msg_only])))
+
     # --- hello on_behalf_of (check 3)
     h = hello_client(on_behalf_of=F.BOB_WEB)
     out.append(env_vector("hello-on-behalf-of-valid", "bob-phone hello on behalf of bob's did:web identity with a valid delegation.",

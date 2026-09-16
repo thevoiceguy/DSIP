@@ -103,6 +103,14 @@ def check_semantic(payload: dict, ctx: dict, encoded_size: int | None = None) ->
         size = encoded_size if encoded_size is not None else ctx.get("encoded_size")
         if size is not None and size > INTRODUCTION_MAX_BYTES:  # §19.4
             return Verdict.reject("introduction-too-large")
+        if "purpose" in payload and "sealed" in payload:  # §19.4 (v0.8, spec-gap 36): sealed replaces purpose
+            return Verdict.reject("introduction-purpose-and-sealed")
+    if t == "delegation-revocation":  # §7.4 (v0.8, spec-gap 57): only the identity revokes, with its own key
+        if payload["subject"] != payload["from"]:
+            return Verdict.reject("revocation-subject-mismatch")
+        signer = ctx.get("signer_kid")
+        if signer is not None and signer.split("#", 1)[0] != payload["subject"]:
+            return Verdict.reject("revocation-signer-not-subject")
     if t == "grant" and isinstance(ctx.get("known_introductions"), list):
         if payload["session"] not in ctx["known_introductions"]:  # §19.4
             return Verdict.reject("grant-unknown-introduction")

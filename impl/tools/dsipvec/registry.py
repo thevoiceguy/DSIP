@@ -10,7 +10,8 @@ from dataclasses import dataclass
 
 REASON_RE = re.compile(r"^[a-z][a-z0-9-]*\.[a-z][a-z0-9-]*$")
 
-CATEGORIES = ("user", "endpoint", "identity", "session", "media", "policy", "transport", "gateway")
+CATEGORIES = ("user", "endpoint", "identity", "session", "media", "policy", "transport", "gateway",
+              "mailbox")  # v0.8 (spec-gap 38): Messaging Profile mailbox conditions
 
 # token -> valid-on message types (spec §15.4 "Valid on" column)
 REASONS: dict[str, tuple[str, ...]] = {
@@ -60,6 +61,17 @@ REASONS: dict[str, tuple[str, ...]] = {
     "gateway.unreachable": ("reject", "error"),
     "gateway.downgraded": ("error",),
     "gateway.mapped": ("reject", "bye", "error"),
+    # v0.8 (spec-gaps 38, 48): the Messaging Profile's mailbox conditions (M§16)
+    "mailbox.commit-conflict": ("error",),
+    "mailbox.stale-epoch": ("error",),
+    "mailbox.unknown-group": ("error",),
+    "mailbox.cursor-invalid": ("error",),
+    "mailbox.object-too-large": ("error",),
+    "mailbox.quota-exceeded": ("error",),
+    "mailbox.no-key-packages": ("error",),
+    "mailbox.unsupported-class": ("error",),
+    "mailbox.unsupported-mode": ("error",),
+    "mailbox.blob-mismatch": ("error",),
 }
 
 # §15.4 also lists reasons valid on `notify` in prose (§9.3: session.expired,
@@ -72,11 +84,14 @@ ANSWERED_BY_FALLBACK = "service"          # §14.3
 PROGRESS_STATUS = ("trying", "ringing", "queued", "forwarded")
 PROGRESS_STATUS_FALLBACK = "trying"      # §12.10
 SUBSCRIPTION_EVENTS = {"presence": 3600, "publication": 86400}  # §9.3 hard caps
-GRANT_SCOPES = ("dsip.invite", "dsip.subscribe")                # §19.4
+GRANT_SCOPES = ("dsip.invite", "dsip.subscribe", "dsip.message")  # §19.4; dsip.message v0.8 (spec-gap 36)
+DELEGATION_CAPABILITIES = ("dsip.signaling", "dsip.media.interactive", "dsip.messaging")  # §7.4, v0.8 (spec-gap 39)
+REVOCATION_REASONS = ("lost", "compromised", "retired", "policy")  # dsip-revocation-reason (§7.4, v0.8, spec-gap 57)
 MESSAGE_TYPES = (
     "invite", "progress", "answer", "reject", "cancel", "update", "info", "bye",
     "introduction", "grant", "publish", "subscribe", "notify", "unpublish", "error", "hello",
     "provenance", "key-rotation", "reachability-hint",   # v0.7: §22.3, §7.5, DHT Hints Profile
+    "delegation-revocation",                             # v0.8: §7.4 (spec-gap 57)
 )
 INTEGRITY_MODES = ("metadata-only", "derivative-bound")   # dsip-integrity-mode (§22.2); unknown → metadata-only
 ROTATION_REASONS = ("scheduled", "compromised", "lost", "policy")   # dsip-rotation-reason (§7.5)

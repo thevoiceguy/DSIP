@@ -1,12 +1,11 @@
 {
-  "vector": "messaging/revocation-not-signed-by-subject-ignored",
+  "vector": "envelope/delegation-revocation-record-verifies",
   "format": 1,
-  "kind": "messaging",
-  "description": "A revocation signed by anyone but a key of the subject is ignored (the revoked device cannot keep others out, and nobody else can revoke).",
+  "kind": "envelope",
+  "description": "The record itself is an envelope signed by the subject's key.",
   "spec_ref": [
     "§7.4",
-    "M§12.4",
-    "M§4.3"
+    "§8.1"
   ],
   "context": {
     "now": 1760000000,
@@ -118,27 +117,19 @@
         "verified-broadcast/1.0"
       ],
       "extensions": []
-    },
-    "revocations": [
-      {
-        "protected": "eyJhbGciOiJFZERTQSIsImtpZCI6ImRpZDprZXk6ejZNa3JRNENLajV4M01HYnFtWUJiZlNYeWg4NjV3cHZEU3R4aTNIZUd2ZnlKdzhII3o2TWtyUTRDS2o1eDNNR2JxbVlCYmZTWHloODY1d3B2RFN0eGkzSGVHdmZ5Snc4SCIsInR5cCI6ImRzaXAranNvbiJ9",
-        "payload": "eyJkc2lwIjp7ImNvcmUiOiIxLjAiLCJtaW5fY29yZSI6IjEuMCIsInByb2ZpbGVzIjpbIm1lc3NhZ2luZy8xLjAiXSwiZXh0ZW5zaW9ucyI6W10sImNyaXRpY2FsIjpbXX0sInR5cGUiOiJkZWxlZ2F0aW9uLXJldm9jYXRpb24iLCJpZCI6IjAxSzc0MlFORDBXQko1NUU2UzNRMUI5SzNTIiwiZnJvbSI6ImRpZDp3ZWI6ZXhhbXBsZS5jb206dXNlcnM6Ym9iIiwic3ViamVjdCI6ImRpZDp3ZWI6ZXhhbXBsZS5jb206dXNlcnM6Ym9iIiwiZGV2aWNlIjoiZGlkOmtleTp6Nk1rczExdGpNZVJuRTFKY2VXaHlUN3pFVG9YNHozTDZCdUthTTEzUGJURWRBcG4iLCJyZXZva2VkX2F0IjoxNzU5OTk5OTQwLCJyZWFzb24iOiJsb3N0IiwiaXNzdWVkX2F0IjoxNzU5OTk5OTQwLCJleHBpcmVzX2F0IjoxNzYwMDAwMjQwfQ",
-        "signature": "_v8bBZn28-DQJ0LZzRP8noneixCVThKI__Mxtxr0vci0kFLKWd_uVoI5BQhzZ7NMBLuoKKT8V_dRbRX5fbTJAg"
-      }
-    ]
+    }
   },
   "input": {
-    "check": "delegation",
-    "delegation": {
+    "envelope": {
       "protected": "eyJhbGciOiJFZERTQSIsImtpZCI6ImRpZDp3ZWI6ZXhhbXBsZS5jb206dXNlcnM6Ym9iI2tleS0xIiwidHlwIjoiZHNpcCtqc29uIn0",
-      "payload": "eyJ0eXBlIjoiRGV2aWNlRGVsZWdhdGlvbiIsInN1YmplY3QiOiJkaWQ6d2ViOmV4YW1wbGUuY29tOnVzZXJzOmJvYiIsImRldmljZSI6ImRpZDprZXk6ejZNa3MxMXRqTWVSbkUxSmNlV2h5VDd6RVRvWDR6M0w2QnVLYU0xM1BiVEVkQXBuIiwiY2FwYWJpbGl0aWVzIjpbImRzaXAuc2lnbmFsaW5nIiwiZHNpcC5tZXNzYWdpbmciXSwiaXNzdWVkX2F0IjoxNzU5OTEzNjAwLCJleHBpcmVzX2F0IjoxNzYyNTkyMDAwfQ",
-      "signature": "338MiV7zenb0o6RUTwnNmy5kvBfR6xhGlLgzi0bpBM991AIj5vosq_2meqVKJyxWWm75eW1yAWjEngKoDsz0CA"
-    },
-    "subject": "did:web:example.com:users:bob",
-    "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
-    "capability": "dsip.messaging"
+      "payload": "eyJkc2lwIjp7ImNvcmUiOiIxLjAiLCJtaW5fY29yZSI6IjEuMCIsInByb2ZpbGVzIjpbImludGVyYWN0aXZlLW1lZGlhLzEuMCJdLCJleHRlbnNpb25zIjpbXSwiY3JpdGljYWwiOltdfSwidHlwZSI6ImRlbGVnYXRpb24tcmV2b2NhdGlvbiIsImlkIjoiMDFLNzQyUU5EMFdCSjU1RTZTM1ExQjlLM1MiLCJmcm9tIjoiZGlkOndlYjpleGFtcGxlLmNvbTp1c2Vyczpib2IiLCJzdWJqZWN0IjoiZGlkOndlYjpleGFtcGxlLmNvbTp1c2Vyczpib2IiLCJkZXZpY2UiOiJkaWQ6a2V5Ono2TWtqMkJ4eVpRYzFZblVkUE5rUkRBZDFHUDJaaWdQUGhoNlpmWXdmNUhSTXJ0SiIsInJldm9rZWRfYXQiOjE3NTk5OTk5NDAsInJlYXNvbiI6Imxvc3QiLCJpc3N1ZWRfYXQiOjE3NTk5OTk5NDAsImV4cGlyZXNfYXQiOjE3NjAwMDAyNDB9",
+      "signature": "lEpBytTAXpCc-E7BpIf9hV-NDuATSXaBFfHo8Td7cgWcGFyUZu2bBIkNieMUisA9JOuCZQE3Ug5CDoRToIOGBw"
+    }
   },
   "expect": {
-    "verdict": "accept"
+    "verdict": "accept",
+    "type": "delegation-revocation",
+    "signer": "did:web:example.com:users:bob",
+    "identity": "did:web:example.com:users:bob"
   }
 }

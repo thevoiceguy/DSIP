@@ -3,7 +3,9 @@
 DSIP JSON Schema generator.
 
 Generates the DSIP Core v1.0 message schema set (draft 2020-12) from one
-source of truth. Spec revision v0.8 (changes listed in the v0.8 core, Appendix A.5). Spec revision v0.7 added `provenance` (22.3), `key-rotation`
+source of truth. Spec revision v0.8 (Appendix A.5) adds the optional `sealed` introduction body
+(19.4, Messaging Profile M§14.1), the `delegation-revocation` message (7.4) and the `dsip.message`
+grant scope. Spec revision v0.7 added `provenance` (22.3), `key-rotation`
 (7.5), `reachability-hint` (DHT Hints Profile), the record-level `integrity`
 field on `publish` (22.2), and the WebRTC Media Binding's `info.data` schema
 (`webrtc-info-data`, validated when `info.about` is `transport:webrtc`). Shared definitions are embedded into every schema file so
@@ -339,6 +341,20 @@ schemas["provenance"] = base(
     extra_required=["original_stream", "original_publication", "processor", "operation", "input_variant", "output_variant"],
 )
 
+schemas["delegation-revocation"] = base(
+    "delegation-revocation", session_scoped=False, has_to=False,
+    description="Delegation revocation record (spec 7.4, v0.8): revokes every delegation of one device for the subject issued at or before revoked_at. Signed directly by a verification key of the subject; from equals subject (semantic check). Verifiers find it in the subject's DID document (dsipDelegationRevocations) or in any store they hold; it can only remove authority.",
+    extra_props={
+        "subject": {"$ref": "#/$defs/did"},
+        "device": {"$ref": "#/$defs/did"},
+        "revoked_at": {"$ref": "#/$defs/timestamp",
+                       "description": "Delegations of device issued at or before this instant are revoked; a later delegation re-enrolls it."},
+        "reason": {"type": "string", "pattern": "^[a-z][a-z0-9-]*$",
+                   "description": "Registry dsip-revocation-reason: lost, compromised, retired, policy."},
+    },
+    extra_required=["subject", "device", "revoked_at", "reason"],
+)
+
 schemas["key-rotation"] = base(
     "key-rotation", session_scoped=False, has_to=False,
     description="Key rotation record (spec 7.5): the artifact an identity publishes when a verification key changes. Signed by the key being retired, or by a recovery key of the subject when that key is lost (recovery: true). The DID document stays authoritative for verification (spec 8.1); this record is what transparency logs (7.7) keep and clients show as trust metadata.",
@@ -449,6 +465,17 @@ schemas["introduction"] = base(
                     "description": "Short stated purpose; a claim, rendered attributed and unverified."},
         "contact_token": {"type": "string", "maxLength": 2048,
                           "description": "Optional out-of-band token from the recipient authority; valid tokens SHOULD bypass rate limits."},
+        "sealed": {
+            "type": "object",
+            "description": "v0.8: purpose sealed to the recipient's key agreement key with HPKE (spec 19.4; Messaging Profile M§6.9, M§14.1). The plaintext is {\"purpose\": ...}. purpose and sealed never both appear (semantic check).",
+            "properties": {
+                "alg": {"type": "string", "minLength": 1, "description": "Sealing algorithm; hpke-base-x25519-sha256-aes128gcm in 1.0."},
+                "enc": {"type": "string", "minLength": 1, "pattern": "^[A-Za-z0-9_-]+$", "description": "HPKE encapsulated key, base64url."},
+                "ct": {"type": "string", "minLength": 1, "pattern": "^[A-Za-z0-9_-]+$", "description": "HPKE ciphertext, base64url."},
+            },
+            "required": ["alg", "enc", "ct"],
+            "additionalProperties": False,
+        },
     },
     extra_required=["identity"],
 )
@@ -459,7 +486,7 @@ schemas["grant"] = base(
     extra_props={
         "scope": {"type": "array", "minItems": 1,
                   "items": {"type": "string", "pattern": "^dsip\\.[a-z][a-z0-9.-]*$"},
-                  "description": "Registered grant scopes (dsip-grant-scope): dsip.invite, dsip.subscribe."},
+                  "description": "Registered grant scopes (dsip-grant-scope): dsip.invite, dsip.subscribe, dsip.message (v0.8)."},
         "valid_until": {"$ref": "#/$defs/timestamp",
                         "description": "Grant lifetime, independent of the envelope delivery expiry."},
     },

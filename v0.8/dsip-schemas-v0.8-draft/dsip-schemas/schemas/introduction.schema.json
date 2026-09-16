@@ -38,6 +38,35 @@
       "type": "string",
       "maxLength": 2048,
       "description": "Optional out-of-band token from the recipient authority; valid tokens SHOULD bypass rate limits."
+    },
+    "sealed": {
+      "type": "object",
+      "description": "v0.8: purpose sealed to the recipient's key agreement key with HPKE (spec 19.4; Messaging Profile M\u00a76.9, M\u00a714.1). The plaintext is {\"purpose\": ...}. purpose and sealed never both appear (semantic check).",
+      "properties": {
+        "alg": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Sealing algorithm; hpke-base-x25519-sha256-aes128gcm in 1.0."
+        },
+        "enc": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_-]+$",
+          "description": "HPKE encapsulated key, base64url."
+        },
+        "ct": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_-]+$",
+          "description": "HPKE ciphertext, base64url."
+        }
+      },
+      "required": [
+        "alg",
+        "enc",
+        "ct"
+      ],
+      "additionalProperties": false
     }
   },
   "required": [

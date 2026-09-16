@@ -60,6 +60,23 @@
         {
           "properties": {
             "type": {
+              "const": "delegation-revocation"
+            }
+          },
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "$ref": "delegation-revocation.schema.json"
+        }
+      ]
+    },
+    {
+      "allOf": [
+        {
+          "properties": {
+            "type": {
               "const": "error"
             }
           },
