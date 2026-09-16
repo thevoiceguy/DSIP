@@ -473,7 +473,7 @@ codec set. Written up as `v0.8/dsip-rtp-srtp-media-binding-v0.8-draft.md`.
 **Suggested fix.** Adopt the binding draft; align it with the WebRTC binding's descriptor/SDP
 authority rule.
 
-## v0.8 messaging worklist (gaps 31–44)
+## v0.8 messaging worklist (gaps 31–47)
 
 **Status (2026-09-15):** filed with the **DSIP Messaging Profile 1.0** draft
 (`v0.8/dsip-messaging-profile-v0.8-draft.md`, cited M§n). Unlike gaps 1–30, these were not found
@@ -501,6 +501,9 @@ bytes, AES-GCM formats) pins 33 and 39, and `impl/crates/dsip-mls` runs the prof
 | 42 | §12.6, §20.6 | duplicate direct conversations / successor groups: lower ULID wins | `messaging/direct-select-*`, `messaging/successor-*` |
 | 43 | (new; M§11) | activity keyed by the MLS exporter, not the secret tree | `messaging/deposit-ephemeral-*`, `messaging/hub-ephemeral-*`, `messaging/mailbox-ephemeral-pushed-never-stored` |
 | 44 | M§5.4, M§8.5 | **pinned** (2026-09-16): MLS state and delivery state (ack cursor, per-group seq positions) commit atomically per item; redelivered sequenced items collapse by seq, not content id | `messaging/resume-*` (9), `dsip-mls` `tests/persist.rs`, `demos/messaging-demo.sh` (restart + crash-before-commit) |
+| 45 | M§5.2, M§6.6 | **pinned** (2026-09-16): a mailbox forwards only its owner's devices' deposits, only to the hub registered for the group (from the welcome's `hub`); hub identity from the header delegation | `messaging/mailbox-forward-*` (5), `demos/group-demo.sh` |
+| 46 | M§14.2, §19.4 | **pinned** (2026-09-16): a hub-forwarded welcome's adder is proven only by `origin` (a `handshake` deposit, same group, ≤ 300 s); `policy.blocked` for a bad origin | `messaging/mailbox-welcome-hub-forwarded-*` (6), `demos/group-demo.sh` |
+| 47 | M§6.5 | **pinned** (2026-09-16): a device's own fanned-back items are processed by the `accepted` seq (or recognised by their bytes), never decrypted | `messaging/resume-own-item-by-accepted-seq`, `demos/group-demo.sh` |
 
 ## 31. §12.9 vs §13.3 / §19.4 — the replay window rejects held envelopes
 
@@ -783,6 +786,67 @@ a held item is not processed, so the ack position must stop before it, while lat
 groups may still be processed.
 
 **Suggested fix.** Adopt the M§5.4 and M§8.5 text now in the draft.
+
+## 45. M§5.2 / M§6.6 — mailbox-to-hub forwarding has no rules
+
+**Gap.** M§5.2 says a device sends every deposit to its own mailbox, "which forwards it unchanged to
+`to` when `to` names another service". It does not say how the mailbox reaches that service (a hub is
+named by a DID, which for a service need not resolve to an endpoint), which deposits it may forward
+(otherwise any client can use a mailbox as an open relay), or how the hub learns who deposited: the
+connection it arrives on is the mailbox's `hello`, so the §13.2 binding names the mailbox, not the
+member. The first group over the wire needed all three; a direct conversation never did, because only
+its creator's device deposits and that device is bound at the hub.
+
+**Choices considered.** (a) Forward only an owner device's deposit and only to the hub registered for
+its group, at the `hub.uri` the registering `welcome` carried; the device carries its delegation in the
+header and the hub takes identity from it. (b) Resolve `to` as a DID and forward anywhere it leads: an
+open relay, and a service `did:key` has no endpoint. (c) Devices always connect to hubs directly (the
+MAY): exposes device addresses to every hub and multiplies connections, which M§5.2 set out to avoid.
+
+**Draft choice.** (a), with `policy.blocked` for another identity's device and `mailbox.unknown-group`
+for an unregistered group or another service. Vectors pin the mailbox decisions; the group demo shows
+the hub taking identity from the header (mutation: taking it from the connection makes the hub refuse
+Bob's deposit with `policy.blocked`).
+
+**Suggested fix.** Adopt the M§5.2 text now in the draft. Hub changes (M§7.4) will need the device to
+update the registration's hub when it processes the GroupContextExtensions commit.
+
+## 46. M§14.2 — `origin` on hub-forwarded welcomes
+
+**Gap.** M§14.2 requires a mailbox to verify a hub-forwarded welcome's `origin` but does not say that
+the adder identity is *taken from* it (rather than from the hub's connection or any other field), what
+kind of deposit it must be, whether it must name the same group, whether its own replay window applies
+(it cannot: it is presented after delivery), or what to answer when it fails.
+
+**Choices considered.** (a) `origin` is verified as a credential, must be a `handshake` deposit for the
+same group within 300 s of the hub deposit, and alone names the adder; failures are `policy.blocked`,
+while a proven adder without authorization stays `policy.first-contact-required`. (b) Trust the hub to
+name the adder: gives every hub the power to impersonate adders to first-contact controls. (c) Reuse
+`policy.first-contact-required` for everything: conflates "who added you is unknown" with "they may
+not add you".
+
+**Draft choice.** (a). Vectors pin the 300 s bound as inclusive, a mismatched group, a missing origin,
+and that a claim beside the origin cannot override it.
+
+**Suggested fix.** Adopt the M§14.2 text now in the draft.
+
+## 47. M§6.5 rule 5 — a device's own items come back to it
+
+**Gap.** The hub fans every item out to the sender's own identity "which is how a user's other devices
+see sent messages". The sending device receives that copy too, and MLS does not let a member decrypt
+its own messages, so a device that simply processes its mailbox fails on everything it sent. The
+profile does not say how the copy is recognised; content-id deduplication (M§8.5) needs a decryption.
+
+**Choices considered.** (a) The `seq` in the hub's `accepted` marks the item processed (it joins the
+device's durable seq positions, spec-gap 44), and a copy that arrives before the `accepted` is
+recognised by its MLS bytes. (b) Recognise copies only by bytes: lost on restart, so a copy redelivered
+after a restart fails. (c) Hubs skip the sending device: the hub knows identities, not which device's
+mailbox copy serves which device, and the identity's other devices need the copy.
+
+**Draft choice.** (a). The demo exercises both paths: the hub owner's `accepted` arrives before its copy
+(`DUP`), and a forwarded deposit's copy can beat its `accepted` (`SELF`); removing both fails the demo.
+
+**Suggested fix.** Adopt the M§6.5 text now in the draft.
 
 ## Already-flagged (schema README / plan §11)
 

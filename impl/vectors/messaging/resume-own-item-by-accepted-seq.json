@@ -1,0 +1,133 @@
+{
+  "vector": "messaging/resume-own-item-by-accepted-seq",
+  "format": 1,
+  "kind": "messaging",
+  "description": "A device's own item comes back through its identity's mailbox (M§6.5 rule 5) and cannot be decrypted by it; the seq from its accepted marks the copy as processed, including past a gap.",
+  "spec_ref": [
+    "M§5.4",
+    "M§8.5",
+    "M§6.5",
+    "M§5.3"
+  ],
+  "context": {
+    "component": "resume",
+    "cursor": "c:0000000000000001",
+    "groups": {
+      "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M": {
+        "contiguous": 1,
+        "seen": []
+      }
+    },
+    "joined": [
+      "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M"
+    ]
+  },
+  "input": {
+    "check": "resume-trace",
+    "steps": [
+      {
+        "event": {
+          "sent": {
+            "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+            "seq": 3
+          }
+        }
+      },
+      {
+        "event": {
+          "sent": {
+            "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+            "seq": 2
+          }
+        }
+      },
+      {
+        "event": {
+          "items": {
+            "items": [
+              {
+                "cursor": "c:0000000000000002",
+                "class": "application",
+                "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+                "seq": 2
+              },
+              {
+                "cursor": "c:0000000000000003",
+                "class": "application",
+                "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+                "seq": 3
+              },
+              {
+                "cursor": "c:0000000000000004",
+                "class": "application",
+                "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+                "seq": 4
+              }
+            ]
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [],
+        "state": {
+          "cursor": "c:0000000000000001",
+          "groups": {
+            "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M": {
+              "contiguous": 1,
+              "seen": [
+                3
+              ]
+            }
+          },
+          "joined": [
+            "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M"
+          ]
+        }
+      },
+      {
+        "emit": [],
+        "state": {
+          "cursor": "c:0000000000000001",
+          "groups": {
+            "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M": {
+              "contiguous": 3,
+              "seen": []
+            }
+          },
+          "joined": [
+            "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M"
+          ]
+        }
+      },
+      {
+        "emit": [
+          {
+            "duplicate": "c:0000000000000002"
+          },
+          {
+            "duplicate": "c:0000000000000003"
+          },
+          {
+            "process": "c:0000000000000004"
+          }
+        ],
+        "state": {
+          "cursor": "c:0000000000000004",
+          "groups": {
+            "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M": {
+              "contiguous": 4,
+              "seen": []
+            }
+          },
+          "joined": [
+            "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M"
+          ]
+        }
+      }
+    ]
+  }
+}
