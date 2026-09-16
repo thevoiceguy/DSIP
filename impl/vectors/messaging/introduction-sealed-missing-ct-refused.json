@@ -1,0 +1,42 @@
+{
+  "vector": "messaging/introduction-sealed-missing-ct-refused",
+  "format": 1,
+  "kind": "messaging",
+  "description": "A sealed body names alg, enc and ct.",
+  "spec_ref": [
+    "M§14.1",
+    "§19.4"
+  ],
+  "context": {},
+  "input": {
+    "check": "introduction",
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "messaging/1.0"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "introduction",
+      "id": "01K742SG00Z41R1RN63EB956CH",
+      "from": "did:web:alice.example",
+      "to": "did:web:example.com:users:bob",
+      "identity": {
+        "display_name": "Alice"
+      },
+      "issued_at": 1760000000,
+      "expires_at": 1760604800,
+      "sealed": {
+        "alg": "hpke-base-x25519-sha256-aes128gcm",
+        "enc": "GOAC6ikHDszB0YqIgQgRY1mm4y_4difNpnnwAKP9N0s"
+      }
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "schema-invalid"
+  }
+}

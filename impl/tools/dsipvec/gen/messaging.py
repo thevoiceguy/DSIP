@@ -4,6 +4,7 @@ from the profile text; `dsipvec.messaging` and `dsip-messaging` must both reprod
 from __future__ import annotations
 
 import copy
+import hashlib
 import json
 
 from .. import fixtures as F
@@ -89,6 +90,7 @@ def vectors() -> list[dict]:
     out += discovery_vectors()
     out += blob_vectors()
     out += removal_registration_vectors()
+    out += first_contact_vectors()
     return out
 
 
@@ -1616,3 +1618,176 @@ def removal_registration_vectors():
            "When the removed device was its identity's last leaf, the registration ends with left.",
            refs + ["M§7.3"], {"check": "registration-on-removal", "me": BOB, "remaining_identities": [ALICE]}, {"left": True}),
     ]
+
+
+# ---------------------------------------------------------------- first contact (M§6.9, M§14.1; spec-gaps 36, 54, 55)
+
+# RFC 9180 Appendix A.1.1 — DHKEM(X25519, HKDF-SHA256), HKDF-SHA256, AES-128-GCM, base mode, sequence 0.
+RFC9180_A1 = {
+    "info": "4f6465206f6e2061204772656369616e2055726e",
+    "ikmE": "7268600d403fce431561aef583ee1613527cff655c1343f29812e66706df3234",
+    "skEm": "52c4a758a802cd8b936eceea314432798d5baf2d7e9235dc084ab1b9cfa2f736",
+    "pkEm": "37fda3567bdbd628e88668c3c8d7e97d1d1253b6d4ea6d44c150f741f1bf4431",
+    "skRm": "4612c550263fc8ad58375df3f557aac531d26850903e55a9f23f21d8534e8ac8",
+    "pkRm": "3948cfe0ad1ddb695d780e59077195da6c56506b027329794ab02bca80815c4d",
+    "enc": "37fda3567bdbd628e88668c3c8d7e97d1d1253b6d4ea6d44c150f741f1bf4431",
+    "pt": "4265617574792069732074727574682c20747275746820626561757479",
+    "aad": "436f756e742d30",
+    "ct": "f938558b5d72f1a23810b4be2ab4f84331acc02fc97babc53a52ae82" "18a355a96d8770ac83d07bea87e13c512a",
+}
+
+
+def _hpke_self_test():
+    """The reference is checked against the RFC and against an independent HPKE before any vector is written."""
+    from .. import messaging as M
+    from cryptography.hazmat.primitives import hpke
+    from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey
+    r = {k: bytes.fromhex(v) for k, v in RFC9180_A1.items()}
+    assert M.hpke_derive_sk(r["ikmE"]) == r["skEm"] and M.x25519_public(r["skEm"]) == r["pkEm"], "RFC 9180 DeriveKeyPair"
+    enc, ct = M.hpke_seal(r["pkRm"], r["info"], r["aad"], r["pt"], r["skEm"])
+    assert (enc, ct) == (r["enc"], r["ct"]), "RFC 9180 A.1.1 seal"
+    assert M.hpke_open(r["enc"], r["skRm"], r["info"], r["aad"], r["ct"]) == r["pt"], "RFC 9180 A.1.1 open"
+    suite = hpke.Suite(hpke.KEM.X25519, hpke.KDF.HKDF_SHA256, hpke.AEAD.AES_128_GCM)
+    sk = X25519PrivateKey.from_private_bytes(r["skRm"])
+    blob = suite.encrypt(b"interop", sk.public_key(), b"dsip")
+    assert M.hpke_open(blob[:32], r["skRm"], b"dsip", b"", blob[32:]) == b"interop", "cryptography interop (empty aad)"
+
+
+def first_contact_vectors():
+    from .. import messaging as M
+    _hpke_self_test()
+    out = []
+    A = RFC9180_A1
+    open_inp = lambda **o: {"check": "hpke-open", "enc_hex": A["enc"], "sk_r_hex": A["skRm"], "info_hex": A["info"],
+                            "aad_hex": A["aad"], "ct_hex": A["ct"], **o}
+    out.append(mv("hpke-open-rfc9180-a1", "RFC 9180 A.1.1 (base mode, sequence 0) opens to its plaintext: the HPKE suite of M§6.9.",
+                  ["M§6.9"], open_inp(), accept(plaintext_hex=A["pt"])))
+    out.append(mv("hpke-open-rfc9180-a1-wrong-aad", "The same ciphertext under another AAD does not open.", ["M§6.9"],
+                  open_inp(aad_hex="436f756e742d31"), reject("hpke-open-failed")))
+    out.append(mv("hpke-open-rfc9180-a1-wrong-info", "Nor under another info.", ["M§6.9"],
+                  open_inp(info_hex="00" + A["info"]), reject("hpke-open-failed")))
+    out.append(mv("hpke-derive-key-pair-rfc9180-a1", "DeriveKeyPair from RFC 9180 A.1.1 ikmE.", ["M§6.9"],
+                  {"check": "hpke-derive-key-pair", "ikm_hex": A["ikmE"]}, {"sk_hex": A["skEm"], "pk_hex": A["pkEm"]}))
+
+    bob_seed = hashlib.sha256(b"dsip-vector:bob").digest()
+    mallory_seed = hashlib.sha256(b"dsip-vector:mallory").digest()
+    bob_x = M.x25519_public(M.x25519_from_ed25519_seed(bob_seed))
+    out.append(mv("x25519-key-agreement-from-ed25519",
+                  "The X25519 key agreement key of an Ed25519 identity key, as did:key derives it (M§6.9; spec-gap 55 for did:web).",
+                  ["M§6.9"], {"check": "x25519-key-agreement", "ed25519_seed_hex": bob_seed.hex()}, {"x25519_pk_hex": bob_x.hex()}))
+
+    def intro(label="intro", purpose=None, frm=ALICE, to=BOB):
+        p = {"dsip": {**VERSION, "profiles": ["messaging/1.0"]}, "type": "introduction", "id": uid(label), "from": frm, "to": to,
+             "identity": {"display_name": "Alice"}, "issued_at": NOW, "expires_at": NOW + 604800}
+        if purpose is not None:
+            p["purpose"] = purpose
+        return p
+
+    def sealed(p, body: bytes, pk=bob_x, eph=b"eph"):
+        sk_e = M.hpke_derive_sk(hashlib.sha256(b"dsip-vector:ephemeral:" + eph).digest())
+        enc, ct = M.hpke_seal(pk, M.SEALED_INFO, M.sealed_aad(p), body, sk_e)
+        return {**p, "sealed": {"alg": M.SEALED_ALG, "enc": b64url_encode(enc), "ct": b64url_encode(ct)}}
+
+    purpose = "We met at the Syracuse mesh meetup; following up about the antenna group buy."
+    good = sealed(intro(), json.dumps({"purpose": purpose}).encode())
+    R = ["M§14.1", "M§6.9"]
+    so = lambda vid, desc, p, expect, seed=bob_seed, refs=R: out.append(mv(vid, desc, refs,
+        {"check": "sealed-introduction-open", "payload": p, "recipient_ed25519_seed_hex": seed.hex()}, expect))
+    so("sealed-introduction-opens", "A sealed introduction opens under the recipient's key agreement key to its purpose.", good,
+       accept(purpose=purpose))
+    so("sealed-introduction-wrong-recipient", "Only the recipient's key opens it.", good, reject("sealed-open-failed"), seed=mallory_seed)
+    so("sealed-introduction-spliced-to-other-recipient",
+       "The AAD binds id, from and to: the same sealed body under another `to` does not open.", {**good, "to": CAROL},
+       reject("sealed-open-failed"))
+    so("sealed-introduction-spliced-to-other-sender", "Nor under another `from`.", {**good, "from": MALLORY}, reject("sealed-open-failed"))
+    so("sealed-introduction-spliced-to-other-id", "Nor under another `id`.", {**good, "id": uid("other-intro")}, reject("sealed-open-failed"))
+    so("sealed-introduction-unsupported-alg", "An unknown sealing algorithm is refused before any attempt to open.",
+       {**good, "sealed": {**good["sealed"], "alg": "hpke-base-p256-sha256-aes128gcm"}}, reject("sealed-alg-unsupported"))
+    so("sealed-introduction-purpose-too-long", "A sealed purpose is still at most 280 characters.",
+       sealed(intro("long"), json.dumps({"purpose": "x" * 281}).encode()), reject("purpose-too-long"))
+    so("sealed-introduction-plaintext-not-purpose", "The plaintext is exactly {\"purpose\": …}.",
+       sealed(intro("extra"), json.dumps({"purpose": "hi", "phone": "+1"}).encode()), reject("sealed-plaintext-invalid"))
+    so("sealed-introduction-plaintext-not-json", "A plaintext that is not JSON is refused.", sealed(intro("raw"), b"hello"),
+       reject("sealed-plaintext-invalid"))
+    so("sealed-introduction-plain-purpose-passes-through", "An unsealed introduction yields its purpose unchanged.",
+       intro("plain", purpose="Hello"), accept(purpose="Hello"))
+    ic = lambda vid, desc, p, expect: out.append(mv(vid, desc, ["M§14.1", "§19.4"], {"check": "introduction", "payload": p}, expect))
+    ic("introduction-sealed-valid", "The profile's introduction may carry sealed instead of purpose.", good, accept(effective={"sealed": True}))
+    ic("introduction-purpose-and-sealed-refused", "purpose and sealed MUST NOT both be present.", {**good, "purpose": "Hi"},
+       reject("introduction-purpose-and-sealed"))
+    ic("introduction-sealed-missing-ct-refused", "A sealed body names alg, enc and ct.",
+       {**good, "sealed": {k: v for k, v in good["sealed"].items() if k != "ct"}}, reject("schema-invalid"))
+    ic("introduction-neither-purpose-nor-sealed", "As in core §19.4, purpose is optional.", intro("bare"), accept(effective={"sealed": False}))
+
+    # deposits carrying first contact (spec-gap 54)
+    env = "eyJ.introduction.sig"
+    m = lambda vid, desc, payload, expect: out.append(mv(vid, desc, ["M§14.1", "M§5.2"], {"check": "message", "payload": payload}, expect))
+    fc = lambda cls, label, **f: msg("deposit", label, APH, MBX_B, **{"class": cls, **f})
+    m("deposit-introduction-valid", "An introduction travels to the recipient's mailbox as a deposit: the signed envelope, a recipient, no group.",
+      fc("introduction", "di", recipient=BOB, envelope=env), accept())
+    m("deposit-grant-valid", "The grant answering it travels back the same way.", fc("grant", "dg", recipient=ALICE, envelope=env), accept())
+    m("deposit-introduction-with-group-refused", "A first-contact deposit names no group.",
+      fc("introduction", "dig", recipient=BOB, envelope=env, group=GROUP), reject("schema-invalid"))
+    m("deposit-introduction-without-recipient-refused", "A first-contact deposit names its recipient.",
+      fc("introduction", "dir", envelope=env), reject("schema-invalid"))
+    m("deposit-introduction-over-cap-refused", "The carried introduction is still capped at 4,096 bytes (§19.4).",
+      fc("introduction", "dic", recipient=BOB, envelope="e" * 4097), reject("introduction-too-large", "transport.envelope-too-large"))
+    m("deposit-introduction-at-cap-accepted", "Exactly 4,096 bytes is allowed.",
+      fc("introduction", "dia", recipient=BOB, envelope="e" * 4096), accept())
+
+    # mailbox rules (spec-gap 54, §19.4 carried to mailboxes)
+    T = "mailbox-trace"
+    ctx = mbx_ctx(intro_limit=2, intro_window=3600, inbox_cap=3)
+    def intro_ev(label, sender=ALICE, device=APH, recipient=BOB, kind="introduction", exp=NOW + 604800):
+        return {"first_contact": {"id": uid(label), "from": device, "sender_identity": sender, "recipient": recipient,
+                                  "kind": kind, "expires_at": exp}}
+    acc_c = lambda to, label, n: macc(to, label, c(n))
+    out.append(trace("mailbox-introduction-stored-for-owner",
+                     "An introduction for the owner is stored as a request item and pushed to bound devices; it is never a message.",
+                     ["M§14.1", "§19.4"], T, ctx, [
+                         ({"sync": {"id": uid("s1"), "device": BPH, "since": None, "live": True}},
+                          [{"items": {"to": BPH, "in_reply_to": uid("s1"), "cursors": [], "next": None}}], ms()),
+                         (intro_ev("i1"), [acc_c(APH, "i1", 1), {"push": {"to": BPH, "cursor": c(1)}}], ms([c(1)])),
+                     ]))
+    out.append(trace("mailbox-introduction-unknown-recipient-indistinguishable",
+                     "An introduction for an identity the mailbox does not serve is accepted and dropped: a sender cannot tell it from delivery.",
+                     ["§19.4", "M§15.5"], T, ctx, [
+                         (intro_ev("i1", recipient="did:web:nobody.example"), [macc(APH, "i1")], ms()),
+                     ]))
+    out.append(trace("mailbox-introduction-rate-limited-per-sender",
+                     "Introductions are rate-limited per sender identity: over the limit is policy.rate-limited with retry_after.",
+                     ["§19.4", "M§14.3"], T, ctx, [
+                         (intro_ev("i1"), [acc_c(APH, "i1", 1)], ms([c(1)])),
+                         ({"advance": 100}, [], ms([c(1)])),
+                         (intro_ev("i2", recipient="did:web:nobody.example"), [macc(APH, "i2")], ms([c(1)])),
+                         (intro_ev("i3"), [{"error": {"to": APH, "in_reply_to": uid("i3"), "reason": "policy.rate-limited", "retry_after": 3500}}],
+                          ms([c(1)])),
+                         ({"advance": 3500}, [], ms([c(1)])),
+                         (intro_ev("i4"), [acc_c(APH, "i4", 2)], ms([c(1), c(2)])),
+                     ]))
+    out.append(trace("mailbox-introduction-rate-limited-per-inbox",
+                     "And per recipient inbox, whoever sends them.", ["§19.4", "M§14.3"], T, ctx, [
+                         (intro_ev("i1", sender=CAROL, device=CPH), [acc_c(CPH, "i1", 1)], ms([c(1)])),
+                         (intro_ev("i2", sender=MALLORY, device=MPH), [acc_c(MPH, "i2", 2)], ms([c(1), c(2)])),
+                         (intro_ev("i3"), [{"error": {"to": APH, "in_reply_to": uid("i3"), "reason": "policy.rate-limited", "retry_after": 3600}}],
+                          ms([c(1), c(2)])),
+                     ]))
+    out.append(trace("mailbox-introduction-inbox-bound-silent",
+                     "Past the bounded inbox an introduction is accepted and not held, silently (§19.4 RECOMMENDED 16).",
+                     ["§19.4"], T, mbx_ctx(intro_limit=10, inbox_cap=2), [
+                         (intro_ev("i1", sender=CAROL, device=CPH), [acc_c(CPH, "i1", 1)], ms([c(1)])),
+                         (intro_ev("i2", sender=MALLORY, device=MPH), [acc_c(MPH, "i2", 2)], ms([c(1), c(2)])),
+                         (intro_ev("i3"), [macc(APH, "i3")], ms([c(1), c(2)])),
+                     ]))
+    out.append(trace("mailbox-introduction-dropped-at-expiry",
+                     "A held introduction is kept only until its envelope expires.", ["§19.4"], T, ctx, [
+                         (intro_ev("i1", exp=NOW + 600), [acc_c(APH, "i1", 1)], ms([c(1)])),
+                         ({"advance": 600}, [], ms([c(1)])),
+                         ({"advance": 1}, [], ms()),
+                     ]))
+    out.append(trace("mailbox-grant-stored-for-owner",
+                     "A grant answering the owner's introduction is stored for the owner the same way.", ["M§14.1", "§19.4"], T,
+                     mbx_ctx(owner=ALICE, serves=[ALICE], devices=[APH], intro_limit=2, intro_window=3600, inbox_cap=3), [
+                         (intro_ev("g1", sender=BOB, device=BPH, recipient=ALICE, kind="grant", exp=NOW + 30), [acc_c(BPH, "g1", 1)], ms([c(1)])),
+                     ]))
+    return out

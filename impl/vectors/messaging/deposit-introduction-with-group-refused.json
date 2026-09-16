@@ -1,0 +1,39 @@
+{
+  "vector": "messaging/deposit-introduction-with-group-refused",
+  "format": 1,
+  "kind": "messaging",
+  "description": "A first-contact deposit names no group.",
+  "spec_ref": [
+    "M§14.1",
+    "M§5.2"
+  ],
+  "context": {},
+  "input": {
+    "check": "message",
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "messaging/1.0"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "deposit",
+      "id": "01K742SG00BNHYVXDPF9EJB007",
+      "from": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+      "to": "did:web:mbx.bob.example",
+      "class": "introduction",
+      "recipient": "did:web:example.com:users:bob",
+      "envelope": "eyJ.introduction.sig",
+      "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+      "issued_at": 1760000000,
+      "expires_at": 1760000030
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "schema-invalid"
+  }
+}

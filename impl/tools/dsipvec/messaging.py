@@ -42,7 +42,8 @@ OBJECT_SCHEMAS = ["content", "receipt", "activity", "archive-key", "call-event",
 MESSAGING_PROFILE = "messaging/1.0"
 
 # Registries (M§17). Membership is checked here; the schemas only check token shape.
-DEPOSIT_CLASSES = {"handshake", "application", "welcome", "group-info", "ephemeral", "archive"}
+DEPOSIT_CLASSES = {"handshake", "application", "welcome", "group-info", "ephemeral", "archive", "introduction", "grant"}
+FIRST_CONTACT_CLASSES = ("introduction", "grant")  # M§14.1 (spec-gap 54): carry a signed core envelope, no group
 CONTENT_KINDS = {"text", "audio", "video", "image", "file", "contact", "location"}
 CONTENT_PURPOSES = {"message", "voice-message", "video-message", "voicemail", "attachment", "reaction",
                     "callback-request"}
@@ -61,6 +62,8 @@ DEPOSIT_REQUIRED = {
     "group-info": {"mls"},
     "ephemeral": {"sealed"},
     "archive": {"archive", "akid", "ref_group", "ref_seq"},
+    "introduction": {"envelope"},
+    "grant": {"envelope"},
 }
 DEPOSIT_ALLOWED = {
     "handshake": {"mls", "seq", "welcome", "group_info", "ratchet_tree_blob", "grants"},
@@ -69,7 +72,10 @@ DEPOSIT_ALLOWED = {
     "group-info": {"mls", "ratchet_tree_blob"},
     "ephemeral": {"sealed"},
     "archive": {"archive", "akid", "ref_group", "ref_seq"},
+    "introduction": {"envelope"},
+    "grant": {"envelope"},
 }
+INTRODUCTION_MAX_BYTES = 4096   # §19.4
 SIZED_FIELDS = ("mls", "welcome", "group_info", "sealed", "archive")
 
 
@@ -140,6 +146,10 @@ def check_deposit(p: dict) -> dict:
     present = set(p) - _DEPOSIT_BASE
     if not DEPOSIT_REQUIRED[cls] <= set(p) or not present <= DEPOSIT_ALLOWED[cls]:
         return reject("deposit-fields")
+    if (cls in FIRST_CONTACT_CLASSES) != ("group" not in p) or (cls in FIRST_CONTACT_CLASSES and "recipient" not in p):
+        return reject("deposit-fields")  # spec-gap 54: first-contact deposits name a recipient and no group
+    if cls == "introduction" and len(p["envelope"]) > INTRODUCTION_MAX_BYTES:  # §19.4 on the compact envelope
+        return reject("introduction-too-large", "transport.envelope-too-large")
     for f in SIZED_FIELDS:  # M§5.1
         if f in p and decoded_len(p[f]) > MAX_MLS_BYTES:
             return reject("object-too-large", "mailbox.object-too-large")
@@ -381,6 +391,10 @@ class Mailbox:
         self.acks: dict[str, int] = {}
         self.bound: set[str] = set()
         self.archived: dict[tuple, str] = {}
+        self.intro_limit = ctx.get("intro_limit", 5)
+        self.intro_window = ctx.get("intro_window", 3600)
+        self.inbox_cap = ctx.get("inbox_cap", 16)
+        self.intro_log: dict[str, list] = {}
 
     # --- helpers
     @staticmethod
@@ -405,8 +419,30 @@ class Mailbox:
         (name, e), = ev.items()
         return getattr(self, "_" + name.replace("-", "_"))(e)
 
+    def _first_contact(self, e: dict) -> list:
+        """M§14.1 (spec-gap 54): an introduction or grant deposited for an identity, under §19.4's relay rules."""
+        keys = ["sender:" + e["sender_identity"], "inbox:" + e["recipient"]]
+        for k in keys:  # §19.4: rate-limited per sender identity and per recipient inbox
+            log = [t for t in self.intro_log.get(k, []) if t > self.now - self.intro_window]
+            self.intro_log[k] = log
+            if len(log) >= self.intro_limit:
+                return [{"error": {"to": e["from"], "in_reply_to": e["id"], "reason": "policy.rate-limited",
+                                   "retry_after": log[0] + self.intro_window - self.now}}]
+        for k in keys:
+            self.intro_log[k].append(self.now)
+        accepted = [{"accepted": {"to": e["from"], "in_reply_to": e["id"]}}]
+        if e["recipient"] not in self.serves:
+            return accepted  # §19.4 anti-enumeration: accepted and dropped, indistinguishable from delivery
+        pending = sum(1 for it in self.items if it["class"] == e["kind"])
+        if e["kind"] == "introduction" and pending >= self.inbox_cap:
+            return accepted  # §19.4 bounded inbox: held no further, silently
+        c, pushes = self._store(e["kind"], "", expires_at=e["expires_at"])
+        return [{"accepted": {"to": e["from"], "in_reply_to": e["id"], "cursor": c}}] + pushes
+
     def _advance(self, n: int) -> list:
         self.now += n
+        # §19.4: a held introduction or grant is kept only until its envelope expires
+        self.items = [it for it in self.items if it.get("expires_at") is None or it["expires_at"] >= self.now]
         for g in [g for g, r in self.groups.items() if r["state"] == "pending" and r["since"] + self.pending_ttl < self.now]:
             del self.groups[g]  # M§6.6: unconfirmed pending group dropped with its items
             self.items = [it for it in self.items if not (it["group"] == g and it["class"] != "archive")]
@@ -1093,6 +1129,129 @@ def registration_on_removal(inp: dict) -> dict:
     return {"left": inp["me"] not in inp["remaining_identities"]}
 
 
+# ---------------------------------------------------------------- first contact: HPKE and sealed introductions (M§6.9, M§14.1)
+
+import hashlib as _hashlib
+import hmac as _hmac
+
+HPKE_KEM_ID, HPKE_KDF_ID, HPKE_AEAD_ID = 0x0020, 0x0001, 0x0001  # DHKEM(X25519, HKDF-SHA256), HKDF-SHA256, AES-128-GCM
+SEALED_ALG = "hpke-base-x25519-sha256-aes128gcm"
+SEALED_INFO = b"dsip sealed introduction v1"
+PURPOSE_MAX_CHARS = 280  # §19.4
+
+
+def _i2osp(n: int, w: int) -> bytes:
+    return n.to_bytes(w, "big")
+
+
+_KEM_SUITE = b"KEM" + _i2osp(HPKE_KEM_ID, 2)
+_HPKE_SUITE = b"HPKE" + _i2osp(HPKE_KEM_ID, 2) + _i2osp(HPKE_KDF_ID, 2) + _i2osp(HPKE_AEAD_ID, 2)
+
+
+def _labeled_extract(salt: bytes, label: bytes, ikm: bytes, suite: bytes) -> bytes:
+    return _hmac.new(salt or b"\0" * 32, b"HPKE-v1" + suite + label + ikm, _hashlib.sha256).digest()
+
+
+def _labeled_expand(prk: bytes, label: bytes, info: bytes, n: int, suite: bytes) -> bytes:
+    labeled = _i2osp(n, 2) + b"HPKE-v1" + suite + label + info
+    out, t, i = b"", b"", 1
+    while len(out) < n:
+        t = _hmac.new(prk, t + labeled + bytes([i]), _hashlib.sha256).digest()
+        out += t
+        i += 1
+    return out[:n]
+
+
+def _x25519(sk: bytes, pk: bytes) -> bytes:
+    from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey, X25519PublicKey
+    return X25519PrivateKey.from_private_bytes(sk).exchange(X25519PublicKey.from_public_bytes(pk))
+
+
+def x25519_public(sk: bytes) -> bytes:
+    from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey
+    from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
+    return X25519PrivateKey.from_private_bytes(sk).public_key().public_bytes(Encoding.Raw, PublicFormat.Raw)
+
+
+def _shared_secret(dh: bytes, enc: bytes, pk_r: bytes) -> bytes:
+    prk = _labeled_extract(b"", b"eae_prk", dh, _KEM_SUITE)
+    return _labeled_expand(prk, b"shared_secret", enc + pk_r, 32, _KEM_SUITE)
+
+
+def _key_schedule(shared: bytes, info: bytes) -> tuple:
+    ctx = _i2osp(0, 1) + _labeled_extract(b"", b"psk_id_hash", b"", _HPKE_SUITE) + _labeled_extract(b"", b"info_hash", info, _HPKE_SUITE)
+    secret = _labeled_extract(shared, b"secret", b"", _HPKE_SUITE)
+    return _labeled_expand(secret, b"key", ctx, 16, _HPKE_SUITE), _labeled_expand(secret, b"base_nonce", ctx, 12, _HPKE_SUITE)
+
+
+def hpke_seal(pk_r: bytes, info: bytes, aad: bytes, pt: bytes, sk_e: bytes) -> tuple:
+    """RFC 9180 base mode, single shot, with the ephemeral key supplied (generator use: deterministic vectors)."""
+    from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+    enc = x25519_public(sk_e)
+    key, nonce = _key_schedule(_shared_secret(_x25519(sk_e, pk_r), enc, pk_r), info)
+    return enc, AESGCM(key).encrypt(nonce, pt, aad or None)
+
+
+def hpke_open(enc: bytes, sk_r: bytes, info: bytes, aad: bytes, ct: bytes):
+    """RFC 9180 base mode, single shot; None when it does not open."""
+    from cryptography.exceptions import InvalidTag
+    from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+    try:
+        pk_r = x25519_public(sk_r)
+        key, nonce = _key_schedule(_shared_secret(_x25519(sk_r, enc), enc, pk_r), info)
+        return AESGCM(key).decrypt(nonce, ct, aad or None)
+    except (InvalidTag, ValueError):
+        return None
+
+
+def hpke_derive_sk(ikm: bytes) -> bytes:
+    """RFC 9180 §7.1.3 DeriveKeyPair for X25519."""
+    return _labeled_expand(_labeled_extract(b"", b"dkp_prk", ikm, _KEM_SUITE), b"sk", b"", 32, _KEM_SUITE)
+
+
+def x25519_from_ed25519_seed(seed: bytes) -> bytes:
+    """M§6.9: the X25519 key agreement key of an Ed25519 key, as the did:key method derives it (clamped by X25519)."""
+    return _hashlib.sha512(seed).digest()[:32]
+
+
+def sealed_aad(p: dict) -> bytes:
+    """M§14.1: id ‖ 0x00 ‖ from ‖ 0x00 ‖ to, so a sealed body cannot be spliced into another introduction."""
+    return p["id"].encode() + b"\0" + p["from"].encode() + b"\0" + p["to"].encode()
+
+
+def check_introduction(p: dict) -> dict:
+    """M§14.1: an introduction under the profile — core §19.4 shape plus `sealed`, never both `purpose` and `sealed`."""
+    if not schema_ok("introduction", p):
+        return reject("schema-invalid")
+    if "purpose" in p and "sealed" in p:
+        return reject("introduction-purpose-and-sealed")
+    if "sealed" in p and p["sealed"]["alg"] != SEALED_ALG:
+        return reject("sealed-alg-unsupported")
+    return accept(effective={"sealed": "sealed" in p})
+
+
+def open_sealed_introduction(p: dict, recipient_seed: bytes) -> dict:
+    v = check_introduction(p)
+    if v["verdict"] != "accept":
+        return v
+    if "sealed" not in p:
+        return accept(purpose=p.get("purpose"))
+    sk = x25519_from_ed25519_seed(recipient_seed)
+    from .crypto import b64url_decode
+    pt = hpke_open(b64url_decode(p["sealed"]["enc"]), sk, SEALED_INFO, sealed_aad(p), b64url_decode(p["sealed"]["ct"]))
+    if pt is None:
+        return reject("sealed-open-failed")
+    try:
+        body = json.loads(pt)
+    except ValueError:
+        return reject("sealed-plaintext-invalid")
+    if not isinstance(body, dict) or set(body) != {"purpose"} or not isinstance(body["purpose"], str):
+        return reject("sealed-plaintext-invalid")
+    if len(body["purpose"]) > PURPOSE_MAX_CHARS:
+        return reject("purpose-too-long")
+    return accept(purpose=body["purpose"])
+
+
 # ---------------------------------------------------------------- blob endpoint (M§5.6, M§8.4)
 
 def blob_put(inp: dict) -> dict:
@@ -1193,6 +1352,20 @@ def run(v: dict) -> dict:
         return seal(inp)
     if check == "open":
         return open_sealed(inp)
+    if check == "hpke-open":
+        pt = hpke_open(bytes.fromhex(inp["enc_hex"]), bytes.fromhex(inp["sk_r_hex"]), bytes.fromhex(inp["info_hex"]),
+                       bytes.fromhex(inp["aad_hex"]), bytes.fromhex(inp["ct_hex"]))
+        return reject("hpke-open-failed") if pt is None else accept(plaintext_hex=pt.hex())
+    if check == "hpke-derive-key-pair":
+        sk = hpke_derive_sk(bytes.fromhex(inp["ikm_hex"]))
+        return {"sk_hex": sk.hex(), "pk_hex": x25519_public(sk).hex()}
+    if check == "x25519-key-agreement":
+        sk = x25519_from_ed25519_seed(bytes.fromhex(inp["ed25519_seed_hex"]))
+        return {"x25519_pk_hex": x25519_public(sk).hex()}
+    if check == "introduction":
+        return check_introduction(inp["payload"])
+    if check == "sealed-introduction-open":
+        return open_sealed_introduction(inp["payload"], bytes.fromhex(inp["recipient_ed25519_seed_hex"]))
     if check == "registration-on-removal":
         return registration_on_removal(inp)
     if check == "blob-put":

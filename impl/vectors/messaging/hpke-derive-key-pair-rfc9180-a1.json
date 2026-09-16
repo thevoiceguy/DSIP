@@ -1,0 +1,18 @@
+{
+  "vector": "messaging/hpke-derive-key-pair-rfc9180-a1",
+  "format": 1,
+  "kind": "messaging",
+  "description": "DeriveKeyPair from RFC 9180 A.1.1 ikmE.",
+  "spec_ref": [
+    "M§6.9"
+  ],
+  "context": {},
+  "input": {
+    "check": "hpke-derive-key-pair",
+    "ikm_hex": "7268600d403fce431561aef583ee1613527cff655c1343f29812e66706df3234"
+  },
+  "expect": {
+    "sk_hex": "52c4a758a802cd8b936eceea314432798d5baf2d7e9235dc084ab1b9cfa2f736",
+    "pk_hex": "37fda3567bdbd628e88668c3c8d7e97d1d1253b6d4ea6d44c150f741f1bf4431"
+  }
+}

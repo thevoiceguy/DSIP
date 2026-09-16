@@ -473,7 +473,7 @@ codec set. Written up as `v0.8/dsip-rtp-srtp-media-binding-v0.8-draft.md`.
 **Suggested fix.** Adopt the binding draft; align it with the WebRTC binding's descriptor/SDP
 authority rule.
 
-## v0.8 messaging worklist (gaps 31–53)
+## v0.8 messaging worklist (gaps 31–56)
 
 **Status (2026-09-15):** filed with the **DSIP Messaging Profile 1.0** draft
 (`v0.8/dsip-messaging-profile-v0.8-draft.md`, cited M§n). Unlike gaps 1–30, these were not found
@@ -510,6 +510,9 @@ bytes, AES-GCM formats) pins 33 and 39, and `impl/crates/dsip-mls` runs the prof
 | 51 | M§12.1–M§12.3, M§8.5 | **pinned** (2026-09-16): held archive until its key; pre-join and unjoined-group MLS skipped; sibling welcome acknowledged, not a join; own sent content archived; current key = greatest created_at; archive items carry ref_group/ref_seq as group/seq | `messaging/history-*` (8), `messaging/resume-sibling-welcome-is-not-a-join`, `demos/multidevice-demo.sh` |
 | 52 | M§10.5, M§8.1 | **pinned** (2026-09-16): a private read watermark in the personal group names the conversation it describes (exempt from the conversation match) | `messaging/receipt-read-in-personal-group-*`, `messaging/receipt-*-other-conversation-refused` (2), `demos/multidevice-demo.sh` |
 | 53 | M§5.7, M§6.6, M§12.4 | **pinned** (2026-09-16): a removed device sends `left` only when no leaf of its identity remains | `messaging/registration-on-removal-*` (2), `demos/multidevice-demo.sh` |
+| 54 | M§14.1, §19.4, M§5.2 | **pinned** (2026-09-17): introductions and grants as mailbox deposits (`envelope`, `recipient`, no group); §19.4 relay rules at the mailbox | `messaging/deposit-introduction-*`, `messaging/deposit-grant-valid`, `messaging/mailbox-introduction-*` (5), `messaging/mailbox-grant-stored-for-owner`, `demos/messaging-first-contact-demo.sh` |
+| 55 | M§6.9, §7 | **pinned** (2026-09-17): did:key-style derivation of the X25519 key agreement key; did:web provisioning is deployment-defined | `messaging/x25519-key-agreement-from-ed25519`, `messaging/sealed-introduction-*` (10), `messaging/hpke-*` (4) |
+| 56 | §7.4, §24.2 | **open** — for the v0.8 core revision: core binds every envelope under `dsip.signaling`, so a device delegated only `dsip.messaging` cannot sign an introduction or grant | `dsip-mailbox` `verify::tests` (pins today's refusal) |
 
 ## 31. §12.9 vs §13.3 / §19.4 — the replay window rejects held envelopes
 
@@ -973,6 +976,68 @@ identity is removed.
 **Draft choice.** (a). Vectors pin both cases; sending `left` unconditionally fails the demo.
 
 **Suggested fix.** Adopt the M§5.7 text now in the draft.
+
+## 54. M§14.1 / §19.4 — where a messaging introduction goes
+
+**Gap.** M§14.1 says messaging "reuses §19.4 unchanged in structure", but §19.4 delivers introductions
+through relays, and a messaging identity's DID document may list only a `DSIPMailbox`. Nothing says how an
+introduction reaches such an identity, how the grant comes back, or whether the relay rules (mandatory rate
+limits, anti-enumeration, a bounded inbox, holding until expiry) apply to a mailbox. The PoC's messaging demos
+passed grants between identities as files until now.
+
+**Choices considered.** (a) Two deposit classes, `introduction` and `grant`, carrying the signed envelope
+(no group), with §19.4's relay rules applied by the mailbox. (b) Require messaging identities to also run a
+relay binding: every messaging device would need a second connection for requests. (c) A new profile message
+type: the same carriage with another type.
+
+**Draft choice.** (a). The mailbox verifies the envelope fresh at deposit (pipeline, delegation, 4,096-byte
+cap, profile introduction rules); it rate-limits per sender identity and per recipient inbox
+(`policy.rate-limited`, `retry_after`); an introduction for an unserved identity or past the bounded inbox
+is accepted and not held (indistinguishable from delivery); held items leave at `expires_at`. Devices
+render introductions as requests and verify delivered grants as credentials (signature and signer binding),
+because a grant's delivery window has passed by the time it is read. Vectors pin the deposit shapes and the
+mailbox rules; `demos/messaging-first-contact-demo.sh` exercises them end to end and fails without sealing,
+without anti-enumeration, or without rate limiting.
+
+**Found alongside.** The PoC mailbox accepted a presented grant after checking only its signature, not that
+its signer was delegated by the grant's `from`, so any device could forge consent. Fixed
+(`dsip_mailbox::verify::grant_credential`, unit-tested with an honest, a bare and a forged grant).
+
+**Suggested fix.** Adopt the M§5.2 rows and the M§14.1 "Carriage" text now in the draft; §19.4 in the v0.8
+core should say its relay rules apply to any service that holds introductions.
+
+## 55. M§6.9 — the key agreement key of a delegated identity
+
+**Gap.** M§6.9 seals introductions to the identity's X25519 `keyAgreement` key. For `did:key` it is derived
+from the Ed25519 key. For a `did:web` identity whose messaging is done by delegated devices, nothing says how
+those devices hold the private half, and the DID document shape for it is not given.
+
+**Choices considered.** (a) Leave provisioning deployment-defined (like the controller key), publish an
+embedded `Multikey` X25519 method under `keyAgreement`, and allow the `did:key`-style derivation as one
+arrangement. (b) Seal to each device key: the sender does not know the device set, and every device would
+see the others' requests anyway. (c) Seal to the mailbox: the mailbox would read requests.
+
+**Draft choice.** (a). The PoC derives the key from the identity key and publishes it; vectors pin the
+derivation (`x25519-key-agreement-from-ed25519`) and HPKE itself against RFC 9180 A.1.1, and `dsip-mls`
+cross-checks the profile's HPKE against `hpke-rs` in both directions.
+
+**Suggested fix.** Adopt the M§6.9 text now in the draft.
+
+## 56. §7.4 — a messaging-only device cannot introduce or grant (open)
+
+**Gap.** Core §7.4 binds a device-signed envelope to its `from` identity through a delegation carrying
+`dsip.signaling`. The Messaging Profile delegates devices with `dsip.messaging` (spec-gap 39), and M§14.1
+has devices sign core `introduction` and `grant` envelopes. A device delegated for messaging only is
+therefore refused when it introduces or grants, by every verifier following core. The PoC's devices carry
+both capabilities, which hides the problem; `dsip-mailbox`'s grant test pins today's refusal.
+
+**Choices considered.** (a) Core §7.4 names the capability per message type, with `introduction` and `grant`
+accepting `dsip.messaging` as well as `dsip.signaling`. (b) Messaging devices always also carry
+`dsip.signaling`: over-grants signaling authority to devices that do not call. (c) The identity key signs
+first-contact messages: puts the controller key on every device.
+
+**Suggested fix.** Decide in the v0.8 core revision, together with the delegation-capability registry of
+spec-gap 39.
 
 ## Already-flagged (schema README / plan §11)
 

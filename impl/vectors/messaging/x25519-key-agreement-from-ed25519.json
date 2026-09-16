@@ -1,0 +1,17 @@
+{
+  "vector": "messaging/x25519-key-agreement-from-ed25519",
+  "format": 1,
+  "kind": "messaging",
+  "description": "The X25519 key agreement key of an Ed25519 identity key, as did:key derives it (M§6.9; spec-gap 55 for did:web).",
+  "spec_ref": [
+    "M§6.9"
+  ],
+  "context": {},
+  "input": {
+    "check": "x25519-key-agreement",
+    "ed25519_seed_hex": "debb1447ad694df3f8e947ff249a52e382f5e0f539abf79c4710beefd2f89b64"
+  },
+  "expect": {
+    "x25519_pk_hex": "1798de981bdceb2012d4e4fbe13e485fa6dba0a818e7657bc3e0343827ab7d05"
+  }
+}

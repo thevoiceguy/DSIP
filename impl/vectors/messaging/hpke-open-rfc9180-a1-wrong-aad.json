@@ -1,0 +1,22 @@
+{
+  "vector": "messaging/hpke-open-rfc9180-a1-wrong-aad",
+  "format": 1,
+  "kind": "messaging",
+  "description": "The same ciphertext under another AAD does not open.",
+  "spec_ref": [
+    "M§6.9"
+  ],
+  "context": {},
+  "input": {
+    "check": "hpke-open",
+    "enc_hex": "37fda3567bdbd628e88668c3c8d7e97d1d1253b6d4ea6d44c150f741f1bf4431",
+    "sk_r_hex": "4612c550263fc8ad58375df3f557aac531d26850903e55a9f23f21d8534e8ac8",
+    "info_hex": "4f6465206f6e2061204772656369616e2055726e",
+    "aad_hex": "436f756e742d31",
+    "ct_hex": "f938558b5d72f1a23810b4be2ab4f84331acc02fc97babc53a52ae8218a355a96d8770ac83d07bea87e13c512a"
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "hpke-open-failed"
+  }
+}
