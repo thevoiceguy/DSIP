@@ -4,7 +4,7 @@
 Unlike the Gateway Profile and the WebRTC Media Binding, this document is written *before* the
 reference implementation: per the project's vectors-first rule, a `messaging/` vector category
 pins it next, and where the vectors and this text disagree the disagreement is resolved
-explicitly (vector bug or text bug), never papered over. Spec-gaps 31–56
+explicitly (vector bug or text bug), never papered over. Spec-gaps 31–57
 (`impl/docs/spec-gaps.md`) record every choice this draft makes that core does not already
 settle.
 **Profile identifier:** `messaging/1.0`. **Conformance pieces:** `DSIP Messaging Profile 1.0`
@@ -119,6 +119,7 @@ The profile is additive except for the following core items, each filed as a spe
 | 54 | §19.4 | Introductions and grants for messaging identities travel through mailboxes, under §19.4's relay rules. |
 | 55 | §7 | How a `did:web` identity's devices hold the X25519 key agreement key sealed introductions use. |
 | 56 | §7.4 | Core binds every envelope under `dsip.signaling`; a messaging-only device cannot introduce or grant. **Open.** |
+| 57 | §7.4 | No delegation revocation exists in core; a `delegation-revocation` record, published in the DID document and held by verifiers. |
 
 ## M§4 The mailbox service
 
@@ -181,7 +182,14 @@ authoritative source:
 A device, a hub, or another mailbox reaches a mailbox over `ws/1.0` with a verified `hello`
 (§13.2); the mailbox MUST verify the device delegation, including capability `dsip.messaging`
 (M§6.2), before serving any mailbox operation for that identity. A revoked or expired delegation
-therefore ends a device's access at its next binding with no additional mechanism.
+therefore ends a device's access at its next binding. (spec-gap 57) Core has no revocation, so the
+device's still-live delegation keeps verifying until it expires; this profile relies on the
+`delegation-revocation` record proposed for the v0.8 core: signed directly by a key of the subject
+identity, it revokes every delegation of one device issued at or before its `revoked_at`. Verifiers
+find it in the subject's DID document (`dsipDelegationRevocations`, authoritative) or in any store
+they hold — a validly signed revocation only removes authority, so any source counts — and refuse the
+covered delegation (`delegation-revoked`). A mailbox given one by its owner (M§5.7) also closes the
+device's live binding at once.
 
 The mailbox's `hello` `capabilities` object carries a `mailbox` member:
 
@@ -546,6 +554,9 @@ An owner device configures its own mailbox:
 - `revoked_grants` lists grant ids the owner has revoked; the mailbox MUST refuse authorization by
   them from then on (§19.4 "revocation is local policy at the granting side" — this is its
   propagation to the mailbox).
+- `revoked_delegations` (spec-gap 57) lists compact `delegation-revocation` records signed by the
+  owner identity. The mailbox MUST verify each, keep it, refuse the revoked device from then on, drop
+  it from the registered devices and discard its KeyPackages, and close its live binding.
 - The mailbox answers `accepted`.
 
 ## M§6 Encryption: the MLS profile
@@ -1138,7 +1149,10 @@ When a device is lost, revoked, or its delegation lapses:
   Re-encrypting old archive under the new key is OPTIONAL (costly, and it cannot recall copies
   already taken).
 - The mailbox stops serving the device at its next `hello`, because its delegation no longer
-  verifies (M§4.3).
+  verifies (M§4.3) — once the identity has revoked it (spec-gap 57): a lost or stolen device still
+  holds a delegation that verifies until it expires. The identity publishes the revocation in its DID
+  document and sends it to its mailboxes; other identities' mailboxes and group members then see the
+  delegation fail too, which is what lets "other members MAY remove it" (M§7.3) happen.
 
 ### M§12.5 What is lost, stated
 
@@ -1439,7 +1453,10 @@ the wire too (`impl/demos/messaging-first-contact-demo.sh`): a sealed introducti
 mailbox and shown as a request with its purpose never on the wire, anti-enumeration and rate limiting at the
 mailbox, and a `dsip.message` grant returned the same way and presented when the conversation is created
 (spec-gaps 54–55; HPKE pinned by `messaging/hpke-*` including RFC 9180 A.1.1, `messaging/sealed-introduction-*`,
-`messaging/mailbox-introduction-*`). The full plan:
+`messaging/mailbox-introduction-*`). Revoking a device runs too (`impl/demos/revocation-demo.sh`): the
+revoked device is disconnected, refused by its own and a foreign mailbox, removable by any member, and
+removed from its identity's groups with the archive key rotated (spec-gap 57, `messaging/revocation-*`).
+The full plan:
 
 - payload shapes for every message type and content object
 - mailbox and hub state traces: sequencing, commit conflict, stale epoch, idempotent re-deposit,

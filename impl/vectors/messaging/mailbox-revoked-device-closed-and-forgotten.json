@@ -1,0 +1,156 @@
+{
+  "vector": "messaging/mailbox-revoked-device-closed-and-forgotten",
+  "format": 1,
+  "kind": "messaging",
+  "description": "An owner device's mailbox-config carrying a revocation closes the revoked device's live binding now, drops it from the registered devices and discards its KeyPackages.",
+  "spec_ref": [
+    "§7.4",
+    "M§12.4",
+    "M§4.3",
+    "M§5.7",
+    "M§5.5"
+  ],
+  "context": {
+    "component": "mailbox",
+    "mailbox": "did:web:mbx.bob.example",
+    "owner": "did:web:example.com:users:bob",
+    "serves": [
+      "did:web:example.com:users:bob"
+    ],
+    "devices": [
+      "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ",
+      "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+    ],
+    "now": 1760000000,
+    "mode": "sync",
+    "admit": "grant",
+    "pending_group_ttl": 604800,
+    "pending_group_max_items": 2,
+    "groups": {},
+    "key_packages": {
+      "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ": {
+        "one_time": 2,
+        "last_resort": true
+      },
+      "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn": {
+        "one_time": 1
+      }
+    }
+  },
+  "input": {
+    "check": "mailbox-trace",
+    "steps": [
+      {
+        "event": {
+          "sync": {
+            "id": "01K742SG00NPM1814RWZ3GWQZW",
+            "device": "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ",
+            "since": null,
+            "live": true
+          }
+        }
+      },
+      {
+        "event": {
+          "config": {
+            "id": "01K742SG00CRGV1XBJ61930SY8",
+            "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "revoked_devices": [
+              "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ"
+            ]
+          }
+        }
+      },
+      {
+        "event": {
+          "kp_fetch": {
+            "id": "01K742SG00G687MHBKVSG7M9EP",
+            "from": "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL",
+            "from_identity": "did:web:example.com:users:bob",
+            "target": "did:web:example.com:users:bob",
+            "grant": null
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "items": {
+              "to": "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ",
+              "in_reply_to": "01K742SG00NPM1814RWZ3GWQZW",
+              "cursors": [],
+              "next": null
+            }
+          }
+        ],
+        "state": {
+          "items": [],
+          "groups": {},
+          "key_packages": {
+            "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ": {
+              "one_time": 2,
+              "last_resort": true
+            },
+            "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn": {
+              "one_time": 1,
+              "last_resort": false
+            }
+          }
+        }
+      },
+      {
+        "emit": [
+          {
+            "accepted": {
+              "to": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+              "in_reply_to": "01K742SG00CRGV1XBJ61930SY8"
+            }
+          },
+          {
+            "close": {
+              "device": "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ",
+              "reason": "delegation-revoked"
+            }
+          }
+        ],
+        "state": {
+          "items": [],
+          "groups": {},
+          "key_packages": {
+            "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn": {
+              "one_time": 1,
+              "last_resort": false
+            }
+          }
+        }
+      },
+      {
+        "emit": [
+          {
+            "key_packages": {
+              "to": "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL",
+              "in_reply_to": "01K742SG00G687MHBKVSG7M9EP",
+              "devices": {
+                "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn": "one-time"
+              }
+            }
+          }
+        ],
+        "state": {
+          "items": [],
+          "groups": {},
+          "key_packages": {
+            "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn": {
+              "one_time": 0,
+              "last_resort": false
+            }
+          }
+        }
+      }
+    ]
+  }
+}

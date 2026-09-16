@@ -62,6 +62,7 @@ class Context:
     delegations: list[dict] = field(default_factory=list)
     seen_ids: set[str] = field(default_factory=set)
     supported: dict[str, Any] = field(default_factory=lambda: {"core": "1.0", "profiles": [], "extensions": []})
+    revocations: list = field(default_factory=list)
 
     @staticmethod
     def from_vector(ctx: dict) -> "Context":
@@ -71,6 +72,7 @@ class Context:
             delegations=list(ctx.get("delegations", []) or []),
             seen_ids=set(ctx.get("seen_ids", []) or []),
             supported=ctx.get("supported") or {"core": "1.0", "profiles": ["interactive-media/1.0"], "extensions": []},
+            revocations=list(ctx.get("revocations", []) or []),
         )
 
 
@@ -192,7 +194,39 @@ def verify_delegation(deleg: Any, subject: str, device: str, ctx: Context,
     ia, ea = p.get("issued_at"), p.get("expires_at")
     if not (isinstance(ia, int) and isinstance(ea, int)) or not (ia <= ctx.now < ea):
         return Verdict.reject("delegation-expired")
+    if any(revokes(r, subject, device, ia, ctx) for r in revocations_for(subject, ctx)):
+        return Verdict.reject("delegation-revoked")  # spec-gap 57 (v0.8 draft)
     return Verdict.accept()
+
+
+REVOCATIONS_DOC_FIELD = "dsipDelegationRevocations"
+
+
+def _as_envelope(r):
+    if isinstance(r, str):
+        parts = r.split(".")
+        return {"protected": parts[0], "payload": parts[1], "signature": parts[2]} if len(parts) == 3 else None
+    return r if isinstance(r, dict) else None
+
+
+def revocations_for(subject: str, ctx: Context) -> list:
+    """Every revocation a verifier can see for `subject`: those it holds, and those the subject's DID document
+    publishes (authoritative, §8.1). A validly signed revocation only removes authority, so any source counts."""
+    doc = ctx.did_documents.get(subject)
+    published = doc.get(REVOCATIONS_DOC_FIELD, []) if isinstance(doc, dict) else []
+    return [e for e in map(_as_envelope, list(ctx.revocations) + list(published or [])) if e is not None]
+
+
+def revokes(rev: dict, subject: str, device: str, delegation_issued_at: int, ctx: Context) -> bool:
+    """spec-gap 57: a `delegation-revocation` signed directly by a key of `subject` revokes every delegation of
+    `device` for `subject` issued at or before its `revoked_at`. The record is a credential: no delivery window."""
+    v, ver = verify_raw(rev, ctx, core_shape=False)
+    if not v.ok:
+        return False
+    p = ver.payload
+    return (p.get("type") == "delegation-revocation" and p.get("subject") == subject and p.get("from") == subject
+            and ver.signer_did == subject and p.get("device") == device and isinstance(p.get("revoked_at"), int)
+            and delegation_issued_at <= p["revoked_at"])
 
 
 def check_binding(subject: str, device: str, presented: list, ctx: Context) -> Verdict:

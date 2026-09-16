@@ -1,0 +1,39 @@
+{
+  "vector": "messaging/revocation-record-from-not-subject",
+  "format": 1,
+  "kind": "messaging",
+  "description": "Only the identity revokes its own devices' delegations.",
+  "spec_ref": [
+    "§7.4",
+    "M§12.4",
+    "M§4.3"
+  ],
+  "context": {},
+  "input": {
+    "check": "revocation-record",
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "messaging/1.0"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "delegation-revocation",
+      "id": "01K742QND0WBJ55E6S3Q1B9K3S",
+      "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+      "subject": "did:web:example.com:users:bob",
+      "device": "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ",
+      "revoked_at": 1759999940,
+      "reason": "lost",
+      "issued_at": 1759999940,
+      "expires_at": 1760000240
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "revocation-from-not-subject"
+  }
+}

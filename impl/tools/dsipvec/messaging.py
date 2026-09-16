@@ -539,7 +539,15 @@ class Mailbox:
             elif "hub" in g:
                 self.groups[g["group"]] = {"hub": g["hub"], "state": "joined", "since": self.now, "items": 0}
         self.revoked |= set(e.get("revoked_grants", []))
-        return [{"accepted": {"to": dev, "in_reply_to": e["id"]}}]
+        out = [{"accepted": {"to": dev, "in_reply_to": e["id"]}}]
+        for d in e.get("revoked_devices", []):
+            # spec-gap 57: a revoked device loses its binding now, its registration and its KeyPackages
+            if d in self.bound:
+                self.bound.discard(d)
+                out.append({"close": {"device": d, "reason": "delegation-revoked"}})
+            self.devices = [x for x in self.devices if x != d]
+            self.kp.pop(d, None)
+        return out
 
     def _archive(self, e: dict) -> list:
         dev = e["device"]
@@ -1366,6 +1374,22 @@ def run(v: dict) -> dict:
         return check_introduction(inp["payload"])
     if check == "sealed-introduction-open":
         return open_sealed_introduction(inp["payload"], bytes.fromhex(inp["recipient_ed25519_seed_hex"]))
+    if check == "delegation":
+        from . import envelope as E
+        d = E._as_envelope(inp["delegation"])
+        v = E.verify_delegation(d, inp["subject"], inp["device"], E.Context.from_vector(v["context"]), capability=inp["capability"])
+        return accept() if v.ok else reject(v.code)
+    if check == "binding":
+        from . import envelope as E
+        v = E.check_binding(inp["subject"], inp["device"], inp["presented"], E.Context.from_vector(v["context"]))
+        return accept() if v.ok else reject(v.code)
+    if check == "revocation-record":
+        p = inp["payload"]
+        if not schema_ok("delegation-revocation", p):
+            return reject("schema-invalid")
+        if p["from"] != p["subject"]:
+            return reject("revocation-from-not-subject")  # only the identity revokes its own delegations
+        return accept()
     if check == "registration-on-removal":
         return registration_on_removal(inp)
     if check == "blob-put":
