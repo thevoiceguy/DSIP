@@ -1,0 +1,30 @@
+{
+  "vector": "messaging/receipt-read-in-direct-conversation-other-conversation-refused",
+  "format": 1,
+  "kind": "messaging",
+  "description": "Outside the personal group a read watermark must name its own conversation.",
+  "spec_ref": [
+    "M§8.1"
+  ],
+  "context": {
+    "conversation": "01K742SG00AX1F6HVTRWBW227R",
+    "conversation_kind": "direct",
+    "leaf_identity": "did:web:alice.example"
+  },
+  "input": {
+    "check": "object",
+    "object": {
+      "object": "receipt",
+      "id": "01K742SG00QGNG2K7Q3CTE8C2E",
+      "conversation": "01K742SG00DN3HER0ZH4F35W45",
+      "sender": "did:web:alice.example",
+      "sent_at": 1760000000,
+      "kind": "read",
+      "through": "01K742SG000ZJTETD6Q8F0473W"
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "conversation-mismatch"
+  }
+}

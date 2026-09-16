@@ -1,0 +1,23 @@
+{
+  "vector": "messaging/registration-on-removal-last-leaf",
+  "format": 1,
+  "kind": "messaging",
+  "description": "When the removed device was its identity's last leaf, the registration ends with left.",
+  "spec_ref": [
+    "M§5.7",
+    "M§6.6",
+    "M§12.4",
+    "M§7.3"
+  ],
+  "context": {},
+  "input": {
+    "check": "registration-on-removal",
+    "me": "did:web:example.com:users:bob",
+    "remaining_identities": [
+      "did:web:alice.example"
+    ]
+  },
+  "expect": {
+    "left": true
+  }
+}

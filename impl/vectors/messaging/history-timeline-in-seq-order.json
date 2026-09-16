@@ -1,0 +1,114 @@
+{
+  "vector": "messaging/history-timeline-in-seq-order",
+  "format": 1,
+  "kind": "messaging",
+  "description": "Display order is hub seq order, whatever order MLS items and archive records arrive in.",
+  "spec_ref": [
+    "M§12.2",
+    "M§12.3",
+    "M§8.5"
+  ],
+  "context": {
+    "component": "history",
+    "keys": [
+      {
+        "akid": "01K742SG00FGJFA787KKTJ1Z45",
+        "created_at": 1760000000
+      }
+    ],
+    "joined": {}
+  },
+  "input": {
+    "check": "history-trace",
+    "steps": [
+      {
+        "event": {
+          "mls": {
+            "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+            "seq": 3,
+            "epoch": 1,
+            "id": "m3"
+          }
+        }
+      },
+      {
+        "event": {
+          "archive": {
+            "cursor": "c:0000000000000004",
+            "akid": "01K742SG00FGJFA787KKTJ1Z45",
+            "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+            "seq": 1,
+            "id": "m1"
+          }
+        }
+      },
+      {
+        "event": {
+          "archive": {
+            "cursor": "c:0000000000000005",
+            "akid": "01K742SG00FGJFA787KKTJ1Z45",
+            "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+            "seq": 2,
+            "id": "m2"
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "show": "m3"
+          },
+          {
+            "archive": {
+              "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+              "seq": 3,
+              "akid": "01K742SG00FGJFA787KKTJ1Z45"
+            }
+          }
+        ],
+        "state": {
+          "timeline": [
+            "m3"
+          ],
+          "held": [],
+          "current_akid": "01K742SG00FGJFA787KKTJ1Z45"
+        }
+      },
+      {
+        "emit": [
+          {
+            "show": "m1"
+          }
+        ],
+        "state": {
+          "timeline": [
+            "m1",
+            "m3"
+          ],
+          "held": [],
+          "current_akid": "01K742SG00FGJFA787KKTJ1Z45"
+        }
+      },
+      {
+        "emit": [
+          {
+            "show": "m2"
+          }
+        ],
+        "state": {
+          "timeline": [
+            "m1",
+            "m2",
+            "m3"
+          ],
+          "held": [],
+          "current_akid": "01K742SG00FGJFA787KKTJ1Z45"
+        }
+      }
+    ]
+  }
+}

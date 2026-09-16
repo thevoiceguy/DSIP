@@ -83,10 +83,12 @@ def vectors() -> list[dict]:
     out += conversation_vectors()
     out += client_vectors()
     out += gap_vectors()
+    out += history_vectors()
     out += resume_vectors()
     out += mls_layer_vectors()
     out += discovery_vectors()
     out += blob_vectors()
+    out += removal_registration_vectors()
     return out
 
 
@@ -233,6 +235,17 @@ def object_vectors():
       ctx={**OBJ_CTX, "conversation_kind": "personal"})
     o("archive-key-outside-personal-group-refused", "An archive key in a direct conversation would disclose it to the peer.",
       ["M§12.1"], ak, reject("personal-group-only"))
+    rd = {"object": "receipt", "id": uid("rp1"), "conversation": uid("other-conv"), "sender": ALICE, "sent_at": NOW,
+          "kind": "read", "through": uid("m1")}
+    o("receipt-read-in-personal-group-names-its-conversation",
+      "An undisclosed read watermark travels in the personal group and names the conversation it describes.",
+      ["M§10.5", "M§8.1"], rd, accept(effective={"receipt": "read"}), ctx={**OBJ_CTX, "conversation_kind": "personal"})
+    o("receipt-delivered-in-personal-group-other-conversation-refused",
+      "Only the read watermark is exempt: other objects in the personal group must name the personal group.",
+      ["M§10.5", "M§8.1"], {**{k: v for k, v in rd.items() if k != "through"}, "kind": "delivered", "targets": [uid("m1")]},
+      reject("conversation-mismatch"), ctx={**OBJ_CTX, "conversation_kind": "personal"})
+    o("receipt-read-in-direct-conversation-other-conversation-refused",
+      "Outside the personal group a read watermark must name its own conversation.", ["M§8.1"], rd, reject("conversation-mismatch"))
     o("unknown-object-ignored", "Unknown object types are ignored.", ["M§8.1"],
       {"object": "poll-vote", "choice": 2}, accept(effective={"render": "ignore"}))
     out.append(mv("conversation-ext-unknown-kind-is-group", "Unknown conversation kind is handled as group.", ["M§6.3"],
@@ -343,6 +356,21 @@ def hub_vectors():
                           [acc(APH, "add-carol", 1), fan(ALICE, 1, "handshake"), fan(BOB, 1, "handshake"),
                            {"fanout": {"to": CAROL, "class": "welcome"}}],
                           hs(2, 2, {ALICE: [ALA, APH], BOB: [BPH], CAROL: [CPH]}, {ALICE: [1], BOB: [1]})),
+                     ]))
+    out.append(trace("hub-commit-adds-own-device-sends-welcome",
+                     "A member adding its own new device gets a welcome to its own identity: the new device is not in the group yet.",
+                     refs + ["M§6.7", "M§12.3"], "hub-trace", hub_ctx(kind="group"), [
+                         (dep("add-bla", BPH, BOB, "handshake", 1, commit={"adds": [{"identity": BOB, "device": BLA}], "removes": []}),
+                          [acc(BPH, "add-bla", 1), fan(ALICE, 1, "handshake"), fan(BOB, 1, "handshake"),
+                           {"fanout": {"to": BOB, "class": "welcome"}}],
+                          hs(2, 2, {ALICE: [ALA, APH], BOB: [BLA, BPH]}, {ALICE: [1], BOB: [1]})),
+                     ]))
+    out.append(trace("hub-commit-readds-existing-device-no-welcome",
+                     "A commit that adds no device new to its identity sends no welcome.",
+                     refs + ["M§6.7"], "hub-trace", hub_ctx(kind="group"), [
+                         (dep("upd", BPH, BOB, "handshake", 1, commit={"adds": [], "removes": []}),
+                          [acc(BPH, "upd", 1), fan(ALICE, 1, "handshake"), fan(BOB, 1, "handshake")],
+                          hs(2, 2, R, {ALICE: [1], BOB: [1]})),
                      ]))
     out.append(trace("hub-add-other-identitys-device-refused",
                      "Adding a device to another member identity is reserved to that identity's own devices.",
@@ -1185,6 +1213,14 @@ def resume_vectors():
                          (items(it(2, seq=2), it(3, seq=3), it(4, seq=4)), [{"duplicate": c(2)}, {"duplicate": c(3)}, {"process": c(4)}],
                           st(4, {GROUP: (4,)}, [GROUP])),
                      ]))
+    sib = {**it(1, "welcome"), "sibling": True}
+    out.append(trace("resume-sibling-welcome-is-not-a-join",
+                     "A new device syncing from null meets its sibling's welcome for a group: acknowledged, not a join, so the "
+                     "device's own welcome for that group is still processed.", refs + ["M§12.3", "M§6.7"], T, ctx, [
+                         (items(sib), [{"sibling": c(1)}], st(1)),
+                         (items(it(2, "welcome")), [{"process": c(2)}], st(2, joined=[GROUP])),
+                         (items({**it(3, "welcome"), "sibling": True}), [{"duplicate": c(3)}], st(3, joined=[GROUP])),
+                     ]))
     out.append(trace("resume-group-info-not-deduplicated",
                      "Unsequenced group-info is state, not conversation: a redelivered one is processed again (it replaces the "
                      "latest GroupInfo idempotently).", refs + ["M§5.2", "M§6.8"], T, ctx, [
@@ -1490,3 +1526,93 @@ def blob_vectors():
     out.append(mv("blob-get-unknown-404", "GET of a hash the mailbox does not hold: 404.", ["M§8.4"],
                   {"check": "blob-get", "path_sha256": other, "stored": [sha]}, {"status": 404}))
     return out
+
+
+# ---------------------------------------------------------------- history across devices (M§12, spec-gap 51)
+
+def history_vectors():
+    out = []
+    T = "history-trace"
+    refs = ["M§12.2", "M§12.3", "M§8.5"]
+    K1, K2 = uid("akid-1"), uid("akid-2")
+    ctx = {"component": "history", "keys": [], "joined": {}}
+
+    def arch(n, seq, akid=K1, group=GROUP, label=None):
+        return {"archive": {"cursor": c(n), "akid": akid, "group": group, "seq": seq, "id": label or f"m{seq}"}}
+
+    def mls(seq, epoch=1, group=GROUP, label=None):
+        return {"mls": {"group": group, "seq": seq, "epoch": epoch, "id": label or f"m{seq}"}}
+
+    def key(akid=K1, at=NOW):
+        return {"archive_key": {"akid": akid, "created_at": at}}
+
+    def hst(timeline=(), held=(), current=None):
+        return {"timeline": list(timeline), "held": [c(n) for n in held], "current_akid": current}
+
+    ar = lambda seq, akid=K1, group=GROUP: {"archive": {"group": group, "seq": seq, "akid": akid}}
+    out.append(trace("history-archive-before-key-held",
+                     "A new device meets archive records before the personal-group welcome that brings their key: they are held, "
+                     "then shown in seq order when the key arrives.", refs + ["M§12.1"], T, ctx, [
+                         (arch(1, 2), [{"hold": c(1)}], hst(held=[1])),
+                         (arch(2, 1), [{"hold": c(2)}], hst(held=[1, 2])),
+                         (key(), [{"show": "m2"}, {"show": "m1"}], hst(["m1", "m2"], current=K1)),
+                     ]))
+    out.append(trace("history-held-released-per-key",
+                     "Only records under the arriving key are released.", refs + ["M§12.4"], T, ctx, [
+                         (arch(1, 1, K1), [{"hold": c(1)}], hst(held=[1])),
+                         (arch(2, 2, K2), [{"hold": c(2)}], hst(held=[1, 2])),
+                         (key(K2, NOW + 60), [{"show": "m2"}], hst(["m2"], held=[1], current=K2)),
+                         (key(K1, NOW), [{"show": "m1"}], hst(["m1", "m2"], current=K2)),
+                     ]))
+    out.append(trace("history-archive-and-mls-copies-collapse",
+                     "The archive record of an object the device already has from MLS is a duplicate, and so is the reverse.",
+                     refs, T, {**ctx, "keys": [{"akid": K1, "created_at": NOW}]}, [
+                         (mls(1), [{"show": "m1"}, {"archive": ar(1)["archive"]}], hst(["m1"], current=K1)),
+                         (arch(5, 1), [{"duplicate": "m1"}], hst(["m1"], current=K1)),
+                         (arch(6, 2), [{"show": "m2"}], hst(["m1", "m2"], current=K1)),
+                         (mls(2), [{"duplicate": "m2"}], hst(["m1", "m2"], current=K1)),
+                     ]))
+    out.append(trace("history-timeline-in-seq-order",
+                     "Display order is hub seq order, whatever order MLS items and archive records arrive in.",
+                     refs, T, {**ctx, "keys": [{"akid": K1, "created_at": NOW}]}, [
+                         (mls(3), [{"show": "m3"}, {"archive": ar(3)["archive"]}], hst(["m3"], current=K1)),
+                         (arch(4, 1), [{"show": "m1"}], hst(["m1", "m3"], current=K1)),
+                         (arch(5, 2), [{"show": "m2"}], hst(["m1", "m2", "m3"], current=K1)),
+                     ]))
+    out.append(trace("history-prejoin-mls-skipped",
+                     "MLS items from epochs before the device joined cannot be decrypted by it and are skipped; its join epoch onward is shown.",
+                     refs, T, ctx, [
+                         ({"joined": {"group": GROUP, "epoch": 3}}, [], hst()),
+                         (mls(4, epoch=2), [{"prejoin": 4}], hst()),
+                         (mls(5, epoch=3), [{"show": "m5"}], hst(["m5"])),
+                     ]))
+    out.append(trace("history-no-key-no-archive",
+                     "A device without an archive key shows MLS content but cannot archive it.", refs, T, ctx, [
+                         (mls(1), [{"show": "m1"}], hst(["m1"])),
+                     ]))
+    out.append(trace("history-archives-under-newest-key",
+                     "After a rotation the current key is the one created last, and new archive records use it.",
+                     refs + ["M§12.4", "M§12.1"], T, ctx, [
+                         (key(K2, NOW), [], hst(current=K2)),
+                         (key(K1, NOW + 60), [], hst(current=K1)),
+                         (mls(1), [{"show": "m1"}, {"archive": ar(1, K1)["archive"]}], hst(["m1"], current=K1)),
+                     ]))
+    out.append(trace("history-own-sent-content-archived",
+                     "A device archives its own sent content too (with the seq of its accepted), so a later device sees both sides.",
+                     refs + ["M§5.3"], T, {**ctx, "keys": [{"akid": K1, "created_at": NOW}]}, [
+                         ({"sent": {"group": GROUP, "seq": 7, "id": "mine"}}, [{"show": "mine"}, {"archive": ar(7)["archive"]}],
+                          hst(["mine"], current=K1)),
+                     ]))
+    return out
+
+
+def removal_registration_vectors():
+    refs = ["M§5.7", "M§6.6", "M§12.4"]
+    return [
+        mv("registration-on-removal-sibling-remains",
+           "A device removed while another device of its identity stays in the group must not end the identity's registration.",
+           refs, {"check": "registration-on-removal", "me": BOB, "remaining_identities": [ALICE, BOB]}, {"left": False}),
+        mv("registration-on-removal-last-leaf",
+           "When the removed device was its identity's last leaf, the registration ends with left.",
+           refs + ["M§7.3"], {"check": "registration-on-removal", "me": BOB, "remaining_identities": [ALICE]}, {"left": True}),
+    ]

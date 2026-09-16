@@ -473,7 +473,7 @@ codec set. Written up as `v0.8/dsip-rtp-srtp-media-binding-v0.8-draft.md`.
 **Suggested fix.** Adopt the binding draft; align it with the WebRTC binding's descriptor/SDP
 authority rule.
 
-## v0.8 messaging worklist (gaps 31–49)
+## v0.8 messaging worklist (gaps 31–53)
 
 **Status (2026-09-15):** filed with the **DSIP Messaging Profile 1.0** draft
 (`v0.8/dsip-messaging-profile-v0.8-draft.md`, cited M§n). Unlike gaps 1–30, these were not found
@@ -506,6 +506,10 @@ bytes, AES-GCM formats) pins 33 and 39, and `impl/crates/dsip-mls` runs the prof
 | 47 | M§6.5 | **pinned** (2026-09-16): a device's own fanned-back items are processed by the `accepted` seq (or recognised by their bytes), never decrypted | `messaging/resume-own-item-by-accepted-seq`, `demos/group-demo.sh` |
 | 48 | M§5.6, M§16 | **pinned** (2026-09-16): blob endpoint statuses 401/403/400/413 in check order, idempotent 200 re-upload, 404 GET; new token `mailbox.blob-mismatch` | `messaging/blob-put-*` (10), `messaging/blob-get-*` (2), `demos/messaging-demo.sh` (voicemail) |
 | 49 | M§5.4, M§11.2 | **pinned** (2026-09-16): pushed ephemeral item `{class, group, source, sealed, expires_at}` without cursor; originating `expires_at` carried unchanged and enforced by every hop; receivers clear at it | `messaging/items-ephemeral-*` (3), `messaging/items-stored-class-ephemeral-refused`, `messaging/mailbox-ephemeral-expired-dropped`, `messaging/client-activity-*` (4 receiver traces), `demos/receipts-demo.sh` |
+| 50 | M§6.5, M§6.7 | **pinned** (2026-09-16): the hub sends a welcome to every identity that gains a device, including a member adding its own | `messaging/hub-commit-adds-own-device-sends-welcome`, `messaging/hub-commit-readds-existing-device-no-welcome`, `demos/multidevice-demo.sh` |
+| 51 | M§12.1–M§12.3, M§8.5 | **pinned** (2026-09-16): held archive until its key; pre-join and unjoined-group MLS skipped; sibling welcome acknowledged, not a join; own sent content archived; current key = greatest created_at; archive items carry ref_group/ref_seq as group/seq | `messaging/history-*` (8), `messaging/resume-sibling-welcome-is-not-a-join`, `demos/multidevice-demo.sh` |
+| 52 | M§10.5, M§8.1 | **pinned** (2026-09-16): a private read watermark in the personal group names the conversation it describes (exempt from the conversation match) | `messaging/receipt-read-in-personal-group-*`, `messaging/receipt-*-other-conversation-refused` (2), `demos/multidevice-demo.sh` |
+| 53 | M§5.7, M§6.6, M§12.4 | **pinned** (2026-09-16): a removed device sends `left` only when no leaf of its identity remains | `messaging/registration-on-removal-*` (2), `demos/multidevice-demo.sh` |
 
 ## 31. §12.9 vs §13.3 / §19.4 — the replay window rejects held envelopes
 
@@ -894,6 +898,81 @@ shows typing clearing at expiry; a hub that extends the lifetime gets its forwar
 the 10 s rule and fails the demo.
 
 **Suggested fix.** Adopt the M§5.4 and M§11.2 text now in the draft.
+
+## 50. M§6.5 rule 5 — a new device of an existing member never gets a welcome
+
+**Gap.** Rule 5 sends a `welcome` "to each added identity". When a member adds its own new device
+(M§6.7, M§12.3 step 4), the identity is already in the roster, so a literal reading sends no welcome —
+and the device, which is not in the group yet, has no other way to join.
+
+**Choices considered.** (a) Welcome every identity that gains a device the group did not have. (b) The
+adding device delivers the welcome to its own mailbox directly: a second path for one thing, and it
+bypasses the hub's ordering of the welcome after its commit. (c) The new device external-joins (M§6.8):
+defeats "an existing device adds it", which is what carries the archive keys.
+
+**Draft choice.** (a). Vectors pin it, and that a commit adding no new device sends none; the
+multidevice demo fails without it.
+
+**Suggested fix.** Adopt the M§6.5 text now in the draft.
+
+## 51. M§12.3 — what a new device meets when it syncs from null
+
+**Gap.** "The new device syncs from `null`. It decrypts archive records for history and MLS items from its
+join epoch onward" leaves out what happens on the way. Items arrive in cursor order, so the device meets
+archive records before the personal-group welcome that brings their key, MLS items of groups it has not
+joined yet and of epochs before its join, and its sibling's welcomes, which hold none of its KeyPackages.
+Read literally, it acknowledges and loses the archive, fails on the MLS items, and — because a committed
+welcome counts as a join (spec-gap 44) — drops its own later welcome for the same group as a duplicate.
+M§12.2 also archives only what a device "decrypts", so no device ever archives its own sent messages, and
+"newest `akid`" does not say newest by what. Archive `items` carry neither `ref_group` nor `ref_seq`, which
+the AAD needs.
+
+**Choices considered.** (a) Hold unknown-key archive durably and open it on the key; skip unjoined-group and
+pre-join MLS items; acknowledge a sibling welcome without joining; archive own sent content with the
+`accepted` seq; current key by `created_at` then `akid`; file archive items under `ref_group` with `seq` =
+`ref_seq`. (b) Delay acknowledgement of anything unreadable: a mailbox in `queue` mode then retains
+items forever for a device that can never read them. (c) Put archive keys in the new device's welcome
+(group context or a custom extension): mixes identity-level secrets into every group's state.
+
+**Draft choice.** (a). `messaging/history-*` pins hold/release, per-key release, archive/MLS collapse,
+seq-order display, pre-join skip, no-key no-archive, newest-key archiving and own-content archiving;
+`resume-sibling-welcome-is-not-a-join` pins the welcome rule. The multidevice demo exercises hold, release,
+sibling welcomes, pre-join skipping and history in seq order; removing the archive-key re-send, counting a
+sibling welcome as a join, or skipping nothing before the join each fail it. The epoch-race variant of the
+pre-join rule (an old-epoch message sequenced after the add) is pinned by vector only.
+
+**Suggested fix.** Adopt the M§12.1–M§12.3 text now in the draft.
+
+## 52. M§10.5 vs M§8.1 — a private read watermark cannot name its conversation
+
+**Gap.** M§10.5 sends an undisclosed `read` watermark to the personal group. A `read` names its
+conversation, but M§8.1 requires every receipt's `conversation` to equal the carrying group's, so a
+sibling device must reject it — or the watermark cannot say which conversation was read.
+
+**Choices considered.** (a) Exempt `read` receipts in the personal group from the conversation match; they
+name the conversation they describe. (b) A new object type for synced watermarks: one more type for the same
+content. (c) Per-conversation personal subgroups: multiplies groups.
+
+**Draft choice.** (a), only for `read` in `kind: personal`; other objects there still must match. Vectors
+pin both sides; the demo shows the laptop's private read reaching the phone, which then sends nothing.
+
+**Suggested fix.** Adopt the M§10.5 text now in the draft.
+
+## 53. M§5.7 / M§12.4 — a removed device unregisters the group for its whole identity
+
+**Gap.** A device that learns it was removed from a group naturally tells its mailbox `left` (M§5.7). But
+the registration is the identity's (M§6.6), so when one device is removed while a sibling stays (M§12.4),
+that `left` makes the mailbox refuse the hub's fan-out for the sibling (`mailbox.unknown-group`). The first
+multidevice run lost the phone's next message exactly this way.
+
+**Choices considered.** (a) A removed device sends `left` only when no leaf of its identity remains (it can
+see the remaining roster in the removing commit). (b) Per-device registrations: mailboxes would track
+device membership they cannot verify. (c) Never send `left` on removal: registrations linger after an
+identity is removed.
+
+**Draft choice.** (a). Vectors pin both cases; sending `left` unconditionally fails the demo.
+
+**Suggested fix.** Adopt the M§5.7 text now in the draft.
 
 ## Already-flagged (schema README / plan §11)
 

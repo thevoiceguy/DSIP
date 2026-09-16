@@ -1,0 +1,108 @@
+{
+  "vector": "messaging/resume-sibling-welcome-is-not-a-join",
+  "format": 1,
+  "kind": "messaging",
+  "description": "A new device syncing from null meets its sibling's welcome for a group: acknowledged, not a join, so the device's own welcome for that group is still processed.",
+  "spec_ref": [
+    "M§5.4",
+    "M§8.5",
+    "M§12.3",
+    "M§6.7"
+  ],
+  "context": {
+    "component": "resume",
+    "cursor": null,
+    "groups": {},
+    "joined": []
+  },
+  "input": {
+    "check": "resume-trace",
+    "steps": [
+      {
+        "event": {
+          "items": {
+            "items": [
+              {
+                "cursor": "c:0000000000000001",
+                "class": "welcome",
+                "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+                "sibling": true
+              }
+            ]
+          }
+        }
+      },
+      {
+        "event": {
+          "items": {
+            "items": [
+              {
+                "cursor": "c:0000000000000002",
+                "class": "welcome",
+                "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "event": {
+          "items": {
+            "items": [
+              {
+                "cursor": "c:0000000000000003",
+                "class": "welcome",
+                "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+                "sibling": true
+              }
+            ]
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "sibling": "c:0000000000000001"
+          }
+        ],
+        "state": {
+          "cursor": "c:0000000000000001",
+          "groups": {},
+          "joined": []
+        }
+      },
+      {
+        "emit": [
+          {
+            "process": "c:0000000000000002"
+          }
+        ],
+        "state": {
+          "cursor": "c:0000000000000002",
+          "groups": {},
+          "joined": [
+            "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M"
+          ]
+        }
+      },
+      {
+        "emit": [
+          {
+            "duplicate": "c:0000000000000003"
+          }
+        ],
+        "state": {
+          "cursor": "c:0000000000000003",
+          "groups": {},
+          "joined": [
+            "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M"
+          ]
+        }
+      }
+    ]
+  }
+}

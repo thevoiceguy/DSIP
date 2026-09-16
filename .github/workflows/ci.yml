@@ -95,6 +95,11 @@ jobs:
         # typing sealed, refresh-bounded, cleared at expiry and on stop, never stored for an offline device.
         run: timeout 300 bash demos/receipts-demo.sh | tail -30
         working-directory: impl
+      - name: one identity, two devices
+        # Self-verifying: personal group and archive key, a device added with history from archive (held until its
+        # key), sibling welcomes and pre-join items skipped, a private read synced, the device removed, key rotated.
+        run: timeout 300 bash demos/multidevice-demo.sh | tail -40
+        working-directory: impl
       - name: Rust/Python parity
         run: python3 impl/tools/parity.py
       - name: DHT local testnet (5 nodes)

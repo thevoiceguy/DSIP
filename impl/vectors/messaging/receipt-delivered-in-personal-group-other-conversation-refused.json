@@ -1,0 +1,33 @@
+{
+  "vector": "messaging/receipt-delivered-in-personal-group-other-conversation-refused",
+  "format": 1,
+  "kind": "messaging",
+  "description": "Only the read watermark is exempt: other objects in the personal group must name the personal group.",
+  "spec_ref": [
+    "M§10.5",
+    "M§8.1"
+  ],
+  "context": {
+    "conversation": "01K742SG00AX1F6HVTRWBW227R",
+    "conversation_kind": "personal",
+    "leaf_identity": "did:web:alice.example"
+  },
+  "input": {
+    "check": "object",
+    "object": {
+      "object": "receipt",
+      "id": "01K742SG00QGNG2K7Q3CTE8C2E",
+      "conversation": "01K742SG00DN3HER0ZH4F35W45",
+      "sender": "did:web:alice.example",
+      "sent_at": 1760000000,
+      "kind": "delivered",
+      "targets": [
+        "01K742SG000ZJTETD6Q8F0473W"
+      ]
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "conversation-mismatch"
+  }
+}
