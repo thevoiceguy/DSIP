@@ -267,6 +267,31 @@ OBJECTS = {
         "payload": {"type": "object", "required": ["object"]},
     }, ["conversation", "group", "seq", "sender", "sender_device", "received_at", "payload"],
         "Plaintext of an archive item before archive-key encryption (M§12.2)."),
+    "mailbox-service": {
+        "title": "DSIP messaging/1.0 DSIPMailbox serviceEndpoint",
+        "description": "The serviceEndpoint object of a DSIPMailbox DID service entry, or the equivalent DHT hint endpoint (M§4.2).",
+        "type": "object",
+        "properties": {
+            "uri": {"$ref": "#/$defs/wssUri"},
+            "bindings": {"type": "array", "minItems": 1, "items": {"type": "string", "pattern": "^[a-z0-9]+/\\d+\\.\\d+$"}},
+            "mailbox": {"$ref": "#/$defs/did"},
+            "priority": {"type": "integer", "minimum": 0},
+            "profiles": {"type": "array", "items": {"$ref": "#/$defs/profileId"}},
+            "accepts": {"type": "array", "items": {"$ref": "#/$defs/token"}},
+            "service": {"type": "string", "pattern": "^[A-Za-z][A-Za-z0-9-]*$",
+                        "description": "DID service type this endpoint stands for in a DHT hint, e.g. DSIPMailbox (M§4.2)."},
+            "voicemail": {
+                "type": "object",
+                "properties": {
+                    "max_duration_s": {"type": "integer", "minimum": 1},
+                    "greeting": {"$ref": "#/$defs/blobRef"},
+                },
+                "additionalProperties": False,
+            },
+        },
+        "required": ["uri", "bindings", "mailbox"],
+        "additionalProperties": False,
+    },
     "dsip-conversation": {
         "title": "DSIP messaging/1.0 dsip_conversation GroupContext extension",
         "description": "UTF-8 JSON extension data naming the conversation and its hub (M§6.3).",

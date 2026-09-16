@@ -1,0 +1,28 @@
+{
+  "vector": "messaging/mailbox-service-plaintext-uri",
+  "format": 1,
+  "kind": "messaging",
+  "description": "ws:// is refused by shape.",
+  "spec_ref": [
+    "M§4.2"
+  ],
+  "context": {},
+  "input": {
+    "check": "payload",
+    "schema": "mailbox-service",
+    "payload": {
+      "uri": "ws://mbx.bob.example/dsip",
+      "bindings": [
+        "ws/1.0"
+      ],
+      "mailbox": "did:web:mbx.bob.example",
+      "profiles": [
+        "messaging/1.0"
+      ]
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "schema-invalid"
+  }
+}

@@ -493,7 +493,7 @@ bytes, AES-GCM formats) pins 33 and 39, and `impl/crates/dsip-mls` runs the prof
 | 34 | (new; M§6.5) | per-group hub orders MLS commits | `messaging/hub-*` (19) |
 | 35 | (new; M§12) | archive key in the personal group; `sync` default, `queue` opt-out | `messaging/mailbox-archive-*`, `messaging/mailbox-sync-mode-retains-after-ack`, `messaging/mailbox-queue-mode-*` |
 | 36 | §19.4 | `dsip.message` scope; `sealed` introductions; grant-gated group adds; invite-grantee voicemail | `messaging/mailbox-welcome-*` (11), `messaging/mailbox-key-package-fetch-unauthorized` |
-| 37 | §8.1, §13.2, DHT Hints | `DSIPMailbox` service type; hint `service`; priority-ordered multiple mailboxes | — |
+| 37 | §8.1, §13.2, DHT Hints | `DSIPMailbox` service type; hint `service`; priority-ordered multiple mailboxes | `messaging/mailbox-select-*` (11), `messaging/mailbox-switch-*` (3), `messaging/mailbox-service-*` (3) |
 | 38 | §15.1 | new reason category `mailbox` | `messaging/deposit-unknown-class-refused`, `messaging/mailbox-*` error tokens |
 | 39 | §7.4, §24.2 | delegation capability `dsip.messaging` + a delegation-capability registry | `messaging/mls-credential-signaling-only-delegation`, `dsip-mls` e2e |
 | 40 | §13.2 | `MAX_MLS_BYTES` = 24,576; blobs over HTTPS | `messaging/deposit-mls-at-cap-accepted`, `messaging/deposit-mls-over-cap-refused` |
@@ -641,7 +641,11 @@ order for deposit, owner devices sync all and archive to all; (b) exactly one ma
 (c) mailbox-to-mailbox replication, a new trust relationship between operators.
 
 **Draft choice.** (a) and (a) (M§4.2). Hint-sourced mailboxes never replace an established
-conversation's mailbox on their own (M§15.4).
+conversation's mailbox on their own (M§15.4). Vectors (2026-09-15) settle what the prose left open: an
+entry is usable only if it satisfies the `mailbox-service` shape and advertises `messaging/1.0`;
+`priority` defaults to 0 and equal priorities keep document order; the selection is the first usable
+entry that accepts a connection while devices sync every usable one; and a document that lists only
+unusable entries yields **no** mailbox rather than falling back to a hint.
 
 **Suggested fix.** Register the `DSIPMailbox` service type. Add optional `endpoints[].service` to
 the DHT Hints Profile (default `DSIPSignaling`).

@@ -36,6 +36,7 @@ KEY_PACKAGES_PER_DEVICE = 100  # M§5.5 RECOMMENDED bound
 MESSAGE_SCHEMAS = ["deposit", "accepted", "sync", "items", "key-packages", "key-package-fetch", "blob-put",
                    "mailbox-config"]
 OBJECT_SCHEMAS = ["content", "receipt", "activity", "archive-key", "call-event", "archive-record"]
+MESSAGING_PROFILE = "messaging/1.0"
 
 # Registries (M§17). Membership is checked here; the schemas only check token shape.
 DEPOSIT_CLASSES = {"handshake", "application", "welcome", "group-info", "ephemeral", "archive"}
@@ -873,6 +874,42 @@ def open_sealed(inp: dict) -> dict:
     return accept(plaintext_hex=pt.hex())
 
 
+# ---------------------------------------------------------------- discovery (M§4.2, §8.1)
+
+def select_mailbox(inp: dict) -> dict:
+    """M§4.2: the DID document is authoritative; hints serve only identities with no document entry.
+
+    Entries are usable when they satisfy the service schema (wss, bindings, mailbox DID) and
+    advertise `messaging/1.0`. Order is by `priority` (absent = 0), stable within a priority. The
+    selected mailbox is the first usable one that accepts a connection; the owner's devices sync
+    every usable one.
+    """
+    doc, hints = inp.get("document_entries") or [], inp.get("hint_entries") or []
+    source = "did-document" if doc else ("hint" if hints else None)
+    entries = doc or hints                      # §8.1 rule 6: no falling back to hints past a document
+    usable, discarded = [], []
+    for e in entries:
+        if not schema_ok("mailbox-service", e) or MESSAGING_PROFILE not in (e.get("profiles") or []):
+            discarded.append(e.get("uri"))
+        else:
+            usable.append(e)
+    usable.sort(key=lambda e: e.get("priority", 0))   # Python's sort is stable
+    order = [e["mailbox"] for e in usable]
+    reachable = inp.get("reachable")
+    selected = next((m for m in order if reachable is None or m in reachable), None)
+    return {"source": source, "selected": selected, "order": order, "sync_targets": order, "discarded": discarded}
+
+
+def mailbox_switch(inp: dict) -> dict:
+    """M§4.2, M§15.4: an established conversation's mailbox never moves on a hint alone."""
+    established, candidate = inp["established"], inp["candidate"]
+    if candidate["mailbox"] == established["mailbox"]:
+        return {"switch": False, "reason": "unchanged"}
+    if candidate.get("source") != "did-document":
+        return {"switch": False, "reason": "hint-sourced"}
+    return {"switch": True, "reason": "did-document"}
+
+
 # ---------------------------------------------------------------- runner
 
 def run(v: dict) -> dict:
@@ -887,6 +924,10 @@ def run(v: dict) -> dict:
         return check_object(inp["object"], v["context"])
     if check == "conversation-ext":
         return check_conversation_ext(inp["extension"])
+    if check == "mailbox-select":
+        return select_mailbox(inp)
+    if check == "mailbox-switch":
+        return mailbox_switch(inp)
     if check == "mls-extension-encode":
         return {"hex": encode_extension(inp["extension_type"], bytes.fromhex(inp["data_hex"])).hex()}
     if check == "mls-extension-decode":

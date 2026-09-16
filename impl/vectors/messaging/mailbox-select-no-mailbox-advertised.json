@@ -1,0 +1,23 @@
+{
+  "vector": "messaging/mailbox-select-no-mailbox-advertised",
+  "format": 1,
+  "kind": "messaging",
+  "description": "An identity with no mailbox cannot receive asynchronous content.",
+  "spec_ref": [
+    "M§4.2",
+    "§8.1"
+  ],
+  "context": {},
+  "input": {
+    "check": "mailbox-select",
+    "document_entries": [],
+    "hint_entries": []
+  },
+  "expect": {
+    "source": null,
+    "selected": null,
+    "order": [],
+    "sync_targets": [],
+    "discarded": []
+  }
+}

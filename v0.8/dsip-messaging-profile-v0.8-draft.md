@@ -142,9 +142,14 @@ authoritative source:
 - `accepts` lists content kinds (M§8.2) the owner's clients render; it is a hint to senders, not a
   mailbox-enforced rule (the mailbox cannot see kinds).
 - `voicemail` present means the owner accepts voicemail (M§13); absent means it does not.
-- **Multiple mailboxes.** An identity MAY list several `DSIPMailbox` entries with distinct integer
-  `priority` (lower first). Senders and hubs deposit to the lowest-priority entry that accepts the
-  connection; that entry is the identity's **primary** mailbox for the deposit. The owner's devices
+- **Usable entries.** An entry is usable when it satisfies the service shape (`mailbox-service`
+  schema: `wss` URI, `bindings`, and the `mailbox` DID) **and** advertises `messaging/1.0` in
+  `profiles`. Anything else is skipped: a mailbox that does not say it speaks the profile, or whose
+  DID is missing, cannot be used.
+- **Multiple mailboxes.** An identity MAY list several `DSIPMailbox` entries with integer `priority`
+  (lower first; absent is 0, and entries of equal priority keep document order). Senders and hubs
+  deposit to the lowest-priority usable entry that accepts the connection; that entry is the
+  identity's **primary** mailbox for the deposit. The owner's devices
   MUST sync **every** listed mailbox and deduplicate (M§8.5), and
   MUST deposit archive items (M§12) to every listed mailbox, so each is a complete replica of
   history. Migrating providers is: add the new entry, let devices replicate archive into it,
@@ -153,6 +158,10 @@ authoritative source:
   hint (DHT Hints Profile) whose `endpoints[]` item carries `"service": "DSIPMailbox"` plus the
   fields above. Hint-sourced mailboxes are hints (§8.1 rule 6): a client MUST present them as
   such and MUST NOT replace the mailbox of an established conversation on a hint alone.
+- **Hints never override a document.** Hints are consulted only for an identity whose document lists
+  no `DSIPMailbox` entry. When a document lists entries and none is usable, the identity has no
+  mailbox: a client MUST NOT fall back to a hint, because a hint signed by one device would then
+  override the authoritative source (§8.1, M§15.4).
 
 ### M§4.3 Binding and capabilities
 

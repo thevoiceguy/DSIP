@@ -1,0 +1,26 @@
+{
+  "vector": "messaging/mailbox-switch-document-allowed",
+  "format": 1,
+  "kind": "messaging",
+  "description": "A changed DID document entry does move it.",
+  "spec_ref": [
+    "M§4.2",
+    "M§15.4"
+  ],
+  "context": {},
+  "input": {
+    "check": "mailbox-switch",
+    "established": {
+      "mailbox": "did:web:mbx.bob.example",
+      "source": "did-document"
+    },
+    "candidate": {
+      "mailbox": "did:web:mbx2.bob.example",
+      "source": "did-document"
+    }
+  },
+  "expect": {
+    "switch": true,
+    "reason": "did-document"
+  }
+}

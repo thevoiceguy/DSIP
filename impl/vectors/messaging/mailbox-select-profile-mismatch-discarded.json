@@ -1,0 +1,51 @@
+{
+  "vector": "messaging/mailbox-select-profile-mismatch-discarded",
+  "format": 1,
+  "kind": "messaging",
+  "description": "A service that does not advertise messaging/1.0 cannot serve the profile.",
+  "spec_ref": [
+    "M§4.2",
+    "§8.1"
+  ],
+  "context": {},
+  "input": {
+    "check": "mailbox-select",
+    "document_entries": [
+      {
+        "uri": "wss://mbx2.bob.example/dsip",
+        "bindings": [
+          "ws/1.0"
+        ],
+        "mailbox": "did:web:mbx2.bob.example",
+        "priority": 0,
+        "profiles": [
+          "verified-broadcast/1.0"
+        ]
+      },
+      {
+        "uri": "wss://mbx2.bob.example/dsip",
+        "bindings": [
+          "ws/1.0"
+        ],
+        "mailbox": "did:web:mbx2.bob.example",
+        "priority": 1,
+        "profiles": [
+          "messaging/1.0"
+        ]
+      }
+    ]
+  },
+  "expect": {
+    "source": "did-document",
+    "selected": "did:web:mbx2.bob.example",
+    "order": [
+      "did:web:mbx2.bob.example"
+    ],
+    "sync_targets": [
+      "did:web:mbx2.bob.example"
+    ],
+    "discarded": [
+      "wss://mbx2.bob.example/dsip"
+    ]
+  }
+}

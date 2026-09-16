@@ -1,0 +1,51 @@
+{
+  "vector": "messaging/mailbox-select-equal-priority-keeps-document-order",
+  "format": 1,
+  "kind": "messaging",
+  "description": "Entries of equal priority keep the order the document lists them in.",
+  "spec_ref": [
+    "M§4.2",
+    "§8.1"
+  ],
+  "context": {},
+  "input": {
+    "check": "mailbox-select",
+    "document_entries": [
+      {
+        "uri": "wss://mbx2.bob.example/dsip",
+        "bindings": [
+          "ws/1.0"
+        ],
+        "mailbox": "did:web:mbx2.bob.example",
+        "priority": 0,
+        "profiles": [
+          "messaging/1.0"
+        ]
+      },
+      {
+        "uri": "wss://mbx.bob.example/dsip",
+        "bindings": [
+          "ws/1.0"
+        ],
+        "mailbox": "did:web:mbx.bob.example",
+        "priority": 0,
+        "profiles": [
+          "messaging/1.0"
+        ]
+      }
+    ]
+  },
+  "expect": {
+    "source": "did-document",
+    "selected": "did:web:mbx2.bob.example",
+    "order": [
+      "did:web:mbx2.bob.example",
+      "did:web:mbx.bob.example"
+    ],
+    "sync_targets": [
+      "did:web:mbx2.bob.example",
+      "did:web:mbx.bob.example"
+    ],
+    "discarded": []
+  }
+}
