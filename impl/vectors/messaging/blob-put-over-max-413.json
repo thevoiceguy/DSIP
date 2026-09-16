@@ -1,0 +1,43 @@
+{
+  "vector": "messaging/blob-put-over-max-413",
+  "format": 1,
+  "kind": "messaging",
+  "description": "A declared size over max_blob_bytes is refused before the body is read: 413 mailbox.object-too-large.",
+  "spec_ref": [
+    "M§5.6",
+    "M§8.4",
+    "M§16"
+  ],
+  "context": {},
+  "input": {
+    "check": "blob-put",
+    "mailbox": {
+      "did": "did:web:mbx.alice.example",
+      "serves": [
+        "did:web:alice.example"
+      ],
+      "max_blob_bytes": 1048576
+    },
+    "authorization": {
+      "identity": "did:web:alice.example",
+      "payload": {
+        "type": "blob-put",
+        "id": "01K742SG004BFQH0ZEFJP46W91",
+        "from": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+        "to": "did:web:mbx.alice.example",
+        "sha256": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+        "size": 1048577
+      }
+    },
+    "request": {
+      "path_sha256": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+      "body_size": 1048577,
+      "body_sha256": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"
+    },
+    "stored": []
+  },
+  "expect": {
+    "status": 413,
+    "reason": "mailbox.object-too-large"
+  }
+}

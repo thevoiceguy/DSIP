@@ -986,6 +986,40 @@ def open_sealed(inp: dict) -> dict:
     return accept(plaintext_hex=pt.hex())
 
 
+# ---------------------------------------------------------------- blob endpoint (M§5.6, M§8.4)
+
+def blob_put(inp: dict) -> dict:
+    """M§5.6: what a mailbox answers to `PUT {blob_endpoint}/{sha256}` (spec-gap 48 for statuses and tokens).
+
+    `authorization` is the verified `Authorization: DSIP` envelope — `{identity, payload}` once the envelope
+    pipeline, the device's delegation and the message rules (M§5.1) have passed — or null. Checks run in the
+    order a server can make them: credential, addressee, served identity, URL binding, declared size (before
+    reading the body), then the body itself; a blob already stored under that hash is an idempotent success.
+    """
+    mbx, req, auth = inp["mailbox"], inp["request"], inp.get("authorization")
+    if auth is None:
+        return {"status": 401, "reason": "policy.blocked"}
+    p = auth["payload"]
+    if p["to"] != mbx["did"]:  # an authorization minted for another mailbox
+        return {"status": 403, "reason": "policy.blocked"}
+    if auth["identity"] not in mbx["serves"]:  # M§5.6: the device must be delegated by an identity it serves
+        return {"status": 403, "reason": "transport.unknown-recipient"}
+    if req["path_sha256"] != p["sha256"]:  # the URL names the authorized blob
+        return {"status": 400, "reason": "policy.blocked"}
+    if p["size"] > mbx["max_blob_bytes"]:  # M§16
+        return {"status": 413, "reason": "mailbox.object-too-large"}
+    if req["body_size"] != p["size"] or req["body_sha256"] != p["sha256"]:  # M§5.6
+        return {"status": 400, "reason": "mailbox.blob-mismatch"}
+    if p["sha256"] in inp.get("stored", []):
+        return {"status": 200, "accepted": {"in_reply_to": p["id"], "duplicate": True}}
+    return {"status": 201, "accepted": {"in_reply_to": p["id"]}}
+
+
+def blob_get(inp: dict) -> dict:
+    """M§8.4 rule 5: the hash is a capability; the mailbox serves exactly what it stored under it."""
+    return {"status": 200 if inp["path_sha256"] in inp.get("stored", []) else 404}
+
+
 # ---------------------------------------------------------------- discovery (M§4.2, §8.1)
 
 def select_mailbox(inp: dict) -> dict:
@@ -1052,6 +1086,10 @@ def run(v: dict) -> dict:
         return seal(inp)
     if check == "open":
         return open_sealed(inp)
+    if check == "blob-put":
+        return blob_put(inp)
+    if check == "blob-get":
+        return blob_get(inp)
     if check == "voicemail-offer":
         return voicemail_offer(inp)
     if check == "direct-select":

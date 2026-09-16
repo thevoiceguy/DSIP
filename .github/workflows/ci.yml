@@ -77,10 +77,13 @@ jobs:
             DEMO_DIR=/tmp/dsip-media-demo-${pair// /-} timeout 240 bash demos/media-demo.sh $pair | tail -6
           done
         working-directory: impl
+      - name: speech and Opus tools for the voicemail demo
+        run: sudo apt-get update -q && sudo apt-get install -y -q --no-install-recommends espeak-ng ffmpeg
       - name: messaging over the wire (two mailboxes, federated hub, real MLS)
         # Self-verifying: fails unless the MLS-encrypted text arrives live, after a disconnect, after a
-        # device restart, and after a crash between processing and commit (SQLite device state).
-        run: timeout 300 bash demos/messaging-demo.sh | tail -14
+        # device restart, after a crash between processing and commit (SQLite device state), and a
+        # voicemail (real Opus, sealed blob over HTTPS) that must arrive byte for byte.
+        run: timeout 300 bash demos/messaging-demo.sh | tail -16
         working-directory: impl
       - name: group messaging over the wire (three identities, three mailboxes)
         # Self-verifying: forwarding to the hub, welcomes proven by origin, an add while a member's device

@@ -1,0 +1,32 @@
+{
+  "vector": "messaging/blob-put-unauthorized-401",
+  "format": 1,
+  "kind": "messaging",
+  "description": "No verifiable Authorization: DSIP envelope: 401 policy.blocked.",
+  "spec_ref": [
+    "M§5.6",
+    "M§8.4"
+  ],
+  "context": {},
+  "input": {
+    "check": "blob-put",
+    "mailbox": {
+      "did": "did:web:mbx.alice.example",
+      "serves": [
+        "did:web:alice.example"
+      ],
+      "max_blob_bytes": 1048576
+    },
+    "authorization": null,
+    "request": {
+      "path_sha256": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+      "body_size": 482220,
+      "body_sha256": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"
+    },
+    "stored": []
+  },
+  "expect": {
+    "status": 401,
+    "reason": "policy.blocked"
+  }
+}

@@ -4,7 +4,7 @@
 Unlike the Gateway Profile and the WebRTC Media Binding, this document is written *before* the
 reference implementation: per the project's vectors-first rule, a `messaging/` vector category
 pins it next, and where the vectors and this text disagree the disagreement is resolved
-explicitly (vector bug or text bug), never papered over. Spec-gaps 31–47
+explicitly (vector bug or text bug), never papered over. Spec-gaps 31–48
 (`impl/docs/spec-gaps.md`) record every choice this draft makes that core does not already
 settle.
 **Profile identifier:** `messaging/1.0`. **Conformance pieces:** `DSIP Messaging Profile 1.0`
@@ -110,6 +110,7 @@ The profile is additive except for the following core items, each filed as a spe
 | 45 | (new) | Mailbox-to-hub forwarding: only an owner device's deposit, only to the group's registered hub; the hub takes identity from the header delegation. |
 | 46 | §19.4 | A hub-forwarded welcome's adder is proven only by `origin`; refusal tokens for a bad `origin`. |
 | 47 | (new) | A device's own items fanned back to it are recognised by the `accepted` seq (or their bytes), never decrypted. |
+| 48 | §15.1 | Blob endpoint statuses and refusal order; new token `mailbox.blob-mismatch`. |
 
 ## M§4 The mailbox service
 
@@ -481,6 +482,22 @@ The mailbox MUST verify the envelope (the device must be delegated by an identit
 MUST verify that the body's SHA-256 and length match, and answers `201` with a signed `accepted`
 envelope (`in_reply_to` = the `blob-put` id) as the JSON body. HTTPS uses TLS 1.3 with Web PKI
 validation as in §13.2.
+
+**Refusals** (spec-gap 48) carry a signed `error` envelope as the JSON body and are checked in this
+order, so a server can refuse before reading a body it will not keep:
+
+| status | reason | when |
+|---|---|---|
+| `401` | `policy.blocked` | no `Authorization: DSIP` envelope, or it fails the envelope pipeline, the device's `dsip.messaging` delegation (carried in its header, M§5.1), or the M§5.1 rules |
+| `403` | `policy.blocked` | the envelope's `to` is not this mailbox |
+| `403` | `transport.unknown-recipient` | the delegating identity is not one this mailbox serves |
+| `400` | `policy.blocked` | the `{sha256}` in the URL differs from the envelope's |
+| `413` | `mailbox.object-too-large` | the authorized `size` exceeds `max_blob_bytes` |
+| `400` | `mailbox.blob-mismatch` | the body's length or SHA-256 differs from the envelope's |
+
+A blob already stored under the same hash is answered `200` with `accepted` carrying
+`duplicate: true` (uploads are idempotent, M§9.3). `GET {blob_endpoint}/{sha256}` answers `200` with
+the stored ciphertext or `404`.
 
 ### M§5.7 `mailbox-config`
 
@@ -1286,6 +1303,7 @@ re-sync, retry once, then surface the failure.
 | `mailbox.unknown-group` | The hub does not host this group, or the mailbox has no registration for it | error |
 | `mailbox.cursor-invalid` | The `sync` cursor is unknown or expired; re-sync from `null` | error |
 | `mailbox.object-too-large` | A value exceeds `MAX_MLS_BYTES`, or a blob exceeds `max_blob_bytes` | error |
+| `mailbox.blob-mismatch` | An uploaded blob's length or SHA-256 differs from its `blob-put` (spec-gap 48) | error |
 | `mailbox.quota-exceeded` | The owner's quota is exhausted; `retry_after` MAY be present | error |
 | `mailbox.no-key-packages` | No KeyPackage or last resort is available for any device of the target | error |
 | `mailbox.unsupported-class` | Unknown deposit `class`, or one the receiver (hub, or the owner's mode) refuses | error |
@@ -1354,7 +1372,11 @@ across restarts and its own fanned-back items (spec-gaps 44, 47). A group conver
 too (`impl/demos/group-demo.sh`): three identities with three mailboxes, members' deposits forwarded to
 the hub (spec-gap 45, `messaging/mailbox-forward-*`), welcomes proven by `origin` (spec-gap 46,
 `messaging/mailbox-welcome-hub-forwarded-*`), an add while a member's device process is dead and a
-removal while the removed member is disconnected. The full plan:
+removal while the removed member is disconnected. Blobs run over HTTPS on the mailbox's own TLS port
+(`messaging/blob-put-*`, `messaging/blob-get-*`, spec-gap 48), and the direct demo ends with a
+voicemail: real speech encoded as Ogg Opus, offered only under M§13.2, sealed under a fresh key,
+uploaded, and fetched, verified and decrypted by the callee byte for byte, with no plaintext at any
+mailbox. The full plan:
 
 - payload shapes for every message type and content object
 - mailbox and hub state traces: sequencing, commit conflict, stale epoch, idempotent re-deposit,
