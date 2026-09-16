@@ -1,0 +1,29 @@
+{
+  "vector": "messaging/mailbox-service-unknown-field",
+  "format": 1,
+  "kind": "messaging",
+  "description": "Unknown fields are refused by the closed schema.",
+  "spec_ref": [
+    "M§4.2"
+  ],
+  "context": {},
+  "input": {
+    "check": "payload",
+    "schema": "mailbox-service",
+    "payload": {
+      "uri": "wss://mbx.bob.example/dsip",
+      "bindings": [
+        "ws/1.0"
+      ],
+      "mailbox": "did:web:mbx.bob.example",
+      "profiles": [
+        "messaging/1.0"
+      ],
+      "surprise": 1
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "schema-invalid"
+  }
+}

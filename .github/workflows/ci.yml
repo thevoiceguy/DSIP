@@ -31,7 +31,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
-      - run: pip install jsonschema pynacl
+      - run: pip install jsonschema pynacl cryptography
       - name: vectors are deterministic and committed
         run: |
           python3 impl/tools/generate_vectors.py
@@ -46,7 +46,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
-      - run: pip install jsonschema pynacl
+      - run: pip install jsonschema pynacl cryptography
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with: { workspaces: impl }

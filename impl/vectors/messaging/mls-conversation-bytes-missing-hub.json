@@ -1,0 +1,19 @@
+{
+  "vector": "messaging/mls-conversation-bytes-missing-hub",
+  "format": 1,
+  "kind": "messaging",
+  "description": "The hub is required.",
+  "spec_ref": [
+    "M§6.3",
+    "§10.3"
+  ],
+  "context": {},
+  "input": {
+    "check": "mls-conversation-bytes",
+    "data_hex": "7b22636f6e766572736174696f6e223a202230314b3734325347303041583146364856545257425732323752222c20226b696e64223a202267726f7570227d"
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "schema-invalid"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "vector": "messaging/mls-extension-decode-non-minimal-length",
+  "format": 1,
+  "kind": "messaging",
+  "description": "A length of 3 in the two-byte form is non-minimal and rejected.",
+  "spec_ref": [
+    "M§6.2",
+    "M§17"
+  ],
+  "context": {},
+  "input": {
+    "check": "mls-extension-decode",
+    "hex": "f0d14003616263"
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "mls-length-non-minimal"
+  }
+}

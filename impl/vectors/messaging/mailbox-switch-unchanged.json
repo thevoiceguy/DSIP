@@ -1,0 +1,26 @@
+{
+  "vector": "messaging/mailbox-switch-unchanged",
+  "format": 1,
+  "kind": "messaging",
+  "description": "The same mailbox is not a switch.",
+  "spec_ref": [
+    "M§4.2",
+    "M§15.4"
+  ],
+  "context": {},
+  "input": {
+    "check": "mailbox-switch",
+    "established": {
+      "mailbox": "did:web:mbx.bob.example",
+      "source": "did-document"
+    },
+    "candidate": {
+      "mailbox": "did:web:mbx.bob.example",
+      "source": "hint"
+    }
+  },
+  "expect": {
+    "switch": false,
+    "reason": "unchanged"
+  }
+}

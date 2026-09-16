@@ -174,9 +174,11 @@ def verify_raw(envelope: Any, ctx: Context, core_shape: bool = True) -> tuple[Ve
 
 # ---------------------------------------------------------------- delegation (§7.4)
 
-def verify_delegation(deleg: Any, subject: str, device: str, ctx: Context) -> Verdict:
+def verify_delegation(deleg: Any, subject: str, device: str, ctx: Context,
+                      capability: str = SIGNALING_CAPABILITY) -> Verdict:
     """A delegation envelope is valid for (subject, device) when it is signed directly by a key
-    of `subject`, names exactly that subject/device, carries dsip.signaling, and is live at now."""
+    of `subject`, names exactly that subject/device, carries `capability` (dsip.signaling for
+    envelopes; dsip.messaging for MLS leaves, Messaging Profile M§6.2), and is live at now."""
     v, ver = verify_raw(deleg, ctx, core_shape=False)
     if not v.ok:
         return Verdict.reject("delegation-invalid", detail=v.code)
@@ -185,7 +187,7 @@ def verify_delegation(deleg: Any, subject: str, device: str, ctx: Context) -> Ve
             or ver.signer_did != subject):
         return Verdict.reject("delegation-invalid")
     caps = p.get("capabilities")
-    if not isinstance(caps, list) or SIGNALING_CAPABILITY not in caps:
+    if not isinstance(caps, list) or capability not in caps:
         return Verdict.reject("delegation-capability")
     ia, ea = p.get("issued_at"), p.get("expires_at")
     if not (isinstance(ia, int) and isinstance(ea, int)) or not (ia <= ctx.now < ea):

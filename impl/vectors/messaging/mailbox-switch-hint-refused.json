@@ -1,0 +1,26 @@
+{
+  "vector": "messaging/mailbox-switch-hint-refused",
+  "format": 1,
+  "kind": "messaging",
+  "description": "A hint never moves an established conversation's mailbox.",
+  "spec_ref": [
+    "M§4.2",
+    "M§15.4"
+  ],
+  "context": {},
+  "input": {
+    "check": "mailbox-switch",
+    "established": {
+      "mailbox": "did:web:mbx.bob.example",
+      "source": "did-document"
+    },
+    "candidate": {
+      "mailbox": "did:web:mbx2.bob.example",
+      "source": "hint"
+    }
+  },
+  "expect": {
+    "switch": false,
+    "reason": "hint-sourced"
+  }
+}

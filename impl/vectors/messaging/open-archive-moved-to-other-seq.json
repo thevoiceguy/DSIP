@@ -1,0 +1,22 @@
+{
+  "vector": "messaging/open-archive-moved-to-other-seq",
+  "format": 1,
+  "kind": "messaging",
+  "description": "An archive record replayed under another seq does not open.",
+  "spec_ref": [
+    "M§12.2"
+  ],
+  "context": {},
+  "input": {
+    "check": "open",
+    "use": "archive",
+    "key_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+    "group_hex": "30314b3734325347303048415a5a434b43313331454330504753",
+    "seq": 43,
+    "sealed_hex": "6465666768696a6b6c6d6e6f3339b104138c35ea1c587fcabb1709952bb46327f909901dd5b58e64db81d62de5cb7ae07820e63e574d7494752699939febde2e9e0a33"
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "aead-open-failed"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "vector": "messaging/mls-extension-decode-eight-byte-length",
+  "format": 1,
+  "kind": "messaging",
+  "description": "The 0b11 (8-byte) length form exceeds MLS's 30-bit bound.",
+  "spec_ref": [
+    "M§6.2",
+    "M§17"
+  ],
+  "context": {},
+  "input": {
+    "check": "mls-extension-decode",
+    "hex": "f0d1c000000000000003616263"
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "mls-length-invalid"
+  }
+}

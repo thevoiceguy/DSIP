@@ -1,0 +1,50 @@
+{
+  "vector": "messaging/mailbox-select-unusable-document-does-not-fall-back-to-hints",
+  "format": 1,
+  "kind": "messaging",
+  "description": "A document whose only entry is unusable does not hand the choice to a hint: a device-signed hint must not override the authoritative source.",
+  "spec_ref": [
+    "M§4.2",
+    "§8.1"
+  ],
+  "context": {},
+  "input": {
+    "check": "mailbox-select",
+    "document_entries": [
+      {
+        "uri": "ws://mbx2.bob.example/dsip",
+        "bindings": [
+          "ws/1.0"
+        ],
+        "mailbox": "did:web:mbx2.bob.example",
+        "priority": 0,
+        "profiles": [
+          "messaging/1.0"
+        ]
+      }
+    ],
+    "hint_entries": [
+      {
+        "uri": "wss://mbx.bob.example/dsip",
+        "bindings": [
+          "ws/1.0"
+        ],
+        "mailbox": "did:web:mbx.bob.example",
+        "priority": 0,
+        "profiles": [
+          "messaging/1.0"
+        ],
+        "service": "DSIPMailbox"
+      }
+    ]
+  },
+  "expect": {
+    "source": "did-document",
+    "selected": null,
+    "order": [],
+    "sync_targets": [],
+    "discarded": [
+      "ws://mbx2.bob.example/dsip"
+    ]
+  }
+}

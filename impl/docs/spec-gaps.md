@@ -482,19 +482,20 @@ decisions taken 2026-09-15: companion profile, MLS plus HPKE, SYNC history by de
 1.0. Every row is **open** until the profile text and its vectors agree; "draft choice" is what the profile
 text says today. Tranche 1 of `messaging/` (101 vectors, 2026-09-15: message/object rules, hub
 and mailbox traces) pins gaps 34–36, 38, 40 and 43 at Rust/Python parity. Tranche 2 (46 vectors: voicemail offer, conversation and successor
-convergence, client receipts/watermarks/activity, seq gaps) pins 41 and 42. Gap 31 is a v0.7 defect in its own right and does not depend on messaging.
+convergence, client receipts/watermarks/activity, seq gaps) pins 41 and 42. Tranche 3 (38 vectors: MLS extension encoding, leaf authentication, `dsip_conversation`
+bytes, AES-GCM formats) pins 33 and 39, and `impl/crates/dsip-mls` runs the profile on OpenMLS end to end. Gap 31 is a v0.7 defect in its own right and does not depend on messaging.
 
 | # | sections | draft choice | pinned by |
 |---|---|---|---|
 | 31 | §12.9, §13.3, §19.4 | **adopted in the PoC** (2026-09-15): type-scoped validity for held introductions + enforced 7-day cap (**v0.7 defect**) | `envelope/introduction-held-*` (3), `envelope/introduction-future-rejected`, `envelope/introduction-validity-over-cap` |
 | 32 | §3.2, §6.1, §12.1, §24.4 | adopt → **Messaging Profile 1.0** + **Mailbox 1.0** conformance pieces | `messaging/*` (101, tranche 1) |
-| 33 | §6.2, §20.7 | MLS for conversations, HPKE for sealed introductions; non-repudiation stated | — |
+| 33 | §6.2, §20.7 | MLS for conversations, HPKE for sealed introductions; non-repudiation stated | `messaging/mls-credential-*` (13), `dsip-mls` e2e (OpenMLS) |
 | 34 | (new; M§6.5) | per-group hub orders MLS commits | `messaging/hub-*` (19) |
 | 35 | (new; M§12) | archive key in the personal group; `sync` default, `queue` opt-out | `messaging/mailbox-archive-*`, `messaging/mailbox-sync-mode-retains-after-ack`, `messaging/mailbox-queue-mode-*` |
 | 36 | §19.4 | `dsip.message` scope; `sealed` introductions; grant-gated group adds; invite-grantee voicemail | `messaging/mailbox-welcome-*` (11), `messaging/mailbox-key-package-fetch-unauthorized` |
-| 37 | §8.1, §13.2, DHT Hints | `DSIPMailbox` service type; hint `service`; priority-ordered multiple mailboxes | — |
+| 37 | §8.1, §13.2, DHT Hints | `DSIPMailbox` service type; hint `service`; priority-ordered multiple mailboxes | `messaging/mailbox-select-*` (11), `messaging/mailbox-switch-*` (3), `messaging/mailbox-service-*` (3) |
 | 38 | §15.1 | new reason category `mailbox` | `messaging/deposit-unknown-class-refused`, `messaging/mailbox-*` error tokens |
-| 39 | §7.4, §24.2 | delegation capability `dsip.messaging` + a delegation-capability registry | — |
+| 39 | §7.4, §24.2 | delegation capability `dsip.messaging` + a delegation-capability registry | `messaging/mls-credential-signaling-only-delegation`, `dsip-mls` e2e |
 | 40 | §13.2 | `MAX_MLS_BYTES` = 24,576; blobs over HTTPS | `messaging/deposit-mls-at-cap-accepted`, `messaging/deposit-mls-over-cap-refused` |
 | 41 | §12, §14 | caller-recorded voicemail; trigger set; no core field | `messaging/voicemail-offer-*` (16) |
 | 42 | §12.6, §20.6 | duplicate direct conversations / successor groups: lower ULID wins | `messaging/direct-select-*`, `messaging/successor-*` |
@@ -640,7 +641,11 @@ order for deposit, owner devices sync all and archive to all; (b) exactly one ma
 (c) mailbox-to-mailbox replication, a new trust relationship between operators.
 
 **Draft choice.** (a) and (a) (M§4.2). Hint-sourced mailboxes never replace an established
-conversation's mailbox on their own (M§15.4).
+conversation's mailbox on their own (M§15.4). Vectors (2026-09-15) settle what the prose left open: an
+entry is usable only if it satisfies the `mailbox-service` shape and advertises `messaging/1.0`;
+`priority` defaults to 0 and equal priorities keep document order; the selection is the first usable
+entry that accepts a connection while devices sync every usable one; and a document that lists only
+unusable entries yields **no** mailbox rather than falling back to a hint.
 
 **Suggested fix.** Register the `DSIPMailbox` service type. Add optional `endpoints[].service` to
 the DHT Hints Profile (default `DSIPSignaling`).

@@ -1,0 +1,35 @@
+{
+  "vector": "messaging/mailbox-service-valid",
+  "format": 1,
+  "kind": "messaging",
+  "description": "A full DSIPMailbox serviceEndpoint.",
+  "spec_ref": [
+    "M§4.2"
+  ],
+  "context": {},
+  "input": {
+    "check": "payload",
+    "schema": "mailbox-service",
+    "payload": {
+      "uri": "wss://mbx.bob.example/dsip",
+      "bindings": [
+        "ws/1.0"
+      ],
+      "mailbox": "did:web:mbx.bob.example",
+      "priority": 0,
+      "profiles": [
+        "messaging/1.0"
+      ],
+      "accepts": [
+        "text",
+        "audio"
+      ],
+      "voicemail": {
+        "max_duration_s": 180
+      }
+    }
+  },
+  "expect": {
+    "verdict": "accept"
+  }
+}

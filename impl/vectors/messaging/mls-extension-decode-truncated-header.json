@@ -1,0 +1,19 @@
+{
+  "vector": "messaging/mls-extension-decode-truncated-header",
+  "format": 1,
+  "kind": "messaging",
+  "description": "Two bytes of a two-byte length form is truncated.",
+  "spec_ref": [
+    "M§6.2",
+    "M§17"
+  ],
+  "context": {},
+  "input": {
+    "check": "mls-extension-decode",
+    "hex": "f0d140"
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "mls-truncated"
+  }
+}

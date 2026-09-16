@@ -1,0 +1,40 @@
+{
+  "vector": "messaging/mailbox-select-did-key-uses-hints",
+  "format": 1,
+  "kind": "messaging",
+  "description": "An identity with no DID document may advertise its mailbox in a signed DHT hint.",
+  "spec_ref": [
+    "M§4.2",
+    "§8.1"
+  ],
+  "context": {},
+  "input": {
+    "check": "mailbox-select",
+    "document_entries": [],
+    "hint_entries": [
+      {
+        "uri": "wss://mbx.bob.example/dsip",
+        "bindings": [
+          "ws/1.0"
+        ],
+        "mailbox": "did:web:mbx.bob.example",
+        "priority": 0,
+        "profiles": [
+          "messaging/1.0"
+        ],
+        "service": "DSIPMailbox"
+      }
+    ]
+  },
+  "expect": {
+    "source": "hint",
+    "selected": "did:web:mbx.bob.example",
+    "order": [
+      "did:web:mbx.bob.example"
+    ],
+    "sync_targets": [
+      "did:web:mbx.bob.example"
+    ],
+    "discarded": []
+  }
+}

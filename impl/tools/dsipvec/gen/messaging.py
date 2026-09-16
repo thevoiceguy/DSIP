@@ -4,6 +4,7 @@ from the profile text; `dsipvec.messaging` and `dsip-messaging` must both reprod
 from __future__ import annotations
 
 import copy
+import json
 
 from .. import fixtures as F
 from ..crypto import b64url_encode
@@ -82,6 +83,8 @@ def vectors() -> list[dict]:
     out += conversation_vectors()
     out += client_vectors()
     out += gap_vectors()
+    out += mls_layer_vectors()
+    out += discovery_vectors()
     return out
 
 
@@ -918,4 +921,253 @@ def gap_vectors():
                          (it(1), [{"process": 1}], g(1)),
                          (it(1), [{"duplicate": 1}], g(1)),
                      ]))
+    return out
+
+
+# ---------------------------------------------------------------- tranche 3: the MLS layer (M§6.2, M§6.3, M§8.4, M§11.1, M§12.2)
+
+EXT_DELEG, EXT_CONV = 0xF0D1, 0xF0D2
+
+
+def compact(env: dict) -> str:
+    return f"{env['protected']}.{env['payload']}.{env['signature']}"
+
+
+def mls_layer_vectors():
+    import struct
+    import hashlib
+    from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+    from .common import default_context
+    out = []
+
+    # --- Extension wire encoding (RFC 9420 §2.1.2 lengths), expected bytes built with struct, not the reference encoder
+    def enc(vid, desc, ext_type, data: bytes, header: bytes):
+        out.append(mv(f"mls-extension-encode-{vid}", desc, ["M§6.2", "M§6.3", "M§17"],
+                      {"check": "mls-extension-encode", "extension_type": ext_type, "data_hex": data.hex()},
+                      {"hex": (struct.pack(">H", ext_type) + header + data).hex()}))
+
+    enc("1-byte-length", "63 bytes of data take a one-byte length.", EXT_DELEG, b"d" * 63, bytes([63]))
+    enc("2-byte-length", "64 bytes of data need the two-byte length form (0b01 prefix).", EXT_DELEG, b"d" * 64, struct.pack(">H", 0x4000 | 64))
+    enc("4-byte-length", "16,384 bytes of data need the four-byte form (0b10 prefix).", EXT_CONV, b"c" * 16384,
+        struct.pack(">I", 0x80000000 | 16384))
+    deleg_msg = F.make_delegation(F.KEYS["alice"], F.did("alice"), APH,
+                                  capabilities=("dsip.signaling", "dsip.messaging"))
+    enc("dsip-delegation-compact", "A real dsip_delegation: the compact delegation envelope as ASCII bytes.", EXT_DELEG,
+        compact(deleg_msg).encode(), struct.pack(">H", 0x4000 | len(compact(deleg_msg))))
+
+    def dec(vid, desc, raw: bytes, expect):
+        out.append(mv(f"mls-extension-decode-{vid}", desc, ["M§6.2", "M§17"], {"check": "mls-extension-decode", "hex": raw.hex()}, expect))
+
+    dec("valid", "A well-formed extension decodes to its type and data.", struct.pack(">HB", EXT_DELEG, 3) + b"abc",
+        accept(extension_type=EXT_DELEG, data_hex=b"abc".hex()))
+    dec("non-minimal-length", "A length of 3 in the two-byte form is non-minimal and rejected.",
+        struct.pack(">HH", EXT_DELEG, 0x4003) + b"abc", reject("mls-length-non-minimal"))
+    dec("eight-byte-length", "The 0b11 (8-byte) length form exceeds MLS's 30-bit bound.",
+        struct.pack(">HQ", EXT_DELEG, 0xC000000000000003) + b"abc", reject("mls-length-invalid"))
+    dec("truncated-header", "Two bytes of a two-byte length form is truncated.", struct.pack(">HB", EXT_DELEG, 0x40), reject("mls-truncated"))
+    dec("truncated-data", "Declared length longer than the data.", struct.pack(">HB", EXT_DELEG, 5) + b"abc", reject("mls-truncated"))
+    dec("trailing-bytes", "Bytes after the declared data are rejected.", struct.pack(">HB", EXT_DELEG, 3) + b"abcd", reject("mls-trailing-bytes"))
+
+    # --- the DSIP authentication service (M§6.2)
+    msg_caps = ("dsip.signaling", "dsip.messaging")
+    ctx = default_context()
+
+    def cred(vid, desc, device_did, sig_pub_hex, delegation, expect, credential_type=1, identity_hex=None, extra_ext=None):
+        exts = [] if delegation is None else [{"extension_type": EXT_DELEG, "data_hex": delegation}]
+        exts += extra_ext or []
+        inp = {"check": "mls-credential",
+               "credential": {"credential_type": credential_type, "identity_hex": identity_hex or device_did.encode().hex()},
+               "signature_key_hex": sig_pub_hex, "extensions": exts}
+        out.append(mv(f"mls-credential-{vid}", desc, ["M§6.2", "§7.4"], inp, expect, ctx=ctx))
+
+    pub = lambda n: F.KEYS[n].public.hex()
+    hx = lambda env: compact(env).encode().hex()
+    good = F.make_delegation(F.KEYS["alice"], F.did("alice"), APH, capabilities=msg_caps)
+    cred("valid-did-key-subject", "Basic credential naming alice-phone, its Ed25519 key, and a dsip.messaging delegation from alice.",
+         APH, pub("alice-phone"), hx(good), accept(identity=F.did("alice"), device=APH))
+    web = F.make_delegation(F.KEYS["bob"], F.BOB_WEB, BPH, capabilities=msg_caps, signer_kid=F.web_kid(F.BOB_WEB))
+    cred("valid-did-web-subject", "A did:web identity's delegation, verified through its DID document.", BPH, pub("bob-phone"), hx(web),
+         accept(identity=F.BOB_WEB, device=BPH))
+    sig_only = F.make_delegation(F.KEYS["alice"], F.did("alice"), APH)
+    cred("signaling-only-delegation", "A delegation for calls only (no dsip.messaging) does not admit an MLS leaf.",
+         APH, pub("alice-phone"), hx(sig_only), reject("delegation-capability"))
+    expired = F.make_delegation(F.KEYS["alice"], F.did("alice"), APH, capabilities=msg_caps, issued_at=NOW - 86400 * 10, expires_at=NOW - 1)
+    cred("expired-delegation", "An expired delegation makes the leaf unauthenticated.", APH, pub("alice-phone"), hx(expired),
+         reject("delegation-expired"))
+    other = F.make_delegation(F.KEYS["alice"], F.did("alice"), ALA, capabilities=msg_caps)
+    cred("delegation-for-other-device", "The delegation names alice-laptop but the credential names alice-phone.",
+         APH, pub("alice-phone"), hx(other), reject("delegation-invalid"))
+    forged = F.make_delegation(F.KEYS["mallory"], F.did("alice"), APH, capabilities=msg_caps, signer_kid=F.KEYS["mallory"].kid)
+    cred("delegation-not-signed-by-subject", "mallory signs a delegation claiming alice as subject.", APH, pub("alice-phone"), hx(forged),
+         reject("delegation-invalid"))
+    cred("signature-key-mismatch", "The leaf signature key is not the key alice-phone's DID names.", APH, pub("alice-laptop"), hx(good),
+         reject("credential-key-mismatch"))
+    cred("delegation-missing", "A leaf without dsip_delegation cannot be authenticated.", APH, pub("alice-phone"), None,
+         reject("delegation-missing"))
+    cred("delegation-not-compact", "dsip_delegation data must be the compact envelope, not JSON.", APH, pub("alice-phone"),
+         json.dumps(good).encode().hex(), reject("delegation-invalid"))
+    cred("x509-credential", "Only the basic credential type is used in 1.0.", APH, pub("alice-phone"), hx(good), reject("credential-type"),
+         credential_type=2)
+    cred("identity-not-utf8", "The credential identity must be UTF-8.", APH, pub("alice-phone"), hx(good), reject("credential-identity"),
+         identity_hex="ff" + APH.encode().hex())
+    cred("identity-not-a-did", "The credential identity must be a device DID.", APH, pub("alice-phone"), hx(good),
+         reject("credential-identity"), identity_hex=b"Alice's phone".hex())
+    cred("duplicate-delegation-extension", "Two dsip_delegation extensions on one leaf are refused.", APH, pub("alice-phone"), hx(good),
+         reject("delegation-invalid"), extra_ext=[{"extension_type": EXT_DELEG, "data_hex": hx(good)}])
+
+    # --- dsip_conversation bytes (M§6.3)
+    def conv(vid, desc, data: bytes, expect):
+        out.append(mv(f"mls-conversation-bytes-{vid}", desc, ["M§6.3", "§10.3"], {"check": "mls-conversation-bytes", "data_hex": data.hex()},
+                      expect))
+
+    ext = {"conversation": CONV, "kind": "direct", "hub": {"did": HUB_A, "uri": "wss://mbx.alice.example/dsip"}, "successor_of": None}
+    conv("valid", "UTF-8 JSON extension data naming the conversation and hub.", json.dumps(ext, separators=(",", ":")).encode(),
+         accept(effective={"kind": "direct"}))
+    conv("not-utf8", "Extension data that is not UTF-8.", b"\xff\xfe{}", reject("payload-not-utf8"))
+    conv("not-json", "Extension data that is not a JSON object.", b"[1,2]", reject("payload-not-json"))
+    conv("float", "A float anywhere violates §10.3.", json.dumps({**ext, "version": 1.5}).encode(), reject("payload-float"))
+    conv("missing-hub", "The hub is required.", json.dumps({"conversation": CONV, "kind": "group"}).encode(), reject("schema-invalid"))
+
+    # --- AES-GCM formats: stored = nonce(12) ‖ ciphertext ‖ tag(16). Expected values come from pyca/cryptography;
+    #     dsip-messaging computes them independently with RustCrypto aes-gcm.
+    key = bytes(range(32))
+    nonce = bytes(range(100, 112))
+    group = uid("group-1").encode()
+
+    def sealed_of(pt: bytes, aad: bytes) -> bytes:
+        return nonce + AESGCM(key).encrypt(nonce, pt, aad or None)
+
+    blob_pt = b"OggS" + bytes(60)
+    blob_sealed = sealed_of(blob_pt, b"")
+    act_pt = b"eyJ.activity.sig"
+    act_aad = group + (7).to_bytes(8, "big")
+    arch_pt = json.dumps({"object": "archive-record", "seq": 42}).encode()
+    arch_aad = group + (42).to_bytes(8, "big")
+    base = {"key_hex": key.hex(), "nonce_hex": nonce.hex()}
+
+    def sv(vid, desc, refs, inp, expect):
+        out.append(mv(vid, desc, refs, inp, expect))
+
+    sv("seal-blob", "Blob sealing: AES-256-GCM, empty AAD, stored as nonce ‖ ciphertext ‖ tag.", ["M§8.4"],
+       {"check": "seal", "use": "blob", **base, "plaintext_hex": blob_pt.hex()}, {"sealed_hex": blob_sealed.hex()})
+    sv("seal-activity", "Activity sealing binds group_id ‖ epoch (u64 big-endian) as AAD.", ["M§11.1"],
+       {"check": "seal", "use": "activity", **base, "group_hex": group.hex(), "epoch": 7, "plaintext_hex": act_pt.hex()},
+       {"sealed_hex": sealed_of(act_pt, act_aad).hex()})
+    sv("seal-archive", "Archive sealing binds group_id ‖ seq (u64 big-endian) as AAD.", ["M§12.2"],
+       {"check": "seal", "use": "archive", **base, "group_hex": group.hex(), "seq": 42, "plaintext_hex": arch_pt.hex()},
+       {"sealed_hex": sealed_of(arch_pt, arch_aad).hex()})
+    blob_ref = {"sha256": hashlib.sha256(blob_sealed).hexdigest(), "size": len(blob_sealed)}
+    sv("open-blob-valid", "A blob whose size and hash match opens.", ["M§8.4"],
+       {"check": "open", "use": "blob", "key_hex": key.hex(), "sealed_hex": blob_sealed.hex(), **blob_ref}, accept(plaintext_hex=blob_pt.hex()))
+    tampered = bytearray(blob_sealed)
+    tampered[20] ^= 1
+    sv("open-blob-hash-mismatch", "A blob whose bytes do not match the manifest hash is discarded before decryption.", ["M§8.4"],
+       {"check": "open", "use": "blob", "key_hex": key.hex(), "sealed_hex": bytes(tampered).hex(), **blob_ref}, reject("blob-hash-mismatch"))
+    sv("open-blob-size-mismatch", "A blob whose length does not match the manifest size is discarded.", ["M§8.4"],
+       {"check": "open", "use": "blob", "key_hex": key.hex(), "sealed_hex": blob_sealed[:-1].hex(), **blob_ref}, reject("blob-size-mismatch"))
+    sv("open-activity-wrong-epoch", "Activity sealed for epoch 7 does not open as epoch 8: the AAD binds the epoch.", ["M§11.1"],
+       {"check": "open", "use": "activity", "key_hex": key.hex(), "group_hex": group.hex(), "epoch": 8,
+        "sealed_hex": sealed_of(act_pt, act_aad).hex()}, reject("aead-open-failed"))
+    sv("open-archive-valid", "An archive record opens under its group and seq.", ["M§12.2"],
+       {"check": "open", "use": "archive", "key_hex": key.hex(), "group_hex": group.hex(), "seq": 42,
+        "sealed_hex": sealed_of(arch_pt, arch_aad).hex()}, accept(plaintext_hex=arch_pt.hex()))
+    sv("open-archive-moved-to-other-seq", "An archive record replayed under another seq does not open.", ["M§12.2"],
+       {"check": "open", "use": "archive", "key_hex": key.hex(), "group_hex": group.hex(), "seq": 43,
+        "sealed_hex": sealed_of(arch_pt, arch_aad).hex()}, reject("aead-open-failed"))
+    sv("open-too-short", "Sealed data shorter than nonce plus tag.", ["M§8.4"],
+       {"check": "open", "use": "archive", "key_hex": key.hex(), "group_hex": group.hex(), "seq": 1, "sealed_hex": bytes(27).hex()},
+       reject("sealed-too-short"))
+    return out
+
+
+# ---------------------------------------------------------------- step 1: mailbox discovery (M§4.2, §8.1; spec-gap 37)
+
+MBX_A2 = "did:web:mbx2.bob.example"
+
+
+def entry(mailbox=MBX_B, uri=None, priority=None, profiles=("messaging/1.0",), **over):
+    e = {"uri": uri or f"wss://{mailbox.split(':')[-1]}/dsip", "bindings": ["ws/1.0"], "mailbox": mailbox}
+    if priority is not None:
+        e["priority"] = priority
+    if profiles is not None:
+        e["profiles"] = list(profiles)
+    e.update(over)
+    return e
+
+
+def discovery_vectors():
+    out = []
+
+    def sel(vid, desc, inp, expect):
+        out.append(mv(f"mailbox-select-{vid}", desc, ["M§4.2", "§8.1"], {"check": "mailbox-select", **inp}, expect))
+
+    primary, secondary = entry(MBX_B, priority=0), entry(MBX_A2, priority=1)
+    sel("priority-order", "The lowest priority entry is the primary mailbox; devices sync both.",
+        {"document_entries": [secondary, primary]},
+        {"source": "did-document", "selected": MBX_B, "order": [MBX_B, MBX_A2], "sync_targets": [MBX_B, MBX_A2], "discarded": []})
+    sel("skips-unreachable", "A sender deposits to the lowest priority entry that accepts the connection.",
+        {"document_entries": [primary, secondary], "reachable": [MBX_A2]},
+        {"source": "did-document", "selected": MBX_A2, "order": [MBX_B, MBX_A2], "sync_targets": [MBX_B, MBX_A2], "discarded": []})
+    sel("absent-priority-is-zero", "An entry with no priority sorts as priority 0, before an explicit 1.",
+        {"document_entries": [secondary, entry(MBX_B)]},
+        {"source": "did-document", "selected": MBX_B, "order": [MBX_B, MBX_A2], "sync_targets": [MBX_B, MBX_A2], "discarded": []})
+    tie_a, tie_b = entry(MBX_B, priority=0), entry(MBX_A2, priority=0)
+    sel("equal-priority-keeps-document-order", "Entries of equal priority keep the order the document lists them in.",
+        {"document_entries": [tie_b, tie_a]},
+        {"source": "did-document", "selected": MBX_A2, "order": [MBX_A2, MBX_B], "sync_targets": [MBX_A2, MBX_B], "discarded": []})
+    plain = entry(MBX_A2, uri="ws://mbx2.bob.example/dsip", priority=0)
+    sel("plaintext-uri-discarded", "A ws:// mailbox is never used (§13.2: wss only).",
+        {"document_entries": [plain, secondary]},
+        {"source": "did-document", "selected": MBX_A2, "order": [MBX_A2], "sync_targets": [MBX_A2],
+         "discarded": ["ws://mbx2.bob.example/dsip"]})
+    no_did = {"uri": "wss://mbx3.bob.example/dsip", "bindings": ["ws/1.0"], "profiles": ["messaging/1.0"]}
+    sel("entry-without-mailbox-did-discarded",
+        "Without the mailbox DID a client cannot check whose hello it got, so the entry is unusable.",
+        {"document_entries": [no_did, primary]},
+        {"source": "did-document", "selected": MBX_B, "order": [MBX_B], "sync_targets": [MBX_B],
+         "discarded": ["wss://mbx3.bob.example/dsip"]})
+    other_profile = entry(MBX_A2, priority=0, profiles=("verified-broadcast/1.0",))
+    sel("profile-mismatch-discarded", "A service that does not advertise messaging/1.0 cannot serve the profile.",
+        {"document_entries": [other_profile, secondary]},
+        {"source": "did-document", "selected": MBX_A2, "order": [MBX_A2], "sync_targets": [MBX_A2],
+         "discarded": ["wss://mbx2.bob.example/dsip"]})
+    hint = entry(MBX_B, priority=0, service="DSIPMailbox")
+    sel("did-key-uses-hints", "An identity with no DID document may advertise its mailbox in a signed DHT hint.",
+        {"document_entries": [], "hint_entries": [hint]},
+        {"source": "hint", "selected": MBX_B, "order": [MBX_B], "sync_targets": [MBX_B], "discarded": []})
+    sel("document-wins-over-hint", "With a document entry present, hints are not consulted at all (§8.1 authority order).",
+        {"document_entries": [secondary], "hint_entries": [hint]},
+        {"source": "did-document", "selected": MBX_A2, "order": [MBX_A2], "sync_targets": [MBX_A2], "discarded": []})
+    sel("unusable-document-does-not-fall-back-to-hints",
+        "A document whose only entry is unusable does not hand the choice to a hint: a device-signed hint must not "
+        "override the authoritative source.",
+        {"document_entries": [plain], "hint_entries": [hint]},
+        {"source": "did-document", "selected": None, "order": [], "sync_targets": [],
+         "discarded": ["ws://mbx2.bob.example/dsip"]})
+    sel("no-mailbox-advertised", "An identity with no mailbox cannot receive asynchronous content.",
+        {"document_entries": [], "hint_entries": []},
+        {"source": None, "selected": None, "order": [], "sync_targets": [], "discarded": []})
+
+    def sw(vid, desc, established, candidate, expect):
+        out.append(mv(f"mailbox-switch-{vid}", desc, ["M§4.2", "M§15.4"],
+                      {"check": "mailbox-switch", "established": established, "candidate": candidate}, expect))
+
+    sw("hint-refused", "A hint never moves an established conversation's mailbox.",
+       {"mailbox": MBX_B, "source": "did-document"}, {"mailbox": MBX_A2, "source": "hint"},
+       {"switch": False, "reason": "hint-sourced"})
+    sw("document-allowed", "A changed DID document entry does move it.",
+       {"mailbox": MBX_B, "source": "did-document"}, {"mailbox": MBX_A2, "source": "did-document"},
+       {"switch": True, "reason": "did-document"})
+    sw("unchanged", "The same mailbox is not a switch.",
+       {"mailbox": MBX_B, "source": "did-document"}, {"mailbox": MBX_B, "source": "hint"},
+       {"switch": False, "reason": "unchanged"})
+
+    for vid, desc, e, ok in [
+        ("valid", "A full DSIPMailbox serviceEndpoint.", entry(MBX_B, priority=0, accepts=["text", "audio"],
+                                                              voicemail={"max_duration_s": 180}), True),
+        ("plaintext-uri", "ws:// is refused by shape.", entry(MBX_B, uri="ws://mbx.bob.example/dsip"), False),
+        ("unknown-field", "Unknown fields are refused by the closed schema.", entry(MBX_B, surprise=1), False),
+    ]:
+        out.append(mv(f"mailbox-service-{vid}", desc, ["M§4.2"], {"check": "payload", "schema": "mailbox-service", "payload": e},
+                      accept() if ok else reject("schema-invalid")))
     return out

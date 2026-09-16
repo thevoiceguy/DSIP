@@ -1,0 +1,19 @@
+{
+  "vector": "messaging/mls-extension-decode-trailing-bytes",
+  "format": 1,
+  "kind": "messaging",
+  "description": "Bytes after the declared data are rejected.",
+  "spec_ref": [
+    "M§6.2",
+    "M§17"
+  ],
+  "context": {},
+  "input": {
+    "check": "mls-extension-decode",
+    "hex": "f0d10361626364"
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "mls-trailing-bytes"
+  }
+}

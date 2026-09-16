@@ -1,0 +1,20 @@
+{
+  "vector": "messaging/mls-extension-decode-valid",
+  "format": 1,
+  "kind": "messaging",
+  "description": "A well-formed extension decodes to its type and data.",
+  "spec_ref": [
+    "M§6.2",
+    "M§17"
+  ],
+  "context": {},
+  "input": {
+    "check": "mls-extension-decode",
+    "hex": "f0d103616263"
+  },
+  "expect": {
+    "verdict": "accept",
+    "extension_type": 61649,
+    "data_hex": "616263"
+  }
+}

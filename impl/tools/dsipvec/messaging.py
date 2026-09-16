@@ -36,6 +36,7 @@ KEY_PACKAGES_PER_DEVICE = 100  # M§5.5 RECOMMENDED bound
 MESSAGE_SCHEMAS = ["deposit", "accepted", "sync", "items", "key-packages", "key-package-fetch", "blob-put",
                    "mailbox-config"]
 OBJECT_SCHEMAS = ["content", "receipt", "activity", "archive-key", "call-event", "archive-record"]
+MESSAGING_PROFILE = "messaging/1.0"
 
 # Registries (M§17). Membership is checked here; the schemas only check token shape.
 DEPOSIT_CLASSES = {"handshake", "application", "welcome", "group-info", "ephemeral", "archive"}
@@ -736,6 +737,179 @@ class GapTracker:
         return {"contiguous": self.contiguous, "held": list(self.held)}
 
 
+# ---------------------------------------------------------------- tranche 3: the MLS layer (M§6.2, M§6.3, M§8.4, M§11.1, M§12.2)
+
+EXT_DSIP_DELEGATION = 0xF0D1   # M§17: private-use MLS ExtensionType (LeafNode) until registered
+EXT_DSIP_CONVERSATION = 0xF0D2  # M§17: private-use MLS ExtensionType (GroupContext) until registered
+CREDENTIAL_BASIC = 0x0001      # RFC 9420 CredentialType basic
+MESSAGING_CAPABILITY = "dsip.messaging"  # M§6.2 (spec-gap 39)
+NONCE_LEN, TAG_LEN = 12, 16
+
+
+def vl_len(n: int) -> bytes:
+    """RFC 9420 §2.1.2 variable-length vector length: minimal 1-, 2- or 4-byte QUIC-style integer."""
+    if n < 1 << 6:
+        return bytes([n])
+    if n < 1 << 14:
+        return (0x4000 | n).to_bytes(2, "big")
+    if n < 1 << 30:
+        return (0x80000000 | n).to_bytes(4, "big")
+    raise ValueError("vector too long for MLS")
+
+
+def encode_extension(ext_type: int, data: bytes) -> bytes:
+    return ext_type.to_bytes(2, "big") + vl_len(len(data)) + data
+
+
+def decode_extension(b: bytes) -> dict:
+    if len(b) < 3:
+        return reject("mls-truncated")
+    prefix = b[2] >> 6
+    if prefix == 3:  # 8-byte lengths exceed MLS's 30-bit bound
+        return reject("mls-length-invalid")
+    n = {0: 1, 1: 2, 2: 4}[prefix]
+    if len(b) < 2 + n:
+        return reject("mls-truncated")
+    length = int.from_bytes(b[2:2 + n], "big") & ((1 << (8 * n - 2)) - 1)
+    if (n == 2 and length < 1 << 6) or (n == 4 and length < 1 << 14):
+        return reject("mls-length-non-minimal")
+    data = b[2 + n:2 + n + length]
+    if len(data) < length:
+        return reject("mls-truncated")
+    if len(b) > 2 + n + length:
+        return reject("mls-trailing-bytes")
+    return accept(extension_type=int.from_bytes(b[:2], "big"), data_hex=data.hex())
+
+
+def check_mls_credential(inp: dict, ctx: dict) -> dict:
+    """M§6.2: the DSIP authentication service for an MLS leaf."""
+    from . import envelope as E
+    from .crypto import public_from_did_key
+    cred = inp["credential"]
+    if cred.get("credential_type") != CREDENTIAL_BASIC:
+        return reject("credential-type")
+    try:
+        device = bytes.fromhex(cred["identity_hex"]).decode("utf-8")
+    except (ValueError, UnicodeDecodeError):
+        return reject("credential-identity")
+    import re
+    if not re.match(r"^did:[a-z0-9]+:[A-Za-z0-9.%_:-]+$", device):
+        return reject("credential-identity")
+    exts = [e for e in inp.get("extensions", []) if e["extension_type"] == EXT_DSIP_DELEGATION]
+    if not exts:
+        return reject("delegation-missing")
+    if len(exts) > 1:
+        return reject("delegation-invalid")
+    try:
+        parts = bytes.fromhex(exts[0]["data_hex"]).decode("ascii").split(".")
+    except (ValueError, UnicodeDecodeError):
+        return reject("delegation-invalid")
+    if len(parts) != 3:
+        return reject("delegation-invalid")
+    deleg = {"protected": parts[0], "payload": parts[1], "signature": parts[2]}
+    names = E._names(deleg)
+    if names is None or names[1] != device or not isinstance(names[0], str):
+        return reject("delegation-invalid")
+    v = E.verify_delegation(deleg, names[0], device, E.Context.from_vector(ctx), capability=MESSAGING_CAPABILITY)
+    if not v.ok:
+        return reject(v.code)
+    try:
+        pub = public_from_did_key(device)
+    except Exception:
+        pub = None
+    if pub is None or pub.hex() != inp["signature_key_hex"]:  # M§6.2: leaf key = the device's Ed25519 key
+        return reject("credential-key-mismatch")
+    return accept(identity=names[0], device=device)
+
+
+def check_conversation_bytes(data: bytes) -> dict:
+    """M§6.3: dsip_conversation extension data is UTF-8 JSON under §10.3, then the schema."""
+    try:
+        text = data.decode("utf-8")
+    except UnicodeDecodeError:
+        return reject("payload-not-utf8")
+    try:
+        obj = json.loads(text)
+    except ValueError:
+        return reject("payload-not-json")
+    if not isinstance(obj, dict):
+        return reject("payload-not-json")
+    if has_float(obj):
+        return reject("payload-float")
+    return check_conversation_ext(obj)
+
+
+def seal_aad(inp: dict) -> bytes:
+    """AAD by use: blob none (M§8.4); activity group_id ‖ epoch (M§11.1); archive group_id ‖ seq (M§12.2)."""
+    use = inp["use"]
+    if use == "blob":
+        return b""
+    counter = inp["epoch"] if use == "activity" else inp["seq"]
+    return bytes.fromhex(inp["group_hex"]) + counter.to_bytes(8, "big")
+
+
+def seal(inp: dict) -> dict:
+    from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+    key, nonce = bytes.fromhex(inp["key_hex"]), bytes.fromhex(inp["nonce_hex"])
+    ct = AESGCM(key).encrypt(nonce, bytes.fromhex(inp["plaintext_hex"]), seal_aad(inp) or None)
+    return {"sealed_hex": (nonce + ct).hex()}
+
+
+def open_sealed(inp: dict) -> dict:
+    import hashlib
+    from cryptography.exceptions import InvalidTag
+    from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+    stored = bytes.fromhex(inp["sealed_hex"])
+    if inp["use"] == "blob":  # M§8.4 rule 7: size and hash before decrypting
+        if len(stored) != inp["size"]:
+            return reject("blob-size-mismatch")
+        if hashlib.sha256(stored).hexdigest() != inp["sha256"]:
+            return reject("blob-hash-mismatch")
+    if len(stored) < NONCE_LEN + TAG_LEN:
+        return reject("sealed-too-short")
+    try:
+        pt = AESGCM(bytes.fromhex(inp["key_hex"])).decrypt(stored[:NONCE_LEN], stored[NONCE_LEN:], seal_aad(inp) or None)
+    except InvalidTag:
+        return reject("aead-open-failed")
+    return accept(plaintext_hex=pt.hex())
+
+
+# ---------------------------------------------------------------- discovery (M§4.2, §8.1)
+
+def select_mailbox(inp: dict) -> dict:
+    """M§4.2: the DID document is authoritative; hints serve only identities with no document entry.
+
+    Entries are usable when they satisfy the service schema (wss, bindings, mailbox DID) and
+    advertise `messaging/1.0`. Order is by `priority` (absent = 0), stable within a priority. The
+    selected mailbox is the first usable one that accepts a connection; the owner's devices sync
+    every usable one.
+    """
+    doc, hints = inp.get("document_entries") or [], inp.get("hint_entries") or []
+    source = "did-document" if doc else ("hint" if hints else None)
+    entries = doc or hints                      # §8.1 rule 6: no falling back to hints past a document
+    usable, discarded = [], []
+    for e in entries:
+        if not schema_ok("mailbox-service", e) or MESSAGING_PROFILE not in (e.get("profiles") or []):
+            discarded.append(e.get("uri"))
+        else:
+            usable.append(e)
+    usable.sort(key=lambda e: e.get("priority", 0))   # Python's sort is stable
+    order = [e["mailbox"] for e in usable]
+    reachable = inp.get("reachable")
+    selected = next((m for m in order if reachable is None or m in reachable), None)
+    return {"source": source, "selected": selected, "order": order, "sync_targets": order, "discarded": discarded}
+
+
+def mailbox_switch(inp: dict) -> dict:
+    """M§4.2, M§15.4: an established conversation's mailbox never moves on a hint alone."""
+    established, candidate = inp["established"], inp["candidate"]
+    if candidate["mailbox"] == established["mailbox"]:
+        return {"switch": False, "reason": "unchanged"}
+    if candidate.get("source") != "did-document":
+        return {"switch": False, "reason": "hint-sourced"}
+    return {"switch": True, "reason": "did-document"}
+
+
 # ---------------------------------------------------------------- runner
 
 def run(v: dict) -> dict:
@@ -750,6 +924,22 @@ def run(v: dict) -> dict:
         return check_object(inp["object"], v["context"])
     if check == "conversation-ext":
         return check_conversation_ext(inp["extension"])
+    if check == "mailbox-select":
+        return select_mailbox(inp)
+    if check == "mailbox-switch":
+        return mailbox_switch(inp)
+    if check == "mls-extension-encode":
+        return {"hex": encode_extension(inp["extension_type"], bytes.fromhex(inp["data_hex"])).hex()}
+    if check == "mls-extension-decode":
+        return decode_extension(bytes.fromhex(inp["hex"]))
+    if check == "mls-credential":
+        return check_mls_credential(inp, v["context"])
+    if check == "mls-conversation-bytes":
+        return check_conversation_bytes(bytes.fromhex(inp["data_hex"]))
+    if check == "seal":
+        return seal(inp)
+    if check == "open":
+        return open_sealed(inp)
     if check == "voicemail-offer":
         return voicemail_offer(inp)
     if check == "direct-select":
