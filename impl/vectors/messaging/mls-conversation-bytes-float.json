@@ -1,0 +1,19 @@
+{
+  "vector": "messaging/mls-conversation-bytes-float",
+  "format": 1,
+  "kind": "messaging",
+  "description": "A float anywhere violates §10.3.",
+  "spec_ref": [
+    "M§6.3",
+    "§10.3"
+  ],
+  "context": {},
+  "input": {
+    "check": "mls-conversation-bytes",
+    "data_hex": "7b22636f6e766572736174696f6e223a202230314b3734325347303041583146364856545257425732323752222c20226b696e64223a2022646972656374222c2022687562223a207b22646964223a20226469643a7765623a6d62782e616c6963652e6578616d706c65222c2022757269223a20227773733a2f2f6d62782e616c6963652e6578616d706c652f64736970227d2c2022737563636573736f725f6f66223a206e756c6c2c202276657273696f6e223a20312e357d"
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "payload-float"
+  }
+}

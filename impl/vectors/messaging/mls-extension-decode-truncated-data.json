@@ -1,0 +1,19 @@
+{
+  "vector": "messaging/mls-extension-decode-truncated-data",
+  "format": 1,
+  "kind": "messaging",
+  "description": "Declared length longer than the data.",
+  "spec_ref": [
+    "M§6.2",
+    "M§17"
+  ],
+  "context": {},
+  "input": {
+    "check": "mls-extension-decode",
+    "hex": "f0d105616263"
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "mls-truncated"
+  }
+}

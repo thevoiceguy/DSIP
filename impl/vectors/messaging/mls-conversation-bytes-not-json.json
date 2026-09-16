@@ -1,0 +1,19 @@
+{
+  "vector": "messaging/mls-conversation-bytes-not-json",
+  "format": 1,
+  "kind": "messaging",
+  "description": "Extension data that is not a JSON object.",
+  "spec_ref": [
+    "M§6.3",
+    "§10.3"
+  ],
+  "context": {},
+  "input": {
+    "check": "mls-conversation-bytes",
+    "data_hex": "5b312c325d"
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "payload-not-json"
+  }
+}

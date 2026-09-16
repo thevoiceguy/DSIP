@@ -1,0 +1,20 @@
+{
+  "vector": "messaging/seal-blob",
+  "format": 1,
+  "kind": "messaging",
+  "description": "Blob sealing: AES-256-GCM, empty AAD, stored as nonce ‖ ciphertext ‖ tag.",
+  "spec_ref": [
+    "M§8.4"
+  ],
+  "context": {},
+  "input": {
+    "check": "seal",
+    "use": "blob",
+    "key_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+    "nonce_hex": "6465666768696a6b6c6d6e6f",
+    "plaintext_hex": "4f676753000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "expect": {
+    "sealed_hex": "6465666768696a6b6c6d6e6f077cb93579e9569e3e625fe8da656afd42c2060a8b6cf372a7d1ac48fba3a54894e940c04c129b04fdf3783ffd42cacf1b5b98e7204a4128faf1acd6ef81a58a3b364035633232c25e36d0e15172066e"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "vector": "messaging/mls-extension-encode-1-byte-length",
+  "format": 1,
+  "kind": "messaging",
+  "description": "63 bytes of data take a one-byte length.",
+  "spec_ref": [
+    "M§6.2",
+    "M§6.3",
+    "M§17"
+  ],
+  "context": {},
+  "input": {
+    "check": "mls-extension-encode",
+    "extension_type": 61649,
+    "data_hex": "646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464"
+  },
+  "expect": {
+    "hex": "f0d13f646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464"
+  }
+}

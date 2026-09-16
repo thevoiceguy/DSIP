@@ -1,0 +1,19 @@
+{
+  "vector": "messaging/mls-conversation-bytes-not-utf8",
+  "format": 1,
+  "kind": "messaging",
+  "description": "Extension data that is not UTF-8.",
+  "spec_ref": [
+    "M§6.3",
+    "§10.3"
+  ],
+  "context": {},
+  "input": {
+    "check": "mls-conversation-bytes",
+    "data_hex": "fffe7b7d"
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "payload-not-utf8"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "vector": "messaging/mls-extension-encode-2-byte-length",
+  "format": 1,
+  "kind": "messaging",
+  "description": "64 bytes of data need the two-byte length form (0b01 prefix).",
+  "spec_ref": [
+    "M§6.2",
+    "M§6.3",
+    "M§17"
+  ],
+  "context": {},
+  "input": {
+    "check": "mls-extension-encode",
+    "extension_type": 61649,
+    "data_hex": "64646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464"
+  },
+  "expect": {
+    "hex": "f0d1404064646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464"
+  }
+}

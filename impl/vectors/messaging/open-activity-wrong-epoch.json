@@ -1,0 +1,22 @@
+{
+  "vector": "messaging/open-activity-wrong-epoch",
+  "format": 1,
+  "kind": "messaging",
+  "description": "Activity sealed for epoch 7 does not open as epoch 8: the AAD binds the epoch.",
+  "spec_ref": [
+    "M§11.1"
+  ],
+  "context": {},
+  "input": {
+    "check": "open",
+    "use": "activity",
+    "key_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+    "group_hex": "30314b3734325347303048415a5a434b43313331454330504753",
+    "epoch": 8,
+    "sealed_hex": "6465666768696a6b6c6d6e6f2d629448188a22f7480b2b91f416039a45f48c4d19664607e7d1b4baecbd0760"
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "aead-open-failed"
+  }
+}

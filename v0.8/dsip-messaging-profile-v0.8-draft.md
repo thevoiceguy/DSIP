@@ -512,9 +512,14 @@ MLS delegates "who is this leaf?" to an application-defined authentication servi
 service is the core delegation model (§7.4) plus DID resolution (§8.1):
 
 - The leaf credential is a `basic` credential whose `identity` is the UTF-8 **device DID**.
-- The LeafNode carries extension `dsip_delegation` (private-use extension type until registered;
-  M§17) whose data is the compact DeviceDelegation envelope (§7.4) for that device. Its
-  `capabilities` MUST include `dsip.messaging` (spec-gap 39).
+- The LeafNode carries exactly one extension `dsip_delegation` (type `0xF0D1`, private use until
+  registered; M§17) whose data is the compact DeviceDelegation envelope (§7.4) for that device: the
+  ASCII bytes `protected.payload.signature`. Its `capabilities` MUST include `dsip.messaging`
+  (spec-gap 39). Leaf capabilities list both DSIP extension types and the basic credential, and every
+  group's `RequiredCapabilities` requires them, so a client that cannot carry them cannot join.
+- Authentication checks, in order: credential type `basic`; identity is a UTF-8 DID; exactly one
+  `dsip_delegation`; the delegation is a valid compact envelope naming this device and signed by its
+  subject; it carries `dsip.messaging`; it is live; the leaf signature key is the device's key.
 - The leaf `signature_key` MUST be the device's Ed25519 public key — the key the device DID
   resolves to, or the key the delegation names. One device key thus signs both DSIP envelopes and
   MLS leaf operations; MLS's labelled signatures (`SignWithLabel`) provide the domain separation.
@@ -799,8 +804,8 @@ payload into a blob. Long text is sent as `kind: file`, `content_type: text/plai
 
 Large payloads are encrypted client-side and stored as opaque blobs:
 
-1. The sender generates a fresh 32-byte key and encrypts the payload with AES-256-GCM. The stored
-   ciphertext is `nonce (12 bytes) ‖ ciphertext ‖ tag`. The key is single use.
+1. The sender generates a fresh 32-byte key and encrypts the payload with AES-256-GCM, with no AAD.
+   The stored ciphertext is `nonce (12 bytes) ‖ ciphertext ‖ tag (16 bytes)`. The key is single use.
 2. The sender uploads the ciphertext to its own primary mailbox (`blob-put`, M§5.6).
 3. The content object carries the key:
    `"blob": { "uri": …, "sha256": …, "size": …, "key": "<base64url 32 bytes>", "alg": "A256GCM", "content_type": "audio/ogg; codecs=opus" }`.
@@ -1258,7 +1263,7 @@ Existing tokens used unchanged: `policy.first-contact-required`, `policy.blocked
   - `dsip-mailbox-mode`: `sync`, `queue`
   - `dsip-conversation-kind`: `personal`, `direct`, `group`
 - MLS (IANA "MLS Extension Types"): `dsip_delegation` (LeafNode), `dsip_conversation`
-  (GroupContext). These use private-use codepoints until registered.
+  (GroupContext). Until registered they use the private-use codepoints `0xF0D1` and `0xF0D2`.
 
 Registry-governed values are shape-validated in schemas and membership-checked with the fallbacks
 stated above; none is a closed enum (CLAUDE.md engineering rule).
@@ -1282,8 +1287,12 @@ stated above; none is a closed enum (CLAUDE.md engineering rule).
 **Vectors.** Conformance is pinned by a `messaging/` category, written before code. Tranche 1
 (101 vectors, 2026-09-15, Rust/Python parity) covers message and object rules, hub traces and
 mailbox traces; tranche 2 (46 vectors) covers the voicemail offer, conversation and successor
-convergence, client receipt/watermark/activity traces, and seq-gap handling. MLS encoding vectors
-follow. The full plan:
+convergence, client receipt/watermark/activity traces, and seq-gap handling; tranche 3 (38 vectors)
+covers the MLS layer: extension wire encoding, the leaf authentication service, `dsip_conversation`
+bytes, and the AES-256-GCM formats for blobs, activity and archive. The reference implementation also
+runs the profile end to end on OpenMLS (`impl/crates/dsip-mls`, `tests/e2e.rs`): DSIP device keys as
+MLS signers, a hub validating real commits from public group state, a mailbox, a text message, a
+voicemail blob, activity and archive sealing, and a commit conflict. The full plan:
 
 - payload shapes for every message type and content object
 - mailbox and hub state traces: sequencing, commit conflict, stale epoch, idempotent re-deposit,
