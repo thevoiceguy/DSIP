@@ -1,0 +1,104 @@
+{
+  "vector": "messaging/client-activity-stopped-clears",
+  "format": 1,
+  "kind": "messaging",
+  "description": "stopped clears that activity at once and leaves the sender's other activities.",
+  "spec_ref": [
+    "M§11.2"
+  ],
+  "context": {
+    "component": "client",
+    "me": "did:web:example.com:users:bob",
+    "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+    "now": 1760000000,
+    "member_identities": 2,
+    "policy": {
+      "delivered": true,
+      "read": false,
+      "played": false,
+      "activity": false
+    }
+  },
+  "input": {
+    "check": "client-trace",
+    "steps": [
+      {
+        "event": {
+          "activity_in": {
+            "sender": "did:web:alice.example",
+            "activity": "typing",
+            "state": "active",
+            "expires_at": 1760000010
+          }
+        }
+      },
+      {
+        "event": {
+          "activity_in": {
+            "sender": "did:web:alice.example",
+            "activity": "uploading",
+            "state": "active",
+            "expires_at": 1760000010
+          }
+        }
+      },
+      {
+        "event": {
+          "activity_in": {
+            "sender": "did:web:alice.example",
+            "activity": "typing",
+            "state": "stopped",
+            "expires_at": 1760000010
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [],
+        "state": {
+          "timeline": [],
+          "delivered": {},
+          "played": {},
+          "read_through": {},
+          "activity": {
+            "did:web:alice.example": {
+              "typing": 1760000010
+            }
+          }
+        }
+      },
+      {
+        "emit": [],
+        "state": {
+          "timeline": [],
+          "delivered": {},
+          "played": {},
+          "read_through": {},
+          "activity": {
+            "did:web:alice.example": {
+              "typing": 1760000010,
+              "uploading": 1760000010
+            }
+          }
+        }
+      },
+      {
+        "emit": [],
+        "state": {
+          "timeline": [],
+          "delivered": {},
+          "played": {},
+          "read_through": {},
+          "activity": {
+            "did:web:alice.example": {
+              "uploading": 1760000010
+            }
+          }
+        }
+      }
+    ]
+  }
+}

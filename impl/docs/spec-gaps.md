@@ -473,7 +473,7 @@ codec set. Written up as `v0.8/dsip-rtp-srtp-media-binding-v0.8-draft.md`.
 **Suggested fix.** Adopt the binding draft; align it with the WebRTC binding's descriptor/SDP
 authority rule.
 
-## v0.8 messaging worklist (gaps 31–48)
+## v0.8 messaging worklist (gaps 31–49)
 
 **Status (2026-09-15):** filed with the **DSIP Messaging Profile 1.0** draft
 (`v0.8/dsip-messaging-profile-v0.8-draft.md`, cited M§n). Unlike gaps 1–30, these were not found
@@ -505,6 +505,7 @@ bytes, AES-GCM formats) pins 33 and 39, and `impl/crates/dsip-mls` runs the prof
 | 46 | M§14.2, §19.4 | **pinned** (2026-09-16): a hub-forwarded welcome's adder is proven only by `origin` (a `handshake` deposit, same group, ≤ 300 s); `policy.blocked` for a bad origin | `messaging/mailbox-welcome-hub-forwarded-*` (6), `demos/group-demo.sh` |
 | 47 | M§6.5 | **pinned** (2026-09-16): a device's own fanned-back items are processed by the `accepted` seq (or recognised by their bytes), never decrypted | `messaging/resume-own-item-by-accepted-seq`, `demos/group-demo.sh` |
 | 48 | M§5.6, M§16 | **pinned** (2026-09-16): blob endpoint statuses 401/403/400/413 in check order, idempotent 200 re-upload, 404 GET; new token `mailbox.blob-mismatch` | `messaging/blob-put-*` (10), `messaging/blob-get-*` (2), `demos/messaging-demo.sh` (voicemail) |
+| 49 | M§5.4, M§11.2 | **pinned** (2026-09-16): pushed ephemeral item `{class, group, source, sealed, expires_at}` without cursor; originating `expires_at` carried unchanged and enforced by every hop; receivers clear at it | `messaging/items-ephemeral-*` (3), `messaging/items-stored-class-ephemeral-refused`, `messaging/mailbox-ephemeral-expired-dropped`, `messaging/client-activity-*` (4 receiver traces), `demos/receipts-demo.sh` |
 
 ## 31. §12.9 vs §13.3 / §19.4 — the replay window rejects held envelopes
 
@@ -870,6 +871,29 @@ TLS port beside `ws/1.0`, and its demo checks `401` for an unauthorized `PUT`, `
 and the stored ciphertext for a known one (mutation: accepting an unauthorized upload fails it).
 
 **Suggested fix.** Adopt the M§5.6 table and the `mailbox.blob-mismatch` registry entry now in the draft.
+
+## 49. M§5.4 / M§11.2 — ephemeral activity cannot reach a device
+
+**Gap.** M§11.2 says hubs and mailboxes push `ephemeral` deposits to bound devices, never store them,
+drop them at `expires_at`, and that a receiver clears an indicator at the last refresh's `expires_at`.
+But the only message a mailbox pushes with is `items`, whose items require `cursor` and `stored_at` and
+have no `sealed` field, so a pushed activity cannot be expressed. And because carriage is fresh on every
+hop (M§5.1), each hop signs a new envelope with its own `expires_at`: nothing says whose expiry the
+receiver clears at, and a hop that issues a fresh 10 s lifetime extends the activity at every hop.
+
+**Choices considered.** (a) A second item form for pushes — `{class: ephemeral, group, source, sealed,
+expires_at}`, no cursor — where `expires_at` is the originating deposit's, carried unchanged, never
+extended by any hop (forwarded envelopes expire no later), enforced by each hop and by the receiver.
+(b) Deliver activity in a separate message type: one more type for the same carriage. (c) Receivers clear
+after a fixed 10 s from arrival: stale indicators after queueing delays, and hops can still extend.
+
+**Draft choice.** (a). The item schema is a `oneOf` of the stored and pushed forms; vectors pin the
+schema, a mailbox dropping an expired push, and the receiver's indicator (shown until the refresh's
+expiry, extended by a refresh, cleared by `stopped`, ignored when already expired). The receipts demo
+shows typing clearing at expiry; a hub that extends the lifetime gets its forward refused downstream by
+the 10 s rule and fails the demo.
+
+**Suggested fix.** Adopt the M§5.4 and M§11.2 text now in the draft.
 
 ## Already-flagged (schema README / plan §11)
 

@@ -83,7 +83,8 @@
           ],
           "delivered": {},
           "played": {},
-          "read_through": {}
+          "read_through": {},
+          "activity": {}
         }
       },
       {
@@ -95,7 +96,8 @@
           ],
           "delivered": {},
           "played": {},
-          "read_through": {}
+          "read_through": {},
+          "activity": {}
         }
       },
       {
@@ -117,7 +119,8 @@
           ],
           "delivered": {},
           "played": {},
-          "read_through": {}
+          "read_through": {},
+          "activity": {}
         }
       },
       {
@@ -129,7 +132,8 @@
           ],
           "delivered": {},
           "played": {},
-          "read_through": {}
+          "read_through": {},
+          "activity": {}
         }
       }
     ]

@@ -109,7 +109,8 @@
           "played": {},
           "read_through": {
             "did:web:example.com:users:bob": "01K742SG00MXS791W8S1ZXMFDN"
-          }
+          },
+          "activity": {}
         }
       },
       {
@@ -123,7 +124,8 @@
           "played": {},
           "read_through": {
             "did:web:example.com:users:bob": "01K742SG00MXS791W8S1ZXMFDN"
-          }
+          },
+          "activity": {}
         }
       },
       {
@@ -137,7 +139,8 @@
           "played": {},
           "read_through": {
             "did:web:example.com:users:bob": "01K742SG00MXS791W8S1ZXMFDN"
-          }
+          },
+          "activity": {}
         }
       }
     ]

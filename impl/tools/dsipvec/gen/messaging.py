@@ -137,6 +137,18 @@ def message_vectors():
       msg("items", "items", MBX_B, BPH, in_reply_to=uid("sync"), next=None,
           items=[{"cursor": c(4), "stored_at": NOW, "class": "application", "source": HUB_A, "group": GROUP, "seq": 42, "mls": MLS}]),
       accept())
+    eph = {"class": "ephemeral", "source": HUB_A, "group": GROUP, "sealed": MLS, "expires_at": NOW + 10}
+    m("items-ephemeral-push-valid", "A pushed ephemeral item: sealed activity with the originating expires_at, no cursor.",
+      ["M§5.4", "M§11.2"], msg("items", "itp", MBX_B, BPH, next=None, items=[eph]), accept())
+    m("items-ephemeral-with-cursor-refused", "An ephemeral item is never stored, so it cannot carry a cursor.",
+      ["M§11.2"], msg("items", "itc", MBX_B, BPH, next=None, items=[{**eph, "cursor": c(4)}]), reject("schema-invalid"))
+    m("items-ephemeral-without-expiry-refused", "A pushed ephemeral item must carry the expires_at its receiver clears it at.",
+      ["M§11.2"], msg("items", "ite", MBX_B, BPH, next=None, items=[{k: v for k, v in eph.items() if k != "expires_at"}]),
+      reject("schema-invalid"))
+    m("items-stored-class-ephemeral-refused", "A stored item cannot claim class ephemeral.",
+      ["M§11.2"], msg("items", "its", MBX_B, BPH, next=None,
+                      items=[{"cursor": c(4), "stored_at": NOW, "class": "ephemeral", "source": HUB_A, "group": GROUP}]),
+      reject("schema-invalid"))
     m("accepted-valid", "Hub acceptance with seq.", ["M§5.3"],
       msg("accepted", "acc", HUB_A, APH, in_reply_to=uid("dep"), group=GROUP, seq=42), accept())
     m("key-packages-upload-valid", "KeyPackage upload with a last resort.", ["M§5.5"],
@@ -688,6 +700,16 @@ def mailbox_vectors():
                           [{"items": {"to": BLA, "in_reply_to": uid("s1"), "cursors": [], "next": None}}], ms([], J)),
                          (hubdep("typ", None, cls="ephemeral"), [{"push": {"to": BLA, "class": "ephemeral"}}], ms([], J)),
                      ]))
+    out.append(trace("mailbox-ephemeral-expired-dropped",
+                     "An ephemeral item past the originating deposit's expires_at is dropped, even for a bound device.",
+                     ["M§11.2"], T, mbx_ctx(groups=QJ), [
+                         ({"sync": {"id": uid("s1"), "device": BLA, "since": None, "live": True}},
+                          [{"items": {"to": BLA, "in_reply_to": uid("s1"), "cursors": [], "next": None}}], ms([], J)),
+                         ({"hub_deposit": {**hubdep("typ", None, cls="ephemeral")["hub_deposit"], "expires_at": NOW + 10}},
+                          [{"push": {"to": BLA, "class": "ephemeral"}}], ms([], J)),
+                         ({"advance": 11}, [], ms([], J)),
+                         ({"hub_deposit": {**hubdep("typ2", None, cls="ephemeral")["hub_deposit"], "expires_at": NOW + 10}}, [], ms([], J)),
+                     ]))
     out.append(trace("mailbox-archive-first-wins",
                      "The first archive item per (group, seq) is kept; later ones are acknowledged as duplicates.",
                      ["M§12.2"], T, mbx_ctx(groups=QJ), [
@@ -844,8 +866,9 @@ def cl_ctx(me=BOB, delivered=True, read=False, played=False, activity=False, mem
             "policy": {"delivered": delivered, "read": read, "played": played, "activity": activity}}
 
 
-def cs(timeline=(), delivered=None, played=None, read_through=None):
-    return {"timeline": list(timeline), "delivered": delivered or {}, "played": played or {}, "read_through": read_through or {}}
+def cs(timeline=(), delivered=None, played=None, read_through=None, activity=None):
+    return {"timeline": list(timeline), "delivered": delivered or {}, "played": played or {}, "read_through": read_through or {},
+            "activity": activity or {}}
 
 
 def item(seq, obj):
@@ -984,6 +1007,37 @@ def client_vectors():
     out.append(trace("client-activity-off-by-default", "Activity is not sent without opt-in.", ["M§11.2", "M§10.5"], T,
                      cl_ctx(delivered=False), [
                          (act("typing", "active"), [], cs()),
+                     ]))
+    ain = lambda sender, activity="typing", state="active", exp=NOW + 10: {"activity_in": {"sender": sender, "activity": activity,
+                                                                                      "state": state, "expires_at": exp}}
+    out.append(trace("client-activity-shown-until-expiry",
+                     "A received activity is shown until the expires_at of its last refresh, then cleared with no message.",
+                     ["M§11.2"], T, cl_ctx(), [
+                         (ain(ALICE), [], cs(activity={ALICE: {"typing": NOW + 10}})),
+                         ({"advance": 10}, [], cs(activity={ALICE: {"typing": NOW + 10}})),
+                         ({"advance": 1}, [], cs()),
+                     ]))
+    out.append(trace("client-activity-refresh-extends",
+                     "A refresh before expiry moves the indicator's deadline to the refresh's expires_at.",
+                     ["M§11.2"], T, cl_ctx(), [
+                         (ain(ALICE), [], cs(activity={ALICE: {"typing": NOW + 10}})),
+                         ({"advance": 5}, [], cs(activity={ALICE: {"typing": NOW + 10}})),
+                         (ain(ALICE, exp=NOW + 15), [], cs(activity={ALICE: {"typing": NOW + 15}})),
+                         ({"advance": 8}, [], cs(activity={ALICE: {"typing": NOW + 15}})),
+                         ({"advance": 3}, [], cs()),
+                     ]))
+    out.append(trace("client-activity-stopped-clears",
+                     "stopped clears that activity at once and leaves the sender's other activities.",
+                     ["M§11.2"], T, cl_ctx(), [
+                         (ain(ALICE), [], cs(activity={ALICE: {"typing": NOW + 10}})),
+                         (ain(ALICE, "uploading"), [], cs(activity={ALICE: {"typing": NOW + 10, "uploading": NOW + 10}})),
+                         (ain(ALICE, state="stopped"), [], cs(activity={ALICE: {"uploading": NOW + 10}})),
+                     ]))
+    out.append(trace("client-activity-expired-on-arrival-ignored",
+                     "An activity that arrives after its expires_at is never shown.",
+                     ["M§11.2"], T, cl_ctx(), [
+                         ({"advance": 20}, [], cs()),
+                         (ain(ALICE), [], cs()),
                      ]))
     return out
 

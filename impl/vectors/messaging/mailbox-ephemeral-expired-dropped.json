@@ -1,0 +1,139 @@
+{
+  "vector": "messaging/mailbox-ephemeral-expired-dropped",
+  "format": 1,
+  "kind": "messaging",
+  "description": "An ephemeral item past the originating deposit's expires_at is dropped, even for a bound device.",
+  "spec_ref": [
+    "M§11.2"
+  ],
+  "context": {
+    "component": "mailbox",
+    "mailbox": "did:web:mbx.bob.example",
+    "owner": "did:web:example.com:users:bob",
+    "serves": [
+      "did:web:example.com:users:bob"
+    ],
+    "devices": [
+      "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ",
+      "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+    ],
+    "now": 1760000000,
+    "mode": "sync",
+    "admit": "grant",
+    "pending_group_ttl": 604800,
+    "pending_group_max_items": 2,
+    "groups": {
+      "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M": {
+        "hub": "did:web:mbx.alice.example",
+        "state": "joined"
+      }
+    },
+    "key_packages": {}
+  },
+  "input": {
+    "check": "mailbox-trace",
+    "steps": [
+      {
+        "event": {
+          "sync": {
+            "id": "01K742SG00NPM1814RWZ3GWQZW",
+            "device": "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ",
+            "since": null,
+            "live": true
+          }
+        }
+      },
+      {
+        "event": {
+          "hub_deposit": {
+            "id": "01K742SG00W12Z2980ZP0RS1JP",
+            "from": "did:web:mbx.alice.example",
+            "recipient": "did:web:example.com:users:bob",
+            "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+            "seq": null,
+            "class": "ephemeral",
+            "expires_at": 1760000010
+          }
+        }
+      },
+      {
+        "event": {
+          "advance": 11
+        }
+      },
+      {
+        "event": {
+          "hub_deposit": {
+            "id": "01K742SG00SJTPGHGSBW3DKZGB",
+            "from": "did:web:mbx.alice.example",
+            "recipient": "did:web:example.com:users:bob",
+            "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+            "seq": null,
+            "class": "ephemeral",
+            "expires_at": 1760000010
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "items": {
+              "to": "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ",
+              "in_reply_to": "01K742SG00NPM1814RWZ3GWQZW",
+              "cursors": [],
+              "next": null
+            }
+          }
+        ],
+        "state": {
+          "items": [],
+          "groups": {
+            "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M": "joined"
+          },
+          "key_packages": {}
+        }
+      },
+      {
+        "emit": [
+          {
+            "push": {
+              "to": "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ",
+              "class": "ephemeral"
+            }
+          }
+        ],
+        "state": {
+          "items": [],
+          "groups": {
+            "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M": "joined"
+          },
+          "key_packages": {}
+        }
+      },
+      {
+        "emit": [],
+        "state": {
+          "items": [],
+          "groups": {
+            "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M": "joined"
+          },
+          "key_packages": {}
+        }
+      },
+      {
+        "emit": [],
+        "state": {
+          "items": [],
+          "groups": {
+            "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M": "joined"
+          },
+          "key_packages": {}
+        }
+      }
+    ]
+  }
+}

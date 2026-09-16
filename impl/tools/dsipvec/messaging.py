@@ -435,6 +435,8 @@ class Mailbox:
         if reg is None or reg["hub"] != e["from"]:  # M§6.6
             return self._error(e["from"], e["id"], "mailbox.unknown-group")
         if e["class"] == "ephemeral":  # M§11.2: pushed to bound devices, never stored, never acknowledged
+            if e.get("expires_at") is not None and e["expires_at"] < self.now:
+                return []  # M§11.2: dropped at expires_at (spec-gap 49: the originating deposit's)
             return [{"push": {"to": dv, "class": "ephemeral"}} for dv in sorted(self.bound)]
         if reg["state"] == "pending" and reg["items"] >= self.pending_max:
             return self._error(e["from"], e["id"], "mailbox.quota-exceeded")
@@ -629,6 +631,7 @@ class Client:
         self.last_read_sent: int | None = None
         self.pending_read = False
         self.last_activity: dict[str, int] = {}
+        self.shown: dict[str, dict[str, int]] = {}  # sender -> activity -> expires_at
 
     def step(self, ev: dict) -> list:
         (name, e), = ev.items()
@@ -688,8 +691,23 @@ class Client:
             return []
         return self._read_send()
 
+    def _activity_in(self, e: dict) -> list:
+        # M§11.2: shown until the last refresh's expires_at (spec-gap 49), cleared at once by stopped
+        acts = self.shown.setdefault(e["sender"], {})
+        if e["state"] == "stopped":
+            acts.pop(e["activity"], None)
+        elif e["expires_at"] >= self.now:
+            acts[e["activity"]] = e["expires_at"]
+        if not acts:
+            del self.shown[e["sender"]]
+        return []
+
     def _advance(self, n: int) -> list:
         self.now += n
+        for who in list(self.shown):
+            self.shown[who] = {a: t for a, t in self.shown[who].items() if t >= self.now}
+            if not self.shown[who]:
+                del self.shown[who]
         if self.pending_read and self.now - self.last_read_sent >= READ_MIN_INTERVAL_S:
             return self._read_send()
         return []
@@ -720,7 +738,8 @@ class Client:
         return {"timeline": list(self.timeline),
                 "delivered": {i: dict(m) for i, m in sorted(self.delivered.items()) if m},
                 "played": {i: dict(m) for i, m in sorted(self.played.items()) if m},
-                "read_through": dict(sorted(self.read_through.items()))}
+                "read_through": dict(sorted(self.read_through.items())),
+                "activity": {w: dict(sorted(a.items())) for w, a in sorted(self.shown.items())}}
 
 
 class GapTracker:

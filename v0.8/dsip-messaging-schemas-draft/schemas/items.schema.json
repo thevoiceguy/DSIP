@@ -32,53 +32,89 @@
     "items": {
       "type": "array",
       "items": {
-        "type": "object",
-        "properties": {
-          "cursor": {
-            "$ref": "#/$defs/cursor"
+        "oneOf": [
+          {
+            "description": "A stored item, behind a cursor.",
+            "type": "object",
+            "properties": {
+              "cursor": {
+                "$ref": "#/$defs/cursor"
+              },
+              "stored_at": {
+                "$ref": "#/$defs/timestamp"
+              },
+              "class": {
+                "$ref": "#/$defs/token",
+                "not": {
+                  "const": "ephemeral"
+                }
+              },
+              "source": {
+                "$ref": "#/$defs/did"
+              },
+              "group": {
+                "$ref": "#/$defs/b64url"
+              },
+              "seq": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "mls": {
+                "$ref": "#/$defs/b64url"
+              },
+              "archive": {
+                "$ref": "#/$defs/b64url"
+              },
+              "akid": {
+                "$ref": "#/$defs/ulid"
+              },
+              "hub": {
+                "$ref": "#/$defs/hubRef"
+              },
+              "blobs": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/blobRef"
+                }
+              }
+            },
+            "required": [
+              "cursor",
+              "stored_at",
+              "class",
+              "group"
+            ],
+            "additionalProperties": false
           },
-          "stored_at": {
-            "$ref": "#/$defs/timestamp"
-          },
-          "class": {
-            "$ref": "#/$defs/token"
-          },
-          "source": {
-            "$ref": "#/$defs/did"
-          },
-          "group": {
-            "$ref": "#/$defs/b64url"
-          },
-          "seq": {
-            "type": "integer",
-            "minimum": 1
-          },
-          "mls": {
-            "$ref": "#/$defs/b64url"
-          },
-          "archive": {
-            "$ref": "#/$defs/b64url"
-          },
-          "akid": {
-            "$ref": "#/$defs/ulid"
-          },
-          "hub": {
-            "$ref": "#/$defs/hubRef"
-          },
-          "blobs": {
-            "type": "array",
-            "items": {
-              "$ref": "#/$defs/blobRef"
-            }
+          {
+            "description": "A pushed ephemeral item (M\u00a711.2, spec-gap 49): never stored, so no cursor; expires_at is the originating deposit's, carried unchanged by every hop.",
+            "type": "object",
+            "properties": {
+              "class": {
+                "const": "ephemeral"
+              },
+              "source": {
+                "$ref": "#/$defs/did"
+              },
+              "group": {
+                "$ref": "#/$defs/b64url"
+              },
+              "sealed": {
+                "$ref": "#/$defs/b64url"
+              },
+              "expires_at": {
+                "$ref": "#/$defs/timestamp"
+              }
+            },
+            "required": [
+              "class",
+              "group",
+              "sealed",
+              "expires_at"
+            ],
+            "additionalProperties": false
           }
-        },
-        "required": [
-          "cursor",
-          "stored_at",
-          "class",
-          "group"
-        ],
-        "additionalProperties": false
+        ]
       }
     },
     "next": {
