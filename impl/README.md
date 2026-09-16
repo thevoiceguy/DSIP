@@ -22,7 +22,10 @@ crates/
   dsip-dht      reachability hints over libp2p Kademlia (experimental §8.5); `dsip-dht-node` binary
   dsip-relay    `dsip-relay` binary: wss listener, hello binding, per-leg forking, store-and-forward (§13.3), static page serving
   dsip-cli      `dsip` binary: keygen, sign, verify, vectors run, identity, resolve, call, answer
-demos/          phase1, dht, first-contact, browser (+ browser/), media, store-and-forward, broadcast demos
+  dsip-messaging Messaging Profile 1.0 rules (v0.8 draft): message/object checks, hub and mailbox state machines, client rules, MLS wire layer — pure
+  dsip-mls      the same profile on real MLS (OpenMLS): device keys as leaf signers, dsip_delegation/dsip_conversation, the hub's public view
+  dsip-mailbox  `dsip-mailbox` (mailbox + hub service) and `dsip-msg` (device) binaries: the profile over the wire, with federation between mailboxes
+demos/          phase1, dht, first-contact, browser (+ browser/), media, store-and-forward, broadcast, messaging demos
 docs/           Plan, spec gaps, coverage cross-index, DHT findings + draft hints profile
 ```
 
@@ -84,6 +87,11 @@ dsip call --identity ./carol --ca .relay/cert.pem --to <bob did>     # a held gr
 dsip-relay --intro-limit 5 --intro-window 3600 --inbox-cap 100       # §19.4 rate limits; introductions to unknown/offline identities are queued, never errored
 dsip-relay --offline-retention 86400                                 # §13.3: hold envelopes for known-but-offline recipients until min(expires_at, retention)
 demos/store-and-forward-demo.sh                                      # offline callee rings when it binds; a device binding mid-attempt becomes a leg
+
+# Messaging Profile 1.0 (v0.8 draft) over the wire: two identities, two mailboxes, real MLS
+demos/messaging-demo.sh                                              # Alice's mailbox hubs the group and federates fan-out to Bob's; text arrives live and after a disconnect
+dsip-mailbox --state .mbx-a --listen 127.0.0.1:9451 --owner did:web:alice.example --resolver-file docs/alice.json --resolver-file docs/bob.json --ca ca.pem
+dsip-msg --state .dev-a --identity did:web:alice.example --resolver-file … --ca ca.pem   # stdin: kp / grant <did> / create <did> <grant-file> / send <text> / sync / live / offline / online
 
 # Phase 3: Verified Broadcast (§22) and subscriptions (§9.3) — the relay is the authority for identities bound to it
 demos/broadcast-demo.sh

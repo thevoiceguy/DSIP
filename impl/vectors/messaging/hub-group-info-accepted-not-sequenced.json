@@ -1,10 +1,11 @@
 {
-  "vector": "messaging/hub-fanout-waits-for-ack",
+  "vector": "messaging/hub-group-info-accepted-not-sequenced",
   "format": 1,
   "kind": "messaging",
-  "description": "Fan-out to each mailbox is in seq order: a later item waits until the earlier one is acknowledged.",
+  "description": "The hub keeps each group's latest GroupInfo — what a returning device external-joins from — and forwards it to the members' mailboxes. It is not sequenced and does not advance the epoch.",
   "spec_ref": [
-    "M§6.5"
+    "M§6.5",
+    "M§6.8"
   ],
   "context": {
     "component": "hub",
@@ -29,48 +30,36 @@
       {
         "event": {
           "deposit": {
-            "id": "01K742SG00G687MHBKVSG7M9EP",
+            "id": "01K742SG0084BPVDM46FKADFMZ",
             "device": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
             "identity": "did:web:alice.example",
-            "class": "application",
+            "class": "group-info",
             "epoch": 1,
-            "digest": "f1"
-          }
-        }
-      },
-      {
-        "event": {
-          "ack": {
-            "identity": "did:web:alice.example",
-            "seq": 1
+            "digest": "gi1"
           }
         }
       },
       {
         "event": {
           "deposit": {
-            "id": "01K742SG006E43N5VA759CVATA",
+            "id": "01K742SG003HQF07MCAJNKTTQS",
+            "device": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+            "identity": "did:web:alice.example",
+            "class": "group-info",
+            "epoch": 1,
+            "digest": "gi2"
+          }
+        }
+      },
+      {
+        "event": {
+          "deposit": {
+            "id": "01K742SG00VD6RG3ANPVBWAGTY",
             "device": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
             "identity": "did:web:alice.example",
             "class": "application",
             "epoch": 1,
-            "digest": "f2"
-          }
-        }
-      },
-      {
-        "event": {
-          "ack": {
-            "identity": "did:web:example.com:users:bob",
-            "seq": 2
-          }
-        }
-      },
-      {
-        "event": {
-          "ack": {
-            "identity": "did:web:example.com:users:bob",
-            "seq": 1
+            "digest": "a1"
           }
         }
       }
@@ -83,7 +72,81 @@
           {
             "accepted": {
               "to": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
-              "in_reply_to": "01K742SG00G687MHBKVSG7M9EP",
+              "in_reply_to": "01K742SG0084BPVDM46FKADFMZ"
+            }
+          },
+          {
+            "fanout": {
+              "to": "did:web:alice.example",
+              "class": "group-info"
+            }
+          },
+          {
+            "fanout": {
+              "to": "did:web:example.com:users:bob",
+              "class": "group-info"
+            }
+          }
+        ],
+        "state": {
+          "epoch": 1,
+          "next_seq": 1,
+          "roster": {
+            "did:web:alice.example": [
+              "did:key:z6MkfhenvjQ7awdpVWzPaeBuPkXCBLwzJKyosCrTL3huMb66",
+              "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu"
+            ],
+            "did:web:example.com:users:bob": [
+              "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+            ]
+          },
+          "pending": {},
+          "group_info": true
+        }
+      },
+      {
+        "emit": [
+          {
+            "accepted": {
+              "to": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+              "in_reply_to": "01K742SG003HQF07MCAJNKTTQS"
+            }
+          },
+          {
+            "fanout": {
+              "to": "did:web:alice.example",
+              "class": "group-info"
+            }
+          },
+          {
+            "fanout": {
+              "to": "did:web:example.com:users:bob",
+              "class": "group-info"
+            }
+          }
+        ],
+        "state": {
+          "epoch": 1,
+          "next_seq": 1,
+          "roster": {
+            "did:web:alice.example": [
+              "did:key:z6MkfhenvjQ7awdpVWzPaeBuPkXCBLwzJKyosCrTL3huMb66",
+              "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu"
+            ],
+            "did:web:example.com:users:bob": [
+              "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+            ]
+          },
+          "pending": {},
+          "group_info": true
+        }
+      },
+      {
+        "emit": [
+          {
+            "accepted": {
+              "to": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+              "in_reply_to": "01K742SG00VD6RG3ANPVBWAGTY",
               "seq": 1
             }
           },
@@ -122,129 +185,7 @@
               1
             ]
           },
-          "group_info": false
-        }
-      },
-      {
-        "emit": [],
-        "state": {
-          "epoch": 1,
-          "next_seq": 2,
-          "roster": {
-            "did:web:alice.example": [
-              "did:key:z6MkfhenvjQ7awdpVWzPaeBuPkXCBLwzJKyosCrTL3huMb66",
-              "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu"
-            ],
-            "did:web:example.com:users:bob": [
-              "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
-            ]
-          },
-          "pending": {
-            "did:web:example.com:users:bob": [
-              1
-            ]
-          },
-          "group_info": false
-        }
-      },
-      {
-        "emit": [
-          {
-            "accepted": {
-              "to": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
-              "in_reply_to": "01K742SG006E43N5VA759CVATA",
-              "seq": 2
-            }
-          },
-          {
-            "fanout": {
-              "to": "did:web:alice.example",
-              "seq": 2,
-              "class": "application"
-            }
-          }
-        ],
-        "state": {
-          "epoch": 1,
-          "next_seq": 3,
-          "roster": {
-            "did:web:alice.example": [
-              "did:key:z6MkfhenvjQ7awdpVWzPaeBuPkXCBLwzJKyosCrTL3huMb66",
-              "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu"
-            ],
-            "did:web:example.com:users:bob": [
-              "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
-            ]
-          },
-          "pending": {
-            "did:web:alice.example": [
-              2
-            ],
-            "did:web:example.com:users:bob": [
-              1,
-              2
-            ]
-          },
-          "group_info": false
-        }
-      },
-      {
-        "emit": [],
-        "state": {
-          "epoch": 1,
-          "next_seq": 3,
-          "roster": {
-            "did:web:alice.example": [
-              "did:key:z6MkfhenvjQ7awdpVWzPaeBuPkXCBLwzJKyosCrTL3huMb66",
-              "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu"
-            ],
-            "did:web:example.com:users:bob": [
-              "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
-            ]
-          },
-          "pending": {
-            "did:web:alice.example": [
-              2
-            ],
-            "did:web:example.com:users:bob": [
-              1,
-              2
-            ]
-          },
-          "group_info": false
-        }
-      },
-      {
-        "emit": [
-          {
-            "fanout": {
-              "to": "did:web:example.com:users:bob",
-              "seq": 2,
-              "class": "application"
-            }
-          }
-        ],
-        "state": {
-          "epoch": 1,
-          "next_seq": 3,
-          "roster": {
-            "did:web:alice.example": [
-              "did:key:z6MkfhenvjQ7awdpVWzPaeBuPkXCBLwzJKyosCrTL3huMb66",
-              "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu"
-            ],
-            "did:web:example.com:users:bob": [
-              "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
-            ]
-          },
-          "pending": {
-            "did:web:alice.example": [
-              2
-            ],
-            "did:web:example.com:users:bob": [
-              2
-            ]
-          },
-          "group_info": false
+          "group_info": true
         }
       }
     ]

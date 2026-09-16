@@ -1,11 +1,10 @@
 {
-  "vector": "messaging/hub-unsupported-class-refused",
+  "vector": "messaging/hub-group-info-from-non-member-refused",
   "format": 1,
   "kind": "messaging",
-  "description": "A hub stores no history: an archive deposit is refused.",
+  "description": "Only a member may publish the group's GroupInfo.",
   "spec_ref": [
-    "M§6.5",
-    "M§5.2"
+    "M§6.5"
   ],
   "context": {
     "component": "hub",
@@ -30,11 +29,12 @@
       {
         "event": {
           "deposit": {
-            "id": "01K742SG00XJH9VZ0NW4SMWS4P",
-            "device": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
-            "identity": "did:web:alice.example",
-            "class": "archive",
-            "digest": "arch"
+            "id": "01K742SG007QAHYHWJ8HZC0PS0",
+            "device": "did:key:z6MkrQ4CKj5x3MGbqmYBbfSXyh865wpvDStxi3HeGvfyJw8H",
+            "identity": "did:web:mallory.example",
+            "class": "group-info",
+            "epoch": 1,
+            "digest": "gi-m"
           }
         }
       }
@@ -46,9 +46,9 @@
         "emit": [
           {
             "error": {
-              "to": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
-              "in_reply_to": "01K742SG00XJH9VZ0NW4SMWS4P",
-              "reason": "mailbox.unsupported-class"
+              "to": "did:key:z6MkrQ4CKj5x3MGbqmYBbfSXyh865wpvDStxi3HeGvfyJw8H",
+              "in_reply_to": "01K742SG007QAHYHWJ8HZC0PS0",
+              "reason": "policy.blocked"
             }
           }
         ],

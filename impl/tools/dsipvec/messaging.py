@@ -225,6 +225,7 @@ class Hub:
         self.digests: dict[str, int] = {}
         self.seq_class: dict[int, str] = {}
         self.pending: dict[str, list[int]] = {}
+        self.group_info = False
 
     def step(self, ev: dict) -> list:
         if "advance" in ev:
@@ -240,8 +241,17 @@ class Hub:
 
     def _deposit(self, d: dict) -> list:
         cls, ident = d["class"], d["identity"]
-        if cls not in ("handshake", "application", "ephemeral"):
+        if cls not in ("handshake", "application", "ephemeral", "group-info"):
             return self._error(d, "mailbox.unsupported-class")
+        if cls == "group-info":
+            # M§6.5 rule 6 / M§6.8: the hub keeps the latest GroupInfo so a returning device can
+            # external-join, and forwards it to the members' mailboxes. Never sequenced.
+            if ident not in self.roster:
+                return self._error(d, "policy.blocked")
+            self.group_info = True
+            return [{"accepted": {"to": d["device"], "in_reply_to": d["id"]}}] + [
+                {"fanout": {"to": i, "class": "group-info"}} for i in sorted(self.roster)
+            ]
         if cls == "ephemeral":  # M§11.2: never sequenced or stored; dropped once expired
             if d["expires_at"] < self.now:
                 return []
@@ -324,7 +334,8 @@ class Hub:
     def snapshot(self) -> dict:
         return {"epoch": self.epoch, "next_seq": self.next_seq,
                 "roster": {i: sorted(d) for i, d in sorted(self.roster.items())},
-                "pending": {i: list(q) for i, q in sorted(self.pending.items()) if q}}
+                "pending": {i: list(q) for i, q in sorted(self.pending.items()) if q},
+                "group_info": self.group_info}
 
 
 # ---------------------------------------------------------------- mailbox (M§4.4, M§5, M§6.6, M§12.2, M§14.2)
@@ -374,6 +385,8 @@ class Mailbox:
                 and grant.get("valid_until", 0) > self.now and grant.get("id") not in self.revoked)
 
     def _store(self, cls: str, group: str, **extra) -> tuple[str, list]:
+        if cls == "group-info":  # M§5.2: latest per group only
+            self.items = [it for it in self.items if not (it["group"] == group and it["class"] == "group-info")]
         self.counter += 1
         c = cursor(self.counter)
         self.items.append({"cursor": c, "n": self.counter, "class": cls, "group": group, **extra})
