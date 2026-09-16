@@ -473,7 +473,7 @@ codec set. Written up as `v0.8/dsip-rtp-srtp-media-binding-v0.8-draft.md`.
 **Suggested fix.** Adopt the binding draft; align it with the WebRTC binding's descriptor/SDP
 authority rule.
 
-## v0.8 messaging worklist (gaps 31–56)
+## v0.8 messaging worklist (gaps 31–57)
 
 **Status (2026-09-15):** filed with the **DSIP Messaging Profile 1.0** draft
 (`v0.8/dsip-messaging-profile-v0.8-draft.md`, cited M§n). Unlike gaps 1–30, these were not found
@@ -513,6 +513,7 @@ bytes, AES-GCM formats) pins 33 and 39, and `impl/crates/dsip-mls` runs the prof
 | 54 | M§14.1, §19.4, M§5.2 | **pinned** (2026-09-17): introductions and grants as mailbox deposits (`envelope`, `recipient`, no group); §19.4 relay rules at the mailbox | `messaging/deposit-introduction-*`, `messaging/deposit-grant-valid`, `messaging/mailbox-introduction-*` (5), `messaging/mailbox-grant-stored-for-owner`, `demos/messaging-first-contact-demo.sh` |
 | 55 | M§6.9, §7 | **pinned** (2026-09-17): did:key-style derivation of the X25519 key agreement key; did:web provisioning is deployment-defined | `messaging/x25519-key-agreement-from-ed25519`, `messaging/sealed-introduction-*` (10), `messaging/hpke-*` (4) |
 | 56 | §7.4, §24.2 | **open** — for the v0.8 core revision: core binds every envelope under `dsip.signaling`, so a device delegated only `dsip.messaging` cannot sign an introduction or grant | `dsip-mailbox` `verify::tests` (pins today's refusal) |
+| 57 | §7.4, §8.1, M§4.3, M§5.7, M§12.4 | **pinned for v0.8 core** (2026-09-17): `delegation-revocation` record (subject-signed, covers delegations issued ≤ `revoked_at`), found in the DID document or any verifier store; `delegation-revoked`; mailbox closes the binding | `messaging/revocation-*` (13), `messaging/mailbox-revoked-device-closed-and-forgotten`, `demos/revocation-demo.sh` |
 
 ## 31. §12.9 vs §13.3 / §19.4 — the replay window rejects held envelopes
 
@@ -1038,6 +1039,41 @@ first-contact messages: puts the controller key on every device.
 
 **Suggested fix.** Decide in the v0.8 core revision, together with the delegation-capability registry of
 spec-gap 39.
+
+## 57. §7.4 — a device delegation cannot be revoked
+
+**Gap.** Core §7.4 verifies a delegation by signature, subject key, capability and its own
+`issued_at ≤ now < expires_at`. Nothing revokes one before it expires, and a device presents its own delegation
+in every envelope header. Key rotation (§7.5) invalidates delegations only by retiring the identity key that
+signed them, which takes every device down with it. The Messaging Profile's M§4.3 and M§12.4 assumed that a
+lost device "stops being served at its next hello because its delegation no longer verifies" — it keeps
+verifying for its full lifetime (a year in the PoC). The multidevice demo showed it: a removed laptop still
+connected to its identity's mailbox.
+
+**Choices considered.** (a) A `delegation-revocation` record signed directly by a key of the subject, covering
+the device's delegations issued at or before `revoked_at` (so the device can be re-enrolled with a later one),
+published in the subject's DID document (authoritative, §8.1) and honored from any other source too, because
+it can only remove authority. (b) Short-lived delegations renewed continually: puts the identity key online for
+every renewal and still leaves a window. (c) Delegations valid only while listed in the DID document: every
+verifier needs a fresh document for every device, and `did:key` identities cannot list anything. (d) Rotate the
+identity key: revokes all devices at once.
+
+**Draft choice.** (a). Verification adds `delegation-revoked` after capability and expiry. A mailbox accepts
+revocations from its owner in `mailbox-config.revoked_delegations`, keeps them for every later verification,
+closes the device's live binding, and forgets its registration and KeyPackages. Vectors pin revocation in the
+document and in a store, the `revoked_at` boundary, re-enrollment, other devices unaffected, revocations signed
+by anyone other than the subject (including the device itself) ignored, the binding every envelope passes, the
+record shape, and the mailbox's reaction. The revocation demo: the laptop is disconnected at once, refused by
+its own and by Alice's mailbox (which reads Bob's document), removable by Alice only after revocation (M§7.3),
+and removed by Bob's phone with the archive key rotated; it fails if verifiers ignore revocations, if the mailbox
+keeps the binding, or if a member may remove a leaf that still verifies.
+
+**`did:key` identities** have no document: their revocations reach verifiers only by distribution (their own
+mailbox in the PoC). The v0.8 core should say where else they are carried.
+
+**Suggested fix.** Add `delegation-revocation` as a core message type and verification stage in the v0.8 core
+(§7.4), with the `dsipDelegationRevocations` document property; adopt the M§4.3, M§5.7 and M§12.4 text now in
+the draft. The record schema is staged in `v0.8/dsip-messaging-schemas-draft/` until the core schema set moves.
 
 ## Already-flagged (schema README / plan §11)
 

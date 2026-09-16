@@ -259,6 +259,20 @@ MESSAGES["introduction"] = envelope_payload("introduction", {
     },
 }, ["identity"], "First-contact request (core §19.4) as the Messaging Profile carries it: purpose may be sealed to the recipient with HPKE (M§6.9, M§14.1).")
 
+# spec-gap 57 (v0.8 core candidate, staged here): revoking a device delegation. Signed directly by a key of the
+# subject; revokes the device's delegations issued at or before revoked_at. Published in the subject's DID document
+# (dsipDelegationRevocations) and carried in mailbox-config.revoked_delegations.
+MESSAGES["delegation-revocation"] = envelope_payload("delegation-revocation", {
+    "subject": {"$ref": "#/$defs/did"},
+    "device": {"$ref": "#/$defs/did"},
+    "revoked_at": {"$ref": "#/$defs/timestamp"},
+    "reason": {"$ref": "#/$defs/token"},
+}, ["subject", "device", "revoked_at", "reason"], "Revokes a device delegation (spec-gap 57): from = subject, signed by a subject key.")
+MESSAGES["delegation-revocation"]["required"].remove("to")
+MESSAGES["mailbox-config"]["properties"]["revoked_delegations"] = {
+    "type": "array", "items": {"type": "string", "minLength": 1},
+    "description": "Compact delegation-revocation records from the owner identity (spec-gap 57)."}
+
 OBJECTS = {
     "content": content_object("content", {
         "id": {"$ref": "#/$defs/ulid"},

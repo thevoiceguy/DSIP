@@ -1,15 +1,15 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://dsip.org/schema/messaging/1.0/mailbox-config.schema.json",
-  "title": "DSIP messaging/1.0 mailbox-config payload",
-  "description": "Owner device configures its own mailbox (M\u00a75.7).",
+  "$id": "https://dsip.org/schema/messaging/1.0/delegation-revocation.schema.json",
+  "title": "DSIP messaging/1.0 delegation-revocation payload",
+  "description": "Revokes a device delegation (spec-gap 57): from = subject, signed by a subject key.",
   "type": "object",
   "properties": {
     "dsip": {
       "$ref": "#/$defs/versionBlock"
     },
     "type": {
-      "const": "mailbox-config"
+      "const": "delegation-revocation"
     },
     "id": {
       "$ref": "#/$defs/ulid"
@@ -29,57 +29,14 @@
     "subject": {
       "$ref": "#/$defs/did"
     },
-    "mode": {
+    "device": {
+      "$ref": "#/$defs/did"
+    },
+    "revoked_at": {
+      "$ref": "#/$defs/timestamp"
+    },
+    "reason": {
       "$ref": "#/$defs/token"
-    },
-    "retention_s": {
-      "type": "integer",
-      "minimum": 0
-    },
-    "admit": {
-      "enum": [
-        "grant",
-        "open"
-      ]
-    },
-    "groups": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "properties": {
-          "group": {
-            "$ref": "#/$defs/b64url"
-          },
-          "hub": {
-            "$ref": "#/$defs/did"
-          },
-          "state": {
-            "enum": [
-              "joined",
-              "left"
-            ]
-          }
-        },
-        "required": [
-          "group",
-          "state"
-        ],
-        "additionalProperties": false
-      }
-    },
-    "revoked_grants": {
-      "type": "array",
-      "items": {
-        "$ref": "#/$defs/ulid"
-      }
-    },
-    "revoked_delegations": {
-      "type": "array",
-      "items": {
-        "type": "string",
-        "minLength": 1
-      },
-      "description": "Compact delegation-revocation records from the owner identity (spec-gap 57)."
     }
   },
   "required": [
@@ -87,10 +44,12 @@
     "type",
     "id",
     "from",
-    "to",
     "issued_at",
     "expires_at",
-    "subject"
+    "subject",
+    "device",
+    "revoked_at",
+    "reason"
   ],
   "additionalProperties": false,
   "$defs": {
