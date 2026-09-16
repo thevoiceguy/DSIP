@@ -1,0 +1,48 @@
+{
+  "vector": "semantic/reason-mailbox-unknown-condition",
+  "format": 1,
+  "kind": "semantic",
+  "description": "An unregistered mailbox condition falls back by category, not to session.failed.",
+  "spec_ref": [
+    "§15.1",
+    "§15.3"
+  ],
+  "context": {
+    "now": 1760000000,
+    "supported": {
+      "core": "1.0",
+      "profiles": [
+        "interactive-media/1.0",
+        "verified-broadcast/1.0"
+      ],
+      "extensions": []
+    }
+  },
+  "input": {
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "interactive-media/1.0"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "error",
+      "id": "01K742SG0074QPH1VG3B6KVTMB",
+      "from": "did:web:mbx.example.com",
+      "to": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+      "reason": "mailbox.archive-full",
+      "issued_at": 1760000005,
+      "expires_at": 1760000035
+    }
+  },
+  "expect": {
+    "verdict": "accept",
+    "effective": {
+      "reason": "mailbox.archive-full",
+      "fallback": "category"
+    }
+  }
+}

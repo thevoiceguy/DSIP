@@ -1,23 +1,23 @@
-# DSIP v0.8 — staging (drafts)
+# DSIP v0.8 — assembled (draft)
 
-v0.7 (`../v0.7/`) is the current published revision (tag `poc-v0.7`). This folder stages v0.8
-material as it is drafted, the same way `v0.7/` staged its companions before `poc-v0.7`. Nothing
-here is released; v0.7 is frozen.
+v0.8 is the current revision. `dsip_v_0_8_decentralized_session_initiation_protocol.md` states what the core says
+differently from v0.7 (Appendix A.5): the dispositions of spec-gaps 23–57 that touch the core, and the companion
+documents below. v0.7 (`../v0.7/`, tag `poc-v0.7`) is frozen. The PoC is tagged `poc-v0.8` once both vector
+runners are green on this revision. No wire-format change: `dsip.core` stays `1.0`.
 
-Contents:
+| document | what | status | conformance |
+|---|---|---|---|
+| `dsip_v_0_8_decentralized_session_initiation_protocol.md` | DSIP core | draft v0.8 | the core categories of `impl/vectors/` |
+| `dsip-schemas-v0.8-draft/` | Core JSON Schema set v0.8 (adds `introduction.sealed`, `delegation-revocation`, hint `endpoints[].service`) | generated from `generate_schemas.py`; 47 samples | `payload/`, `semantic/` |
+| `dsip-webrtc-media-binding-v0.8.md` | WebRTC Media Binding 1.0 (`transport:webrtc`), unchanged from v0.7 | normative | `media-binding/` (42) |
+| `dsip-gateway-profile-v0.8.md` | Gateway Profile 1.0 — DSIP ↔ SIP/PSTN | normative | `gateway/` (55) |
+| `dsip-messaging-profile-v0.8.md` | Messaging Profile 1.0 and Mailbox 1.0 (`messaging/1.0`) — mailboxes, MLS end-to-end encryption with per-group hubs, groups, multi-device history, receipts, activity, voicemail, blobs, first contact | normative | `messaging/` (296) and the wire demos in `impl/demos/` |
+| `dsip-messaging-schemas-draft/` | The Messaging Profile's schema set (profile messages and content objects) | generated from `generate_schemas.py` | `messaging/` |
+| `dsip-rtp-srtp-media-binding-v0.8-draft.md` | RTP/SRTP Media Binding (`transport:rtp`) | draft (no binding implementation yet) | SDP mapping in `gateway/` |
+| `dsip-dht-hints-profile-v0.8-draft.md` | DHT Reachability Hints Profile (`dht-hints/0.1`), with `endpoints[].service` | draft | `dht/` (12) |
 
-| document | what | conformance |
-|---|---|---|
-| `dsip-gateway-profile-v0.8-draft.md` | DSIP↔SIP/PSTN Gateway Profile 1.0 — identity, controller state machine, reason mapping both ways, PSTN caller claims, downgrade rule, early media, DTMF | `impl/vectors/gateway/` (53 vectors, Rust/Python parity) |
-| `dsip-rtp-srtp-media-binding-v0.8-draft.md` | RTP/SRTP Media Binding 1.0 (`transport:rtp`) — SDES/DTLS keying, encryption floor + plain-RTP exception, codec mapping, DTMF | G§6 SDP-mapping vectors; a `media-binding-rtp/` category follows when the binding lands in code |
-| `dsip-messaging-profile-v0.8-draft.md` | DSIP Messaging Profile 1.0 (`messaging/1.0`) — unified mailbox (text, voice/video messages, voicemail, files), MLS end-to-end encryption with per-group hubs, groups, multi-device SYNC history via an archive key, receipts, ephemeral activity, first contact via `introduction`/`grant` | none yet — written **before** implementation; a `messaging/` vector category pins it next (spec-gaps 31–43) |
+The spec-gap dispositions are in `../impl/docs/spec-gaps.md` (worklists for gaps 23–30 and 31–57). Spec-gap 26
+(DTMF carriage) stays open for a later revision.
 
-The gateway and RTP/SRTP documents are transcribed from the reference gateway (`impl/crates/dsip-gateway`), whose tables and
-controller are already vector-pinned — the same "write the spec from the implementation" method as
-the WebRTC Media Binding (v0.7).
-
-**Core additions these companions imply for a v0.8 core revision** (filed as gateway spec-gaps
-23–30 in `impl/docs/spec-gaps.md`): the Gateway Profile and RTP/SRTP binding as named conformance
-pieces (§24.4), a `tel` claim-types registry entry, DTMF carriage, `gateway.downgraded` trigger
-conditions, the early-media rule, the single-contact-vs-forking decision, and the
-`Reason: DSIP;text=` convention on SIP crossings.
+Rule 7 of `CLAUDE.md` applied: every v0.8 behavioural change landed as a vector change first, then code, and
+`poc-v0.8` is tagged only when both runners are green on the v0.8 suite (737 vectors).

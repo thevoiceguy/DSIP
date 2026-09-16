@@ -1,4 +1,4 @@
-"""JSON Schema validation against the canonical v0.7 schema set (spec §10.3).
+"""JSON Schema validation against the canonical v0.8 schema set (spec §10.3).
 
 Schemas are loaded from the spec folder — never copied — so this harness and
 `dsip-schema` (which embeds the same files at build time) validate against one
@@ -15,7 +15,7 @@ from jsonschema import Draft202012Validator
 from .registry import MESSAGE_TYPES
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-SCHEMA_DIR = REPO_ROOT / "v0.7" / "dsip-schemas-v0.7-draft" / "dsip-schemas" / "schemas"
+SCHEMA_DIR = REPO_ROOT / "v0.8" / "dsip-schemas-v0.8-draft" / "dsip-schemas" / "schemas"
 
 # `info.data` shapes by `about` (§12.12): validated for bindings this harness implements, ignored otherwise.
 BINDING_DATA_SCHEMAS = {"transport:webrtc": "webrtc-info-data"}

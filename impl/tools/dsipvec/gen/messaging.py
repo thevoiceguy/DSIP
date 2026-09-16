@@ -1811,50 +1811,9 @@ def revocation_vectors():
              "issued_at": revoked_at, "expires_at": revoked_at + 300}
         return E.sign(p, signer or bob_key, kid or F.web_kid(F.BOB_WEB))
 
+    # The record, its verification stage and the binding it affects are core v0.8 (§7.4): envelope/delegation-revoked-*,
+    # payload/delegation-revocation-*, semantic/delegation-revocation-*. What stays here is the mailbox's reaction.
     R = ["§7.4", "M§12.4", "M§4.3"]
-    def dv(vid, desc, delegation, device, expect, doc_revocations=None, held=None, now=NOW, capability="dsip.messaging"):
-        docs = F.did_documents()
-        if doc_revocations is not None:
-            docs[F.BOB_WEB] = {**docs[F.BOB_WEB], "dsipDelegationRevocations": [compact(r) for r in doc_revocations]}
-        ctx = default_context(did_documents=docs, revocations=held or [], now=now)
-        out.append(mv(f"revocation-{vid}", desc, R, {"check": "delegation", "delegation": delegation, "subject": F.BOB_WEB,
-                                                   "device": device, "capability": capability}, expect, ctx=ctx))
-
-    dv("in-document-revokes", "A revocation published in the subject's DID document revokes the device's delegation (authoritative, §8.1).",
-       deleg(BLA), BLA, reject("delegation-revoked"), doc_revocations=[revocation()])
-    dv("held-by-verifier-revokes", "A validly signed revocation the verifier holds revokes too: it can only remove authority.",
-       deleg(BLA), BLA, reject("delegation-revoked"), held=[revocation()])
-    dv("without-revocation-valid", "The same delegation with no revocation in sight is valid.", deleg(BLA), BLA, accept())
-    dv("covers-delegation-issued-at-revoked-at", "A delegation issued exactly at revoked_at is revoked.",
-       deleg(BLA, ia=NOW - 60), BLA, reject("delegation-revoked"), held=[revocation(revoked_at=NOW - 60)])
-    dv("reenrolled-after-revocation", "A delegation issued after revoked_at re-enrolls the device.",
-       deleg(BLA, ia=NOW - 30), BLA, accept(), held=[revocation(revoked_at=NOW - 60)])
-    dv("other-device-unaffected", "A revocation names one device; the identity's other devices keep their delegations.",
-       deleg(BPH), BPH, accept(), held=[revocation(device=BLA)])
-    dv("not-signed-by-subject-ignored", "A revocation signed by anyone but a key of the subject is ignored (the revoked device cannot keep "
-       "others out, and nobody else can revoke).", deleg(BPH), BPH, accept(),
-       held=[revocation(device=BPH, signer=F.KEYS["mallory"], kid=F.KEYS["mallory"].kid)])
-    dv("signed-by-device-itself-ignored", "Nor may a device revoke itself or a sibling with its own key.", deleg(BPH), BPH, accept(),
-       held=[revocation(device=BPH, signer=F.KEYS["bob-laptop"], kid=F.KEYS["bob-laptop"].kid)])
-    dv("revokes-signaling-too", "Revocation is of the delegation, whatever capability is asked for.",
-       deleg(BLA), BLA, reject("delegation-revoked"), held=[revocation()], capability="dsip.signaling")
-
-    # the binding every envelope goes through (hello included): a revoked device can no longer act for the identity
-    docs = F.did_documents()
-    docs[F.BOB_WEB] = {**docs[F.BOB_WEB], "dsipDelegationRevocations": [compact(revocation())]}
-    out.append(mv("revocation-binding-refused", "A device whose delegation is revoked cannot bind to the identity: its hello, and every "
-                  "envelope it signs for the identity, is refused (M§4.3: the mailbox stops serving it at its next hello).",
-                  R + ["§13.2"], {"check": "binding", "subject": F.BOB_WEB, "device": BLA, "presented": [deleg(BLA)]},
-                  reject("delegation-revoked"), ctx=default_context(did_documents=docs)))
-
-    rr = lambda vid, desc, payload, expect: out.append(mv(f"revocation-record-{vid}", desc, R, {"check": "revocation-record", "payload": payload}, expect))
-    good = E._payload(revocation()) if hasattr(E, "_payload") else json.loads(__import__("base64").urlsafe_b64decode(revocation()["payload"] + "=="))
-    rr("valid", "The record names subject, device, revoked_at and reason; from is the subject.", good, accept())
-    rr("from-not-subject", "Only the identity revokes its own devices' delegations.", {**good, "from": F.did("bob-phone")},
-       reject("revocation-from-not-subject"))
-    rr("missing-revoked-at", "revoked_at is what makes re-enrollment possible; it is required.",
-       {k: v for k, v in good.items() if k != "revoked_at"}, reject("schema-invalid"))
-
     T = "mailbox-trace"
     out.append(trace("mailbox-revoked-device-closed-and-forgotten",
                      "An owner device's mailbox-config carrying a revocation closes the revoked device's live binding now, drops it "

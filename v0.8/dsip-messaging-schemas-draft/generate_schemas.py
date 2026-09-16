@@ -2,7 +2,7 @@
 """
 DSIP Messaging Profile 1.0 JSON Schema generator (draft 2020-12).
 
-Profile schema set for `v0.8/dsip-messaging-profile-v0.8-draft.md` (cited M§n):
+Profile schema set for `v0.8/dsip-messaging-profile-v0.8.md` (cited M§n):
 the eight profile message payloads (M§5) and the content objects carried inside MLS
 application messages (M§8, M§10, M§11, M§12, M§13), plus the `dsip_conversation`
 GroupContext extension (M§6.3).
@@ -245,30 +245,7 @@ BLOB_CONTENT = {
 
 group_unless_first_contact(MESSAGES["deposit"], ["recipient", "envelope"])
 
-# M§14.1 (spec-gap 36): the core §19.4 introduction with `purpose` optionally replaced by `sealed`. Staged here until
-# the v0.8 core schema set carries it; "not both" is a semantic check (introduction-purpose-and-sealed).
-MESSAGES["introduction"] = envelope_payload("introduction", {
-    "identity": {"$ref": "#/$defs/identityInfo"},
-    "purpose": {"type": "string", "maxLength": 280},
-    "contact_token": {"type": "string", "maxLength": 2048},
-    "sealed": {
-        "type": "object",
-        "properties": {"alg": {"type": "string", "minLength": 1}, "enc": {"$ref": "#/$defs/b64url"}, "ct": {"$ref": "#/$defs/b64url"}},
-        "required": ["alg", "enc", "ct"],
-        "additionalProperties": False,
-    },
-}, ["identity"], "First-contact request (core §19.4) as the Messaging Profile carries it: purpose may be sealed to the recipient with HPKE (M§6.9, M§14.1).")
-
-# spec-gap 57 (v0.8 core candidate, staged here): revoking a device delegation. Signed directly by a key of the
-# subject; revokes the device's delegations issued at or before revoked_at. Published in the subject's DID document
-# (dsipDelegationRevocations) and carried in mailbox-config.revoked_delegations.
-MESSAGES["delegation-revocation"] = envelope_payload("delegation-revocation", {
-    "subject": {"$ref": "#/$defs/did"},
-    "device": {"$ref": "#/$defs/did"},
-    "revoked_at": {"$ref": "#/$defs/timestamp"},
-    "reason": {"$ref": "#/$defs/token"},
-}, ["subject", "device", "revoked_at", "reason"], "Revokes a device delegation (spec-gap 57): from = subject, signed by a subject key.")
-MESSAGES["delegation-revocation"]["required"].remove("to")
+# The profile's introduction (with `sealed`) and the `delegation-revocation` record moved to the v0.8 core schema set.
 MESSAGES["mailbox-config"]["properties"]["revoked_delegations"] = {
     "type": "array", "items": {"type": "string", "minLength": 1},
     "description": "Compact delegation-revocation records from the owner identity (spec-gap 57)."}

@@ -1,0 +1,47 @@
+{
+  "vector": "semantic/delegation-revocation-subject-mismatch",
+  "format": 1,
+  "kind": "semantic",
+  "description": "from MUST be the subject: only the identity revokes its own delegations.",
+  "spec_ref": [
+    "§7.4"
+  ],
+  "context": {
+    "now": 1760000000,
+    "supported": {
+      "core": "1.0",
+      "profiles": [
+        "interactive-media/1.0",
+        "verified-broadcast/1.0"
+      ],
+      "extensions": []
+    },
+    "signer_kid": "did:web:example.com:users:bob#key-1"
+  },
+  "input": {
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "interactive-media/1.0"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "delegation-revocation",
+      "id": "01K742SG00WBJ55E6S3Q1B9K3S",
+      "from": "did:key:z6MkhzX9qTeXBWkucyMVric1E9JrqUD5LPAkD2BNavakAptf",
+      "subject": "did:web:example.com:users:bob",
+      "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+      "revoked_at": 1760000000,
+      "reason": "lost",
+      "issued_at": 1760000000,
+      "expires_at": 1760000300
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "revocation-subject-mismatch"
+  }
+}

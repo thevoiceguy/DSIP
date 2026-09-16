@@ -1,6 +1,6 @@
 # DSIP reference implementation (PoC)
 
-**Tracks:** DSIP Draft v0.7 + JSON Schema set v0.7 (tag `poc-v0.7`; v0.6 at `poc-v0.6`). Plan: `docs/dsip_poc_dev_plan.md`.
+**Tracks:** DSIP Draft v0.8 + JSON Schema set v0.8 (tag `poc-v0.8` once green; v0.7 at `poc-v0.7`, v0.6 at `poc-v0.6`). Companion profiles: Gateway 1.0, Messaging 1.0 (`../v0.8/`). Plan: `docs/dsip_poc_dev_plan.md`.
 **Conformance contract:** `vectors/` (see `vectors/README.md`). Spec-gap issue drafts: `docs/spec-gaps.md`.
 
 ## Layout
@@ -11,7 +11,7 @@ tools/          Python: vector generator, reference harness, parity, spec lint
 schemas/        Implementation-local schemas (DHT reachability hint)
 crates/
   dsip-core     ULIDs, did:key, DID documents, Ed25519, DSIP-JOSE envelope pipeline
-  dsip-schema   v0.7 schemas embedded at build time + stateless semantic checks
+  dsip-schema   v0.8 schemas embedded at build time + stateless semantic checks
   dsip-webrtc-binding  WebRTC Media Binding 1.0 rules (descriptor/SDP authority, roles, candidates, renegotiation), pure
   dsip-session  §12 endpoint state engine, timers, races, renegotiation; §12.7 relay leg tracker
   dsip-endpoint IO-free endpoint core: verify → §12 engine → build/sign (shared by native agent and WASM)
@@ -145,5 +145,6 @@ dsip call --identity ./alice --ca .relay/cert.pem --to <bob did> --media tone --
 | **G3** gateway trust rendering — `dsip-core::trust` (§18.1 verification basis, tel-caller headline, `gateway.downgraded` summary) pinned by `vectors/trust/` (13); CLI console + browser demo (via `dsip-wasm`) render the `tel` claim, basis line and downgrade on inbound invites/introductions/errors | ✅ 2026-08-21 |
 | **G4** gateway STIR findings — `docs/gateway-stir-findings.md` (inbound verification ready; outbound gated on operator status; RFC 9060 delegate-cert-in-DID-document as the DSIP-shaped path); PASSporT **signing** prototype in siphon-rs `sip-identity` (feature `sign`, PR #123) round-tripped through the verifier | ✅ 2026-08-22 |
 | **G5** gateway spec artifacts — **Gateway Profile 1.0** + **RTP/SRTP Media Binding 1.0** drafts (`../v0.8/`), transcribed from the vector-pinned `dsip-gateway` tables/controller; gateway spec-gaps 23–30 filed | ✅ 2026-08-21 (v0.8 staging; v0.7 frozen) |
+| **v0.8 core revision** — `../v0.8/dsip_v_0_8_…md` (Appendix A.5): spec-gaps 23–57 dispositioned into the core (delegation capabilities and revocation §7.4, held introductions §12.9, sealed introductions and other holders §19.4, reason category `mailbox`, `tel` claims, companion conformance pieces) or the companion profiles; Gateway Profile and Messaging Profile promoted to 1.0; schema set v0.8 (`introduction.sealed`, `delegation-revocation`, hint `service`); 737 vectors at parity | ✅ 2026-09-17 — `poc-v0.8` after merge |
 | **real end-to-end proof** — `demos/real-call-dht.sh`: two fresh DIDs discover each other through the DHT (no DNS/directory), then hold a real conversation (signed signaling, DTLS-SRTP Opus, actual espeak speech both ways, self-verified rhythm match 0.97+). Includes the Ogg file-source fix (reassemble Opus packets across the RFC 3533 segment table, skip OpusHead/OpusTags — was one-page-per-frame, garbling multi-frame files) | ✅ 2026-08-22 |
 | forge-media as the media backend — **default** (`Backend::default()`, CLI `--media-backend forge`); webrtc-rs compiled in as reference peer/fallback; cross-backend interop test (forge ↔ webrtc-rs both directions) in the normal workspace test run; `demos/media-demo.sh [forge|webrtc-rs] [forge|webrtc-rs]` | ✅ 2026-08-21 (`docs/forge-media-plan.md`); browser ↔ native on forge verified by hand only |
