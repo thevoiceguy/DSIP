@@ -1106,6 +1106,43 @@ or re-proposing without syncing fails it.
 
 **Suggested fix.** Carry the M§6.5 text into the next profile revision.
 
+## 59. M§6.5 / M§6.6 — a restarted hub or mailbox, and redelivered fan-out
+
+**Gap.** Rule 5 of M§6.5 makes the hub retry an unacknowledged fan-out, so a member mailbox receives the
+same `(group, seq)` again whenever an acknowledgement is lost — on a dropped connection, or when the hub
+restarts between the mailbox storing an item and the hub hearing so. M§6.6 does not say what the mailbox
+answers: storing it again gives the owner's devices a second item for one `seq` (a duplicate they must
+catch), and refusing it leaves the hub's queue stuck. Nothing says which hub or mailbox state must survive a
+restart, either. A hub that forgot its epoch or `seq` counter would re-number items or accept a second
+commit for an epoch — a fork; one that forgot its queues would silently lose fan-out. A mailbox that forgot
+its counter would re-issue cursors devices already hold; one that forgot `ack_through` would delete in
+`queue` mode too early or never; one that forgot its rate window or seen ids would reset §19.4 limits or
+accept a replay.
+
+**Choices considered.** (a) A `seq` at or below the highest stored for the group is a redelivery: `accepted`
+with `duplicate` (and the original `cursor` while the item is held), not stored or pushed; all ordering,
+queue and answer state durable; live bindings not state; a restarted hub re-sends every queue head at once.
+(b) Deduplicate only against items still held: a redelivery after `queue`-mode deletion would be stored as
+new. (c) Leave duplicates to devices (M§8.5 already makes them idempotent): correct for content, but the
+mailbox grows and pushes the item again, and every restart re-delivers every in-flight item to every device.
+
+**Draft choice.** (a), stated in M§6.5 and M§6.6 as a 1.0 erratum. The `mailbox-trace` and `hub-trace`
+vectors gain a `restart` event (the machine's full state round-trips through JSON; bindings are dropped):
+`mailbox-restart-*` (items, cursors, acknowledgements, registrations, pending age, KeyPackages, revoked grants,
+archive index, rate window), `mailbox-hub-deposit-redelivered-*` (held and deleted), `hub-restart-*` (queue
+heads re-sent; epoch, digests and `seq` kept). The service saves its full state after every change —
+machines, the hub's public MLS view, payloads, fan-out still queued, revocations, seen ids — and reloads it;
+queue heads left unacknowledged are re-sent at start and then with doubling delay (4 s up to 60 s).
+`demos/mailbox-restart-demo.sh` kills a mailbox with a message waiting and the hub with fan-out to a mailbox
+that is down, and shows nothing lost, replayed or reordered and the reloaded hub validating the next commit;
+skipping the reload, the retries, or the public view's reload each fail it.
+
+**Open.** A welcome is fanned out once, outside the queues (M§6.5 rule 5 queues only sequenced items): an added
+member whose mailbox is down misses it until a later welcome or an external join. Queuing welcomes is left to
+the next profile revision.
+
+**Suggested fix.** Carry the M§6.5 and M§6.6 text into the next profile revision; consider queuing welcomes.
+
 ## Already-flagged (schema README / plan §11)
 
 - §15.3 codec example uses bare strings; §16.2 defines objects (schemas follow §16.2).

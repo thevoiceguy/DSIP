@@ -1,0 +1,143 @@
+{
+  "vector": "messaging/mailbox-restart-pending-ttl-continues",
+  "format": 1,
+  "kind": "messaging",
+  "description": "A pending group's age is kept across a restart: pending_group_ttl counts from the welcome, not from the restart.",
+  "spec_ref": [
+    "M§5.4",
+    "M§6.6"
+  ],
+  "context": {
+    "component": "mailbox",
+    "mailbox": "did:web:mbx.bob.example",
+    "owner": "did:web:example.com:users:bob",
+    "serves": [
+      "did:web:example.com:users:bob"
+    ],
+    "devices": [
+      "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ",
+      "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+    ],
+    "now": 1760000000,
+    "mode": "sync",
+    "admit": "grant",
+    "pending_group_ttl": 604800,
+    "pending_group_max_items": 2,
+    "groups": {},
+    "key_packages": {}
+  },
+  "input": {
+    "check": "mailbox-trace",
+    "steps": [
+      {
+        "event": {
+          "welcome": {
+            "id": "01K742SG0041EXMEJSTFY0873E",
+            "from": "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL",
+            "adder_identity": "did:web:carol.example",
+            "recipient": "did:web:example.com:users:bob",
+            "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+            "hub": "did:web:mbx.alice.example",
+            "grant": {
+              "id": "01K742SG00J1XCHR8G1856E6KZ",
+              "from": "did:web:example.com:users:bob",
+              "to": "did:web:carol.example",
+              "scope": [
+                "dsip.message"
+              ],
+              "valid_until": 1760086400
+            }
+          }
+        }
+      },
+      {
+        "event": {
+          "advance": 604000
+        }
+      },
+      {
+        "event": {
+          "restart": {}
+        }
+      },
+      {
+        "event": {
+          "advance": 800
+        }
+      },
+      {
+        "event": {
+          "advance": 1
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "accepted": {
+              "to": "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL",
+              "in_reply_to": "01K742SG0041EXMEJSTFY0873E",
+              "cursor": "c:0000000000000001"
+            }
+          }
+        ],
+        "state": {
+          "items": [
+            "c:0000000000000001"
+          ],
+          "groups": {
+            "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M": "pending"
+          },
+          "key_packages": {}
+        }
+      },
+      {
+        "emit": [],
+        "state": {
+          "items": [
+            "c:0000000000000001"
+          ],
+          "groups": {
+            "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M": "pending"
+          },
+          "key_packages": {}
+        }
+      },
+      {
+        "emit": [],
+        "state": {
+          "items": [
+            "c:0000000000000001"
+          ],
+          "groups": {
+            "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M": "pending"
+          },
+          "key_packages": {}
+        }
+      },
+      {
+        "emit": [],
+        "state": {
+          "items": [
+            "c:0000000000000001"
+          ],
+          "groups": {
+            "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M": "pending"
+          },
+          "key_packages": {}
+        }
+      },
+      {
+        "emit": [],
+        "state": {
+          "items": [],
+          "groups": {},
+          "key_packages": {}
+        }
+      }
+    ]
+  }
+}
