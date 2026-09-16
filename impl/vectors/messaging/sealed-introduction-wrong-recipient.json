@@ -1,0 +1,44 @@
+{
+  "vector": "messaging/sealed-introduction-wrong-recipient",
+  "format": 1,
+  "kind": "messaging",
+  "description": "Only the recipient's key opens it.",
+  "spec_ref": [
+    "M§14.1",
+    "M§6.9"
+  ],
+  "context": {},
+  "input": {
+    "check": "sealed-introduction-open",
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "messaging/1.0"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "introduction",
+      "id": "01K742SG00Z41R1RN63EB956CH",
+      "from": "did:web:alice.example",
+      "to": "did:web:example.com:users:bob",
+      "identity": {
+        "display_name": "Alice"
+      },
+      "issued_at": 1760000000,
+      "expires_at": 1760604800,
+      "sealed": {
+        "alg": "hpke-base-x25519-sha256-aes128gcm",
+        "enc": "GOAC6ikHDszB0YqIgQgRY1mm4y_4difNpnnwAKP9N0s",
+        "ct": "motmlIituWq-pYLdx66Au46l-eyTAQjMwHF91HxODWsPnxKoXJJ-WVQq_i_j2b-1cXDxXWdhkJy2JGszGi7abzmZsS07q9XqSkjU-2KZI18NZteUgaTexuj34pYQtsM5ZKUs3nXIu9kVi0YQ"
+      }
+    },
+    "recipient_ed25519_seed_hex": "6d625667ccb5aead42b40c68bae1134448b784c5393fde355546383f543fea96"
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "sealed-open-failed"
+  }
+}

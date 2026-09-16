@@ -1,0 +1,40 @@
+{
+  "vector": "messaging/sealed-introduction-plain-purpose-passes-through",
+  "format": 1,
+  "kind": "messaging",
+  "description": "An unsealed introduction yields its purpose unchanged.",
+  "spec_ref": [
+    "M§14.1",
+    "M§6.9"
+  ],
+  "context": {},
+  "input": {
+    "check": "sealed-introduction-open",
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "messaging/1.0"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "introduction",
+      "id": "01K742SG0032K2HDT2F5GHJRP5",
+      "from": "did:web:alice.example",
+      "to": "did:web:example.com:users:bob",
+      "identity": {
+        "display_name": "Alice"
+      },
+      "issued_at": 1760000000,
+      "expires_at": 1760604800,
+      "purpose": "Hello"
+    },
+    "recipient_ed25519_seed_hex": "debb1447ad694df3f8e947ff249a52e382f5e0f539abf79c4710beefd2f89b64"
+  },
+  "expect": {
+    "verdict": "accept",
+    "purpose": "Hello"
+  }
+}

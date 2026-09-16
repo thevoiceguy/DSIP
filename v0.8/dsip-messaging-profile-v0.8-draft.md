@@ -4,7 +4,7 @@
 Unlike the Gateway Profile and the WebRTC Media Binding, this document is written *before* the
 reference implementation: per the project's vectors-first rule, a `messaging/` vector category
 pins it next, and where the vectors and this text disagree the disagreement is resolved
-explicitly (vector bug or text bug), never papered over. Spec-gaps 31–53
+explicitly (vector bug or text bug), never papered over. Spec-gaps 31–56
 (`impl/docs/spec-gaps.md`) record every choice this draft makes that core does not already
 settle.
 **Profile identifier:** `messaging/1.0`. **Conformance pieces:** `DSIP Messaging Profile 1.0`
@@ -116,6 +116,9 @@ The profile is additive except for the following core items, each filed as a spe
 | 51 | (new) | A new device's history: held archive, pre-join skip, sibling welcomes, own content archived, current key. |
 | 52 | (new) | A private read watermark in the personal group names the conversation it describes. |
 | 53 | (new) | Mailbox group registration is per identity: a removed device sends `left` only for its identity's last leaf. |
+| 54 | §19.4 | Introductions and grants for messaging identities travel through mailboxes, under §19.4's relay rules. |
+| 55 | §7 | How a `did:web` identity's devices hold the X25519 key agreement key sealed introductions use. |
+| 56 | §7.4 | Core binds every envelope under `dsip.signaling`; a messaging-only device cannot introduce or grant. **Open.** |
 
 ## M§4 The mailbox service
 
@@ -302,6 +305,8 @@ Fields:
   | `group-info` | the latest signed GroupInfo for external joins | latest per group only |
   | `ephemeral` | sealed activity (M§11) in `sealed`, no `mls` | **never** |
   | `archive` | an archive record (M§12) in `archive`, with `akid`, `ref_group`, `ref_seq` | yes (`sync` mode) |
+  | `introduction` | a signed core `introduction` (§19.4, M§14.1) in `envelope`, with `recipient` and no `group` (spec-gap 54) | until its `expires_at` |
+  | `grant` | a signed core `grant` answering one, in `envelope`, with `recipient` and no `group` (spec-gap 54) | until its `expires_at` |
 
 - `seq` — present on hub fan-out deposits: the hub's order for this group (M§6.5).
 - `blobs` — the ciphertext manifest of blobs the content references (M§8.4): URI, SHA-256 of the
@@ -717,6 +722,11 @@ HPKE is used for exactly one thing in 1.0: sealing the free-text part of a first
 AES-128-GCM, mode `base` — the same primitives as MLS suite 0x0001, so no new code path. The
 recipient key is the X25519 `keyAgreement` key in the recipient identity's DID document; for
 `did:key` it is the X25519 key derived from the Ed25519 key as the `did:key` method defines.
+(spec-gap 55) A `did:web` identity's messaging devices must hold the private half to open sealed
+introductions; how they receive it is deployment-defined, like the controller key itself. Deriving
+it from the identity's Ed25519 key the way `did:key` does is one arrangement (the reference
+implementation's); an identity MAY instead publish an independent X25519 key and provision it to
+its devices.
 
 ### M§6.10 Non-repudiation (stated)
 
@@ -1214,6 +1224,17 @@ A stranger who wants to message reuses §19.4 unchanged in structure:
   Relay rate limits (§19.4) still apply. A recipient client MAY discard sealed introductions from
   identities below a chosen trust tier (§19.1).
 
+**Carriage** (spec-gap 54). A messaging identity's document may name a mailbox and no relay, so an
+introduction to it is deposited at the recipient's mailbox as `class: introduction` with the signed
+envelope in `envelope` and the recipient in `recipient`, and the answering `grant` is deposited the
+same way at the requester's mailbox. The mailbox applies §19.4's relay rules: it verifies the envelope
+when deposited (signature, delegation, the 4,096-byte cap, validity), rate-limits per sender identity
+and per recipient inbox (`policy.rate-limited` with `retry_after`), accepts an introduction for an
+identity it does not serve — or beyond its bounded inbox — exactly as it accepts a held one and then
+drops it, and holds what it keeps only until the envelope's `expires_at`. A device renders a delivered
+introduction as a request, never as a message, and verifies a delivered grant as a credential: its
+signature and the binding of its signer to `from`, not its delivery window, which has passed.
+
 ### M§14.2 Authorization at the mailbox
 
 A mailbox authorizes a `key-package-fetch`, or a `welcome` deposit that creates a new group
@@ -1413,7 +1434,12 @@ group and archive key, a second device added with its history read from archive 
 arrives), live traffic on both devices, a private read watermark synced through the personal group, and
 the device removed from every group with the archive key rotated (spec-gaps 50–53,
 `messaging/history-*`, `messaging/hub-commit-adds-own-device-sends-welcome`,
-`messaging/resume-sibling-welcome-is-not-a-join`, `messaging/registration-on-removal-*`). The full plan:
+`messaging/resume-sibling-welcome-is-not-a-join`, `messaging/registration-on-removal-*`). First contact runs over
+the wire too (`impl/demos/messaging-first-contact-demo.sh`): a sealed introduction deposited at the recipient's
+mailbox and shown as a request with its purpose never on the wire, anti-enumeration and rate limiting at the
+mailbox, and a `dsip.message` grant returned the same way and presented when the conversation is created
+(spec-gaps 54–55; HPKE pinned by `messaging/hpke-*` including RFC 9180 A.1.1, `messaging/sealed-introduction-*`,
+`messaging/mailbox-introduction-*`). The full plan:
 
 - payload shapes for every message type and content object
 - mailbox and hub state traces: sequencing, commit conflict, stale epoch, idempotent re-deposit,

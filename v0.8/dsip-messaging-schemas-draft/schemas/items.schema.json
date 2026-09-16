@@ -76,15 +76,46 @@
                 "items": {
                   "$ref": "#/$defs/blobRef"
                 }
+              },
+              "envelope": {
+                "type": "string",
+                "minLength": 1
               }
             },
             "required": [
               "cursor",
               "stored_at",
-              "class",
-              "group"
+              "class"
             ],
-            "additionalProperties": false
+            "additionalProperties": false,
+            "if": {
+              "properties": {
+                "class": {
+                  "enum": [
+                    "introduction",
+                    "grant"
+                  ]
+                }
+              },
+              "required": [
+                "class"
+              ]
+            },
+            "then": {
+              "not": {
+                "required": [
+                  "group"
+                ]
+              },
+              "required": [
+                "envelope"
+              ]
+            },
+            "else": {
+              "required": [
+                "group"
+              ]
+            }
           },
           {
             "description": "A pushed ephemeral item (M\u00a711.2, spec-gap 49): never stored, so no cursor; expires_at is the originating deposit's, carried unchanged by every hop.",
@@ -249,6 +280,23 @@
       ],
       "additionalProperties": false,
       "description": "Ciphertext manifest entry (M\u00a75.2, M\u00a78.4): never carries a key."
+    },
+    "identityInfo": {
+      "type": "object",
+      "properties": {
+        "display_name": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "claims": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "description": "As core \u00a719.4 / \u00a717: unverified-by-default presentation."
     },
     "hubRef": {
       "type": "object",

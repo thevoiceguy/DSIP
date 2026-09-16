@@ -251,6 +251,23 @@
       "additionalProperties": false,
       "description": "Ciphertext manifest entry (M\u00a75.2, M\u00a78.4): never carries a key."
     },
+    "identityInfo": {
+      "type": "object",
+      "properties": {
+        "display_name": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "claims": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "description": "As core \u00a719.4 / \u00a717: unverified-by-default presentation."
+    },
     "hubRef": {
       "type": "object",
       "properties": {

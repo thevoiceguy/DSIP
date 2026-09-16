@@ -1,0 +1,130 @@
+{
+  "vector": "messaging/mailbox-introduction-inbox-bound-silent",
+  "format": 1,
+  "kind": "messaging",
+  "description": "Past the bounded inbox an introduction is accepted and not held, silently (§19.4 RECOMMENDED 16).",
+  "spec_ref": [
+    "§19.4"
+  ],
+  "context": {
+    "component": "mailbox",
+    "mailbox": "did:web:mbx.bob.example",
+    "owner": "did:web:example.com:users:bob",
+    "serves": [
+      "did:web:example.com:users:bob"
+    ],
+    "devices": [
+      "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ",
+      "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+    ],
+    "now": 1760000000,
+    "mode": "sync",
+    "admit": "grant",
+    "pending_group_ttl": 604800,
+    "pending_group_max_items": 2,
+    "groups": {},
+    "key_packages": {},
+    "intro_limit": 10,
+    "inbox_cap": 2
+  },
+  "input": {
+    "check": "mailbox-trace",
+    "steps": [
+      {
+        "event": {
+          "first_contact": {
+            "id": "01K742SG003WS0123XMAGGPR03",
+            "from": "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL",
+            "sender_identity": "did:web:carol.example",
+            "recipient": "did:web:example.com:users:bob",
+            "kind": "introduction",
+            "expires_at": 1760604800
+          }
+        }
+      },
+      {
+        "event": {
+          "first_contact": {
+            "id": "01K742SG0055MGNM3TPHV17TCE",
+            "from": "did:key:z6MkrQ4CKj5x3MGbqmYBbfSXyh865wpvDStxi3HeGvfyJw8H",
+            "sender_identity": "did:web:mallory.example",
+            "recipient": "did:web:example.com:users:bob",
+            "kind": "introduction",
+            "expires_at": 1760604800
+          }
+        }
+      },
+      {
+        "event": {
+          "first_contact": {
+            "id": "01K742SG00S34SVRJ50T8PEQES",
+            "from": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+            "sender_identity": "did:web:alice.example",
+            "recipient": "did:web:example.com:users:bob",
+            "kind": "introduction",
+            "expires_at": 1760604800
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "accepted": {
+              "to": "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL",
+              "in_reply_to": "01K742SG003WS0123XMAGGPR03",
+              "cursor": "c:0000000000000001"
+            }
+          }
+        ],
+        "state": {
+          "items": [
+            "c:0000000000000001"
+          ],
+          "groups": {},
+          "key_packages": {}
+        }
+      },
+      {
+        "emit": [
+          {
+            "accepted": {
+              "to": "did:key:z6MkrQ4CKj5x3MGbqmYBbfSXyh865wpvDStxi3HeGvfyJw8H",
+              "in_reply_to": "01K742SG0055MGNM3TPHV17TCE",
+              "cursor": "c:0000000000000002"
+            }
+          }
+        ],
+        "state": {
+          "items": [
+            "c:0000000000000001",
+            "c:0000000000000002"
+          ],
+          "groups": {},
+          "key_packages": {}
+        }
+      },
+      {
+        "emit": [
+          {
+            "accepted": {
+              "to": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+              "in_reply_to": "01K742SG00S34SVRJ50T8PEQES"
+            }
+          }
+        ],
+        "state": {
+          "items": [
+            "c:0000000000000001",
+            "c:0000000000000002"
+          ],
+          "groups": {},
+          "key_packages": {}
+        }
+      }
+    ]
+  }
+}

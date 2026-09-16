@@ -1,0 +1,45 @@
+{
+  "vector": "messaging/introduction-sealed-valid",
+  "format": 1,
+  "kind": "messaging",
+  "description": "The profile's introduction may carry sealed instead of purpose.",
+  "spec_ref": [
+    "M§14.1",
+    "§19.4"
+  ],
+  "context": {},
+  "input": {
+    "check": "introduction",
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "messaging/1.0"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "introduction",
+      "id": "01K742SG00Z41R1RN63EB956CH",
+      "from": "did:web:alice.example",
+      "to": "did:web:example.com:users:bob",
+      "identity": {
+        "display_name": "Alice"
+      },
+      "issued_at": 1760000000,
+      "expires_at": 1760604800,
+      "sealed": {
+        "alg": "hpke-base-x25519-sha256-aes128gcm",
+        "enc": "GOAC6ikHDszB0YqIgQgRY1mm4y_4difNpnnwAKP9N0s",
+        "ct": "motmlIituWq-pYLdx66Au46l-eyTAQjMwHF91HxODWsPnxKoXJJ-WVQq_i_j2b-1cXDxXWdhkJy2JGszGi7abzmZsS07q9XqSkjU-2KZI18NZteUgaTexuj34pYQtsM5ZKUs3nXIu9kVi0YQ"
+      }
+    }
+  },
+  "expect": {
+    "verdict": "accept",
+    "effective": {
+      "sealed": true
+    }
+  }
+}

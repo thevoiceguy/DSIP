@@ -1,0 +1,44 @@
+{
+  "vector": "messaging/sealed-introduction-purpose-too-long",
+  "format": 1,
+  "kind": "messaging",
+  "description": "A sealed purpose is still at most 280 characters.",
+  "spec_ref": [
+    "M§14.1",
+    "M§6.9"
+  ],
+  "context": {},
+  "input": {
+    "check": "sealed-introduction-open",
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "messaging/1.0"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "introduction",
+      "id": "01K742SG008CK7EVYMM3FMZ4Z5",
+      "from": "did:web:alice.example",
+      "to": "did:web:example.com:users:bob",
+      "identity": {
+        "display_name": "Alice"
+      },
+      "issued_at": 1760000000,
+      "expires_at": 1760604800,
+      "sealed": {
+        "alg": "hpke-base-x25519-sha256-aes128gcm",
+        "enc": "GOAC6ikHDszB0YqIgQgRY1mm4y_4difNpnnwAKP9N0s",
+        "ct": "motmlIituWq-pYLdx4Gd45u49bSKDVDA0Gwl_31EFHAClA_wSY91SQw_4zLv1Lf2KW7mSXN2n42gOzM-EnbDdS6UvXU3u8iyU17Y5nSPOgcSbMCZifzEy-mhuJPghdAXCan7MnP7voYR4P4qygn6Bnf4LRi-HDyiFRT7CMoRXvluGGaKaSBVOu2aj37UKUJ-GKDpnnA-i--5xu46igFqOspsFcQbVTWdluTndM1SINxqAwWAXVcv6TVyVkvzfOorPhzRzpy8Wzevp3NkP-Ek6z8_tWTRdriuEa9qhsjxU3WHF1mL8L5PNpN-IwbwvNG7Jt8Nr4twgG05y0UwMa14DYTnVEKiZKUmkzmT395TaPfc7zOVh0WU1GiEDgly7OqMpQqMfALIKsA8HRMOpN49LEuPgEdm3Bt4"
+      }
+    },
+    "recipient_ed25519_seed_hex": "debb1447ad694df3f8e947ff249a52e382f5e0f539abf79c4710beefd2f89b64"
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "purpose-too-long"
+  }
+}

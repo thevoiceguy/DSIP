@@ -59,6 +59,12 @@ DEFS = {
         "additionalProperties": False,
         "description": "Ciphertext manifest entry (M§5.2, M§8.4): never carries a key.",
     },
+    "identityInfo": {
+        "type": "object",
+        "properties": {"display_name": {"type": "string", "maxLength": 256}, "claims": {"type": "array", "items": {"type": "object"}}},
+        "additionalProperties": False,
+        "description": "As core §19.4 / §17: unverified-by-default presentation.",
+    },
     "hubRef": {
         "type": "object",
         "properties": {"did": {"$ref": "#/$defs/did"}, "uri": {"$ref": "#/$defs/wssUri"}},
@@ -102,6 +108,20 @@ def content_object(obj, props, required, description, additional=False):
     }
 
 
+FIRST_CONTACT = {"properties": {"class": {"enum": ["introduction", "grant"]}}, "required": ["class"]}
+
+
+def group_unless_first_contact(schema, extra_then=None):
+    """First-contact items (spec-gap 54) name no group; every other deposit or stored item does."""
+    then = {"not": {"required": ["group"]}}
+    if extra_then:
+        then["required"] = extra_then
+    schema["if"] = FIRST_CONTACT
+    schema["then"] = then
+    schema["else"] = {"required": ["group"]}
+    return schema
+
+
 MESSAGES = {
     "deposit": envelope_payload("deposit", {
         "recipient": {"$ref": "#/$defs/did"},
@@ -122,7 +142,8 @@ MESSAGES = {
         "grants": {"type": "array", "items": {"type": "string", "minLength": 1}},
         "origin": {"type": "string", "minLength": 1},
         "successor_of": {"$ref": "#/$defs/b64url"},
-    }, ["group", "class"], "Place one item into a mailbox or submit it to a hub (M§5.2). Class-dependent field rules are semantic (M§5.2 table)."),
+        "envelope": {"type": "string", "minLength": 1, "description": "A compact signed core envelope (introduction or grant, spec-gap 54)."},
+    }, ["class"], "Place one item into a mailbox or submit it to a hub (M§5.2). Class-dependent field rules are semantic (M§5.2 table)."),
     "accepted": envelope_payload("accepted", {
         "in_reply_to": {"$ref": "#/$defs/ulid"},
         "group": {"$ref": "#/$defs/b64url"},
@@ -154,9 +175,11 @@ MESSAGES = {
                     "akid": {"$ref": "#/$defs/ulid"},
                     "hub": {"$ref": "#/$defs/hubRef"},
                     "blobs": {"type": "array", "items": {"$ref": "#/$defs/blobRef"}},
+                    "envelope": {"type": "string", "minLength": 1},
                 },
-                "required": ["cursor", "stored_at", "class", "group"],
+                "required": ["cursor", "stored_at", "class"],
                 "additionalProperties": False,
+                **{k: v for k, v in group_unless_first_contact({}, ["envelope"]).items()},
             },
             {
                 "description": "A pushed ephemeral item (M§11.2, spec-gap 49): never stored, so no cursor; "
@@ -219,6 +242,22 @@ BLOB_CONTENT = {
     "required": ["uri", "sha256", "size", "key", "alg", "content_type"],
     "additionalProperties": False,
 }
+
+group_unless_first_contact(MESSAGES["deposit"], ["recipient", "envelope"])
+
+# M§14.1 (spec-gap 36): the core §19.4 introduction with `purpose` optionally replaced by `sealed`. Staged here until
+# the v0.8 core schema set carries it; "not both" is a semantic check (introduction-purpose-and-sealed).
+MESSAGES["introduction"] = envelope_payload("introduction", {
+    "identity": {"$ref": "#/$defs/identityInfo"},
+    "purpose": {"type": "string", "maxLength": 280},
+    "contact_token": {"type": "string", "maxLength": 2048},
+    "sealed": {
+        "type": "object",
+        "properties": {"alg": {"type": "string", "minLength": 1}, "enc": {"$ref": "#/$defs/b64url"}, "ct": {"$ref": "#/$defs/b64url"}},
+        "required": ["alg", "enc", "ct"],
+        "additionalProperties": False,
+    },
+}, ["identity"], "First-contact request (core §19.4) as the Messaging Profile carries it: purpose may be sealed to the recipient with HPKE (M§6.9, M§14.1).")
 
 OBJECTS = {
     "content": content_object("content", {

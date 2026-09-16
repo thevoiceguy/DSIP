@@ -1,0 +1,68 @@
+{
+  "vector": "messaging/mailbox-introduction-unknown-recipient-indistinguishable",
+  "format": 1,
+  "kind": "messaging",
+  "description": "An introduction for an identity the mailbox does not serve is accepted and dropped: a sender cannot tell it from delivery.",
+  "spec_ref": [
+    "§19.4",
+    "M§15.5"
+  ],
+  "context": {
+    "component": "mailbox",
+    "mailbox": "did:web:mbx.bob.example",
+    "owner": "did:web:example.com:users:bob",
+    "serves": [
+      "did:web:example.com:users:bob"
+    ],
+    "devices": [
+      "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ",
+      "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+    ],
+    "now": 1760000000,
+    "mode": "sync",
+    "admit": "grant",
+    "pending_group_ttl": 604800,
+    "pending_group_max_items": 2,
+    "groups": {},
+    "key_packages": {},
+    "intro_limit": 2,
+    "intro_window": 3600,
+    "inbox_cap": 3
+  },
+  "input": {
+    "check": "mailbox-trace",
+    "steps": [
+      {
+        "event": {
+          "first_contact": {
+            "id": "01K742SG003WS0123XMAGGPR03",
+            "from": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+            "sender_identity": "did:web:alice.example",
+            "recipient": "did:web:nobody.example",
+            "kind": "introduction",
+            "expires_at": 1760604800
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "accepted": {
+              "to": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+              "in_reply_to": "01K742SG003WS0123XMAGGPR03"
+            }
+          }
+        ],
+        "state": {
+          "items": [],
+          "groups": {},
+          "key_packages": {}
+        }
+      }
+    ]
+  }
+}

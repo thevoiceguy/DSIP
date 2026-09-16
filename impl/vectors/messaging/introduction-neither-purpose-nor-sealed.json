@@ -1,0 +1,40 @@
+{
+  "vector": "messaging/introduction-neither-purpose-nor-sealed",
+  "format": 1,
+  "kind": "messaging",
+  "description": "As in core §19.4, purpose is optional.",
+  "spec_ref": [
+    "M§14.1",
+    "§19.4"
+  ],
+  "context": {},
+  "input": {
+    "check": "introduction",
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "messaging/1.0"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "introduction",
+      "id": "01K742SG00XHPY89YMQHMXM4DT",
+      "from": "did:web:alice.example",
+      "to": "did:web:example.com:users:bob",
+      "identity": {
+        "display_name": "Alice"
+      },
+      "issued_at": 1760000000,
+      "expires_at": 1760604800
+    }
+  },
+  "expect": {
+    "verdict": "accept",
+    "effective": {
+      "sealed": false
+    }
+  }
+}
