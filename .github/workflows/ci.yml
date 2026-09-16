@@ -105,6 +105,9 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with: { workspaces: impl }
       - uses: jetli/wasm-pack-action@v0.4.0
+        # Pinned: "latest" intermittently resolves to v0.9.1, which cannot parse workspace-inherited
+        # package fields (`license.workspace = true`) and fails the build.
+        with: { version: v0.15.0 }
       - uses: actions/setup-node@v4
         with: { node-version: "20" }
       - run: impl/demos/browser/build.sh
