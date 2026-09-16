@@ -90,7 +90,8 @@
           "timeline": [],
           "delivered": {},
           "played": {},
-          "read_through": {}
+          "read_through": {},
+          "activity": {}
         }
       },
       {
@@ -99,7 +100,8 @@
           "timeline": [],
           "delivered": {},
           "played": {},
-          "read_through": {}
+          "read_through": {},
+          "activity": {}
         }
       },
       {
@@ -108,7 +110,8 @@
           "timeline": [],
           "delivered": {},
           "played": {},
-          "read_through": {}
+          "read_through": {},
+          "activity": {}
         }
       },
       {
@@ -117,7 +120,8 @@
           "timeline": [],
           "delivered": {},
           "played": {},
-          "read_through": {}
+          "read_through": {},
+          "activity": {}
         }
       },
       {
@@ -134,7 +138,8 @@
           "timeline": [],
           "delivered": {},
           "played": {},
-          "read_through": {}
+          "read_through": {},
+          "activity": {}
         }
       },
       {
@@ -151,7 +156,8 @@
           "timeline": [],
           "delivered": {},
           "played": {},
-          "read_through": {}
+          "read_through": {},
+          "activity": {}
         }
       },
       {
@@ -168,7 +174,8 @@
           "timeline": [],
           "delivered": {},
           "played": {},
-          "read_through": {}
+          "read_through": {},
+          "activity": {}
         }
       }
     ]

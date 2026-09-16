@@ -4,7 +4,7 @@
 Unlike the Gateway Profile and the WebRTC Media Binding, this document is written *before* the
 reference implementation: per the project's vectors-first rule, a `messaging/` vector category
 pins it next, and where the vectors and this text disagree the disagreement is resolved
-explicitly (vector bug or text bug), never papered over. Spec-gaps 31–48
+explicitly (vector bug or text bug), never papered over. Spec-gaps 31–49
 (`impl/docs/spec-gaps.md`) record every choice this draft makes that core does not already
 settle.
 **Profile identifier:** `messaging/1.0`. **Conformance pieces:** `DSIP Messaging Profile 1.0`
@@ -111,6 +111,7 @@ The profile is additive except for the following core items, each filed as a spe
 | 46 | §19.4 | A hub-forwarded welcome's adder is proven only by `origin`; refusal tokens for a bad `origin`. |
 | 47 | (new) | A device's own items fanned back to it are recognised by the `accepted` seq (or their bytes), never decrypted. |
 | 48 | §15.1 | Blob endpoint statuses and refusal order; new token `mailbox.blob-mismatch`. |
+| 49 | (new) | Ephemeral items reach devices without a cursor, carrying the originating `expires_at` end to end. |
 
 ## M§4 The mailbox service
 
@@ -401,6 +402,9 @@ The mailbox answers with one or more `items`:
 - A mailbox MUST paginate so every `items` envelope fits the transport cap; `MAX_MLS_BYTES`
   guarantees any single item fits.
 - A pushed `items` (live) has no `in_reply_to`.
+- A pushed `ephemeral` item (M§11.2, spec-gap 49) is not stored, so it has no `cursor` or `stored_at`:
+  it is `{ "class": "ephemeral", "group", "source", "sealed", "expires_at" }`, where `expires_at` is
+  the originating deposit's. It is never acknowledged and never affects `since` or `ack_through`.
 - When the mailbox has replicated a blob (M§8.4), it rewrites `blobs[].uri` to its own copy; the
   `sha256` never changes.
 
@@ -1031,6 +1035,9 @@ encrypts it with AES-256-GCM under `activity_key`: random 12-byte nonce, AAD = `
   within 5 s of the last one sent is not sent) and MAY send `stopped`, which is always sent and resets
   the interval.
 - A receiver MUST clear the indicator when no refresh arrives before the last one's `expires_at`.
+  That is the originating deposit's `expires_at` (spec-gap 49): every hop carries it unchanged, never
+  issues a later one (a forwarded deposit's envelope expires no later than it), and drops the item
+  once it has passed. A receiver ignores an activity that arrives already expired.
 - Hubs and mailboxes MUST NOT store `ephemeral` deposits: they push to currently bound devices and
   otherwise drop them, and they MUST drop them at `expires_at`. An offline user never receives stale
   activity. A hub forwards activity to the member identities **other than the sender's** (the
@@ -1376,7 +1383,11 @@ removal while the removed member is disconnected. Blobs run over HTTPS on the ma
 (`messaging/blob-put-*`, `messaging/blob-get-*`, spec-gap 48), and the direct demo ends with a
 voicemail: real speech encoded as Ogg Opus, offered only under M§13.2, sealed under a fresh key,
 uploaded, and fetched, verified and decrypted by the callee byte for byte, with no plaintext at any
-mailbox. The full plan:
+mailbox. Receipts and activity run over the wire too (`impl/demos/receipts-demo.sh`): automatic
+`delivered`, `read` and `played` only when disclosed, an undisclosed read kept off the conversation,
+and typing sealed under the exporter key, refresh-bounded, cleared at its `expires_at` and on
+`stopped`, and never stored for a disconnected device (spec-gap 49, `messaging/items-ephemeral-*`,
+`messaging/client-activity-*`). The full plan:
 
 - payload shapes for every message type and content object
 - mailbox and hub state traces: sequencing, commit conflict, stale epoch, idempotent re-deposit,

@@ -58,7 +58,8 @@
           ],
           "delivered": {},
           "played": {},
-          "read_through": {}
+          "read_through": {},
+          "activity": {}
         }
       },
       {
@@ -79,7 +80,8 @@
           "played": {},
           "read_through": {
             "did:web:example.com:users:bob": "01K742SG000ZJTETD6Q8F0473W"
-          }
+          },
+          "activity": {}
         }
       }
     ]

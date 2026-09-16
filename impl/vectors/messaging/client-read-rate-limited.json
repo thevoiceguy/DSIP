@@ -107,7 +107,8 @@
           ],
           "delivered": {},
           "played": {},
-          "read_through": {}
+          "read_through": {},
+          "activity": {}
         }
       },
       {
@@ -130,7 +131,8 @@
           "played": {},
           "read_through": {
             "did:web:example.com:users:bob": "01K742SG000ZJTETD6Q8F0473W"
-          }
+          },
+          "activity": {}
         }
       },
       {
@@ -145,7 +147,8 @@
           "played": {},
           "read_through": {
             "did:web:example.com:users:bob": "01K742SG000ZJTETD6Q8F0473W"
-          }
+          },
+          "activity": {}
         }
       },
       {
@@ -160,7 +163,8 @@
           "played": {},
           "read_through": {
             "did:web:example.com:users:bob": "01K742SG00MXS791W8S1ZXMFDN"
-          }
+          },
+          "activity": {}
         }
       },
       {
@@ -175,7 +179,8 @@
           "played": {},
           "read_through": {
             "did:web:example.com:users:bob": "01K742SG00MARM5FY9CZYXF56T"
-          }
+          },
+          "activity": {}
         }
       },
       {
@@ -190,7 +195,8 @@
           "played": {},
           "read_through": {
             "did:web:example.com:users:bob": "01K742SG00MARM5FY9CZYXF56T"
-          }
+          },
+          "activity": {}
         }
       },
       {
@@ -213,7 +219,8 @@
           "played": {},
           "read_through": {
             "did:web:example.com:users:bob": "01K742SG00MARM5FY9CZYXF56T"
-          }
+          },
+          "activity": {}
         }
       }
     ]

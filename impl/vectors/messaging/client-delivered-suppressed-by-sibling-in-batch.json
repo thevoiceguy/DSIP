@@ -87,7 +87,8 @@
             }
           },
           "played": {},
-          "read_through": {}
+          "read_through": {},
+          "activity": {}
         }
       }
     ]

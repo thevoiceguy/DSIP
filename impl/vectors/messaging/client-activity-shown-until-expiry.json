@@ -1,0 +1,89 @@
+{
+  "vector": "messaging/client-activity-shown-until-expiry",
+  "format": 1,
+  "kind": "messaging",
+  "description": "A received activity is shown until the expires_at of its last refresh, then cleared with no message.",
+  "spec_ref": [
+    "M§11.2"
+  ],
+  "context": {
+    "component": "client",
+    "me": "did:web:example.com:users:bob",
+    "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+    "now": 1760000000,
+    "member_identities": 2,
+    "policy": {
+      "delivered": true,
+      "read": false,
+      "played": false,
+      "activity": false
+    }
+  },
+  "input": {
+    "check": "client-trace",
+    "steps": [
+      {
+        "event": {
+          "activity_in": {
+            "sender": "did:web:alice.example",
+            "activity": "typing",
+            "state": "active",
+            "expires_at": 1760000010
+          }
+        }
+      },
+      {
+        "event": {
+          "advance": 10
+        }
+      },
+      {
+        "event": {
+          "advance": 1
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [],
+        "state": {
+          "timeline": [],
+          "delivered": {},
+          "played": {},
+          "read_through": {},
+          "activity": {
+            "did:web:alice.example": {
+              "typing": 1760000010
+            }
+          }
+        }
+      },
+      {
+        "emit": [],
+        "state": {
+          "timeline": [],
+          "delivered": {},
+          "played": {},
+          "read_through": {},
+          "activity": {
+            "did:web:alice.example": {
+              "typing": 1760000010
+            }
+          }
+        }
+      },
+      {
+        "emit": [],
+        "state": {
+          "timeline": [],
+          "delivered": {},
+          "played": {},
+          "read_through": {},
+          "activity": {}
+        }
+      }
+    ]
+  }
+}

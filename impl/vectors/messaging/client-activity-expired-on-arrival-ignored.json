@@ -1,11 +1,10 @@
 {
-  "vector": "messaging/client-delivered-off-by-policy",
+  "vector": "messaging/client-activity-expired-on-arrival-ignored",
   "format": 1,
   "kind": "messaging",
-  "description": "delivered receipts are not sent when the user has them off.",
+  "description": "An activity that arrives after its expires_at is never shown.",
   "spec_ref": [
-    "M§10.2",
-    "M§10.5"
+    "M§11.2"
   ],
   "context": {
     "component": "client",
@@ -14,7 +13,7 @@
     "now": 1760000000,
     "member_identities": 2,
     "policy": {
-      "delivered": false,
+      "delivered": true,
       "read": false,
       "played": false,
       "activity": false
@@ -25,18 +24,16 @@
     "steps": [
       {
         "event": {
-          "sync": {
-            "items": [
-              {
-                "seq": 1,
-                "object": {
-                  "object": "content",
-                  "id": "01K742SG000ZJTETD6Q8F0473W",
-                  "sender": "did:web:alice.example",
-                  "kind": "text"
-                }
-              }
-            ]
+          "advance": 20
+        }
+      },
+      {
+        "event": {
+          "activity_in": {
+            "sender": "did:web:alice.example",
+            "activity": "typing",
+            "state": "active",
+            "expires_at": 1760000010
           }
         }
       }
@@ -47,9 +44,17 @@
       {
         "emit": [],
         "state": {
-          "timeline": [
-            "01K742SG000ZJTETD6Q8F0473W"
-          ],
+          "timeline": [],
+          "delivered": {},
+          "played": {},
+          "read_through": {},
+          "activity": {}
+        }
+      },
+      {
+        "emit": [],
+        "state": {
+          "timeline": [],
           "delivered": {},
           "played": {},
           "read_through": {},

@@ -138,24 +138,41 @@ MESSAGES = {
     }, ["since"], "Owner device reads its mailbox (M§5.4)."),
     "items": envelope_payload("items", {
         "in_reply_to": {"$ref": "#/$defs/ulid"},
-        "items": {"type": "array", "items": {
-            "type": "object",
-            "properties": {
-                "cursor": {"$ref": "#/$defs/cursor"},
-                "stored_at": {"$ref": "#/$defs/timestamp"},
-                "class": {"$ref": "#/$defs/token"},
-                "source": {"$ref": "#/$defs/did"},
-                "group": {"$ref": "#/$defs/b64url"},
-                "seq": {"type": "integer", "minimum": 1},
-                "mls": {"$ref": "#/$defs/b64url"},
-                "archive": {"$ref": "#/$defs/b64url"},
-                "akid": {"$ref": "#/$defs/ulid"},
-                "hub": {"$ref": "#/$defs/hubRef"},
-                "blobs": {"type": "array", "items": {"$ref": "#/$defs/blobRef"}},
+        "items": {"type": "array", "items": {"oneOf": [
+            {
+                "description": "A stored item, behind a cursor.",
+                "type": "object",
+                "properties": {
+                    "cursor": {"$ref": "#/$defs/cursor"},
+                    "stored_at": {"$ref": "#/$defs/timestamp"},
+                    "class": {"$ref": "#/$defs/token", "not": {"const": "ephemeral"}},
+                    "source": {"$ref": "#/$defs/did"},
+                    "group": {"$ref": "#/$defs/b64url"},
+                    "seq": {"type": "integer", "minimum": 1},
+                    "mls": {"$ref": "#/$defs/b64url"},
+                    "archive": {"$ref": "#/$defs/b64url"},
+                    "akid": {"$ref": "#/$defs/ulid"},
+                    "hub": {"$ref": "#/$defs/hubRef"},
+                    "blobs": {"type": "array", "items": {"$ref": "#/$defs/blobRef"}},
+                },
+                "required": ["cursor", "stored_at", "class", "group"],
+                "additionalProperties": False,
             },
-            "required": ["cursor", "stored_at", "class", "group"],
-            "additionalProperties": False,
-        }},
+            {
+                "description": "A pushed ephemeral item (M§11.2, spec-gap 49): never stored, so no cursor; "
+                               "expires_at is the originating deposit's, carried unchanged by every hop.",
+                "type": "object",
+                "properties": {
+                    "class": {"const": "ephemeral"},
+                    "source": {"$ref": "#/$defs/did"},
+                    "group": {"$ref": "#/$defs/b64url"},
+                    "sealed": {"$ref": "#/$defs/b64url"},
+                    "expires_at": {"$ref": "#/$defs/timestamp"},
+                },
+                "required": ["class", "group", "sealed", "expires_at"],
+                "additionalProperties": False,
+            },
+        ]}},
         "next": {"anyOf": [{"$ref": "#/$defs/cursor"}, {"type": "null"}]},
     }, ["items", "next"], "Stored items delivered to an owner device, as a sync response or a live push (M§5.4)."),
     "key-packages": envelope_payload("key-packages", {
