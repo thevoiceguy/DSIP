@@ -1,0 +1,186 @@
+{
+  "vector": "messaging/resume-seq-beyond-gap-remembered",
+  "format": 1,
+  "kind": "messaging",
+  "description": "An application item processed beyond a seq gap is remembered durably, so its redelivery is a duplicate while the missing seq is still processed.",
+  "spec_ref": [
+    "M§5.4",
+    "M§8.5",
+    "M§6.5"
+  ],
+  "context": {
+    "component": "resume",
+    "cursor": null,
+    "groups": {},
+    "joined": []
+  },
+  "input": {
+    "check": "resume-trace",
+    "steps": [
+      {
+        "event": {
+          "items": {
+            "items": [
+              {
+                "cursor": "c:0000000000000001",
+                "class": "welcome",
+                "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M"
+              },
+              {
+                "cursor": "c:0000000000000002",
+                "class": "application",
+                "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+                "seq": 1
+              },
+              {
+                "cursor": "c:0000000000000003",
+                "class": "application",
+                "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+                "seq": 3
+              }
+            ]
+          }
+        }
+      },
+      {
+        "event": {
+          "restart": {}
+        }
+      },
+      {
+        "event": {
+          "cursor_invalid": {}
+        }
+      },
+      {
+        "event": {
+          "items": {
+            "items": [
+              {
+                "cursor": "c:0000000000000004",
+                "class": "application",
+                "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+                "seq": 1
+              },
+              {
+                "cursor": "c:0000000000000005",
+                "class": "application",
+                "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+                "seq": 2
+              },
+              {
+                "cursor": "c:0000000000000006",
+                "class": "application",
+                "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+                "seq": 3
+              }
+            ]
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "process": "c:0000000000000001"
+          },
+          {
+            "process": "c:0000000000000002"
+          },
+          {
+            "process": "c:0000000000000003"
+          }
+        ],
+        "state": {
+          "cursor": "c:0000000000000003",
+          "groups": {
+            "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M": {
+              "contiguous": 1,
+              "seen": [
+                3
+              ]
+            }
+          },
+          "joined": [
+            "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M"
+          ]
+        }
+      },
+      {
+        "emit": [
+          {
+            "sync": {
+              "since": "c:0000000000000003",
+              "ack_through": "c:0000000000000003"
+            }
+          }
+        ],
+        "state": {
+          "cursor": "c:0000000000000003",
+          "groups": {
+            "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M": {
+              "contiguous": 1,
+              "seen": [
+                3
+              ]
+            }
+          },
+          "joined": [
+            "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M"
+          ]
+        }
+      },
+      {
+        "emit": [
+          {
+            "sync": {
+              "since": null
+            }
+          }
+        ],
+        "state": {
+          "cursor": null,
+          "groups": {
+            "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M": {
+              "contiguous": 1,
+              "seen": [
+                3
+              ]
+            }
+          },
+          "joined": [
+            "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M"
+          ]
+        }
+      },
+      {
+        "emit": [
+          {
+            "duplicate": "c:0000000000000004"
+          },
+          {
+            "process": "c:0000000000000005"
+          },
+          {
+            "duplicate": "c:0000000000000006"
+          }
+        ],
+        "state": {
+          "cursor": "c:0000000000000006",
+          "groups": {
+            "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M": {
+              "contiguous": 3,
+              "seen": []
+            }
+          },
+          "joined": [
+            "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M"
+          ]
+        }
+      }
+    ]
+  }
+}

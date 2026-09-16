@@ -1,0 +1,93 @@
+{
+  "vector": "messaging/resume-duplicate-is-acknowledged",
+  "format": 1,
+  "kind": "messaging",
+  "description": "A duplicate still advances the ack cursor: it is already durably processed, and an unacknowledged item would be retained and redelivered forever.",
+  "spec_ref": [
+    "M§5.4",
+    "M§8.5",
+    "M§4.4"
+  ],
+  "context": {
+    "component": "resume",
+    "cursor": "c:0000000000000003",
+    "groups": {
+      "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M": {
+        "contiguous": 2,
+        "seen": []
+      }
+    },
+    "joined": [
+      "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M"
+    ]
+  },
+  "input": {
+    "check": "resume-trace",
+    "steps": [
+      {
+        "event": {
+          "items": {
+            "items": [
+              {
+                "cursor": "c:0000000000000004",
+                "class": "application",
+                "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+                "seq": 2
+              }
+            ]
+          }
+        }
+      },
+      {
+        "event": {
+          "sync": {}
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "duplicate": "c:0000000000000004"
+          }
+        ],
+        "state": {
+          "cursor": "c:0000000000000004",
+          "groups": {
+            "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M": {
+              "contiguous": 2,
+              "seen": []
+            }
+          },
+          "joined": [
+            "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M"
+          ]
+        }
+      },
+      {
+        "emit": [
+          {
+            "sync": {
+              "since": "c:0000000000000004",
+              "ack_through": "c:0000000000000004"
+            }
+          }
+        ],
+        "state": {
+          "cursor": "c:0000000000000004",
+          "groups": {
+            "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M": {
+              "contiguous": 2,
+              "seen": []
+            }
+          },
+          "joined": [
+            "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M"
+          ]
+        }
+      }
+    ]
+  }
+}

@@ -473,7 +473,7 @@ codec set. Written up as `v0.8/dsip-rtp-srtp-media-binding-v0.8-draft.md`.
 **Suggested fix.** Adopt the binding draft; align it with the WebRTC binding's descriptor/SDP
 authority rule.
 
-## v0.8 messaging worklist (gaps 31–43)
+## v0.8 messaging worklist (gaps 31–44)
 
 **Status (2026-09-15):** filed with the **DSIP Messaging Profile 1.0** draft
 (`v0.8/dsip-messaging-profile-v0.8-draft.md`, cited M§n). Unlike gaps 1–30, these were not found
@@ -500,6 +500,7 @@ bytes, AES-GCM formats) pins 33 and 39, and `impl/crates/dsip-mls` runs the prof
 | 41 | §12, §14 | caller-recorded voicemail; trigger set; no core field | `messaging/voicemail-offer-*` (16) |
 | 42 | §12.6, §20.6 | duplicate direct conversations / successor groups: lower ULID wins | `messaging/direct-select-*`, `messaging/successor-*` |
 | 43 | (new; M§11) | activity keyed by the MLS exporter, not the secret tree | `messaging/deposit-ephemeral-*`, `messaging/hub-ephemeral-*`, `messaging/mailbox-ephemeral-pushed-never-stored` |
+| 44 | M§5.4, M§8.5 | **pinned** (2026-09-16): MLS state and delivery state (ack cursor, per-group seq positions) commit atomically per item; redelivered sequenced items collapse by seq, not content id | `messaging/resume-*` (9), `dsip-mls` `tests/persist.rs`, `demos/messaging-demo.sh` (restart + crash-before-commit) |
 
 ## 31. §12.9 vs §13.3 / §19.4 — the replay window rejects held envelopes
 
@@ -746,6 +747,42 @@ mailboxes.
 **Draft choice.** (a) (M§11.1), never stored, ≤ 10 s envelope lifetime.
 
 **Suggested fix.** Adopt in the profile.
+
+## 44. M§5.4 / M§8.5 — durable processing and redelivery of MLS items
+
+**Gap.** M§5.4 lets a device acknowledge items it has "durably processed" but does not say what must
+be durable. Processing an MLS item changes two things in different places: the MLS group state
+(which deletes the secret it used) and the device's ack cursor. A crash between them either (a)
+acknowledges an item whose MLS state change is lost — in `queue` mode the mailbox then deletes a
+message the device never kept — or (b) keeps the MLS state change but not the cursor, so the item is
+redelivered and can no longer be decrypted. M§8.5 deduplicates by content id, which needs a
+decryption, so (b) surfaces as an undecryptable message rather than a silent duplicate. The same
+redelivery happens with no crash at all after `mailbox.cursor-invalid` (re-sync from `null`) and when
+a device syncs several mailboxes.
+
+**Choices considered.** (a) Commit MLS state and delivery state (ack cursor, per-group seq positions,
+joined groups) atomically per item, and recognise redelivered sequenced items by hub `seq`, welcomes
+by joined group. (b) Acknowledge only after MLS state is flushed, and treat undecryptable items as
+probable duplicates: silent loss of genuinely undecryptable content is indistinguishable from a
+duplicate. (c) Leave it to implementations: interop is unaffected, but the queue-mode loss in (a)
+above is a protocol-visible failure.
+
+**Draft choice.** (a) — MUST NOT acknowledge ahead of durable MLS state; SHOULD commit atomically;
+MUST keep per-group seq positions durably and collapse redelivery by seq. Vectors (2026-09-16,
+`messaging/resume-*`) pin: the post-restart `since`/`ack_through` equal the last committed item;
+an uncommitted item is redelivered and processed; duplicates are acknowledged; seq positions are per
+group and include seqs processed beyond a gap; a welcome for a joined group is a duplicate;
+`group-info` is re-applied. `impl/crates/dsip-mls` (`sqlite` feature) shows (a) is directly
+implementable on OpenMLS: its SQLite storage provider opens no transactions of its own, so one
+transaction spans the MLS writes and the delivery state. `tests/persist.rs` and the messaging demo
+(a device killed after processing but before commit) exercise it, and both fail when the transaction
+is removed.
+
+**Not yet pinned.** How a device's durable state interacts with items held across a seq gap (M§6.5):
+a held item is not processed, so the ack position must stop before it, while later items for other
+groups may still be processed.
+
+**Suggested fix.** Adopt the M§5.4 and M§8.5 text now in the draft.
 
 ## Already-flagged (schema README / plan §11)
 
