@@ -85,6 +85,7 @@ def vectors() -> list[dict]:
     out += client_vectors()
     out += gap_vectors()
     out += history_vectors()
+    out += commit_retry_vectors()
     out += resume_vectors()
     out += mls_layer_vectors()
     out += discovery_vectors()
@@ -1828,5 +1829,67 @@ def revocation_vectors():
                          ({"kp_fetch": {"id": uid("f1"), "from": CPH, "from_identity": BOB, "target": BOB, "grant": None}},
                           [{"key_packages": {"to": CPH, "in_reply_to": uid("f1"), "devices": {BPH: "one-time"}}}],
                           ms(kps={BPH: {"one_time": 0, "last_resort": False}})),
+                     ]))
+    return out
+
+
+# ---------------------------------------------------------------- a committing device and the hub's answer (M§6.5, spec-gap 58)
+
+def commit_retry_vectors():
+    out = []
+    T = "commit-retry-trace"
+    ctx = {"component": "commit-retry", "max_attempts": 3}
+    refs = ["M§6.5", "§15.3"]
+    ans = lambda reason=None: {"answer": {"reason": reason} if reason else {}}
+    synced = lambda needed=True: {"synced": {"still_needed": needed}}
+    st = lambda attempt, state: {"attempt": attempt, "state": state}
+    retry = [{"discard": {}}, {"sync": {}}]
+    out.append(trace("commit-retry-accepted", "A commit the hub accepts is merged; nothing else happens.", refs, T, ctx, [
+        (ans(), [{"merge": {}}], st(1, "merged")),
+    ]))
+    out.append(trace("commit-retry-conflict-reproposed",
+                     "On mailbox.commit-conflict the device discards its pending commit, syncs until the winning commit is processed, "
+                     "and re-proposes at the new epoch.", refs, T, ctx, [
+                         (ans("mailbox.commit-conflict"), retry, st(1, "syncing")),
+                         (synced(), [{"repropose": {"attempt": 2}}], st(2, "pending")),
+                         (ans(), [{"merge": {}}], st(2, "merged")),
+                     ]))
+    out.append(trace("commit-retry-conflict-no-longer-needed",
+                     "If the winning commit already did what this one meant to (the identity is already added), nothing is re-proposed.",
+                     refs, T, ctx, [
+                         (ans("mailbox.commit-conflict"), retry, st(1, "syncing")),
+                         (synced(False), [{"done": "no-longer-needed"}], st(1, "done")),
+                     ]))
+    out.append(trace("commit-retry-stale-epoch-like-conflict",
+                     "mailbox.stale-epoch means the device was further behind; it is handled the same way.", refs, T, ctx, [
+                         (ans("mailbox.stale-epoch"), retry, st(1, "syncing")),
+                         (synced(), [{"repropose": {"attempt": 2}}], st(2, "pending")),
+                         (ans(), [{"merge": {}}], st(2, "merged")),
+                     ]))
+    out.append(trace("commit-retry-bounded",
+                     "At most three proposals in all: a third conflict is surfaced, so contention cannot loop forever.", refs, T, ctx, [
+                         (ans("mailbox.commit-conflict"), retry, st(1, "syncing")),
+                         (synced(), [{"repropose": {"attempt": 2}}], st(2, "pending")),
+                         (ans("mailbox.stale-epoch"), retry, st(2, "syncing")),
+                         (synced(), [{"repropose": {"attempt": 3}}], st(3, "pending")),
+                         (ans("mailbox.commit-conflict"), [{"discard": {}}, {"surface": "mailbox.commit-conflict"}], st(3, "surfaced")),
+                     ]))
+    out.append(trace("commit-retry-blocked-surfaces",
+                     "policy.blocked (the commit broke M§7.3 or failed validation) is discarded and surfaced, never retried.", refs, T, ctx, [
+                         (ans("policy.blocked"), [{"discard": {}}, {"surface": "policy.blocked"}], st(1, "surfaced")),
+                     ]))
+    out.append(trace("commit-retry-registered-mailbox-condition-surfaces",
+                     "A registered mailbox condition that is not about ordering (quota) is surfaced without retry.", refs, T, ctx, [
+                         (ans("mailbox.quota-exceeded"), [{"discard": {}}, {"surface": "mailbox.quota-exceeded"}], st(1, "surfaced")),
+                     ]))
+    out.append(trace("commit-retry-unknown-mailbox-condition-retries-once",
+                     "An unregistered mailbox condition takes the category fallback: re-sync, retry once, then surface.", refs, T, ctx, [
+                         (ans("mailbox.hub-draining"), retry, st(1, "syncing")),
+                         (synced(), [{"repropose": {"attempt": 2}}], st(2, "pending")),
+                         (ans("mailbox.hub-draining"), [{"discard": {}}, {"surface": "mailbox.hub-draining"}], st(2, "surfaced")),
+                     ]))
+    out.append(trace("commit-retry-unknown-category-surfaces",
+                     "An unrecognized category is session.failed to this device: surfaced without retry.", refs, T, ctx, [
+                         (ans("x-hubs.overloaded"), [{"discard": {}}, {"surface": "x-hubs.overloaded"}], st(1, "surfaced")),
                      ]))
     return out

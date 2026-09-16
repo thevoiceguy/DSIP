@@ -1,0 +1,44 @@
+{
+  "vector": "messaging/commit-retry-unknown-category-surfaces",
+  "format": 1,
+  "kind": "messaging",
+  "description": "An unrecognized category is session.failed to this device: surfaced without retry.",
+  "spec_ref": [
+    "M§6.5",
+    "§15.3"
+  ],
+  "context": {
+    "component": "commit-retry",
+    "max_attempts": 3
+  },
+  "input": {
+    "check": "commit-retry-trace",
+    "steps": [
+      {
+        "event": {
+          "answer": {
+            "reason": "x-hubs.overloaded"
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "discard": {}
+          },
+          {
+            "surface": "x-hubs.overloaded"
+          }
+        ],
+        "state": {
+          "attempt": 1,
+          "state": "surfaced"
+        }
+      }
+    ]
+  }
+}
