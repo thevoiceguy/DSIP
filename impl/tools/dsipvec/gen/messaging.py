@@ -93,6 +93,7 @@ def vectors() -> list[dict]:
     out += removal_registration_vectors()
     out += first_contact_vectors()
     out += revocation_vectors()
+    out += restart_vectors()
     return out
 
 
@@ -1891,5 +1892,137 @@ def commit_retry_vectors():
     out.append(trace("commit-retry-unknown-category-surfaces",
                      "An unrecognized category is session.failed to this device: surfaced without retry.", refs, T, ctx, [
                          (ans("x-hubs.overloaded"), [{"discard": {}}, {"surface": "x-hubs.overloaded"}], st(1, "surfaced")),
+                     ]))
+    return out
+
+
+# ---------------------------------------------------------------- a service restart and hub redelivery (M§5, M§6.5; spec-gap 59)
+
+def restart_vectors():
+    out = []
+    RESTART = {"restart": {}}
+    J = {GROUP: "joined"}
+    QJ = {GROUP: {"hub": HUB_A, "state": "joined"}}
+    T = "mailbox-trace"
+    R = ["M§5.4", "M§6.6"]
+
+    def sync_ev(label, device, since=None, **kw):
+        return {"sync": {"id": uid(label), "device": device, "since": since, **kw}}
+
+    def items(device, label, cursors, nxt=None):
+        return {"items": {"to": device, "in_reply_to": uid(label), "cursors": list(cursors), "next": nxt}}
+
+    push = lambda device, cur: {"push": {"to": device, "cursor": cur}}
+
+    out.append(trace("mailbox-restart-keeps-items-cursors-acks-registrations",
+                     "A mailbox restart keeps its items, cursor counter, per-device acknowledgements and group registrations: "
+                     "queue-mode deletion still waits for the device that acknowledged before the restart, and new items continue "
+                     "the cursor sequence.", R + ["M§4.4"], T, mbx_ctx(mode="queue", groups=QJ), [
+                         (hubdep("h1", 1), [macc(HUB_A, "h1", c(1))], ms([c(1)], J)),
+                         (hubdep("h2", 2), [macc(HUB_A, "h2", c(2))], ms([c(1), c(2)], J)),
+                         (sync_ev("s1", BPH, c(2), ack_through=c(2)), [items(BPH, "s1", [])], ms([c(1), c(2)], J)),
+                         (RESTART, [], ms([c(1), c(2)], J)),
+                         (sync_ev("s2", BLA, c(1), ack_through=c(1)), [items(BLA, "s2", [c(2)])], ms([c(2)], J)),
+                         (hubdep("h3", 3), [macc(HUB_A, "h3", c(3))], ms([c(2), c(3)], J)),
+                     ]))
+    out.append(trace("mailbox-restart-drops-live-bindings",
+                     "Live bindings are connections and do not survive a restart: nothing is pushed until the device syncs live again, "
+                     "and what arrived meanwhile is returned by that sync.", R + ["M§9.1"], T, mbx_ctx(groups=QJ), [
+                         (sync_ev("s1", BPH, live=True), [items(BPH, "s1", [])], ms([], J)),
+                         (RESTART, [], ms([], J)),
+                         (hubdep("h1", 1), [macc(HUB_A, "h1", c(1))], ms([c(1)], J)),
+                         (sync_ev("s2", BPH, live=True), [items(BPH, "s2", [c(1)])], ms([c(1)], J)),
+                         (hubdep("h2", 2), [macc(HUB_A, "h2", c(2)), push(BPH, c(2))], ms([c(1), c(2)], J)),
+                     ]))
+    out.append(trace("mailbox-restart-pending-ttl-continues",
+                     "A pending group's age is kept across a restart: pending_group_ttl counts from the welcome, not from the restart.",
+                     R, T, mbx_ctx(), [
+                         (welcome(grant_=grant()), [macc(CPH, "w1", c(1))], ms([c(1)], {GROUP: "pending"})),
+                         ({"advance": 604000}, [], ms([c(1)], {GROUP: "pending"})),
+                         (RESTART, [], ms([c(1)], {GROUP: "pending"})),
+                         ({"advance": 800}, [], ms([c(1)], {GROUP: "pending"})),
+                         ({"advance": 1}, [], ms()),
+                     ]))
+    KP = {BPH: {"one_time": 1, "last_resort": True}}
+    out.append(trace("mailbox-restart-keeps-key-packages-revoked-grants-archive-index",
+                     "KeyPackages, revoked grants and the archive index survive a restart: a revoked grant stays revoked, a KeyPackage "
+                     "served once is not served again, and a second archive for the same (group, seq) is still a duplicate.",
+                     R + ["M§5.5", "M§5.7", "M§12.2"], T, mbx_ctx(key_packages=KP), [
+                         ({"config": {"id": uid("cfg"), "device": BPH, "revoked_grants": [uid("g1")]}}, [macc(BPH, "cfg")],
+                          ms(kps={BPH: {"one_time": 1, "last_resort": True}})),
+                         ({"kp_fetch": {"id": uid("f1"), "from": CPH, "from_identity": BOB, "target": BOB, "grant": None}},
+                          [{"key_packages": {"to": CPH, "in_reply_to": uid("f1"), "devices": {BPH: "one-time"}}}],
+                          ms(kps={BPH: {"one_time": 0, "last_resort": True}})),
+                         ({"archive": {"id": uid("ar1"), "device": BPH, "ref_group": GROUP, "ref_seq": 42}}, [macc(BPH, "ar1", c(1))],
+                          ms([c(1)], kps={BPH: {"one_time": 0, "last_resort": True}})),
+                         (RESTART, [], ms([c(1)], kps={BPH: {"one_time": 0, "last_resort": True}})),
+                         (welcome(grant_=grant()), [err(CPH, "w1", "policy.first-contact-required")],
+                          ms([c(1)], kps={BPH: {"one_time": 0, "last_resort": True}})),
+                         ({"kp_fetch": {"id": uid("f2"), "from": CPH, "from_identity": BOB, "target": BOB, "grant": None}},
+                          [{"key_packages": {"to": CPH, "in_reply_to": uid("f2"), "devices": {BPH: "last-resort"}}}],
+                          ms([c(1)], kps={BPH: {"one_time": 0, "last_resort": True}})),
+                         ({"archive": {"id": uid("ar2"), "device": BLA, "ref_group": GROUP, "ref_seq": 42}}, [macc(BLA, "ar2", c(1), dup=True)],
+                          ms([c(1)], kps={BPH: {"one_time": 0, "last_resort": True}})),
+                     ]))
+    ictx = mbx_ctx(intro_limit=1, intro_window=3600, inbox_cap=16)
+    intro = lambda label: {"first_contact": {"id": uid(label), "from": APH, "sender_identity": ALICE, "recipient": BOB,
+                                             "kind": "introduction", "expires_at": NOW + 604800}}
+    out.append(trace("mailbox-restart-keeps-introduction-rate-window",
+                     "The first-contact rate window survives a restart, so restarting a mailbox does not reset a sender's allowance.",
+                     R + ["§19.4", "M§14.3"], T, ictx, [
+                         (intro("i1"), [macc(APH, "i1", c(1))], ms([c(1)])),
+                         (RESTART, [], ms([c(1)])),
+                         ({"advance": 600}, [], ms([c(1)])),
+                         (intro("i2"), [{"error": {"to": APH, "in_reply_to": uid("i2"), "reason": "policy.rate-limited", "retry_after": 3000}}],
+                          ms([c(1)])),
+                     ]))
+    G59 = ["M§6.5", "M§6.6", "M§9.3"]
+    out.append(trace("mailbox-hub-deposit-redelivered-idempotent",
+                     "A hub retries a fan-out it saw no acknowledgement for, so the same (group, seq) can arrive twice: the second is "
+                     "accepted with the original cursor and duplicate, and is neither stored nor pushed again.", G59, T,
+                     mbx_ctx(groups=QJ), [
+                         (sync_ev("s1", BLA, live=True), [items(BLA, "s1", [])], ms([], J)),
+                         (hubdep("h1", 1), [macc(HUB_A, "h1", c(1)), push(BLA, c(1))], ms([c(1)], J)),
+                         (hubdep("h1-retry", 1), [macc(HUB_A, "h1-retry", c(1), dup=True)], ms([c(1)], J)),
+                         (hubdep("h2", 2), [macc(HUB_A, "h2", c(2)), push(BLA, c(2))], ms([c(1), c(2)], J)),
+                     ]))
+    out.append(trace("mailbox-hub-deposit-redelivered-after-deletion",
+                     "A redelivery of an item already deleted in queue mode is still a duplicate (the hub delivers in seq order, so a "
+                     "seq at or below the group's highest is not new); it carries no cursor and nothing is stored.", G59 + ["M§4.4"], T,
+                     mbx_ctx(mode="queue", groups=QJ), [
+                         (hubdep("h1", 1), [macc(HUB_A, "h1", c(1))], ms([c(1)], J)),
+                         (sync_ev("s1", BPH, c(1), ack_through=c(1)), [items(BPH, "s1", [])], ms([c(1)], J)),
+                         (sync_ev("s2", BLA, c(1), ack_through=c(1)), [items(BLA, "s2", [])], ms([], J)),
+                         (hubdep("h1-retry", 1), [macc(HUB_A, "h1-retry", dup=True)], ms([], J)),
+                     ]))
+
+    H = "hub-trace"
+    RR = {ALICE: [ALA, APH], BOB: [BPH]}
+    out.append(trace("hub-restart-resends-unacknowledged-heads",
+                     "A hub restart keeps every fan-out queue and re-sends the head of each unacknowledged one (retry before later "
+                     "items); acknowledged items are not re-sent.", ["M§6.5"], H, hub_ctx(), [
+                         (dep("a1", APH, ALICE, "application", 1), [acc(APH, "a1", 1), fan(ALICE, 1), fan(BOB, 1)],
+                          hs(1, 2, RR, {ALICE: [1], BOB: [1]})),
+                         ({"ack": {"identity": ALICE, "seq": 1}}, [], hs(1, 2, RR, {BOB: [1]})),
+                         (dep("a2", APH, ALICE, "application", 1), [acc(APH, "a2", 2), fan(ALICE, 2)],
+                          hs(1, 3, RR, {ALICE: [2], BOB: [1, 2]})),
+                         (RESTART, [fan(ALICE, 2), fan(BOB, 1)], hs(1, 3, RR, {ALICE: [2], BOB: [1, 2]})),
+                         ({"ack": {"identity": BOB, "seq": 1}}, [fan(BOB, 2)], hs(1, 3, RR, {ALICE: [2], BOB: [2]})),
+                     ]))
+    out.append(trace("hub-restart-keeps-epoch-and-digests",
+                     "A hub restart keeps the epoch, the sequence counter and the deposit digests: a retried deposit is still a "
+                     "duplicate, a commit for the old epoch still conflicts, and new items continue the sequence.",
+                     ["M§6.5", "M§9.3"], H, hub_ctx(), [
+                         (dep("k1", APH, ALICE, "handshake", 1, commit={"adds": [], "removes": []}),
+                          [acc(APH, "k1", 1), fan(ALICE, 1, "handshake"), fan(BOB, 1, "handshake")], hs(2, 2, RR, {ALICE: [1], BOB: [1]})),
+                         ({"ack": {"identity": ALICE, "seq": 1}}, [], hs(2, 2, RR, {BOB: [1]})),
+                         ({"ack": {"identity": BOB, "seq": 1}}, [], hs(2, 2, RR)),
+                         (RESTART, [], hs(2, 2, RR)),
+                         (dep("k1-retry", APH, ALICE, "handshake", 1, digest="k1", commit={"adds": [], "removes": []}),
+                          [acc(APH, "k1-retry", 1, dup=True)], hs(2, 2, RR)),
+                         (dep("k2", BPH, BOB, "handshake", 1, commit={"adds": [], "removes": []}),
+                          [err(BPH, "k2", "mailbox.commit-conflict")], hs(2, 2, RR)),
+                         (dep("a1", BPH, BOB, "application", 2), [acc(BPH, "a1", 2), fan(ALICE, 2), fan(BOB, 2)],
+                          hs(2, 3, RR, {ALICE: [2], BOB: [2]})),
                      ]))
     return out

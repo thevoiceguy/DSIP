@@ -91,6 +91,7 @@ demos/store-and-forward-demo.sh                                      # offline c
 # Messaging Profile 1.0 (v0.8 draft) over the wire: two identities, two mailboxes, real MLS
 demos/messaging-demo.sh                                              # Alice's mailbox hubs the group and federates fan-out to Bob's; text arrives live, after a disconnect, after a device restart, and after a crash before commit; then an Opus voicemail as a sealed blob over HTTPS (needs espeak-ng, ffmpeg)
 dsip-mailbox --state .mbx-a --listen 127.0.0.1:9451 --owner did:web:alice.example --resolver-file docs/alice.json --resolver-file docs/bob.json --ca ca.pem
+demos/mailbox-restart-demo.sh                                        # kill -9 a mailbox with a message waiting and the hub with fan-out queued: state reloaded, queue heads re-sent, nothing lost or replayed, next commit validated
 demos/commit-conflict-demo.sh                                        # two members commit at one epoch: the hub refuses the stale commit, the loser syncs and re-proposes (conflict, stale epoch)
 demos/revocation-demo.sh                                             # a lost device's delegation revoked: disconnected, refused by its own and a foreign mailbox, removable by any member, removed + key rotated
 demos/messaging-first-contact-demo.sh                                # sealed introduction via the recipient's mailbox (rate limits, anti-enumeration), grant returned, conversation created with it

@@ -1,0 +1,167 @@
+{
+  "vector": "messaging/mailbox-hub-deposit-redelivered-after-deletion",
+  "format": 1,
+  "kind": "messaging",
+  "description": "A redelivery of an item already deleted in queue mode is still a duplicate (the hub delivers in seq order, so a seq at or below the group's highest is not new); it carries no cursor and nothing is stored.",
+  "spec_ref": [
+    "M§6.5",
+    "M§6.6",
+    "M§9.3",
+    "M§4.4"
+  ],
+  "context": {
+    "component": "mailbox",
+    "mailbox": "did:web:mbx.bob.example",
+    "owner": "did:web:example.com:users:bob",
+    "serves": [
+      "did:web:example.com:users:bob"
+    ],
+    "devices": [
+      "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ",
+      "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+    ],
+    "now": 1760000000,
+    "mode": "queue",
+    "admit": "grant",
+    "pending_group_ttl": 604800,
+    "pending_group_max_items": 2,
+    "groups": {
+      "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M": {
+        "hub": "did:web:mbx.alice.example",
+        "state": "joined"
+      }
+    },
+    "key_packages": {}
+  },
+  "input": {
+    "check": "mailbox-trace",
+    "steps": [
+      {
+        "event": {
+          "hub_deposit": {
+            "id": "01K742SG002WHVBMHZXKS2T47Q",
+            "from": "did:web:mbx.alice.example",
+            "recipient": "did:web:example.com:users:bob",
+            "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+            "seq": 1,
+            "class": "application"
+          }
+        }
+      },
+      {
+        "event": {
+          "sync": {
+            "id": "01K742SG00NPM1814RWZ3GWQZW",
+            "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "since": "c:0000000000000001",
+            "ack_through": "c:0000000000000001"
+          }
+        }
+      },
+      {
+        "event": {
+          "sync": {
+            "id": "01K742SG00F7HSHJ6KYW1RNVDY",
+            "device": "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ",
+            "since": "c:0000000000000001",
+            "ack_through": "c:0000000000000001"
+          }
+        }
+      },
+      {
+        "event": {
+          "hub_deposit": {
+            "id": "01K742SG00D886K4X6X1GGGS1V",
+            "from": "did:web:mbx.alice.example",
+            "recipient": "did:web:example.com:users:bob",
+            "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+            "seq": 1,
+            "class": "application"
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "accepted": {
+              "to": "did:web:mbx.alice.example",
+              "in_reply_to": "01K742SG002WHVBMHZXKS2T47Q",
+              "cursor": "c:0000000000000001"
+            }
+          }
+        ],
+        "state": {
+          "items": [
+            "c:0000000000000001"
+          ],
+          "groups": {
+            "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M": "joined"
+          },
+          "key_packages": {}
+        }
+      },
+      {
+        "emit": [
+          {
+            "items": {
+              "to": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+              "in_reply_to": "01K742SG00NPM1814RWZ3GWQZW",
+              "cursors": [],
+              "next": null
+            }
+          }
+        ],
+        "state": {
+          "items": [
+            "c:0000000000000001"
+          ],
+          "groups": {
+            "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M": "joined"
+          },
+          "key_packages": {}
+        }
+      },
+      {
+        "emit": [
+          {
+            "items": {
+              "to": "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ",
+              "in_reply_to": "01K742SG00F7HSHJ6KYW1RNVDY",
+              "cursors": [],
+              "next": null
+            }
+          }
+        ],
+        "state": {
+          "items": [],
+          "groups": {
+            "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M": "joined"
+          },
+          "key_packages": {}
+        }
+      },
+      {
+        "emit": [
+          {
+            "accepted": {
+              "to": "did:web:mbx.alice.example",
+              "in_reply_to": "01K742SG00D886K4X6X1GGGS1V",
+              "duplicate": true
+            }
+          }
+        ],
+        "state": {
+          "items": [],
+          "groups": {
+            "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M": "joined"
+          },
+          "key_packages": {}
+        }
+      }
+    ]
+  }
+}

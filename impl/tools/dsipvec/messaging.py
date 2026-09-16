@@ -249,6 +249,8 @@ class Hub:
             return []
         if "ack" in ev:
             return self._ack(ev["ack"]["identity"], ev["ack"]["seq"])
+        if "restart" in ev:
+            return self.restart()
         return self._deposit(ev["deposit"])
 
     @staticmethod
@@ -326,6 +328,19 @@ class Hub:
             gained = {a["identity"] for a in commit.get("adds", []) if a["device"] not in before.get(a["identity"], set())}
             out += [{"fanout": {"to": i, "class": "welcome"}} for i in sorted(gained)]
         return out
+
+    def restart(self) -> list:
+        """spec-gap 59: a hub restart keeps epoch, roster, sequence, digests and fan-out queues, and re-sends the head of
+        every unacknowledged queue (M§6.5 rule 5: retry before later items)."""
+        state = json.loads(json.dumps({
+            "now": self.now, "kind": self.kind, "owner": self.owner, "epoch": self.epoch, "next_seq": self.next_seq,
+            "roster": {i: sorted(d) for i, d in self.roster.items()}, "digests": self.digests,
+            "seq_class": {str(k): v for k, v in self.seq_class.items()}, "pending": self.pending, "group_info": self.group_info}))
+        for k in ("now", "kind", "owner", "epoch", "next_seq", "digests", "pending", "group_info"):
+            setattr(self, k, state[k])
+        self.roster = {i: set(d) for i, d in state["roster"].items()}
+        self.seq_class = {int(k): v for k, v in state["seq_class"].items()}
+        return [{"fanout": {"to": i, "seq": q[0], "class": self.seq_class[q[0]]}} for i, q in sorted(self.pending.items()) if q]
 
     def _sequence(self, d: dict, targets: list) -> list:
         seq = self.next_seq
@@ -479,10 +494,22 @@ class Mailbox:
             if e.get("expires_at") is not None and e["expires_at"] < self.now:
                 return []  # M§11.2: dropped at expires_at (spec-gap 49: the originating deposit's)
             return [{"push": {"to": dv, "class": "ephemeral"}} for dv in sorted(self.bound)]
+        seq = e.get("seq")
+        if seq is not None and seq <= reg.get("high_seq", 0):
+            # spec-gap 59: a hub retries an unacknowledged fan-out (M§6.5 rule 5) and delivers in seq order, so a seq at
+            # or below the highest stored for the group is a redelivery: acknowledged, duplicate, not stored or pushed
+            # again (with the original cursor while the item is still retained)
+            acc = {"to": e["from"], "in_reply_to": e["id"], "duplicate": True}
+            c = next((it["cursor"] for it in self.items if it["group"] == e["group"] and it.get("seq") == seq), None)
+            if c is not None:
+                acc["cursor"] = c
+            return [{"accepted": acc}]
         if reg["state"] == "pending" and reg["items"] >= self.pending_max:
             return self._error(e["from"], e["id"], "mailbox.quota-exceeded")
         reg["items"] += 1
-        c, pushes = self._store(e["class"], e["group"], seq=e.get("seq"))
+        if seq is not None:
+            reg["high_seq"] = seq
+        c, pushes = self._store(e["class"], e["group"], seq=seq)
         return [{"accepted": {"to": e["from"], "in_reply_to": e["id"], "cursor": c}}] + pushes
 
     def _forward(self, e: dict) -> list:
@@ -587,6 +614,22 @@ class Mailbox:
         if not served:
             return self._error(e["from"], e["id"], "mailbox.no-key-packages")
         return [{"key_packages": {"to": e["from"], "in_reply_to": e["id"], "devices": served}}]
+
+    def _restart(self, _e) -> list:
+        """spec-gap 59: a mailbox restart keeps everything durable and loses its live bindings (connections)."""
+        state = json.loads(json.dumps({
+            "now": self.now, "owner": self.owner, "serves": sorted(self.serves), "devices": self.devices, "mode": self.mode,
+            "admit": self.admit, "pending_ttl": self.pending_ttl, "pending_max": self.pending_max, "groups": self.groups,
+            "kp": self.kp, "revoked": sorted(self.revoked), "items": self.items, "counter": self.counter, "acks": self.acks,
+            "archived": [[g, s, c] for (g, s), c in self.archived.items()], "intro_limit": self.intro_limit,
+            "intro_window": self.intro_window, "inbox_cap": self.inbox_cap, "intro_log": self.intro_log}))
+        for k in ("now", "owner", "devices", "mode", "admit", "pending_ttl", "pending_max", "groups", "kp", "items", "counter",
+                  "acks", "intro_limit", "intro_window", "inbox_cap", "intro_log"):
+            setattr(self, k, state[k])
+        self.serves, self.revoked = set(state["serves"]), set(state["revoked"])
+        self.archived = {(g, s): c for g, s, c in state["archived"]}
+        self.bound = set()  # volatile: a device re-binds with sync live
+        return []
 
     def snapshot(self) -> dict:
         return {"items": [it["cursor"] for it in self.items],

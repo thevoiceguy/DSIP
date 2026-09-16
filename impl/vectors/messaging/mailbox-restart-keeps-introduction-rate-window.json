@@ -1,0 +1,134 @@
+{
+  "vector": "messaging/mailbox-restart-keeps-introduction-rate-window",
+  "format": 1,
+  "kind": "messaging",
+  "description": "The first-contact rate window survives a restart, so restarting a mailbox does not reset a sender's allowance.",
+  "spec_ref": [
+    "M§5.4",
+    "M§6.6",
+    "§19.4",
+    "M§14.3"
+  ],
+  "context": {
+    "component": "mailbox",
+    "mailbox": "did:web:mbx.bob.example",
+    "owner": "did:web:example.com:users:bob",
+    "serves": [
+      "did:web:example.com:users:bob"
+    ],
+    "devices": [
+      "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ",
+      "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+    ],
+    "now": 1760000000,
+    "mode": "sync",
+    "admit": "grant",
+    "pending_group_ttl": 604800,
+    "pending_group_max_items": 2,
+    "groups": {},
+    "key_packages": {},
+    "intro_limit": 1,
+    "intro_window": 3600,
+    "inbox_cap": 16
+  },
+  "input": {
+    "check": "mailbox-trace",
+    "steps": [
+      {
+        "event": {
+          "first_contact": {
+            "id": "01K742SG003WS0123XMAGGPR03",
+            "from": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+            "sender_identity": "did:web:alice.example",
+            "recipient": "did:web:example.com:users:bob",
+            "kind": "introduction",
+            "expires_at": 1760604800
+          }
+        }
+      },
+      {
+        "event": {
+          "restart": {}
+        }
+      },
+      {
+        "event": {
+          "advance": 600
+        }
+      },
+      {
+        "event": {
+          "first_contact": {
+            "id": "01K742SG0055MGNM3TPHV17TCE",
+            "from": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+            "sender_identity": "did:web:alice.example",
+            "recipient": "did:web:example.com:users:bob",
+            "kind": "introduction",
+            "expires_at": 1760604800
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "accepted": {
+              "to": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+              "in_reply_to": "01K742SG003WS0123XMAGGPR03",
+              "cursor": "c:0000000000000001"
+            }
+          }
+        ],
+        "state": {
+          "items": [
+            "c:0000000000000001"
+          ],
+          "groups": {},
+          "key_packages": {}
+        }
+      },
+      {
+        "emit": [],
+        "state": {
+          "items": [
+            "c:0000000000000001"
+          ],
+          "groups": {},
+          "key_packages": {}
+        }
+      },
+      {
+        "emit": [],
+        "state": {
+          "items": [
+            "c:0000000000000001"
+          ],
+          "groups": {},
+          "key_packages": {}
+        }
+      },
+      {
+        "emit": [
+          {
+            "error": {
+              "to": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+              "in_reply_to": "01K742SG0055MGNM3TPHV17TCE",
+              "reason": "policy.rate-limited",
+              "retry_after": 3000
+            }
+          }
+        ],
+        "state": {
+          "items": [
+            "c:0000000000000001"
+          ],
+          "groups": {},
+          "key_packages": {}
+        }
+      }
+    ]
+  }
+}

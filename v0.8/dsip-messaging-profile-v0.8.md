@@ -674,6 +674,13 @@ The hub MUST:
    committer republishes it afterwards so the hub and the members' mailboxes hold a current one for
    external joins (M§6.8).
 
+**Restarts** (spec-gap 59). What rules 2–6 depend on is state, not memory: a hub MUST keep its epoch,
+public tree, next `seq`, the digests it answers idempotent re-deposits from (M§9.3) and its fan-out queues
+across a restart, and on restart re-sends the head of every unacknowledged queue before anything later.
+A hub that lost this state would re-number items or accept a second commit for an epoch, forking the
+group. Retrying an unacknowledged deposit (rule 5) means a member mailbox can receive an item it already
+stored whenever the acknowledgement was lost; M§6.6 makes that harmless.
+
 A committing member MUST NOT apply its own commit until it holds the hub's `accepted`. On
 `mailbox.commit-conflict` it syncs, processes the winning commit, and re-proposes if still needed.
 (spec-gap 58) Precisely: on `mailbox.commit-conflict` or `mailbox.stale-epoch` the member discards its
@@ -714,6 +721,15 @@ A mailbox accepts hub fan-out only for groups registered for its owner:
   (RECOMMENDED 604,800 s).
 - A hub deposit for an unregistered group is refused `mailbox.unknown-group`. The hub MAY retry that
   member later; it MUST NOT stall other members' fan-out because of it.
+- (spec-gap 59) **Redelivery.** A hub deposit whose `seq` is at or below the highest the mailbox has stored
+  for that group is a redelivery (the hub delivers in `seq` order and retries unacknowledged items): the
+  mailbox answers `accepted` with `duplicate: true` — and the item's original `cursor` while it still holds
+  the item — and neither stores nor pushes it again.
+- (spec-gap 59) **Restarts.** Everything a mailbox answers from is durable: items, the cursor counter,
+  each device's `ack_through`, group registrations with their pending age and item count, KeyPackages,
+  revoked grants, the archive index (M§12.2), the first-contact rate window (§19.4) and the ids tracked for
+  replay (§12.9). Live bindings are not: after a restart a device receives nothing pushed until it syncs
+  with `live` again, and that sync returns what arrived meanwhile.
 
 ### M§6.7 KeyPackages and adding devices
 
