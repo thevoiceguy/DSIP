@@ -4,7 +4,7 @@
 Unlike the Gateway Profile and the WebRTC Media Binding, this document is written *before* the
 reference implementation: per the project's vectors-first rule, a `messaging/` vector category
 pins it next, and where the vectors and this text disagree the disagreement is resolved
-explicitly (vector bug or text bug), never papered over. Spec-gaps 31–44
+explicitly (vector bug or text bug), never papered over. Spec-gaps 31–47
 (`impl/docs/spec-gaps.md`) record every choice this draft makes that core does not already
 settle.
 **Profile identifier:** `messaging/1.0`. **Conformance pieces:** `DSIP Messaging Profile 1.0`
@@ -107,6 +107,9 @@ The profile is additive except for the following core items, each filed as a spe
 | 42 | §12.6, §20.6 | Duplicate direct conversations and successor groups: lower ULID wins; hub-hosting asymmetry tripwire. |
 | 43 | (new) | Ephemeral activity is keyed by the MLS exporter, not the secret tree. |
 | 44 | (new) | "Durably processed" (M§5.4): MLS state and delivery state commit together; redelivered MLS items collapse by `seq` (M§8.5). |
+| 45 | (new) | Mailbox-to-hub forwarding: only an owner device's deposit, only to the group's registered hub; the hub takes identity from the header delegation. |
+| 46 | §19.4 | A hub-forwarded welcome's adder is proven only by `origin`; refusal tokens for a bad `origin`. |
+| 47 | (new) | A device's own items fanned back to it are recognised by the `accepted` seq (or their bytes), never decrypted. |
 
 ## M§4 The mailbox service
 
@@ -271,6 +274,14 @@ Fields:
   when `to` names another service (mailbox-to-hub forwarding over `ws/1.0`, hello as service
   identity). Forwarding keeps device IP addresses away from foreign hubs and bounds a device's
   connections to one. A device MAY connect to a hub directly.
+  **Forwarding rules** (spec-gap 45). A mailbox forwards only a deposit from a device of its owner,
+  and only to the hub registered for the deposit's `group` (M§6.6), reached at the `hub.uri` of the
+  `welcome` that registered it. It refuses a deposit from another identity's device with
+  `policy.blocked`, and one for an unregistered group or addressed to any service other than that
+  group's hub with `mailbox.unknown-group`. It stores nothing and relays the hub's `accepted` or
+  `error` back to the device. Because a forwarded deposit arrives on the mailbox's connection, the
+  device MUST carry its delegation in the header (M§5.1), and the hub MUST take the depositor's
+  identity from that delegation (capability `dsip.messaging`), never from the connection.
 - `recipient` — present only on deposits addressed to a mailbox: the served identity the item is
   for.
 - `group` — base64url MLS `group_id`; MUST equal the group id inside `mls`.
@@ -617,6 +628,12 @@ The hub MUST:
 
 A committing member MUST NOT apply its own commit until it holds the hub's `accepted`. On
 `mailbox.commit-conflict` it syncs, processes the winning commit, and re-proposes if still needed.
+
+**A device's own items** (spec-gap 47). Rule 5 fans every item back to its sender's identity, and MLS
+does not let a device decrypt its own messages. The sending device MUST treat the `seq` in the hub's
+`accepted` as processed (M§8.5), so the copy is a duplicate when it arrives. A copy can arrive before
+the `accepted` (they travel different connections when the deposit was forwarded); a device
+recognises it by its MLS bytes and MUST NOT process it.
 
 A device that sees a `seq` gap for a group MUST NOT process a **handshake** item beyond the gap, or
 any item after a held one, until the gap fills. Application items beyond a gap with no held
@@ -1171,6 +1188,13 @@ For a hub-forwarded `welcome`, the mailbox MUST verify:
   of the hub deposit's `issued_at`
 - that the grant's `to` equals the adder's identity
 
+(spec-gap 46) `origin` is verified as a credential (its own replay window does not apply; the 300 s
+bound above replaces it). It MUST be a `handshake` deposit for the same `group`, and the adder is the
+identity its header delegation proves; nothing else in the welcome or on the hub's connection names
+the adder. A hub-forwarded `welcome` whose `origin` is absent, unverifiable, for another group, or
+outside the 300 s bound is refused with `policy.blocked`; one whose proven adder holds no
+authorization is refused with `policy.first-contact-required`, as for any other welcome.
+
 A grantee holding only `dsip.invite` may create a conversation so that it can leave voicemail. The
 recipient's client MUST restrict that conversation's rendered content to `purpose` `voicemail` and
 `callback-request` until a `dsip.message` grant exists, and MUST hold other content in the requests
@@ -1325,8 +1349,12 @@ voicemail blob, activity and archive sealing, and a commit conflict — and over
 mailbox service, a hub federating fan-out to the peer mailbox, discovery through published DID
 documents, first contact by grant, and MLS-encrypted text delivered live, after the recipient's
 device disconnects, after its process is killed and restarted, and after a crash between processing
-an item and committing it. A `resume-trace` group (9 vectors) pins the device's durable delivery state
-across restarts (spec-gap 44). The full plan:
+an item and committing it. A `resume-trace` group (10 vectors) pins the device's durable delivery state
+across restarts and its own fanned-back items (spec-gaps 44, 47). A group conversation runs over the wire
+too (`impl/demos/group-demo.sh`): three identities with three mailboxes, members' deposits forwarded to
+the hub (spec-gap 45, `messaging/mailbox-forward-*`), welcomes proven by `origin` (spec-gap 46,
+`messaging/mailbox-welcome-hub-forwarded-*`), an add while a member's device process is dead and a
+removal while the removed member is disconnected. The full plan:
 
 - payload shapes for every message type and content object
 - mailbox and hub state traces: sequencing, commit conflict, stale epoch, idempotent re-deposit,

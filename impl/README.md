@@ -91,7 +91,8 @@ demos/store-and-forward-demo.sh                                      # offline c
 # Messaging Profile 1.0 (v0.8 draft) over the wire: two identities, two mailboxes, real MLS
 demos/messaging-demo.sh                                              # Alice's mailbox hubs the group and federates fan-out to Bob's; text arrives live, after a disconnect, after a device restart, and after a crash before commit
 dsip-mailbox --state .mbx-a --listen 127.0.0.1:9451 --owner did:web:alice.example --resolver-file docs/alice.json --resolver-file docs/bob.json --ca ca.pem
-dsip-msg --state .dev-a --identity did:web:alice.example --resolver-file … --ca ca.pem   # stdin: kp / grant <did> / create <did> <grant-file> / send <text> / sync / live / offline / online / crash-next; MLS + delivery state in .dev-a/device.sqlite
+demos/group-demo.sh                                                  # three identities, three mailboxes: deposits forwarded to the hub, welcomes proven by origin, add while a member is dead, remove while the removed member is away
+dsip-msg --state .dev-a --identity did:web:alice.example --resolver-file … --ca ca.pem   # stdin: kp / grant <did> / create <direct|group> <did> <grant-file> / add <did> <grant-file> / remove <did> / send <text> / sync / live / offline / online / crash-next; MLS + delivery state in .dev-a/device.sqlite
 
 # Phase 3: Verified Broadcast (§22) and subscriptions (§9.3) — the relay is the authority for identities bound to it
 demos/broadcast-demo.sh

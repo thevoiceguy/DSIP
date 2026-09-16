@@ -82,6 +82,11 @@ jobs:
         # device restart, and after a crash between processing and commit (SQLite device state).
         run: timeout 300 bash demos/messaging-demo.sh | tail -14
         working-directory: impl
+      - name: group messaging over the wire (three identities, three mailboxes)
+        # Self-verifying: forwarding to the hub, welcomes proven by origin, an add while a member's device
+        # is dead, a removal while the removed member is away; no device may hit an unprocessable item.
+        run: timeout 300 bash demos/group-demo.sh | tail -30
+        working-directory: impl
       - name: Rust/Python parity
         run: python3 impl/tools/parity.py
       - name: DHT local testnet (5 nodes)

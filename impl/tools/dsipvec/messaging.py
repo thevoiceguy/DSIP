@@ -34,6 +34,7 @@ EPHEMERAL_LIFETIME_S = 10      # M§11.2
 ULID_TOLERANCE_S = 300         # M§8.1 (§20.6 applied to content)
 REACTION_MAX_BYTES = 32        # M§8.2
 KEY_PACKAGES_PER_DEVICE = 100  # M§5.5 RECOMMENDED bound
+ORIGIN_SKEW_S = 300            # M§14.2: origin issued_at within 300 s of the hub deposit
 
 MESSAGE_SCHEMAS = ["deposit", "accepted", "sync", "items", "key-packages", "key-package-fetch", "blob-put",
                    "mailbox-config"]
@@ -409,7 +410,14 @@ class Mailbox:
     def _welcome(self, e: dict) -> list:
         if e["recipient"] not in self.serves:
             return self._error(e["from"], e["id"], "transport.unknown-recipient")
-        adder = e["adder_identity"]
+        adder = e.get("adder_identity")
+        if e.get("via_hub"):
+            # M§14.2 (spec-gap 46): a hub-forwarded welcome proves its adder only by `origin`, the adder
+            # device's signed deposit for this group within 300 s of the hub's; the hub connection proves nothing
+            o = e.get("origin")
+            if o is None or o["group"] != e["group"] or abs(o["issued_at"] - e["issued_at"]) > ORIGIN_SKEW_S:
+                return self._error(e["from"], e["id"], "policy.blocked")
+            adder = o["identity"]
         succ = e.get("successor_of")
         ok = (self.admit == "open" or adder == self.owner or self._grant_ok(e.get("grant"), adder, e["recipient"])
               or (succ is not None and succ in self.groups))
@@ -433,6 +441,16 @@ class Mailbox:
         reg["items"] += 1
         c, pushes = self._store(e["class"], e["group"], seq=e.get("seq"))
         return [{"accepted": {"to": e["from"], "in_reply_to": e["id"], "cursor": c}}] + pushes
+
+    def _forward(self, e: dict) -> list:
+        # M§5.2, M§6.6 (spec-gap 45): an owner device's deposit addressed to another service is forwarded
+        # unchanged, only to the hub registered for its group; the mailbox stores nothing
+        if e["identity"] != self.owner:
+            return self._error(e["device"], e["id"], "policy.blocked")
+        reg = self.groups.get(e["group"])
+        if reg is None or reg["hub"] != e["to"]:
+            return self._error(e["device"], e["id"], "mailbox.unknown-group")
+        return [{"forward": {"to": e["to"], "id": e["id"]}}]
 
     def _sync(self, e: dict) -> list:
         dev = e["device"]
@@ -792,14 +810,24 @@ class Resume:
             if dup:
                 continue
             if it["class"] in SEQUENCED_CLASSES:
-                p = self.groups.setdefault(it["group"], {"contiguous": 0, "seen": set()})
-                p["seen"].add(it["seq"])
-                while p["contiguous"] + 1 in p["seen"]:
-                    p["contiguous"] += 1
-                    p["seen"].discard(p["contiguous"])
+                self._position(it["group"], it["seq"])
             elif it["class"] == "welcome":
                 self.joined.add(it["group"])
         return out
+
+    def _sent(self, e: dict) -> list:
+        # spec-gap 47: the hub fans a device's own item back to its identity (M§6.5 rule 5), and MLS cannot
+        # decrypt a device's own message; the seq in its `accepted` marks the copy as already processed
+        self._position(e["group"], e["seq"])
+        return []
+
+    def _position(self, group: str, seq: int) -> None:
+        p = self.groups.setdefault(group, {"contiguous": 0, "seen": set()})
+        if seq > p["contiguous"]:
+            p["seen"].add(seq)
+        while p["contiguous"] + 1 in p["seen"]:
+            p["contiguous"] += 1
+            p["seen"].discard(p["contiguous"])
 
     def _sync(self, _e: dict) -> list:
         s = {"since": self.cursor}

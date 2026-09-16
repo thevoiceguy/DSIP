@@ -521,6 +521,80 @@ def mailbox_vectors():
                      ["M§15.5", "§13.2"], T, mbx_ctx(), [
                          (welcome(recipient=ALICE, grant_=grant()), [err(CPH, "w1", "transport.unknown-recipient")], ms()),
                      ]))
+    # --- hub-forwarded welcomes (M§14.2, spec-gap 46)
+    def hub_welcome(label="w1", origin=None, issued_at=NOW, grant_=None, adder_claim=None):
+        e = {"id": uid(label), "from": HUB_A, "via_hub": True, "recipient": BOB, "group": GROUP, "hub": HUB_A,
+             "grant": grant_, "issued_at": issued_at}
+        if origin is not None:
+            e["origin"] = origin
+        if adder_claim is not None:
+            e["adder_identity"] = adder_claim
+        return {"welcome": e}
+
+    def origin(identity=CAROL, group=GROUP, issued_at=NOW - 2):
+        return {"identity": identity, "group": group, "issued_at": issued_at}
+
+    g46 = ["M§14.2", "M§6.5"]
+    out.append(trace("mailbox-welcome-hub-forwarded-origin-proves-adder",
+                     "A welcome fanned out by the hub is admitted when its origin (the adder device's signed deposit) proves "
+                     "an adder holding the owner's grant.", g46, T, mbx_ctx(), [
+                         (hub_welcome(origin=origin(), grant_=grant()), [macc(HUB_A, "w1", c(1))], ms([c(1)], P)),
+                     ]))
+    out.append(trace("mailbox-welcome-hub-forwarded-origin-at-skew-bound",
+                     "An origin issued exactly 300 s from the hub deposit is still accepted.", g46, T, mbx_ctx(), [
+                         (hub_welcome(origin=origin(issued_at=NOW - 300), grant_=grant()), [macc(HUB_A, "w1", c(1))], ms([c(1)], P)),
+                     ]))
+    out.append(trace("mailbox-welcome-hub-forwarded-origin-stale-refused",
+                     "An origin more than 300 s from the hub deposit proves nothing: policy.blocked.", g46, T, mbx_ctx(), [
+                         (hub_welcome(origin=origin(issued_at=NOW - 301), grant_=grant()), [err(HUB_A, "w1", "policy.blocked")], ms()),
+                     ]))
+    out.append(trace("mailbox-welcome-hub-forwarded-without-origin-refused",
+                     "A hub-forwarded welcome without origin is refused: the hub's own connection does not prove who added the owner.",
+                     g46, T, mbx_ctx(), [
+                         (hub_welcome(grant_=grant(), adder_claim=CAROL), [err(HUB_A, "w1", "policy.blocked")], ms()),
+                     ]))
+    out.append(trace("mailbox-welcome-hub-forwarded-origin-other-group-refused",
+                     "An origin deposit for another group cannot vouch for this welcome.", g46, T, mbx_ctx(), [
+                         (hub_welcome(origin=origin(group=GROUP2), grant_=grant()), [err(HUB_A, "w1", "policy.blocked")], ms()),
+                     ]))
+    out.append(trace("mailbox-welcome-hub-forwarded-origin-identity-wins",
+                     "The adder is the origin's identity, not any claim beside it: a grant to Carol does not admit Mallory's add.",
+                     g46, T, mbx_ctx(), [
+                         (hub_welcome(origin=origin(identity=MALLORY), grant_=grant(), adder_claim=CAROL),
+                          [err(HUB_A, "w1", "policy.first-contact-required")], ms()),
+                     ]))
+
+    # --- forwarding a device's deposit to its group's hub (M§5.2, M§6.6, spec-gap 45)
+    def fwd(label="f1", identity=BOB, device=BPH, group=GROUP, to=HUB_A):
+        return {"forward": {"id": uid(label), "device": device, "identity": identity, "group": group, "to": to}}
+
+    g45 = ["M§5.2", "M§6.6"]
+    JG = {GROUP: {"hub": HUB_A, "state": "joined"}}
+    out.append(trace("mailbox-forward-to-registered-hub",
+                     "An owner device's deposit addressed to the hub registered for its group is forwarded unchanged; nothing is stored.",
+                     g45, T, mbx_ctx(groups=JG), [
+                         (fwd(), [{"forward": {"to": HUB_A, "id": uid("f1")}}], ms(groups=J)),
+                     ]))
+    out.append(trace("mailbox-forward-pending-group",
+                     "A group registered by a welcome but not yet confirmed is forwarded too.", g45, T, mbx_ctx(), [
+                         (welcome(grant_=grant()), [macc(CPH, "w1", c(1))], ms([c(1)], P)),
+                         (fwd(), [{"forward": {"to": HUB_A, "id": uid("f1")}}], ms([c(1)], P)),
+                     ]))
+    out.append(trace("mailbox-forward-unregistered-group-refused",
+                     "A mailbox does not forward for a group it has no registration for: it cannot tell a hub from any other service.",
+                     g45, T, mbx_ctx(), [
+                         (fwd(), [err(BPH, "f1", "mailbox.unknown-group")], ms()),
+                     ]))
+    out.append(trace("mailbox-forward-other-service-refused",
+                     "A deposit for a registered group addressed to a service other than its hub is not forwarded.",
+                     g45, T, mbx_ctx(groups=JG), [
+                         (fwd(to="did:web:elsewhere.example"), [err(BPH, "f1", "mailbox.unknown-group")], ms(groups=J)),
+                     ]))
+    out.append(trace("mailbox-forward-other-identity-refused",
+                     "A mailbox forwards only for its owner's devices; it is not an open relay.", g45, T, mbx_ctx(groups=JG), [
+                         (fwd(identity=CAROL, device=CPH), [err(CPH, "f1", "policy.blocked")], ms(groups=J)),
+                     ]))
+
     out.append(trace("mailbox-hub-deposit-unregistered-group", "Hub fan-out for a group not registered for the owner is refused.",
                      ["M§6.6"], T, mbx_ctx(), [
                          (hubdep("h1", 1), [err(HUB_A, "h1", "mailbox.unknown-group")], ms()),
@@ -1046,6 +1120,15 @@ def resume_vectors():
                          ({"cursor_invalid": {}}, sync(None), st(None, {GROUP: (1, [3])}, [GROUP])),
                          (items(it(4, seq=1), it(5, seq=2), it(6, seq=3)), [{"duplicate": c(4)}, {"process": c(5)}, {"duplicate": c(6)}],
                           st(6, {GROUP: (3,)}, [GROUP])),
+                     ]))
+    out.append(trace("resume-own-item-by-accepted-seq",
+                     "A device's own item comes back through its identity's mailbox (M§6.5 rule 5) and cannot be decrypted by it; "
+                     "the seq from its accepted marks the copy as processed, including past a gap.", refs + ["M§6.5", "M§5.3"], T,
+                     {"component": "resume", "cursor": c(1), "groups": {GROUP: {"contiguous": 1, "seen": []}}, "joined": [GROUP]}, [
+                         ({"sent": {"group": GROUP, "seq": 3}}, [], st(1, {GROUP: (1, [3])}, [GROUP])),
+                         ({"sent": {"group": GROUP, "seq": 2}}, [], st(1, {GROUP: (3,)}, [GROUP])),
+                         (items(it(2, seq=2), it(3, seq=3), it(4, seq=4)), [{"duplicate": c(2)}, {"duplicate": c(3)}, {"process": c(4)}],
+                          st(4, {GROUP: (4,)}, [GROUP])),
                      ]))
     out.append(trace("resume-group-info-not-deduplicated",
                      "Unsequenced group-info is state, not conversation: a redelivered one is processed again (it replaces the "
