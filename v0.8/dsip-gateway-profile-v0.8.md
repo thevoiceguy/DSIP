@@ -1,7 +1,7 @@
 # DSIP Gateway Profile 1.0 — DSIP ↔ SIP/PSTN
 
-**Status:** DRAFT, companion profile to DSIP (staged for v0.8). Normative for a conformant
-DSIP↔SIP gateway. **Conformance:** the `gateway/` category of the DSIP vector suite
+**Status:** Companion profile to DSIP v0.8 — normative 1.0 for a conformant DSIP↔SIP gateway
+(conformance piece `DSIP Gateway Profile 1.0`, §24.4). **Conformance:** the `gateway/` category of the DSIP vector suite
 (`impl/vectors/gateway/`, 53 vectors, Rust/Python parity) pins the reason tables (G§4), SDP
 mapping (G§6), caller claims (G§5), the downgrade rule (G§7) and the controller state machine
 (G§3). Resolves gateway spec-gaps 23–29 (`impl/docs/spec-gaps.md`).

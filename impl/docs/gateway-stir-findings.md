@@ -3,7 +3,7 @@
 **Date:** 2026-08-22. **Scope:** what a DSIP↔SIP gateway can *verify* about a PSTN caller's
 identity inbound, what it can *assert* about a DSIP caller outbound, and under which operator
 status — the evidence behind Gateway Profile §G§5/§G§11 and the §6.3 downgrade rule. Companion to
-`v0.8/dsip-gateway-profile-v0.8-draft.md`.
+`v0.8/dsip-gateway-profile-v0.8.md`.
 
 The honest one-line answer, stated up front: **inbound verification is fully available today;
 outbound assertion depends entirely on whether the operator is an authorized service provider, and

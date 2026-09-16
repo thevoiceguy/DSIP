@@ -40,7 +40,7 @@ vectors change first. No gap is awaiting a decision.
 | 20 | §22.2 | **adopt-with-change** (record-level `integrity`) — done in v0.7 vectors | `broadcast/publication-integrity-*` (3, v0.7), `broadcast/publication-valid-metadata-only`, `broadcast/provenance-derivative-bound` |
 | 21 | §22.3 | adopt; `provenance` is a core message with a spec schema — done in v0.7 vectors | `broadcast/provenance-*`, `payload/provenance-*` (v0.7) |
 | 22 | §7.5 | adopt (c): DID document authoritative + `key-rotation` record defined — schema + checks in v0.7 | `envelope/rotated-did-web-*`, `envelope/key-rotation-signed-by-previous-key`, `payload/key-rotation-*`, `semantic/key-rotation-*` (v0.7) |
-| 23 | §15.5, §6.3 | adopt → **Gateway Profile 1.0** (`v0.8/dsip-gateway-profile-v0.8-draft.md`) | `gateway/*` (53) |
+| 23 | §15.5, §6.3 | adopt → **Gateway Profile 1.0** (`v0.8/dsip-gateway-profile-v0.8.md`) | `gateway/*` (53) |
 | 24 | §15.5 | adopt (`Reason: DSIP;text=`) | `gateway/reason-outbound-*`, `gateway/trace-*` |
 | 25 | §18.1, §24.2 | adopt; register `tel` claim type | `gateway/claims-*` |
 | 26 | §12.12 | **open** (DTMF `info` binding — future revision) | — (round one does not forward DTMF) |
@@ -389,7 +389,7 @@ document exists.
 **PoC choice.** `impl/crates/dsip-gateway` implements the full B2BUA rule set — reason mapping both
 directions, PSTN caller claims, SDP↔descriptor mapping, the downgrade rule, early media, the
 controller state machine — all pinned by the 53 `gateway/` vectors. Written up as
-**DSIP Gateway Profile 1.0** (`v0.8/dsip-gateway-profile-v0.8-draft.md`).
+**DSIP Gateway Profile 1.0** (`v0.8/dsip-gateway-profile-v0.8.md`).
 
 **Suggested fix.** Adopt the profile draft as a named conformance piece (§24.4); make §15.5's table
 normative there and leave §15.5 in core as the pointer.
@@ -475,8 +475,12 @@ authority rule.
 
 ## v0.8 messaging worklist (gaps 31–57)
 
+**Status (2026-09-17): every gap in this worklist and in the gateway worklist (23–30) is disposed in the v0.8
+core (`v0.8/dsip_v_0_8_decentralized_session_initiation_protocol.md`, Appendix A.5) or in its companion profiles,
+except spec-gap 26 (DTMF carriage), which stays open.**
+
 **Status (2026-09-15):** filed with the **DSIP Messaging Profile 1.0** draft
-(`v0.8/dsip-messaging-profile-v0.8-draft.md`, cited M§n). Unlike gaps 1–30, these were not found
+(`v0.8/dsip-messaging-profile-v0.8.md`, cited M§n). Unlike gaps 1–30, these were not found
 by implementing. They are the choices the profile draft makes before implementation, per the
 decisions taken 2026-09-15: companion profile, MLS plus HPKE, SYNC history by default, groups in
 1.0. Every row is **open** until the profile text and its vectors agree; "draft choice" is what the profile
@@ -512,8 +516,8 @@ bytes, AES-GCM formats) pins 33 and 39, and `impl/crates/dsip-mls` runs the prof
 | 53 | M§5.7, M§6.6, M§12.4 | **pinned** (2026-09-16): a removed device sends `left` only when no leaf of its identity remains | `messaging/registration-on-removal-*` (2), `demos/multidevice-demo.sh` |
 | 54 | M§14.1, §19.4, M§5.2 | **pinned** (2026-09-17): introductions and grants as mailbox deposits (`envelope`, `recipient`, no group); §19.4 relay rules at the mailbox | `messaging/deposit-introduction-*`, `messaging/deposit-grant-valid`, `messaging/mailbox-introduction-*` (5), `messaging/mailbox-grant-stored-for-owner`, `demos/messaging-first-contact-demo.sh` |
 | 55 | M§6.9, §7 | **pinned** (2026-09-17): did:key-style derivation of the X25519 key agreement key; did:web provisioning is deployment-defined | `messaging/x25519-key-agreement-from-ed25519`, `messaging/sealed-introduction-*` (10), `messaging/hpke-*` (4) |
-| 56 | §7.4, §24.2 | **open** — for the v0.8 core revision: core binds every envelope under `dsip.signaling`, so a device delegated only `dsip.messaging` cannot sign an introduction or grant | `dsip-mailbox` `verify::tests` (pins today's refusal) |
-| 57 | §7.4, §8.1, M§4.3, M§5.7, M§12.4 | **pinned for v0.8 core** (2026-09-17): `delegation-revocation` record (subject-signed, covers delegations issued ≤ `revoked_at`), found in the DID document or any verifier store; `delegation-revoked`; mailbox closes the binding | `messaging/revocation-*` (13), `messaging/mailbox-revoked-device-closed-and-forgotten`, `demos/revocation-demo.sh` |
+| 56 | §7.4, §24.2 | **adopted in core v0.8** (2026-09-17), disposition (b): binding stays `dsip.signaling` for every envelope; messaging devices carry `dsip.signaling` and `dsip.messaging` | `envelope/hello-messaging-only-delegation-rejected`, `dsip-mailbox` `verify::tests` |
+| 57 | §7.4, §8.1, M§4.3, M§5.7, M§12.4 | **adopted in core v0.8** (2026-09-17): `delegation-revocation` record (subject-signed, covers delegations issued ≤ `revoked_at`), found in the DID document or any verifier store; `delegation-revoked`; mailbox closes the binding | `envelope/delegation-revoked-*`, `envelope/delegation-revocation-*`, `envelope/hello-revoked-device-rejected`, `payload/delegation-revocation-*`, `semantic/delegation-revocation-*`, `messaging/mailbox-revoked-device-closed-and-forgotten`, `demos/revocation-demo.sh` |
 
 ## 31. §12.9 vs §13.3 / §19.4 — the replay window rejects held envelopes
 
@@ -1024,7 +1028,7 @@ cross-checks the profile's HPKE against `hpke-rs` in both directions.
 
 **Suggested fix.** Adopt the M§6.9 text now in the draft.
 
-## 56. §7.4 — a messaging-only device cannot introduce or grant (open)
+## 56. §7.4 — a messaging-only device cannot introduce or grant
 
 **Gap.** Core §7.4 binds a device-signed envelope to its `from` identity through a delegation carrying
 `dsip.signaling`. The Messaging Profile delegates devices with `dsip.messaging` (spec-gap 39), and M§14.1
@@ -1037,8 +1041,10 @@ accepting `dsip.messaging` as well as `dsip.signaling`. (b) Messaging devices al
 `dsip.signaling`: over-grants signaling authority to devices that do not call. (c) The identity key signs
 first-contact messages: puts the controller key on every device.
 
-**Suggested fix.** Decide in the v0.8 core revision, together with the delegation-capability registry of
-spec-gap 39.
+**Disposition (v0.8 core, 2026-09-17).** (b), decided by the editor: binding every envelope keeps requiring
+`dsip.signaling`, profile capabilities are added beside it, and a Messaging Profile device carries both. §7.4
+states it with the `dsip-delegation-capability` registry (spec-gap 39); `envelope/hello-messaging-only-delegation-rejected`
+pins it.
 
 ## 57. §7.4 — a device delegation cannot be revoked
 

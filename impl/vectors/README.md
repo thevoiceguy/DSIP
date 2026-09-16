@@ -385,7 +385,7 @@ carry, pinned before the gateway exists. `input.check` selects:
 
 ## Kind: `messaging`
 
-DSIP Messaging Profile 1.0 (`v0.8/dsip-messaging-profile-v0.8-draft.md`, cited `M§n`), tranche 1.
+DSIP Messaging Profile 1.0 (`v0.8/dsip-messaging-profile-v0.8.md`, cited `M§n`), tranche 1.
 Written **before** any implementation. The profile schema set is staged at
 `v0.8/dsip-messaging-schemas-draft/` (generated, freshness-checked like the core set). MLS is
 abstracted: traces carry what a hub or mailbox observes (epoch, commit adds/removes, validity, a

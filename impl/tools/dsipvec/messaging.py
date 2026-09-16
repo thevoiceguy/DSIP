@@ -1,6 +1,6 @@
 """Messaging Profile 1.0 reference semantics (v0.8 draft, cited M§n).
 
-Spec: `v0.8/dsip-messaging-profile-v0.8-draft.md`. Written before any Rust implementation; the
+Spec: `v0.8/dsip-messaging-profile-v0.8.md`. Written before any Rust implementation; the
 `messaging/` vectors pin this module's choices and `dsip-messaging` mirrors it.
 
 Checks (`input.check`):

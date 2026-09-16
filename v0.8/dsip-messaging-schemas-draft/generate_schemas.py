@@ -2,7 +2,7 @@
 """
 DSIP Messaging Profile 1.0 JSON Schema generator (draft 2020-12).
 
-Profile schema set for `v0.8/dsip-messaging-profile-v0.8-draft.md` (cited M§n):
+Profile schema set for `v0.8/dsip-messaging-profile-v0.8.md` (cited M§n):
 the eight profile message payloads (M§5) and the content objects carried inside MLS
 application messages (M§8, M§10, M§11, M§12, M§13), plus the `dsip_conversation`
 GroupContext extension (M§6.3).

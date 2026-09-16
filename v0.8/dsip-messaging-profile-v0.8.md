@@ -1,12 +1,12 @@
 # DSIP Messaging Profile 1.0 — Unified Messaging, Mailboxes, and Voicemail
 
-**Status:** DRAFT, companion profile to DSIP (staged for v0.8). Design text, **not yet implemented**.
-Unlike the Gateway Profile and the WebRTC Media Binding, this document is written *before* the
-reference implementation: per the project's vectors-first rule, a `messaging/` vector category
-pins it next, and where the vectors and this text disagree the disagreement is resolved
-explicitly (vector bug or text bug), never papered over. Spec-gaps 31–57
-(`impl/docs/spec-gaps.md`) record every choice this draft makes that core does not already
-settle.
+**Status:** Companion profile to DSIP v0.8 — normative 1.0. This document was written *before* the
+reference implementation and then corrected by it: the `messaging/` vector category pins it
+(Rust/Python parity), the reference implementation runs it over the wire on real MLS and HPKE
+(`impl/crates/dsip-messaging`, `dsip-mls`, `dsip-mailbox`), and every disagreement found on the way
+was resolved explicitly as a spec-gap (31–57, `impl/docs/spec-gaps.md`) whose disposition this text
+now states. Where the profile relies on the core, it relies on core v0.8 (delegation capabilities
+and revocation, §7.4; sealed introductions, §19.4; the `mailbox` reason category, §15).
 **Profile identifier:** `messaging/1.0`. **Conformance pieces:** `DSIP Messaging Profile 1.0`
 (clients) and `DSIP Mailbox 1.0` (mailbox and hub services) — M§18.
 
@@ -89,7 +89,8 @@ leaves.
 
 ## M§3 Core hooks this profile requires
 
-The profile is additive except for the following core items, each filed as a spec-gap:
+The profile is additive except for the following core items, each filed as a spec-gap and adopted in the v0.8 core
+(Appendix A.5) unless marked otherwise:
 
 | # | core section | hook |
 |---|---|---|
@@ -118,8 +119,8 @@ The profile is additive except for the following core items, each filed as a spe
 | 53 | (new) | Mailbox group registration is per identity: a removed device sends `left` only for its identity's last leaf. |
 | 54 | §19.4 | Introductions and grants for messaging identities travel through mailboxes, under §19.4's relay rules. |
 | 55 | §7 | How a `did:web` identity's devices hold the X25519 key agreement key sealed introductions use. |
-| 56 | §7.4 | Core binds every envelope under `dsip.signaling`; a messaging-only device cannot introduce or grant. **Open.** |
-| 57 | §7.4 | No delegation revocation exists in core; a `delegation-revocation` record, published in the DID document and held by verifiers. |
+| 56 | §7.4 | Core binds every envelope under `dsip.signaling`; messaging devices therefore carry `dsip.signaling` and `dsip.messaging` (disposition (b), core v0.8). |
+| 57 | §7.4 | Delegation revocation: the core v0.8 `delegation-revocation` record, published in the DID document and held by verifiers. |
 
 ## M§4 The mailbox service
 
@@ -181,11 +182,12 @@ authoritative source:
 
 A device, a hub, or another mailbox reaches a mailbox over `ws/1.0` with a verified `hello`
 (§13.2); the mailbox MUST verify the device delegation, including capability `dsip.messaging`
-(M§6.2), before serving any mailbox operation for that identity. A revoked or expired delegation
-therefore ends a device's access at its next binding. (spec-gap 57) Core has no revocation, so the
-device's still-live delegation keeps verifying until it expires; this profile relies on the
-`delegation-revocation` record proposed for the v0.8 core: signed directly by a key of the subject
-identity, it revokes every delegation of one device issued at or before its `revoked_at`. Verifiers
+(M§6.2), before serving any mailbox operation for that identity. (spec-gap 56) Binding itself requires
+`dsip.signaling` for every envelope (§7.4), so a messaging device's delegation carries **both**
+`dsip.signaling` and `dsip.messaging`; a device delegated for `dsip.messaging` alone can neither bind
+nor introduce nor grant. A revoked or expired delegation ends a device's access at its next binding.
+(spec-gap 57) Revocation is the core's `delegation-revocation` record (§7.4): signed directly by a key
+of the subject identity, it revokes every delegation of one device issued at or before its `revoked_at`. Verifiers
 find it in the subject's DID document (`dsipDelegationRevocations`, authoritative) or in any store
 they hold — a validly signed revocation only removes authority, so any source counts — and refuse the
 covered delegation (`delegation-revoked`). A mailbox given one by its owner (M§5.7) also closes the
@@ -1118,7 +1120,7 @@ The device encrypts it with AES-256-GCM under the current archive key: random no
 
 ### M§12.3 Adding a device
 
-1. The identity delegates the device (§7.4) with `dsip.messaging`.
+1. The identity delegates the device (§7.4) with `dsip.signaling` and `dsip.messaging` (M§4.3).
 2. The device binds to its mailboxes and uploads KeyPackages.
 3. An existing device of the identity adds it to the personal group. A new member cannot decrypt
    application messages from epochs before it joined, so the adder MUST re-send every live
@@ -1381,8 +1383,8 @@ Existing tokens used unchanged: `policy.first-contact-required`, `policy.blocked
 - Message types (profile, not the §12.1 session set): `deposit`, `accepted`, `sync`, `items`,
   `key-packages`, `key-package-fetch`, `blob-put`, `mailbox-config`.
 - `dsip-grant-scope`: `dsip.message`.
-- Delegation capability `dsip.messaging`, in a **new** delegation-capability registry (§7.4 values
-  are unregistered today; spec-gap 39).
+- Delegation capability `dsip.messaging` in the core `dsip-delegation-capability` registry (§7.4, v0.8;
+  spec-gap 39).
 - DID service type `DSIPMailbox`; DHT hint `endpoints[].service`.
 - `dsip-reason`: category `mailbox` and the M§16 tokens.
 - New registries:
