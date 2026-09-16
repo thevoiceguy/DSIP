@@ -1,0 +1,43 @@
+{
+  "vector": "payload/reachability-hint-service-mailbox",
+  "format": 1,
+  "kind": "payload",
+  "description": "A hint endpoint may name the service type it stands in for (v0.8, spec-gap 37).",
+  "spec_ref": [
+    "§8.5"
+  ],
+  "context": {},
+  "input": {
+    "schema": "reachability-hint",
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "interactive-media/1.0"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "reachability-hint",
+      "id": "01K742SG00E1Z41PAN1C1Y8GHM",
+      "from": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+      "subject": "did:key:z6MkhzX9qTeXBWkucyMVric1E9JrqUD5LPAkD2BNavakAptf",
+      "endpoints": [
+        {
+          "uri": "wss://mbx.example.net/dsip",
+          "bindings": [
+            "ws/1.0"
+          ],
+          "service": "DSIPMailbox"
+        }
+      ],
+      "seq": 4,
+      "issued_at": 1760000000,
+      "expires_at": 1760003600
+    }
+  },
+  "expect": {
+    "verdict": "accept"
+  }
+}

@@ -223,6 +223,14 @@ def vectors() -> list[dict]:
     out.append(pv("delegation-revocation-bad-reason-token", "delegation-revocation", "reason must be a token.", ["§7.4"],
                   {**rev, "reason": "Lost!"}, ok=False))
 
+    hint = {"dsip": V, "type": "reachability-hint", "id": uid("hint-mbx"), "from": F.did("alice-phone"), "subject": F.did("alice"),
+            "endpoints": [{"uri": "wss://mbx.example.net/dsip", "bindings": ["ws/1.0"], "service": "DSIPMailbox"}], "seq": 4,
+            "issued_at": NOW, "expires_at": NOW + 3600}
+    out.append(pv("reachability-hint-service-mailbox", "reachability-hint", "A hint endpoint may name the service type it stands in for (v0.8, spec-gap 37).",
+                  ["§8.5"], hint))
+    out.append(pv("reachability-hint-service-not-a-type-name", "reachability-hint", "service is a DID service type name.", ["§8.5"],
+                  {**hint, "endpoints": [{**hint["endpoints"][0], "service": "dsip mailbox"}]}, ok=False))
+
     # envelope schema (shape only)
     from .common import signed
     env = signed(inv, "alice-phone")

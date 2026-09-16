@@ -286,6 +286,11 @@ INTRO = {"dsip": DSIP, "type": "introduction", "id": "01J5Y0QJ1NT00AAAAAAAAAAAAF
          "identity": {"display_name": "Alice"}, "issued_at": NOW, "expires_at": NOW + 604800}
 SEALED = {"alg": "hpke-base-x25519-sha256-aes128gcm", "enc": "N_2jVnvb1ijohmjDyNfpfR0SU7bU6m1EwVD3QfG_RDE", "ct": "-ThVi11y8aI4ELS-KrT4QzGswC_JeavFOlKughijVamGh3CsjNB76ofhPFEq"}
 cases.append(("introduction", {**INTRO, "sealed": SEALED}, True, "introduction with a sealed purpose"))
+HINT = {"dsip": DSIP, "type": "reachability-hint", "id": "01J5Y0QKHNT00AAAAAAAAAAAAG", "from": ALICE_DEV, "subject": ALICE,
+        "endpoints": [{"uri": "wss://mbx.example.net/dsip", "bindings": ["ws/1.0"], "service": "DSIPMailbox"}], "seq": 4,
+        "issued_at": NOW, "expires_at": NOW + 3600}
+cases.append(("reachability-hint", HINT, True, "hint naming a mailbox service"))
+cases.append(("reachability-hint", {**HINT, "endpoints": [{**HINT["endpoints"][0], "service": "dsip mailbox"}]}, False, "service must be a type name"))
 cases.append(("introduction", {**INTRO, "sealed": {k: v for k, v in SEALED.items() if k != "ct"}}, False, "sealed without ct"))
 REV = {"dsip": DSIP, "type": "delegation-revocation", "id": "01J5Y0QJR0T00AAAAAAAAAAAAH", "from": BOB, "subject": BOB,
        "device": BOB_DEV, "revoked_at": NOW, "reason": "lost", "issued_at": NOW, "expires_at": NOW + 300}

@@ -388,6 +388,8 @@ schemas["reachability-hint"] = base(
                 "properties": {
                     "uri": {"type": "string", "pattern": "^wss://"},
                     "bindings": {"type": "array", "minItems": 1, "items": {"type": "string", "pattern": "^[a-z0-9]+/\\d+\\.\\d+$"}},
+                    "service": {"type": "string", "pattern": "^[A-Za-z][A-Za-z0-9]*$",
+                                "description": "v0.8: the DID service type this endpoint stands in for (DSIPSignaling when absent; DSIPMailbox for a Messaging Profile mailbox)."},
                 },
                 "required": ["uri", "bindings"],
                 "additionalProperties": True,
