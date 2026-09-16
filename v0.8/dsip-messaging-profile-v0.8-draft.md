@@ -4,7 +4,7 @@
 Unlike the Gateway Profile and the WebRTC Media Binding, this document is written *before* the
 reference implementation: per the project's vectors-first rule, a `messaging/` vector category
 pins it next, and where the vectors and this text disagree the disagreement is resolved
-explicitly (vector bug or text bug), never papered over. Spec-gaps 31–43
+explicitly (vector bug or text bug), never papered over. Spec-gaps 31–44
 (`impl/docs/spec-gaps.md`) record every choice this draft makes that core does not already
 settle.
 **Profile identifier:** `messaging/1.0`. **Conformance pieces:** `DSIP Messaging Profile 1.0`
@@ -106,6 +106,7 @@ The profile is additive except for the following core items, each filed as a spe
 | 41 | §12, §14 | Voicemail is caller-recorded; trigger conditions; no new core field. |
 | 42 | §12.6, §20.6 | Duplicate direct conversations and successor groups: lower ULID wins; hub-hosting asymmetry tripwire. |
 | 43 | (new) | Ephemeral activity is keyed by the MLS exporter, not the secret tree. |
+| 44 | (new) | "Durably processed" (M§5.4): MLS state and delivery state commit together; redelivered MLS items collapse by `seq` (M§8.5). |
 
 ## M§4 The mailbox service
 
@@ -347,7 +348,12 @@ An owner's device reads its mailbox with `sync`:
   retained item. An unknown or expired cursor is refused with `mailbox.cursor-invalid`; the device
   re-syncs from `null`.
 - `ack_through` — this device has durably processed every item up to and including this cursor
-  (M§4.4 deletion input). Acknowledgement is per device.
+  (M§4.4 deletion input). Acknowledgement is per device. *Durably processed* (spec-gap 44) means
+  the MLS state change an item caused, the device's ack position and its per-group `seq` positions
+  (M§8.5) are committed together: a device MUST NOT acknowledge an item whose MLS state change could
+  still be lost, and SHOULD commit each item's MLS state and delivery state atomically, so that a
+  crash rolls both back and the item is simply redelivered. A duplicate item advances the ack
+  position like any other.
 - `live: true` — while this connection stays bound, push new items as unsolicited `items`.
 
 The mailbox answers with one or more `items`:
@@ -838,6 +844,14 @@ Large payloads are encrypted client-side and stored as opaque blobs:
   for as long as it retains the conversation's history, not for the 300 s envelope window.
   Duplicates arise legitimately (multiple mailboxes, retries, archive plus MLS copies) and MUST be
   collapsed silently.
+- **Redelivered MLS items** (spec-gap 44). A sequenced (`handshake`, `application`) item the device
+  already processed cannot be decrypted again, because MLS deletes the secret it used, so the key
+  above is unavailable for it. A device MUST keep, durably and per group, the hub `seq` values it has
+  processed (the contiguous position of M§6.5 and any seq processed beyond a gap) and MUST treat a
+  redelivered item with such a seq as a duplicate without decrypting it — after a restart, a
+  `mailbox.cursor-invalid` re-sync from `null`, or a second mailbox. A `welcome` for a group the
+  device has joined is likewise a duplicate; unsequenced `group-info` is state and is simply applied
+  again.
 - **Display order** is hub `seq` order within a group. For a conversation spanning successor groups
   it is predecessor items first. `sent_at` MAY be displayed but MUST NOT reorder history, so a
   backdated `sent_at` cannot insert content into the past.
@@ -1309,8 +1323,10 @@ MLS signers, a hub validating real commits from public group state, a mailbox, a
 voicemail blob, activity and archive sealing, and a commit conflict — and over the wire
 (`impl/crates/dsip-mailbox`, `impl/demos/messaging-demo.sh`): two identities, each with its own
 mailbox service, a hub federating fan-out to the peer mailbox, discovery through published DID
-documents, first contact by grant, and MLS-encrypted text delivered both live and after the
-recipient's device disconnects. The full plan:
+documents, first contact by grant, and MLS-encrypted text delivered live, after the recipient's
+device disconnects, after its process is killed and restarted, and after a crash between processing
+an item and committing it. A `resume-trace` group (9 vectors) pins the device's durable delivery state
+across restarts (spec-gap 44). The full plan:
 
 - payload shapes for every message type and content object
 - mailbox and hub state traces: sequencing, commit conflict, stale epoch, idempotent re-deposit,

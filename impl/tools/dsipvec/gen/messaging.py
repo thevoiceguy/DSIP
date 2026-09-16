@@ -83,6 +83,7 @@ def vectors() -> list[dict]:
     out += conversation_vectors()
     out += client_vectors()
     out += gap_vectors()
+    out += resume_vectors()
     out += mls_layer_vectors()
     out += discovery_vectors()
     return out
@@ -950,6 +951,108 @@ def gap_vectors():
                      ["M§6.5", "M§8.5"], T, ctx, [
                          (it(1), [{"process": 1}], g(1)),
                          (it(1), [{"duplicate": 1}], g(1)),
+                     ]))
+    return out
+
+
+def resume_vectors():
+    """What a device keeps across a restart (M§5.4 `ack_through`, M§8.5; spec-gap 44). Every item is
+    processed and committed with the ack cursor and seq positions atomically, or not at all."""
+    out = []
+    T = "resume-trace"
+    ctx = {"component": "resume", "cursor": None, "groups": {}, "joined": []}
+    refs = ["M§5.4", "M§8.5"]
+
+    def it(n, cls="application", seq=None, group=GROUP):
+        d = {"cursor": c(n), "class": cls, "group": group}
+        if seq is not None:
+            d["seq"] = seq
+        return d
+
+    def items(*its, crash_at=None):
+        e = {"items": list(its)}
+        if crash_at is not None:
+            e["crash_at"] = c(crash_at)
+        return {"items": e}
+
+    def st(cursor=None, groups=None, joined=()):
+        return {"cursor": None if cursor is None else c(cursor),
+                "groups": {g: {"contiguous": p[0], "seen": list(p[1]) if len(p) > 1 else []} for g, p in (groups or {}).items()},
+                "joined": list(joined)}
+
+    def sync(cursor):
+        return [{"sync": {"since": None} if cursor is None else {"since": c(cursor), "ack_through": c(cursor)}}]
+
+    W = it(1, "welcome")
+    out.append(trace("resume-restart-syncs-from-committed-cursor",
+                     "After a restart the device resumes from, and acknowledges through, the last item it committed.", refs, T, ctx, [
+                         (items(W, it(2, seq=1), it(3, seq=2)), [{"process": c(1)}, {"process": c(2)}, {"process": c(3)}],
+                          st(3, {GROUP: (2,)}, [GROUP])),
+                         ({"restart": {}}, sync(3), st(3, {GROUP: (2,)}, [GROUP])),
+                     ]))
+    out.append(trace("resume-crash-rolls-back-uncommitted-item",
+                     "An item processed but not committed when the device dies is rolled back with its MLS state, "
+                     "so it is not acknowledged and is processed normally when redelivered.", refs, T, ctx, [
+                         (items(W, it(2, seq=1), it(3, seq=2), crash_at=3), [{"process": c(1)}, {"process": c(2)}, {"crash": c(3)}],
+                          st(2, {GROUP: (1,)}, [GROUP])),
+                         ({"restart": {}}, sync(2), st(2, {GROUP: (1,)}, [GROUP])),
+                         (items(it(3, seq=2)), [{"process": c(3)}], st(3, {GROUP: (2,)}, [GROUP])),
+                     ]))
+    out.append(trace("resume-crash-before-first-commit-no-ack",
+                     "A device that commits nothing before dying re-syncs from null and acknowledges nothing.", refs, T, ctx, [
+                         (items(W, crash_at=1), [{"crash": c(1)}], st()),
+                         ({"restart": {}}, sync(None), st()),
+                         (items(W), [{"process": c(1)}], st(1, joined=[GROUP])),
+                     ]))
+    out.append(trace("resume-cursor-invalid-redelivery-collapses-by-seq",
+                     "After mailbox.cursor-invalid the device re-syncs from null; sequenced items it already processed "
+                     "are recognised by seq without decrypting them (their MLS secrets are gone), and new ones are processed.",
+                     refs + ["M§6.5"], T, ctx, [
+                         (items(W, it(2, seq=1), it(3, seq=2)), [{"process": c(1)}, {"process": c(2)}, {"process": c(3)}],
+                          st(3, {GROUP: (2,)}, [GROUP])),
+                         ({"cursor_invalid": {}}, sync(None), st(None, {GROUP: (2,)}, [GROUP])),
+                         (items(it(7, seq=1), it(8, seq=2), it(9, seq=3)),
+                          [{"duplicate": c(7)}, {"duplicate": c(8)}, {"process": c(9)}], st(9, {GROUP: (3,)}, [GROUP])),
+                     ]))
+    out.append(trace("resume-duplicate-is-acknowledged",
+                     "A duplicate still advances the ack cursor: it is already durably processed, and an unacknowledged "
+                     "item would be retained and redelivered forever.", refs + ["M§4.4"], T,
+                     {"component": "resume", "cursor": c(3), "groups": {GROUP: {"contiguous": 2, "seen": []}}, "joined": [GROUP]}, [
+                         (items(it(4, seq=2)), [{"duplicate": c(4)}], st(4, {GROUP: (2,)}, [GROUP])),
+                         ({"sync": {}}, sync(4), st(4, {GROUP: (2,)}, [GROUP])),
+                     ]))
+    out.append(trace("resume-welcome-for-joined-group-is-duplicate",
+                     "A redelivered welcome for a group the device already joined is a duplicate; its KeyPackage is consumed.",
+                     refs + ["M§6.6"], T, ctx, [
+                         (items(W), [{"process": c(1)}], st(1, joined=[GROUP])),
+                         ({"cursor_invalid": {}}, sync(None), st(None, joined=[GROUP])),
+                         (items(W), [{"duplicate": c(1)}], st(1, joined=[GROUP])),
+                     ]))
+    out.append(trace("resume-seq-positions-per-group",
+                     "Seq positions are per group: the same seq in another group is not a duplicate.", refs + ["M§6.5"], T, ctx, [
+                         (items(it(1, "welcome"), it(2, "welcome", group=GROUP2), it(3, seq=1), it(4, seq=1, group=GROUP2)),
+                          [{"process": c(1)}, {"process": c(2)}, {"process": c(3)}, {"process": c(4)}],
+                          st(4, {GROUP: (1,), GROUP2: (1,)}, sorted([GROUP, GROUP2]))),
+                         ({"cursor_invalid": {}}, sync(None), st(None, {GROUP: (1,), GROUP2: (1,)}, sorted([GROUP, GROUP2]))),
+                         (items(it(5, seq=1), it(6, seq=2, group=GROUP2)), [{"duplicate": c(5)}, {"process": c(6)}],
+                          st(6, {GROUP: (1,), GROUP2: (2,)}, sorted([GROUP, GROUP2]))),
+                     ]))
+    out.append(trace("resume-seq-beyond-gap-remembered",
+                     "An application item processed beyond a seq gap is remembered durably, so its redelivery is a duplicate "
+                     "while the missing seq is still processed.", refs + ["M§6.5"], T, ctx, [
+                         (items(W, it(2, seq=1), it(3, seq=3)), [{"process": c(1)}, {"process": c(2)}, {"process": c(3)}],
+                          st(3, {GROUP: (1, [3])}, [GROUP])),
+                         ({"restart": {}}, sync(3), st(3, {GROUP: (1, [3])}, [GROUP])),
+                         ({"cursor_invalid": {}}, sync(None), st(None, {GROUP: (1, [3])}, [GROUP])),
+                         (items(it(4, seq=1), it(5, seq=2), it(6, seq=3)), [{"duplicate": c(4)}, {"process": c(5)}, {"duplicate": c(6)}],
+                          st(6, {GROUP: (3,)}, [GROUP])),
+                     ]))
+    out.append(trace("resume-group-info-not-deduplicated",
+                     "Unsequenced group-info is state, not conversation: a redelivered one is processed again (it replaces the "
+                     "latest GroupInfo idempotently).", refs + ["M§5.2", "M§6.8"], T, ctx, [
+                         (items(it(1, "group-info")), [{"process": c(1)}], st(1)),
+                         ({"cursor_invalid": {}}, sync(None), st()),
+                         (items(it(1, "group-info")), [{"process": c(1)}], st(1)),
                      ]))
     return out
 

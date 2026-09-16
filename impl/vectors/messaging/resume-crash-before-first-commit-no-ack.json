@@ -1,0 +1,97 @@
+{
+  "vector": "messaging/resume-crash-before-first-commit-no-ack",
+  "format": 1,
+  "kind": "messaging",
+  "description": "A device that commits nothing before dying re-syncs from null and acknowledges nothing.",
+  "spec_ref": [
+    "M§5.4",
+    "M§8.5"
+  ],
+  "context": {
+    "component": "resume",
+    "cursor": null,
+    "groups": {},
+    "joined": []
+  },
+  "input": {
+    "check": "resume-trace",
+    "steps": [
+      {
+        "event": {
+          "items": {
+            "items": [
+              {
+                "cursor": "c:0000000000000001",
+                "class": "welcome",
+                "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M"
+              }
+            ],
+            "crash_at": "c:0000000000000001"
+          }
+        }
+      },
+      {
+        "event": {
+          "restart": {}
+        }
+      },
+      {
+        "event": {
+          "items": {
+            "items": [
+              {
+                "cursor": "c:0000000000000001",
+                "class": "welcome",
+                "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M"
+              }
+            ]
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "crash": "c:0000000000000001"
+          }
+        ],
+        "state": {
+          "cursor": null,
+          "groups": {},
+          "joined": []
+        }
+      },
+      {
+        "emit": [
+          {
+            "sync": {
+              "since": null
+            }
+          }
+        ],
+        "state": {
+          "cursor": null,
+          "groups": {},
+          "joined": []
+        }
+      },
+      {
+        "emit": [
+          {
+            "process": "c:0000000000000001"
+          }
+        ],
+        "state": {
+          "cursor": "c:0000000000000001",
+          "groups": {},
+          "joined": [
+            "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M"
+          ]
+        }
+      }
+    ]
+  }
+}

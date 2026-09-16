@@ -1,0 +1,101 @@
+{
+  "vector": "messaging/resume-welcome-for-joined-group-is-duplicate",
+  "format": 1,
+  "kind": "messaging",
+  "description": "A redelivered welcome for a group the device already joined is a duplicate; its KeyPackage is consumed.",
+  "spec_ref": [
+    "M§5.4",
+    "M§8.5",
+    "M§6.6"
+  ],
+  "context": {
+    "component": "resume",
+    "cursor": null,
+    "groups": {},
+    "joined": []
+  },
+  "input": {
+    "check": "resume-trace",
+    "steps": [
+      {
+        "event": {
+          "items": {
+            "items": [
+              {
+                "cursor": "c:0000000000000001",
+                "class": "welcome",
+                "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "event": {
+          "cursor_invalid": {}
+        }
+      },
+      {
+        "event": {
+          "items": {
+            "items": [
+              {
+                "cursor": "c:0000000000000001",
+                "class": "welcome",
+                "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M"
+              }
+            ]
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "process": "c:0000000000000001"
+          }
+        ],
+        "state": {
+          "cursor": "c:0000000000000001",
+          "groups": {},
+          "joined": [
+            "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M"
+          ]
+        }
+      },
+      {
+        "emit": [
+          {
+            "sync": {
+              "since": null
+            }
+          }
+        ],
+        "state": {
+          "cursor": null,
+          "groups": {},
+          "joined": [
+            "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M"
+          ]
+        }
+      },
+      {
+        "emit": [
+          {
+            "duplicate": "c:0000000000000001"
+          }
+        ],
+        "state": {
+          "cursor": "c:0000000000000001",
+          "groups": {},
+          "joined": [
+            "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M"
+          ]
+        }
+      }
+    ]
+  }
+}

@@ -9,6 +9,8 @@ Checks (`input.check`):
 - `object`   schema + stateless rules for a decrypted content object (M§8, M§10, M§11, M§12).
 - `hub-trace`, `mailbox-trace`  scripted state traces of the hub (M§6.5–M§6.8, M§7.3, M§9.3,
   M§11.2) and the mailbox (M§4.4, M§5.4–M§5.7, M§6.6, M§12.2, M§14.2).
+- `resume-trace`  what a device holds durably across a restart: ack cursor and seq positions (M§5.4,
+  M§8.5, spec-gap 44).
 
 MLS itself is abstracted: traces carry what a hub or mailbox can observe (epoch, commit adds and
 removes, validity, digests), exactly as relay traces abstract signatures.
@@ -750,6 +752,75 @@ class GapTracker:
         return {"contiguous": self.contiguous, "held": list(self.held)}
 
 
+SEQUENCED_CLASSES = ("handshake", "application")
+
+
+class Resume:
+    """M§5.4 `ack_through` and M§8.5 across a device restart (spec-gap 44).
+
+    The state is exactly what the device holds durably: the ack cursor, per-group seq positions and
+    the joined groups. Each item is processed and committed together with that state, or not at all.
+    A redelivered sequenced item is recognised by its seq, never by decrypting it: MLS consumed its
+    secret the first time. Holding across a seq gap is `GapTracker`'s job; traces here hold nothing.
+    """
+
+    def __init__(self, ctx: dict):
+        self.cursor = ctx.get("cursor")
+        self.groups = {g: {"contiguous": p["contiguous"], "seen": set(p["seen"])} for g, p in ctx.get("groups", {}).items()}
+        self.joined = set(ctx.get("joined", []))
+
+    def step(self, ev: dict) -> list:
+        (name, e), = ev.items()
+        return getattr(self, "_" + name)(e)
+
+    def _duplicate(self, it: dict) -> bool:
+        if it["class"] in SEQUENCED_CLASSES:
+            p = self.groups.get(it["group"])
+            return p is not None and (it["seq"] <= p["contiguous"] or it["seq"] in p["seen"])
+        return it["class"] == "welcome" and it["group"] in self.joined
+
+    def _items(self, e: dict) -> list:
+        out = []
+        for it in e["items"]:
+            if it["cursor"] == e.get("crash_at"):
+                out.append({"crash": it["cursor"]})  # processed in memory, never committed: rolled back
+                break
+            dup = self._duplicate(it)
+            out.append({"duplicate" if dup else "process": it["cursor"]})
+            # commit: the cursor advances past duplicates too, so they are acknowledged
+            self.cursor = it["cursor"]
+            if dup:
+                continue
+            if it["class"] in SEQUENCED_CLASSES:
+                p = self.groups.setdefault(it["group"], {"contiguous": 0, "seen": set()})
+                p["seen"].add(it["seq"])
+                while p["contiguous"] + 1 in p["seen"]:
+                    p["contiguous"] += 1
+                    p["seen"].discard(p["contiguous"])
+            elif it["class"] == "welcome":
+                self.joined.add(it["group"])
+        return out
+
+    def _sync(self, _e: dict) -> list:
+        s = {"since": self.cursor}
+        if self.cursor is not None:
+            s["ack_through"] = self.cursor  # never ahead of what is committed
+        return [{"sync": s}]
+
+    def _restart(self, e: dict) -> list:
+        self.__init__(self.snapshot())  # only durable state survives
+        return self._sync(e)
+
+    def _cursor_invalid(self, e: dict) -> list:
+        self.cursor = None  # M§5.4: re-sync from null; seq positions and joined groups are kept
+        return self._sync(e)
+
+    def snapshot(self) -> dict:
+        return {"cursor": self.cursor,
+                "groups": {g: {"contiguous": p["contiguous"], "seen": sorted(p["seen"])} for g, p in sorted(self.groups.items())},
+                "joined": sorted(self.joined)}
+
+
 # ---------------------------------------------------------------- tranche 3: the MLS layer (M§6.2, M§6.3, M§8.4, M§11.1, M§12.2)
 
 EXT_DSIP_DELEGATION = 0xF0D1   # M§17: private-use MLS ExtensionType (LeafNode) until registered
@@ -961,8 +1032,9 @@ def run(v: dict) -> dict:
         return check_successor(inp)
     if check == "successor-select":
         return select_successor(inp["candidates"])
-    if check in ("hub-trace", "mailbox-trace", "client-trace", "gap-trace"):
-        comp = {"hub-trace": Hub, "mailbox-trace": Mailbox, "client-trace": Client, "gap-trace": GapTracker}[check](v["context"])
+    if check in ("hub-trace", "mailbox-trace", "client-trace", "gap-trace", "resume-trace"):
+        comp = {"hub-trace": Hub, "mailbox-trace": Mailbox, "client-trace": Client, "gap-trace": GapTracker,
+                "resume-trace": Resume}[check](v["context"])
         steps = []
         for st in inp["steps"]:
             emit = comp.step(st["event"])

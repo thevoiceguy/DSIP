@@ -1,0 +1,167 @@
+{
+  "vector": "messaging/resume-seq-positions-per-group",
+  "format": 1,
+  "kind": "messaging",
+  "description": "Seq positions are per group: the same seq in another group is not a duplicate.",
+  "spec_ref": [
+    "M§5.4",
+    "M§8.5",
+    "M§6.5"
+  ],
+  "context": {
+    "component": "resume",
+    "cursor": null,
+    "groups": {},
+    "joined": []
+  },
+  "input": {
+    "check": "resume-trace",
+    "steps": [
+      {
+        "event": {
+          "items": {
+            "items": [
+              {
+                "cursor": "c:0000000000000001",
+                "class": "welcome",
+                "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M"
+              },
+              {
+                "cursor": "c:0000000000000002",
+                "class": "welcome",
+                "group": "MDFLNzQyU0cwMDVCWTdRQzVDQkg4MUdSUVQ"
+              },
+              {
+                "cursor": "c:0000000000000003",
+                "class": "application",
+                "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+                "seq": 1
+              },
+              {
+                "cursor": "c:0000000000000004",
+                "class": "application",
+                "group": "MDFLNzQyU0cwMDVCWTdRQzVDQkg4MUdSUVQ",
+                "seq": 1
+              }
+            ]
+          }
+        }
+      },
+      {
+        "event": {
+          "cursor_invalid": {}
+        }
+      },
+      {
+        "event": {
+          "items": {
+            "items": [
+              {
+                "cursor": "c:0000000000000005",
+                "class": "application",
+                "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+                "seq": 1
+              },
+              {
+                "cursor": "c:0000000000000006",
+                "class": "application",
+                "group": "MDFLNzQyU0cwMDVCWTdRQzVDQkg4MUdSUVQ",
+                "seq": 2
+              }
+            ]
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "process": "c:0000000000000001"
+          },
+          {
+            "process": "c:0000000000000002"
+          },
+          {
+            "process": "c:0000000000000003"
+          },
+          {
+            "process": "c:0000000000000004"
+          }
+        ],
+        "state": {
+          "cursor": "c:0000000000000004",
+          "groups": {
+            "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M": {
+              "contiguous": 1,
+              "seen": []
+            },
+            "MDFLNzQyU0cwMDVCWTdRQzVDQkg4MUdSUVQ": {
+              "contiguous": 1,
+              "seen": []
+            }
+          },
+          "joined": [
+            "MDFLNzQyU0cwMDVCWTdRQzVDQkg4MUdSUVQ",
+            "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M"
+          ]
+        }
+      },
+      {
+        "emit": [
+          {
+            "sync": {
+              "since": null
+            }
+          }
+        ],
+        "state": {
+          "cursor": null,
+          "groups": {
+            "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M": {
+              "contiguous": 1,
+              "seen": []
+            },
+            "MDFLNzQyU0cwMDVCWTdRQzVDQkg4MUdSUVQ": {
+              "contiguous": 1,
+              "seen": []
+            }
+          },
+          "joined": [
+            "MDFLNzQyU0cwMDVCWTdRQzVDQkg4MUdSUVQ",
+            "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M"
+          ]
+        }
+      },
+      {
+        "emit": [
+          {
+            "duplicate": "c:0000000000000005"
+          },
+          {
+            "process": "c:0000000000000006"
+          }
+        ],
+        "state": {
+          "cursor": "c:0000000000000006",
+          "groups": {
+            "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M": {
+              "contiguous": 1,
+              "seen": []
+            },
+            "MDFLNzQyU0cwMDVCWTdRQzVDQkg4MUdSUVQ": {
+              "contiguous": 2,
+              "seen": []
+            }
+          },
+          "joined": [
+            "MDFLNzQyU0cwMDVCWTdRQzVDQkg4MUdSUVQ",
+            "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M"
+          ]
+        }
+      }
+    ]
+  }
+}
