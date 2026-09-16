@@ -1,0 +1,49 @@
+{
+  "vector": "messaging/mailbox-select-entry-without-mailbox-did-discarded",
+  "format": 1,
+  "kind": "messaging",
+  "description": "Without the mailbox DID a client cannot check whose hello it got, so the entry is unusable.",
+  "spec_ref": [
+    "M§4.2",
+    "§8.1"
+  ],
+  "context": {},
+  "input": {
+    "check": "mailbox-select",
+    "document_entries": [
+      {
+        "uri": "wss://mbx3.bob.example/dsip",
+        "bindings": [
+          "ws/1.0"
+        ],
+        "profiles": [
+          "messaging/1.0"
+        ]
+      },
+      {
+        "uri": "wss://mbx.bob.example/dsip",
+        "bindings": [
+          "ws/1.0"
+        ],
+        "mailbox": "did:web:mbx.bob.example",
+        "priority": 0,
+        "profiles": [
+          "messaging/1.0"
+        ]
+      }
+    ]
+  },
+  "expect": {
+    "source": "did-document",
+    "selected": "did:web:mbx.bob.example",
+    "order": [
+      "did:web:mbx.bob.example"
+    ],
+    "sync_targets": [
+      "did:web:mbx.bob.example"
+    ],
+    "discarded": [
+      "wss://mbx3.bob.example/dsip"
+    ]
+  }
+}

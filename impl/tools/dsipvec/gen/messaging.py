@@ -84,6 +84,7 @@ def vectors() -> list[dict]:
     out += client_vectors()
     out += gap_vectors()
     out += mls_layer_vectors()
+    out += discovery_vectors()
     return out
 
 
@@ -1076,4 +1077,97 @@ def mls_layer_vectors():
     sv("open-too-short", "Sealed data shorter than nonce plus tag.", ["M§8.4"],
        {"check": "open", "use": "archive", "key_hex": key.hex(), "group_hex": group.hex(), "seq": 1, "sealed_hex": bytes(27).hex()},
        reject("sealed-too-short"))
+    return out
+
+
+# ---------------------------------------------------------------- step 1: mailbox discovery (M§4.2, §8.1; spec-gap 37)
+
+MBX_A2 = "did:web:mbx2.bob.example"
+
+
+def entry(mailbox=MBX_B, uri=None, priority=None, profiles=("messaging/1.0",), **over):
+    e = {"uri": uri or f"wss://{mailbox.split(':')[-1]}/dsip", "bindings": ["ws/1.0"], "mailbox": mailbox}
+    if priority is not None:
+        e["priority"] = priority
+    if profiles is not None:
+        e["profiles"] = list(profiles)
+    e.update(over)
+    return e
+
+
+def discovery_vectors():
+    out = []
+
+    def sel(vid, desc, inp, expect):
+        out.append(mv(f"mailbox-select-{vid}", desc, ["M§4.2", "§8.1"], {"check": "mailbox-select", **inp}, expect))
+
+    primary, secondary = entry(MBX_B, priority=0), entry(MBX_A2, priority=1)
+    sel("priority-order", "The lowest priority entry is the primary mailbox; devices sync both.",
+        {"document_entries": [secondary, primary]},
+        {"source": "did-document", "selected": MBX_B, "order": [MBX_B, MBX_A2], "sync_targets": [MBX_B, MBX_A2], "discarded": []})
+    sel("skips-unreachable", "A sender deposits to the lowest priority entry that accepts the connection.",
+        {"document_entries": [primary, secondary], "reachable": [MBX_A2]},
+        {"source": "did-document", "selected": MBX_A2, "order": [MBX_B, MBX_A2], "sync_targets": [MBX_B, MBX_A2], "discarded": []})
+    sel("absent-priority-is-zero", "An entry with no priority sorts as priority 0, before an explicit 1.",
+        {"document_entries": [secondary, entry(MBX_B)]},
+        {"source": "did-document", "selected": MBX_B, "order": [MBX_B, MBX_A2], "sync_targets": [MBX_B, MBX_A2], "discarded": []})
+    tie_a, tie_b = entry(MBX_B, priority=0), entry(MBX_A2, priority=0)
+    sel("equal-priority-keeps-document-order", "Entries of equal priority keep the order the document lists them in.",
+        {"document_entries": [tie_b, tie_a]},
+        {"source": "did-document", "selected": MBX_A2, "order": [MBX_A2, MBX_B], "sync_targets": [MBX_A2, MBX_B], "discarded": []})
+    plain = entry(MBX_A2, uri="ws://mbx2.bob.example/dsip", priority=0)
+    sel("plaintext-uri-discarded", "A ws:// mailbox is never used (§13.2: wss only).",
+        {"document_entries": [plain, secondary]},
+        {"source": "did-document", "selected": MBX_A2, "order": [MBX_A2], "sync_targets": [MBX_A2],
+         "discarded": ["ws://mbx2.bob.example/dsip"]})
+    no_did = {"uri": "wss://mbx3.bob.example/dsip", "bindings": ["ws/1.0"], "profiles": ["messaging/1.0"]}
+    sel("entry-without-mailbox-did-discarded",
+        "Without the mailbox DID a client cannot check whose hello it got, so the entry is unusable.",
+        {"document_entries": [no_did, primary]},
+        {"source": "did-document", "selected": MBX_B, "order": [MBX_B], "sync_targets": [MBX_B],
+         "discarded": ["wss://mbx3.bob.example/dsip"]})
+    other_profile = entry(MBX_A2, priority=0, profiles=("verified-broadcast/1.0",))
+    sel("profile-mismatch-discarded", "A service that does not advertise messaging/1.0 cannot serve the profile.",
+        {"document_entries": [other_profile, secondary]},
+        {"source": "did-document", "selected": MBX_A2, "order": [MBX_A2], "sync_targets": [MBX_A2],
+         "discarded": ["wss://mbx2.bob.example/dsip"]})
+    hint = entry(MBX_B, priority=0, service="DSIPMailbox")
+    sel("did-key-uses-hints", "An identity with no DID document may advertise its mailbox in a signed DHT hint.",
+        {"document_entries": [], "hint_entries": [hint]},
+        {"source": "hint", "selected": MBX_B, "order": [MBX_B], "sync_targets": [MBX_B], "discarded": []})
+    sel("document-wins-over-hint", "With a document entry present, hints are not consulted at all (§8.1 authority order).",
+        {"document_entries": [secondary], "hint_entries": [hint]},
+        {"source": "did-document", "selected": MBX_A2, "order": [MBX_A2], "sync_targets": [MBX_A2], "discarded": []})
+    sel("unusable-document-does-not-fall-back-to-hints",
+        "A document whose only entry is unusable does not hand the choice to a hint: a device-signed hint must not "
+        "override the authoritative source.",
+        {"document_entries": [plain], "hint_entries": [hint]},
+        {"source": "did-document", "selected": None, "order": [], "sync_targets": [],
+         "discarded": ["ws://mbx2.bob.example/dsip"]})
+    sel("no-mailbox-advertised", "An identity with no mailbox cannot receive asynchronous content.",
+        {"document_entries": [], "hint_entries": []},
+        {"source": None, "selected": None, "order": [], "sync_targets": [], "discarded": []})
+
+    def sw(vid, desc, established, candidate, expect):
+        out.append(mv(f"mailbox-switch-{vid}", desc, ["M§4.2", "M§15.4"],
+                      {"check": "mailbox-switch", "established": established, "candidate": candidate}, expect))
+
+    sw("hint-refused", "A hint never moves an established conversation's mailbox.",
+       {"mailbox": MBX_B, "source": "did-document"}, {"mailbox": MBX_A2, "source": "hint"},
+       {"switch": False, "reason": "hint-sourced"})
+    sw("document-allowed", "A changed DID document entry does move it.",
+       {"mailbox": MBX_B, "source": "did-document"}, {"mailbox": MBX_A2, "source": "did-document"},
+       {"switch": True, "reason": "did-document"})
+    sw("unchanged", "The same mailbox is not a switch.",
+       {"mailbox": MBX_B, "source": "did-document"}, {"mailbox": MBX_B, "source": "hint"},
+       {"switch": False, "reason": "unchanged"})
+
+    for vid, desc, e, ok in [
+        ("valid", "A full DSIPMailbox serviceEndpoint.", entry(MBX_B, priority=0, accepts=["text", "audio"],
+                                                              voicemail={"max_duration_s": 180}), True),
+        ("plaintext-uri", "ws:// is refused by shape.", entry(MBX_B, uri="ws://mbx.bob.example/dsip"), False),
+        ("unknown-field", "Unknown fields are refused by the closed schema.", entry(MBX_B, surprise=1), False),
+    ]:
+        out.append(mv(f"mailbox-service-{vid}", desc, ["M§4.2"], {"check": "payload", "schema": "mailbox-service", "payload": e},
+                      accept() if ok else reject("schema-invalid")))
     return out

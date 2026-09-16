@@ -1,0 +1,50 @@
+{
+  "vector": "messaging/mailbox-select-absent-priority-is-zero",
+  "format": 1,
+  "kind": "messaging",
+  "description": "An entry with no priority sorts as priority 0, before an explicit 1.",
+  "spec_ref": [
+    "M§4.2",
+    "§8.1"
+  ],
+  "context": {},
+  "input": {
+    "check": "mailbox-select",
+    "document_entries": [
+      {
+        "uri": "wss://mbx2.bob.example/dsip",
+        "bindings": [
+          "ws/1.0"
+        ],
+        "mailbox": "did:web:mbx2.bob.example",
+        "priority": 1,
+        "profiles": [
+          "messaging/1.0"
+        ]
+      },
+      {
+        "uri": "wss://mbx.bob.example/dsip",
+        "bindings": [
+          "ws/1.0"
+        ],
+        "mailbox": "did:web:mbx.bob.example",
+        "profiles": [
+          "messaging/1.0"
+        ]
+      }
+    ]
+  },
+  "expect": {
+    "source": "did-document",
+    "selected": "did:web:mbx.bob.example",
+    "order": [
+      "did:web:mbx.bob.example",
+      "did:web:mbx2.bob.example"
+    ],
+    "sync_targets": [
+      "did:web:mbx.bob.example",
+      "did:web:mbx2.bob.example"
+    ],
+    "discarded": []
+  }
+}
