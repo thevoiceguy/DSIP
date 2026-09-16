@@ -676,6 +676,13 @@ The hub MUST:
 
 A committing member MUST NOT apply its own commit until it holds the hub's `accepted`. On
 `mailbox.commit-conflict` it syncs, processes the winning commit, and re-proposes if still needed.
+(spec-gap 58) Precisely: on `mailbox.commit-conflict` or `mailbox.stale-epoch` the member discards its
+pending commit, syncs until the group has moved past the epoch it committed from, and re-proposes the
+operation against the new epoch only if it is still needed (an identity another commit already added is
+not added again); it makes at most **three** proposals for one operation, then surfaces the failure. An
+unregistered `mailbox.*` condition takes the core category fallback (§15.3): re-sync, retry once, then
+surface. Any other refusal — `policy.blocked`, a registered condition not about ordering such as
+`mailbox.quota-exceeded`, an unknown category — is discarded and surfaced without retry.
 
 **A device's own items** (spec-gap 47). Rule 5 fans every item back to its sender's identity, and MLS
 does not let a device decrypt its own messages. The sending device MUST treat the `seq` in the hub's

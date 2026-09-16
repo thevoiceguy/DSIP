@@ -473,7 +473,7 @@ codec set. Written up as `v0.8/dsip-rtp-srtp-media-binding-v0.8-draft.md`.
 **Suggested fix.** Adopt the binding draft; align it with the WebRTC binding's descriptor/SDP
 authority rule.
 
-## v0.8 messaging worklist (gaps 31–57)
+## v0.8 messaging worklist (gaps 31–58)
 
 **Status (2026-09-17): every gap in this worklist and in the gateway worklist (23–30) is disposed in the v0.8
 core (`v0.8/dsip_v_0_8_decentralized_session_initiation_protocol.md`, Appendix A.5) or in its companion profiles,
@@ -518,6 +518,7 @@ bytes, AES-GCM formats) pins 33 and 39, and `impl/crates/dsip-mls` runs the prof
 | 55 | M§6.9, §7 | **pinned** (2026-09-17): did:key-style derivation of the X25519 key agreement key; did:web provisioning is deployment-defined | `messaging/x25519-key-agreement-from-ed25519`, `messaging/sealed-introduction-*` (10), `messaging/hpke-*` (4) |
 | 56 | §7.4, §24.2 | **adopted in core v0.8** (2026-09-17), disposition (b): binding stays `dsip.signaling` for every envelope; messaging devices carry `dsip.signaling` and `dsip.messaging` | `envelope/hello-messaging-only-delegation-rejected`, `dsip-mailbox` `verify::tests` |
 | 57 | §7.4, §8.1, M§4.3, M§5.7, M§12.4 | **adopted in core v0.8** (2026-09-17): `delegation-revocation` record (subject-signed, covers delegations issued ≤ `revoked_at`), found in the DID document or any verifier store; `delegation-revoked`; mailbox closes the binding | `envelope/delegation-revoked-*`, `envelope/delegation-revocation-*`, `envelope/hello-revoked-device-rejected`, `payload/delegation-revocation-*`, `semantic/delegation-revocation-*`, `messaging/mailbox-revoked-device-closed-and-forgotten`, `demos/revocation-demo.sh` |
+| 58 | M§6.5, §15.3 | **pinned** (2026-09-17, profile 1.0 erratum): on commit-conflict or stale-epoch discard, sync past the winning commit, re-propose while still needed, at most 3 proposals; unknown `mailbox.*` retried once; other refusals surfaced | `messaging/commit-retry-*` (9), `demos/commit-conflict-demo.sh` |
 
 ## 31. §12.9 vs §13.3 / §19.4 — the replay window rejects held envelopes
 
@@ -1080,6 +1081,30 @@ mailbox in the PoC). The v0.8 core should say where else they are carried.
 **Suggested fix.** Add `delegation-revocation` as a core message type and verification stage in the v0.8 core
 (§7.4), with the `dsipDelegationRevocations` document property; adopt the M§4.3, M§5.7 and M§12.4 text now in
 the draft. The record schema is staged in `v0.8/dsip-messaging-schemas-draft/` until the core schema set moves.
+
+## 58. M§6.5 — what a member does when the hub refuses its commit
+
+**Gap.** M§6.5 says a member that gets `mailbox.commit-conflict` "syncs, processes the winning commit, and
+re-proposes if still needed". It does not say whether `mailbox.stale-epoch` (the member was more than one
+epoch behind) is handled the same way, how many times a member re-proposes under contention, what "still
+needed" means, or how the new core `mailbox` category fallback (§15.3: re-sync, retry once, then surface)
+applies to refusals the profile does not name. A device that retries without bound can loop against a busy
+hub; one that merges a refused commit forks the group.
+
+**Choices considered.** (a) Conflict and stale epoch alike: discard, sync past the epoch committed from,
+re-propose while still needed, at most three proposals; unregistered `mailbox.*` retried once per the core
+fallback; everything else surfaced without retry. (b) Retry until accepted: unbounded under contention.
+(c) Never re-propose automatically: every conflict becomes a user-visible failure for what is routine
+concurrency.
+
+**Draft choice.** (a), stated in M§6.5 as a 1.0 erratum (the profile was published in v0.8). The
+`commit-retry-trace` vectors pin the outcomes; the reference device runs every commit (add, remove, device
+changes, rekey) through the pinned machine. `demos/commit-conflict-demo.sh` makes a member commit from a stale
+epoch twice — one epoch behind (`commit-conflict`) and two behind (`stale-epoch`) — and shows the hub refuse,
+the member sync and re-propose, and both members still reading each other; merging regardless of the answer
+or re-proposing without syncing fails it.
+
+**Suggested fix.** Carry the M§6.5 text into the next profile revision.
 
 ## Already-flagged (schema README / plan §11)
 

@@ -909,6 +909,60 @@ class History:
         return {"timeline": [k for k, _ in order], "held": [h["cursor"] for h in self.held], "current_akid": self._current()}
 
 
+class CommitRetry:
+    """What a committing device does with the hub's answer (M§6.5; spec-gap 58).
+
+    accepted → merge. `mailbox.commit-conflict` and `mailbox.stale-epoch` → discard the pending commit, sync until the
+    winning commit is processed, and re-propose if the operation is still needed, at most `max_attempts` proposals in
+    all, then surface. An unregistered `mailbox.*` condition takes the category fallback (core §15.3): re-sync, retry
+    once, then surface. Any other refusal — `policy.blocked`, a registered token of any other kind, an unknown
+    category — is discarded and surfaced without retry.
+    """
+
+    RETRY_REASONS = ("mailbox.commit-conflict", "mailbox.stale-epoch")
+
+    def __init__(self, ctx: dict):
+        self.max_attempts = ctx.get("max_attempts", 3)
+        self.attempt = 1
+        self.state = "pending"
+        self.unknown_retry_used = False
+
+    def step(self, ev: dict) -> list:
+        (name, e), = ev.items()
+        return getattr(self, "_" + name)(e)
+
+    def _surface(self, reason: str) -> list:
+        self.state = "surfaced"
+        return [{"discard": {}}, {"surface": reason}]
+
+    def _answer(self, e: dict) -> list:
+        reason = e.get("reason")
+        if reason is None:
+            self.state = "merged"
+            return [{"merge": {}}]
+        from .registry import REASONS
+        if reason in self.RETRY_REASONS:
+            if self.attempt >= self.max_attempts:
+                return self._surface(reason)
+        elif reason.split(".", 1)[0] == "mailbox" and reason not in REASONS and not self.unknown_retry_used:
+            self.unknown_retry_used = True  # §15.3 mailbox fallback: re-sync, retry once, then surface
+        else:
+            return self._surface(reason)
+        self.state = "syncing"
+        return [{"discard": {}}, {"sync": {}}]
+
+    def _synced(self, e: dict) -> list:
+        if not e["still_needed"]:
+            self.state = "done"
+            return [{"done": "no-longer-needed"}]
+        self.attempt += 1
+        self.state = "pending"
+        return [{"repropose": {"attempt": self.attempt}}]
+
+    def snapshot(self) -> dict:
+        return {"attempt": self.attempt, "state": self.state}
+
+
 SEQUENCED_CLASSES = ("handshake", "application")
 
 
@@ -1389,9 +1443,9 @@ def run(v: dict) -> dict:
         return check_successor(inp)
     if check == "successor-select":
         return select_successor(inp["candidates"])
-    if check in ("hub-trace", "mailbox-trace", "client-trace", "gap-trace", "resume-trace", "history-trace"):
+    if check in ("hub-trace", "mailbox-trace", "client-trace", "gap-trace", "resume-trace", "history-trace", "commit-retry-trace"):
         comp = {"hub-trace": Hub, "mailbox-trace": Mailbox, "client-trace": Client, "gap-trace": GapTracker,
-                "resume-trace": Resume, "history-trace": History}[check](v["context"])
+                "resume-trace": Resume, "history-trace": History, "commit-retry-trace": CommitRetry}[check](v["context"])
         steps = []
         for st in inp["steps"]:
             emit = comp.step(st["event"])
