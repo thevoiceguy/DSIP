@@ -2453,6 +2453,16 @@ def call_history_vectors():
                          ({"archive": {"cursor": c(3), "akid": K1, "group": GROUP, "seq": 2, "id": "r2", "object": "receipt"}},
                           [{"duplicate": "r2"}], hst(["m1"], current=K1)),
                      ]))
+    out.append(trace("history-own-read-receipt-archived",
+                     "A device archives the read watermark it sends (spec-gap 68), so a device added later knows where its user "
+                     "had read; it is state, not a timeline entry, and it is archived once.", ["M§12.2", "M§10.5", "M§10.3"], H,
+                     {"component": "history", "keys": [{"akid": K1, "created_at": NOW}], "joined": {}}, [
+                         ({"sent": {"group": GROUP, "seq": 7, "id": "r7", "object": "receipt"}},
+                          [{"archive": {"group": GROUP, "seq": 7, "akid": K1}}], hst(current=K1)),
+                         ({"sent": {"group": GROUP, "seq": 7, "id": "r7", "object": "receipt"}}, [{"duplicate": "r7"}], hst(current=K1)),
+                         ({"sent": {"group": GROUP, "seq": 8, "id": "m8"}},
+                          [{"show": "m8"}, {"archive": {"group": GROUP, "seq": 8, "akid": K1}}], hst(["m8"], current=K1)),
+                     ]))
     out.append(trace("history-archived-call-event-applied",
                      "Call events are archived too (spec-gap 63), so a device added later has the identity's call history; like a "
                      "receipt, a restored call event goes to the call log, once.", ["M§13.3", "M§12.2", "M§12.3"], H,
