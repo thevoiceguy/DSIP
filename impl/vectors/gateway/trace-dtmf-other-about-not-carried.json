@@ -1,0 +1,106 @@
+{
+  "vector": "gateway/trace-dtmf-other-about-not-carried",
+  "format": 1,
+  "kind": "gateway",
+  "description": "Only media:dtmf crosses: the DSIP leg's own transport chatter stays there (G§9).",
+  "spec_ref": [
+    "G§9",
+    "§16.3"
+  ],
+  "context": {
+    "direction": "inbound"
+  },
+  "input": {
+    "check": "trace",
+    "steps": [
+      {
+        "event": {
+          "sip": {
+            "request": "INVITE",
+            "from_tn": "+15551234567"
+          }
+        }
+      },
+      {
+        "event": {
+          "dsip": {
+            "type": "answer",
+            "answered_by": "user"
+          }
+        }
+      },
+      {
+        "event": {
+          "dsip": {
+            "type": "info",
+            "about": "transport:webrtc",
+            "data": {
+              "candidates": [],
+              "end_of_candidates": true
+            }
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "dsip": {
+              "local": "place_call",
+              "claims": [
+                {
+                  "type": "tel",
+                  "number": "+15551234567",
+                  "attestation": "none",
+                  "verified": false,
+                  "verifier": "did:web:gw.example"
+                }
+              ],
+              "trust_basis": "Gateway attested by gw.example · no attestation"
+            }
+          },
+          {
+            "sip": {
+              "response": 100
+            }
+          }
+        ],
+        "state": {
+          "dsip": "offered",
+          "sip": "early"
+        }
+      },
+      {
+        "emit": [
+          {
+            "sip": {
+              "response": 200,
+              "direction": "sendrecv"
+            }
+          },
+          {
+            "media": "bridge"
+          }
+        ],
+        "state": {
+          "dsip": "active",
+          "sip": "confirmed"
+        }
+      },
+      {
+        "emit": [
+          {
+            "ignore": "dsip info transport:webrtc"
+          }
+        ],
+        "state": {
+          "dsip": "active",
+          "sip": "confirmed"
+        }
+      }
+    ]
+  }
+}

@@ -1001,7 +1001,15 @@ Sent by the initiator to withdraw an invite before accepting an answer. Also pro
 Rules:
 
 - `info` is valid **only in ACTIVE state** (including its RENEGOTIATING sub-state). Because Core v1.0 has no pre-answer media (§14.1), candidates are only ever needed after `answer`, so no earlier state requires it. `info` in any other state is answered with `error` (`session.invalid-state`).
-- `about` (required) names the registered transport or extension the data belongs to (registry `dsip-info-about`; initial values are the media transport identifiers, e.g. `transport:webrtc`). An endpoint receiving `info` with an unrecognized `about` MUST ignore it silently — `info` is never critical.
+- `about` (required) names the registered transport or extension the data belongs to (registry `dsip-info-about`; initial values are the media transport identifiers, e.g. `transport:webrtc`, and `media:dtmf`). An endpoint receiving `info` with an unrecognized `about` MUST ignore it silently — `info` is never critical.
+
+(spec-gap 70) **`media:dtmf`** carries DTMF within an established session, the events a user presses during a call:
+
+```json
+{ "about": "media:dtmf", "data": { "digits": "12#", "duration_ms": 160 } }
+```
+
+`digits` is one to 32 RFC 4733 events (`0`–`9`, `*`, `#`, `A`–`D`) in the order pressed; `duration_ms` (40–10,000) is the tone length of each digit in that message and MAY be omitted. Like any `info` it is ACTIVE-only, never critical, expects no reply, and changes nothing about the negotiated session: a receiver that does not act on DTMF ignores it. Ordering is the ordering of the messages themselves (§12.9 deduplicates by `id`); an endpoint MUST NOT reorder digits, and a gateway MUST NOT re-time them.
 - `data` (required) is an object whose structure is defined by the binding named in `about`. For `transport:webrtc`, the structure above is normative in the **WebRTC Media Binding 1.0** companion document (`dsip-webrtc-media-binding-v0.8.md`, Appendix A; schema `webrtc-info-data.schema.json`). A receiver validates `data` against the schema of each binding it implements and rejects a malformed `data` as it would any schema failure; for an `about` it does not implement, `data` is not inspected.
 - `info` MUST NOT alter negotiated session parameters, elicits no `answer` or `reject`, and causes no state transition. Anything that changes the negotiation is an `update`.
 - Because candidates ride in signed envelopes, candidate injection requires a key compromise, not just a network position — this is why unsigned side-channel candidate exchange is prohibited.

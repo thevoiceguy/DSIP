@@ -18,7 +18,7 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 SCHEMA_DIR = REPO_ROOT / "v0.8" / "dsip-schemas-v0.8-draft" / "dsip-schemas" / "schemas"
 
 # `info.data` shapes by `about` (§12.12): validated for bindings this harness implements, ignored otherwise.
-BINDING_DATA_SCHEMAS = {"transport:webrtc": "webrtc-info-data"}
+BINDING_DATA_SCHEMAS = {"transport:webrtc": "webrtc-info-data", "media:dtmf": "dtmf-info-data"}
 
 
 @lru_cache(maxsize=None)

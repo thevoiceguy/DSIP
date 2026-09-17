@@ -221,6 +221,34 @@
       },
       {
         "event": {
+          "recv": {
+            "type": "info",
+            "id": "01K742SQT04K12YJEWX8YX830Y",
+            "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "session": "01K742SG00YYNVBMYAQK1CB31F",
+            "about": "media:dtmf"
+          }
+        },
+        "expect": {
+          "emit": [
+            {
+              "info": {
+                "about": "media:dtmf"
+              }
+            }
+          ],
+          "sessions": {
+            "01K742SG00YYNVBMYAQK1CB31F": {
+              "role": "initiator",
+              "state": "ACTIVE",
+              "renegotiating": false,
+              "outstanding_update": null
+            }
+          }
+        }
+      },
+      {
+        "event": {
           "local": "info",
           "session": "01K742SG00YYNVBMYAQK1CB31F"
         },

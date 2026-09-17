@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dsip.org/schema/1.0/binding/dtmf/info-data.schema.json",
+  "title": "media:dtmf info.data",
+  "description": "DTMF digits within an established session (spec 12.12, spec-gap 70). digits are RFC 4733 events 0-9, *, #, A-D, in the order pressed; duration_ms applies to each digit in this message. Like any info it changes nothing about the negotiated session.",
+  "type": "object",
+  "properties": {
+    "digits": {
+      "type": "string",
+      "pattern": "^[0-9A-D*#]{1,32}$",
+      "description": "One or more DTMF events, in order."
+    },
+    "duration_ms": {
+      "type": "integer",
+      "minimum": 40,
+      "maximum": 10000,
+      "description": "Tone length of each digit; RFC 4733 events are at least 40 ms."
+    }
+  },
+  "required": [
+    "digits"
+  ],
+  "additionalProperties": false
+}

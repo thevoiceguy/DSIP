@@ -214,10 +214,21 @@ This is stated in §15.5/Appendix C prose in the core; G§8 is the rule with vec
 
 ## G§9 DTMF
 
-DSIP has no DTMF semantics in Core v1.0. This version does **not** forward RFC 2833 DTMF events
-across the gateway. Carriage is an open question (spec-gap 26): the natural vehicle is a signed
-`info` (§12.12) with a gateway-defined `about` (e.g. `x-gateway:dtmf`); a future revision defines
-it. A gateway MUST NOT invent a DTMF carriage silently.
+DTMF crosses the gateway as a signed `info` (§12.12) with `about: "media:dtmf"` — the core binding
+registered for it (spec-gaps 26 and 70), not a gateway invention. A gateway MUST NOT carry DTMF in
+any other `about`, and MUST NOT carry any other `about` to the SIP side: transport chatter for the
+DSIP leg's own media binding (`transport:webrtc`) stays on that leg.
+
+- **SIP → DSIP.** A SIP `INFO` carrying DTMF (`application/dtmf-relay`) is answered `200` on the SIP
+  leg and becomes one `info` about `media:dtmf` on the DSIP leg, with the digit and, when the request
+  gives one, its duration.
+- **DSIP → SIP.** An `info` about `media:dtmf` becomes a SIP `INFO` with the same digits and duration.
+- **Only while the call is up.** `info` is ACTIVE-only (§12.12): before answer or after the call has
+  ended, DTMF is carried nowhere — a SIP `INFO` is still answered `200`, and a DSIP `info` is ignored.
+- **RFC 4733 telephone-event.** When the SIP leg negotiated `telephone-event`, a gateway MAY carry
+  DTMF as RTP events instead of SIP `INFO`; the DSIP side is the same either way. The reference
+  gateway does not (it bridges media without generating RTP events), which is a gateway's choice, not
+  a protocol difference.
 
 ## G§10 Conformance
 

@@ -516,6 +516,8 @@ def vectors() -> list[dict]:
                               **{sid: sess("initiator", "ACTIVE")}),
                          step({"recv": msg("info", "i2", BPH, sid, NOW + 8, about="x-future:thing")}, [{"drop": "unknown-about"}],
                               **{sid: sess("initiator", "ACTIVE")}),
+                         step({"recv": msg("info", "i-dtmf", BPH, sid, NOW + 8, about="media:dtmf")}, [{"info": {"about": "media:dtmf"}}],
+                              **{sid: sess("initiator", "ACTIVE")}),
                          step({"local": "info", "session": sid}, [S(type="info", to=BPH, session=sid)], **{sid: sess("initiator", "ACTIVE")}),
                          step({"local": "hangup", "session": sid}, [S(type="bye", to=BPH, session=sid, reason="user.hangup"), MEDIA("stop")],
                               **{sid: sess("initiator", "ENDED")}),

@@ -1,0 +1,140 @@
+{
+  "vector": "gateway/trace-dtmf-both-ways",
+  "format": 1,
+  "kind": "gateway",
+  "description": "DTMF crosses as info about media:dtmf (G§9, spec-gap 70): a SIP INFO becomes a DSIP info and a DSIP info becomes a SIP INFO, each acknowledged on its own leg.",
+  "spec_ref": [
+    "G§9",
+    "§12.12"
+  ],
+  "context": {
+    "direction": "inbound"
+  },
+  "input": {
+    "check": "trace",
+    "steps": [
+      {
+        "event": {
+          "sip": {
+            "request": "INVITE",
+            "from_tn": "+15551234567"
+          }
+        }
+      },
+      {
+        "event": {
+          "dsip": {
+            "type": "answer",
+            "answered_by": "user"
+          }
+        }
+      },
+      {
+        "event": {
+          "sip": {
+            "request": "INFO",
+            "dtmf": "5",
+            "duration_ms": 160
+          }
+        }
+      },
+      {
+        "event": {
+          "dsip": {
+            "type": "info",
+            "about": "media:dtmf",
+            "data": {
+              "digits": "12#"
+            }
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "dsip": {
+              "local": "place_call",
+              "claims": [
+                {
+                  "type": "tel",
+                  "number": "+15551234567",
+                  "attestation": "none",
+                  "verified": false,
+                  "verifier": "did:web:gw.example"
+                }
+              ],
+              "trust_basis": "Gateway attested by gw.example · no attestation"
+            }
+          },
+          {
+            "sip": {
+              "response": 100
+            }
+          }
+        ],
+        "state": {
+          "dsip": "offered",
+          "sip": "early"
+        }
+      },
+      {
+        "emit": [
+          {
+            "sip": {
+              "response": 200,
+              "direction": "sendrecv"
+            }
+          },
+          {
+            "media": "bridge"
+          }
+        ],
+        "state": {
+          "dsip": "active",
+          "sip": "confirmed"
+        }
+      },
+      {
+        "emit": [
+          {
+            "sip": {
+              "response": 200
+            }
+          },
+          {
+            "dsip": {
+              "local": "info",
+              "about": "media:dtmf",
+              "data": {
+                "digits": "5",
+                "duration_ms": 160
+              }
+            }
+          }
+        ],
+        "state": {
+          "dsip": "active",
+          "sip": "confirmed"
+        }
+      },
+      {
+        "emit": [
+          {
+            "sip": {
+              "request": "INFO",
+              "dtmf": "12#"
+            }
+          }
+        ],
+        "state": {
+          "dsip": "active",
+          "sip": "confirmed"
+        }
+      }
+    ]
+  }
+}

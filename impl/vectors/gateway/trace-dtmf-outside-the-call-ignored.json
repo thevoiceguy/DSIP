@@ -1,0 +1,104 @@
+{
+  "vector": "gateway/trace-dtmf-outside-the-call-ignored",
+  "format": 1,
+  "kind": "gateway",
+  "description": "DTMF before the call is up is carried nowhere: the SIP INFO is still answered, and a DSIP info is ignored (§12.12: info is ACTIVE-only).",
+  "spec_ref": [
+    "G§9",
+    "§12.12"
+  ],
+  "context": {
+    "direction": "inbound"
+  },
+  "input": {
+    "check": "trace",
+    "steps": [
+      {
+        "event": {
+          "sip": {
+            "request": "INVITE",
+            "from_tn": "+15551234567"
+          }
+        }
+      },
+      {
+        "event": {
+          "sip": {
+            "request": "INFO",
+            "dtmf": "5"
+          }
+        }
+      },
+      {
+        "event": {
+          "dsip": {
+            "type": "info",
+            "about": "media:dtmf",
+            "data": {
+              "digits": "5"
+            }
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "dsip": {
+              "local": "place_call",
+              "claims": [
+                {
+                  "type": "tel",
+                  "number": "+15551234567",
+                  "attestation": "none",
+                  "verified": false,
+                  "verifier": "did:web:gw.example"
+                }
+              ],
+              "trust_basis": "Gateway attested by gw.example · no attestation"
+            }
+          },
+          {
+            "sip": {
+              "response": 100
+            }
+          }
+        ],
+        "state": {
+          "dsip": "offered",
+          "sip": "early"
+        }
+      },
+      {
+        "emit": [
+          {
+            "sip": {
+              "response": 200
+            }
+          },
+          {
+            "ignore": "sip dtmf outside the established call"
+          }
+        ],
+        "state": {
+          "dsip": "offered",
+          "sip": "early"
+        }
+      },
+      {
+        "emit": [
+          {
+            "ignore": "dsip dtmf outside the established call"
+          }
+        ],
+        "state": {
+          "dsip": "offered",
+          "sip": "early"
+        }
+      }
+    ]
+  }
+}

@@ -8,7 +8,7 @@ source of truth. Spec revision v0.8 (Appendix A.5) adds the optional `sealed` in
 grant scope. Spec revision v0.7 added `provenance` (22.3), `key-rotation`
 (7.5), `reachability-hint` (DHT Hints Profile), the record-level `integrity`
 field on `publish` (22.2), and the WebRTC Media Binding's `info.data` schema
-(`webrtc-info-data`, validated when `info.about` is `transport:webrtc`). Shared definitions are embedded into every schema file so
+(`webrtc-info-data` and `dtmf-info-data`, validated when `info.about` is `transport:webrtc` or `media:dtmf`). Shared definitions are embedded into every schema file so
 each file validates standalone in any conforming validator, with no $ref
 resolution setup required.
 
@@ -517,6 +517,21 @@ envelope = {
 # `data` against the schema of a binding it implements and ignores `info` for unknown `about`.
 
 bindings = {
+    "dtmf-info-data": {
+        "$schema": SCHEMA_DIALECT,
+        "$id": f"{NS}binding/dtmf/info-data.schema.json",
+        "title": "media:dtmf info.data",
+        "description": "DTMF digits within an established session (spec 12.12, spec-gap 70). digits are RFC 4733 events 0-9, *, #, A-D, in the order pressed; duration_ms applies to each digit in this message. Like any info it changes nothing about the negotiated session.",
+        "type": "object",
+        "properties": {
+            "digits": {"type": "string", "pattern": "^[0-9A-D*#]{1,32}$",
+                       "description": "One or more DTMF events, in order."},
+            "duration_ms": {"type": "integer", "minimum": 40, "maximum": 10000,
+                            "description": "Tone length of each digit; RFC 4733 events are at least 40 ms."},
+        },
+        "required": ["digits"],
+        "additionalProperties": False,
+    },
     "webrtc-info-data": {
         "$schema": SCHEMA_DIALECT,
         "$id": f"{NS}binding/webrtc/info-data.schema.json",
