@@ -2,7 +2,7 @@
   "vector": "messaging/blob-replicate-mismatch-discarded",
   "format": 1,
   "kind": "messaging",
-  "description": "A body that does not match the manifest is discarded, whatever the source says.",
+  "description": "A body that does not match the manifest is discarded and not tried again: the origin would serve the same bytes (spec-gap 67).",
   "spec_ref": [
     "M§8.4"
   ],
@@ -25,6 +25,7 @@
   },
   "expect": {
     "action": "discard",
-    "reason": "mismatch"
+    "reason": "mismatch",
+    "retry": false
   }
 }

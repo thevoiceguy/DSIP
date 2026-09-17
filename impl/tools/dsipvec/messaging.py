@@ -1619,6 +1619,7 @@ def blob_replicate(inp: dict) -> dict:
     otherwise `discard` (the item keeps the original `uri`).
     """
     e = inp["entry"]
+    max_attempts = inp.get("max_attempts", BLOB_REPLICATION_ATTEMPTS)
     if "fetched" not in inp:
         if inp.get("mode") != "sync":
             return {"action": "skip", "reason": "mode"}
@@ -1631,10 +1632,15 @@ def blob_replicate(inp: dict) -> dict:
         return {"action": "fetch"}
     f = inp["fetched"]
     if f.get("status") != 200:
-        return {"action": "discard", "reason": "unavailable"}
+        # spec-gap 67: the origin was unreachable or had nothing to serve — worth trying again, boundedly
+        return {"action": "discard", "reason": "unavailable", "retry": inp.get("attempt", 1) < max_attempts}
     if f.get("sha256") != e["sha256"] or f.get("size") != e["size"]:
-        return {"action": "discard", "reason": "mismatch"}
+        # the origin served something else: retrying fetches the same wrong bytes
+        return {"action": "discard", "reason": "mismatch", "retry": False}
     return {"action": "store"}
+
+
+BLOB_REPLICATION_ATTEMPTS = 5   # spec-gap 67
 
 
 def items_blobs(inp: dict) -> dict:

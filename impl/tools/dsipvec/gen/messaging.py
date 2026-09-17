@@ -2488,12 +2488,19 @@ def blob_replication_vectors():
        {"entry": {**entry, "uri": f"http://mbx.alice.example/blobs/{SHA}"}}, {"action": "skip", "reason": "not-https"}, ["M§5.6"])
     br("blob-replicate-store-verified", "A 200 whose body matches the manifest hash and size is stored.",
        {"fetched": {"status": 200, "sha256": SHA, "size": 482220}}, {"action": "store"})
-    br("blob-replicate-mismatch-discarded", "A body that does not match the manifest is discarded, whatever the source says.",
-       {"fetched": {"status": 200, "sha256": "0" * 64, "size": 482220}}, {"action": "discard", "reason": "mismatch"})
+    br("blob-replicate-mismatch-discarded",
+       "A body that does not match the manifest is discarded and not tried again: the origin would serve the same bytes (spec-gap 67).",
+       {"fetched": {"status": 200, "sha256": "0" * 64, "size": 482220}}, {"action": "discard", "reason": "mismatch", "retry": False})
     br("blob-replicate-size-mismatch-discarded", "The size must match too.",
-       {"fetched": {"status": 200, "sha256": SHA, "size": 482221}}, {"action": "discard", "reason": "mismatch"})
-    br("blob-replicate-unavailable-discarded", "A failed fetch stores nothing; the item keeps the original uri.",
-       {"fetched": {"status": 404}}, {"action": "discard", "reason": "unavailable"})
+       {"fetched": {"status": 200, "sha256": SHA, "size": 482221}}, {"action": "discard", "reason": "mismatch", "retry": False})
+    br("blob-replicate-unavailable-retried",
+       "A fetch that found nothing to serve — the origin mailbox down at that moment — stores nothing and is tried again "
+       "(spec-gap 67); until it succeeds the item keeps the original uri.",
+       {"fetched": {"status": 404}}, {"action": "discard", "reason": "unavailable", "retry": True})
+    br("blob-replicate-unavailable-bounded", "Attempts are bounded: after the last one the blob stays at its origin.",
+       {"fetched": {"status": 0}, "attempt": 5}, {"action": "discard", "reason": "unavailable", "retry": False})
+    br("blob-replicate-unavailable-attempt-below-bound", "Before the last attempt it is still retried.",
+       {"fetched": {"status": 0}, "attempt": 4}, {"action": "discard", "reason": "unavailable", "retry": True})
 
     other = {"uri": "https://mbx.alice.example/blobs/" + "1" * 64, "sha256": "1" * 64, "size": 10}
     out.append(mv("items-blobs-rewrites-held-blobs",

@@ -1008,6 +1008,9 @@ Large payloads are encrypted client-side and stored as opaque blobs:
 - **What it keeps.** It fetches the capability URL and stores the body only if the response is 200 and the
   body's SHA-256 and length equal the manifest's `sha256` and `size`. Otherwise it stores nothing. A failed
   replication leaves the original `uri` in place.
+- **Trying again** (spec-gap 67). A fetch that found nothing to serve — the origin mailbox down or the blob not
+  there yet — is tried again, with the backoff of rule 5's retries and a bounded number of attempts (RECOMMENDED
+  5), across restarts. A body that did not match is not tried again: the origin would serve the same bytes.
 - **Rewriting.** In `items` (M§5.4), each manifest entry whose `sha256` the mailbox holds carries
   `uri` = `{blob_endpoint}/{sha256}` of that mailbox; other entries are unchanged. The content object inside
   MLS is never changed.

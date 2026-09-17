@@ -1,8 +1,8 @@
 {
-  "vector": "messaging/blob-replicate-unavailable-discarded",
+  "vector": "messaging/blob-replicate-unavailable-retried",
   "format": 1,
   "kind": "messaging",
-  "description": "A failed fetch stores nothing; the item keeps the original uri.",
+  "description": "A fetch that found nothing to serve — the origin mailbox down at that moment — stores nothing and is tried again (spec-gap 67); until it succeeds the item keeps the original uri.",
   "spec_ref": [
     "M§8.4"
   ],
@@ -23,6 +23,7 @@
   },
   "expect": {
     "action": "discard",
-    "reason": "unavailable"
+    "reason": "unavailable",
+    "retry": true
   }
 }

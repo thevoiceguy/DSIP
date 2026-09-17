@@ -1336,8 +1336,8 @@ device's check and the original serves it; a message larger than Bob's mailbox's
 from the original. A mailbox that never replicates, `items` not rewritten, a device ignoring its mailbox's copy, a
 device that never falls back, and an ignored size limit each fail it.
 
-**Open.** Replication is attempted once, on receipt; a fetch that fails (origin down at that moment) is not retried.
-Replicated blobs are kept for as long as the items that reference them (no separate retention).
+**Open.** Replicated blobs are kept for as long as the items that reference them (no separate retention). Retrying a
+failed fetch is spec-gap 67.
 
 **Suggested fix.** Carry the M§8.4 text into the next profile revision.
 
@@ -1370,6 +1370,27 @@ her device joins once, and the messages that waited follow in order. A hub that 
 queues it fails the demo.
 
 **Suggested fix.** Carry the M§6.5 text into the next profile revision.
+
+## 67. M§8.4 rule 6 — a replication that could not be made
+
+**Gap.** Rule 6 replicates "on receipt". A member mailbox that receives an item while the sending mailbox is down —
+or before the blob is readable there — fetches nothing, and nothing in the profile says whether it ever tries again.
+The item then keeps the origin `uri` for good, which is exactly the case rule 6 exists to avoid. Retrying
+indiscriminately is no better: a body that did not match the manifest will not match on the next attempt either.
+
+**Choices considered.** (a) Retry only `unavailable` (no 200 to work with), with rule 5's backoff, bounded and
+carried across restarts; never retry `mismatch`. (b) Retry everything — a mismatching or hostile origin is refetched
+forever. (c) Retry nothing (the state before this gap) — a moment's outage costs the copy permanently.
+
+**Draft choice.** (a), in M§8.4 as a 1.0 erratum, with 5 attempts RECOMMENDED. `blob-replicate` gains `attempt` and
+answers `retry` on a discard. Vectors: `blob-replicate-unavailable-retried`, `-unavailable-bounded`,
+`-unavailable-attempt-below-bound`, and the mismatch vectors now show `retry: false`. The service keeps failed
+replications with their attempt count and next time, persists them, and runs them from the same timer as fan-out
+retries. `demos/blob-replication-demo.sh` gains a stage: the blob is made unreadable at its origin while Bob's
+mailbox is down, so its first fetch finds nothing; when the blob is readable again a later attempt stores it, and
+Bob plays from his own mailbox. A mailbox that never retries fails it.
+
+**Suggested fix.** Carry the M§8.4 text into the next profile revision.
 
 ## Already-flagged (schema README / plan §11)
 
