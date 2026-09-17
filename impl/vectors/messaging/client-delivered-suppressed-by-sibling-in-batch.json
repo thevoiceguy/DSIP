@@ -67,6 +67,11 @@
       {
         "emit": [
           {
+            "archive": {
+              "seq": 3
+            }
+          },
+          {
             "send": {
               "to": "conversation",
               "receipt": "delivered",

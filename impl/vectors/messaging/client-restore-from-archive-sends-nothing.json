@@ -1,10 +1,12 @@
 {
-  "vector": "messaging/client-read-watermark-monotone",
+  "vector": "messaging/client-restore-from-archive-sends-nothing",
   "format": 1,
   "kind": "messaging",
-  "description": "A read watermark only advances; a lower or unknown through is ignored.",
+  "description": "A device restoring history from archive applies content and receipts to its rendering state without sending delivered receipts or archiving again; live items afterwards behave as usual.",
   "spec_ref": [
-    "M§10.3"
+    "M§12.2",
+    "M§12.3",
+    "M§10.2"
   ],
   "context": {
     "component": "client",
@@ -13,7 +15,7 @@
     "now": 1760000000,
     "member_identities": 2,
     "policy": {
-      "delivered": false,
+      "delivered": true,
       "read": false,
       "played": false,
       "activity": false
@@ -24,24 +26,27 @@
     "steps": [
       {
         "event": {
-          "sync": {
+          "restore": {
             "items": [
               {
                 "seq": 1,
                 "object": {
                   "object": "content",
                   "id": "01K742SG000ZJTETD6Q8F0473W",
-                  "sender": "did:web:alice.example",
+                  "sender": "did:web:example.com:users:bob",
                   "kind": "text"
                 }
               },
               {
                 "seq": 2,
                 "object": {
-                  "object": "content",
-                  "id": "01K742SG00MXS791W8S1ZXMFDN",
+                  "object": "receipt",
+                  "kind": "delivered",
                   "sender": "did:web:alice.example",
-                  "kind": "text"
+                  "sent_at": 1760000000,
+                  "targets": [
+                    "01K742SG000ZJTETD6Q8F0473W"
+                  ]
                 }
               },
               {
@@ -49,25 +54,7 @@
                 "object": {
                   "object": "receipt",
                   "kind": "read",
-                  "sender": "did:web:example.com:users:bob",
-                  "sent_at": 1760000000,
-                  "through": "01K742SG00MXS791W8S1ZXMFDN"
-                }
-              }
-            ]
-          }
-        }
-      },
-      {
-        "event": {
-          "sync": {
-            "items": [
-              {
-                "seq": 4,
-                "object": {
-                  "object": "receipt",
-                  "kind": "read",
-                  "sender": "did:web:example.com:users:bob",
+                  "sender": "did:web:carol.example",
                   "sent_at": 1760000000,
                   "through": "01K742SG000ZJTETD6Q8F0473W"
                 }
@@ -81,13 +68,12 @@
           "sync": {
             "items": [
               {
-                "seq": 5,
+                "seq": 4,
                 "object": {
-                  "object": "receipt",
-                  "kind": "read",
+                  "object": "content",
+                  "id": "01K742SG00MXS791W8S1ZXMFDN",
                   "sender": "did:web:example.com:users:bob",
-                  "sent_at": 1760000000,
-                  "through": "01K742SG003B6Z7NRX7PYC7P9C"
+                  "kind": "text"
                 }
               }
             ]
@@ -99,10 +85,32 @@
   "expect": {
     "steps": [
       {
+        "emit": [],
+        "state": {
+          "timeline": [
+            "01K742SG000ZJTETD6Q8F0473W"
+          ],
+          "delivered": {
+            "01K742SG000ZJTETD6Q8F0473W": {
+              "did:web:alice.example": 1760000000
+            }
+          },
+          "played": {},
+          "read_through": {
+            "did:web:carol.example": "01K742SG000ZJTETD6Q8F0473W"
+          },
+          "activity": {}
+        }
+      },
+      {
         "emit": [
           {
-            "archive": {
-              "seq": 3
+            "send": {
+              "to": "conversation",
+              "receipt": "delivered",
+              "targets": [
+                "01K742SG00MXS791W8S1ZXMFDN"
+              ]
             }
           }
         ],
@@ -111,40 +119,14 @@
             "01K742SG000ZJTETD6Q8F0473W",
             "01K742SG00MXS791W8S1ZXMFDN"
           ],
-          "delivered": {},
-          "played": {},
-          "read_through": {
-            "did:web:example.com:users:bob": "01K742SG00MXS791W8S1ZXMFDN"
+          "delivered": {
+            "01K742SG000ZJTETD6Q8F0473W": {
+              "did:web:alice.example": 1760000000
+            }
           },
-          "activity": {}
-        }
-      },
-      {
-        "emit": [],
-        "state": {
-          "timeline": [
-            "01K742SG000ZJTETD6Q8F0473W",
-            "01K742SG00MXS791W8S1ZXMFDN"
-          ],
-          "delivered": {},
           "played": {},
           "read_through": {
-            "did:web:example.com:users:bob": "01K742SG00MXS791W8S1ZXMFDN"
-          },
-          "activity": {}
-        }
-      },
-      {
-        "emit": [],
-        "state": {
-          "timeline": [
-            "01K742SG000ZJTETD6Q8F0473W",
-            "01K742SG00MXS791W8S1ZXMFDN"
-          ],
-          "delivered": {},
-          "played": {},
-          "read_through": {
-            "did:web:example.com:users:bob": "01K742SG00MXS791W8S1ZXMFDN"
+            "did:web:carol.example": "01K742SG000ZJTETD6Q8F0473W"
           },
           "activity": {}
         }

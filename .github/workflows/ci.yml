@@ -135,6 +135,11 @@ jobs:
         # a device that lost its state rejoins and replaces its own leaf; hub and members check each join.
         run: timeout 300 bash demos/external-join-demo.sh | tail -20
         working-directory: impl
+      - name: call history and archived receipts
+        # Self-verifying: call events per M§13.3 across two devices (answered-elsewhere none, shared miss shown once,
+        # declined), receipts and calls restored from archive on a device added later, which sends nothing for history.
+        run: timeout 300 bash demos/call-history-demo.sh | tail -20
+        working-directory: impl
       - name: Rust/Python parity
         run: python3 impl/tools/parity.py
       - name: DHT local testnet (5 nodes)

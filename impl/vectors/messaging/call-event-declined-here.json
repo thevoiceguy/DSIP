@@ -1,0 +1,21 @@
+{
+  "vector": "messaging/call-event-declined-here",
+  "format": 1,
+  "kind": "messaging",
+  "description": "A leg the user declined on this device is recorded as declined, not missed.",
+  "spec_ref": [
+    "M§13.3"
+  ],
+  "context": {},
+  "input": {
+    "check": "call-event",
+    "alerted": true,
+    "answered_here": false,
+    "ended_by": "local",
+    "reason": "user.declined"
+  },
+  "expect": {
+    "send": true,
+    "outcome": "declined"
+  }
+}

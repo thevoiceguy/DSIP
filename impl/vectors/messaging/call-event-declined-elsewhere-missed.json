@@ -1,0 +1,21 @@
+{
+  "vector": "messaging/call-event-declined-elsewhere-missed",
+  "format": 1,
+  "kind": "messaging",
+  "description": "A decline that arrives from elsewhere (another leg, the caller's cancel carrying it) is missed here.",
+  "spec_ref": [
+    "M§13.3"
+  ],
+  "context": {},
+  "input": {
+    "check": "call-event",
+    "alerted": true,
+    "answered_here": false,
+    "ended_by": "remote",
+    "reason": "user.declined"
+  },
+  "expect": {
+    "send": true,
+    "outcome": "missed"
+  }
+}

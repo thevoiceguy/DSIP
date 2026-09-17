@@ -1,0 +1,20 @@
+{
+  "vector": "messaging/call-event-not-alerted-none",
+  "format": 1,
+  "kind": "messaging",
+  "description": "A leg that never alerted (refused before ringing) is not shown as a call.",
+  "spec_ref": [
+    "M§13.3"
+  ],
+  "context": {},
+  "input": {
+    "check": "call-event",
+    "alerted": false,
+    "answered_here": false,
+    "ended_by": "local",
+    "reason": "endpoint.busy"
+  },
+  "expect": {
+    "send": false
+  }
+}

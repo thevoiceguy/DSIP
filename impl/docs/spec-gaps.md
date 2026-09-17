@@ -1260,6 +1260,58 @@ check refusing any removal each fail it.
 
 **Suggested fix.** Carry the M§6.8 text into the next profile revision.
 
+## 63. M§13.3 — which devices send call events, and what the timeline does with them
+
+**Gap.** M§13.3 has "a callee device that alerted and was not answered" send a `call-event` so "every device of
+the identity shows one missed call", never for `session.answered-elsewhere`, and asks clients to interleave calls
+with content by peer. Left open: whether every alerted device sends (then several events describe one call) or
+only one does (which one, if the others are offline); what `outcome` a leg the user declined on this device gets;
+how duplicates collapse, given `call-event` has no `id`; whether call events reach a device added later (M§12.2
+archives only content and receipts); and how calls are placed among messages when M§8.5 forbids time from
+reordering history.
+
+**Choices considered.** Senders: (a) every alerted, unanswered device, collapsed by `session`; (b) one designated
+device — none exists in DSIP, and it may be the one offline. Outcome: (a) `declined` for a local `user.declined`,
+`missed` otherwise; (b) always `missed` — loses the difference the user sees. History: (a) archive call events;
+(b) not — a new device has no call log. Placement: (a) content in `seq` order, each call before the first content
+later than it; (b) sort everything by time — lets a backdated `sent_at` reorder content.
+
+**Draft choice.** (a) throughout, in M§13.3 as a 1.0 erratum. Vectors: `call-event-*` (7 decisions),
+`peer-timeline-*` (collapse, interleave, content order kept), `history-archived-call-event-applied`.
+`demos/call-history-demo.sh`: a missed call on Bob's phone reaches a laptop added later via archive; with both
+devices ringing, a call answered on the laptop leaves no event anywhere, a call both miss is reported by both and
+recorded once on each, a call declined on the phone is `declined` on the laptop; the laptop's timeline with Alice
+interleaves calls and messages. The reference device takes leg outcomes from a `call-ended` command (its messaging
+process has no signaling leg); the decision is the pinned function.
+
+**Suggested fix.** Carry the M§13.3 text into the next profile revision; register `outcome` values (`missed`,
+`declined`) in a `dsip-call-outcome` registry.
+
+## 64. M§12.2 — which receipts are archived, and what restoring them does
+
+**Gap.** M§12.2 archives "a `receipt` that changes rendering" without defining the phrase, and says nothing
+about what a device does when it opens archived receipts (or content) while restoring history: a device that
+treats them as new items sends delivered receipts for weeks-old messages and archives everything again.
+
+**Choices considered.** (a) Changes rendering = adds a delivered/played entry not held for that content and
+identity, or advances that identity's read watermark; restored items update rendering state silently (no receipts,
+no re-archiving). (b) Archive every receipt — duplicates and stale watermarks fill the archive. (c) Restore by
+replaying records as live items — sends receipts for history.
+
+**Draft choice.** (a), in M§12.2 as a 1.0 erratum. The receipt machine (`client-trace`) emits `archive {seq}`
+exactly when a receipt changes its state (five existing vectors gain that emission where their receipts did; new
+`client-receipt-archived-when-rendering-changes`), and gains a `restore` event that applies content and receipts
+without emissions (`client-restore-from-archive-sends-nothing`); `history-trace` applies an archived receipt
+instead of showing it (`history-archived-receipt-applied-not-shown`). In `demos/call-history-demo.sh` Bob's phone
+archives Alice's delivered and read receipts; a laptop added later restores them (its receipt state shows Alice's
+watermark) and sends no receipts for history. Mutation-checked: restoring like a live sync, never archiving
+receipts.
+
+**Open.** A device's own receipts (its user's read watermark) change nothing in its own receipt state and are not
+archived; a new device learns the identity's read position only from later watermarks (M§10.5).
+
+**Suggested fix.** Carry the M§12.2 text into the next profile revision.
+
 ## Already-flagged (schema README / plan §11)
 
 - §15.3 codec example uses bare strings; §16.2 defines objects (schemas follow §16.2).
