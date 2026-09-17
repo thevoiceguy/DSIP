@@ -714,6 +714,21 @@ fill within `gap_timeout` (RECOMMENDED 300 s) of the first item being held, the 
 external commit (M§6.8) and treats every seq up to the highest it has seen as passed; a missing item
 arriving later is a duplicate.
 
+(spec-gap 69) Precisely:
+
+- **The device acts on this itself**, on a timer; nothing tells it to. `gap_timeout` is the device's own
+  (300 s is a RECOMMENDED value, not a protocol constant): a device that holds for less re-joins sooner.
+- **A held item is kept durably** and MAY be acknowledged (`ack_through`, M§5.4): the device has taken
+  responsibility for it, though it has not processed it. It is processed when the gap fills, or dropped
+  when the device re-joins — by then it is for an epoch the device can no longer reach.
+- **A device's own items count as processed** for this (their `seq` comes from the hub's `accepted`,
+  spec-gap 47), or a device would see its own deposits as a gap and re-join for nothing.
+- **After re-joining**, every `seq` up to the highest the device has seen is passed, so what the mailbox
+  lost, and what the device held, never come back as gaps.
+- **A device counts gaps from where it starts**, not from `seq` 1: a device that has just joined takes the
+  first sequenced item it processes as its position (what came before its welcome is history, M§12.3 step 5),
+  and one that had processed items takes the position it committed.
+
 **What the hub cannot do** (MLS guarantees, not policy): read content, forge content, add or remove
 members, or change the hub without a member's signed commit. **What it can do:** withhold or delay
 fan-out, see the roster and traffic timing, and refuse service (M§15.3).

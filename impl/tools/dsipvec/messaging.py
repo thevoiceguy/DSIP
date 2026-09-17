@@ -1041,6 +1041,7 @@ class GapTracker:
     def __init__(self, ctx: dict):
         self.now = ctx["now"]
         self.contiguous = ctx.get("contiguous", 0)
+        self.timeout = ctx.get("gap_timeout", GAP_TIMEOUT_S)  # M§6.5 RECOMMENDED 300 s; a device may use less
         self.seen: set[int] = set()
         self.held: list[int] = []
         self.gap_since: int | None = None
@@ -1048,7 +1049,7 @@ class GapTracker:
     def step(self, ev: dict) -> list:
         if "advance" in ev:
             self.now += ev["advance"]
-            if self.held and self.now - self.gap_since >= GAP_TIMEOUT_S:
+            if self.held and self.now - self.gap_since >= self.timeout:
                 out = [{"rejoin": {"held": list(self.held)}}]
                 self.contiguous = max(self.held + list(self.seen))
                 self.seen.clear()
@@ -1287,6 +1288,15 @@ class Resume:
         # spec-gap 47: the hub fans a device's own item back to its identity (M§6.5 rule 5), and MLS cannot
         # decrypt a device's own message; the seq in its `accepted` marks the copy as already processed
         self._position(e["group"], e["seq"])
+        return []
+
+    def _rejoined(self, e: dict) -> list:
+        """M§6.5, M§6.8 (spec-gap 69): after re-joining by external commit the device treats every seq up to the
+        highest it has seen as passed — those items are gone, or for epochs it can no longer reach."""
+        p = self.groups.setdefault(e["group"], {"contiguous": 0, "seen": set()})
+        p["contiguous"] = max([e["seq"], p["contiguous"], *p["seen"]])
+        p["seen"] = set()
+        self.joined.add(e["group"])
         return []
 
     def _position(self, group: str, seq: int) -> None:

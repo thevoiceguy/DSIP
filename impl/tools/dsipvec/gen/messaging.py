@@ -1133,6 +1133,14 @@ def client_vectors():
 
 def gap_vectors():
     out = []
+    out.append(trace("gap-timeout-configurable",
+                     "A device may hold for less than the RECOMMENDED 300 s before re-joining (spec-gap 69): the timeout is the "
+                     "device's, the rule is not.", ["M§6.5", "M§6.8"], "gap-trace", {"component": "gap", "now": NOW, "contiguous": 1,
+                                                                                     "gap_timeout": 5}, [
+                         ({"item": {"seq": 3, "class": "handshake"}}, [{"hold": 3}], {"contiguous": 1, "held": [3]}),
+                         ({"advance": 4}, [], {"contiguous": 1, "held": [3]}),
+                         ({"advance": 1}, [{"rejoin": {"held": [3]}}], {"contiguous": 3, "held": []}),
+                     ]))
     T = "gap-trace"
     ctx = {"component": "gap", "now": NOW, "contiguous": 0}
     it = lambda seq, cls="application": {"item": {"seq": seq, "class": cls}}
@@ -1200,6 +1208,16 @@ def resume_vectors():
         return [{"sync": {"since": None} if cursor is None else {"since": c(cursor), "ack_through": c(cursor)}}]
 
     W = it(1, "welcome")
+    out.append(trace("resume-rejoin-passes-every-seq-seen",
+                     "After re-joining by external commit (M§6.8) the device treats every seq up to the highest it has seen as "
+                     "passed (spec-gap 69): those items are gone or for epochs it cannot reach, and a later redelivery is a "
+                     "duplicate.", refs + ["M§6.5", "M§6.8"], T, ctx, [
+                         (items(W, it(2, seq=1), it(3, seq=4)),
+                          [{"process": c(1)}, {"process": c(2)}, {"process": c(3)}], st(3, {GROUP: (1, [4])}, [GROUP])),
+                         ({"rejoined": {"group": GROUP, "seq": 6}}, [], st(3, {GROUP: (6,)}, [GROUP])),
+                         (items(it(4, seq=5), it(5, seq=7)), [{"duplicate": c(4)}, {"process": c(5)}],
+                          st(5, {GROUP: (7,)}, [GROUP])),
+                     ]))
     out.append(trace("resume-restart-syncs-from-committed-cursor",
                      "After a restart the device resumes from, and acknowledges through, the last item it committed.", refs, T, ctx, [
                          (items(W, it(2, seq=1), it(3, seq=2)), [{"process": c(1)}, {"process": c(2)}, {"process": c(3)}],

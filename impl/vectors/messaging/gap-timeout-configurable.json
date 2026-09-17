@@ -1,0 +1,80 @@
+{
+  "vector": "messaging/gap-timeout-configurable",
+  "format": 1,
+  "kind": "messaging",
+  "description": "A device may hold for less than the RECOMMENDED 300 s before re-joining (spec-gap 69): the timeout is the device's, the rule is not.",
+  "spec_ref": [
+    "M§6.5",
+    "M§6.8"
+  ],
+  "context": {
+    "component": "gap",
+    "now": 1760000000,
+    "contiguous": 1,
+    "gap_timeout": 5
+  },
+  "input": {
+    "check": "gap-trace",
+    "steps": [
+      {
+        "event": {
+          "item": {
+            "seq": 3,
+            "class": "handshake"
+          }
+        }
+      },
+      {
+        "event": {
+          "advance": 4
+        }
+      },
+      {
+        "event": {
+          "advance": 1
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "hold": 3
+          }
+        ],
+        "state": {
+          "contiguous": 1,
+          "held": [
+            3
+          ]
+        }
+      },
+      {
+        "emit": [],
+        "state": {
+          "contiguous": 1,
+          "held": [
+            3
+          ]
+        }
+      },
+      {
+        "emit": [
+          {
+            "rejoin": {
+              "held": [
+                3
+              ]
+            }
+          }
+        ],
+        "state": {
+          "contiguous": 3,
+          "held": []
+        }
+      }
+    ]
+  }
+}
