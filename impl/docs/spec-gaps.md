@@ -1255,8 +1255,7 @@ is offline; then the phone loses its MLS state and rejoins, replacing its leaf; 
 A hub view that misses the path-leaf joiner, a device that keeps no GroupInfo, members refusing valid joins, and a
 check refusing any removal each fail it.
 
-**Open.** When a device should rejoin on its own (a seq gap past `gap_timeout`, M§6.5; offline beyond
-`mls_retention_s`) is implemented only as an explicit `rejoin` in the reference device.
+**Open.** None; rejoining on a gap that does not fill is spec-gap 69.
 
 **Suggested fix.** Carry the M§6.8 text into the next profile revision.
 
@@ -1413,6 +1412,36 @@ Alice's, and neither device shows a receipt as a conversation entry. Not archivi
 timeline content, each fail the demo.
 
 **Suggested fix.** Carry the M§12.2 text into the next profile revision.
+
+## 69. M§6.5 / M§6.8 — re-joining when a gap will not fill
+
+**Gap.** M§6.5 tells a device to hold a handshake beyond a `seq` gap and, if the gap does not fill within
+`gap_timeout`, to re-join by external commit and treat every seq it has seen as passed. The rule was pinned
+(`gap-trace`) but never wired into a device, and three things it leaves open decide whether it can be: what a device
+does with a held item it cannot process (the mailbox may delete an item it has acknowledged, M§5.4); whether the
+device's own deposits count towards its contiguous position, since their `seq` arrives in the hub's `accepted` and
+never as an item (spec-gap 47); and whether `gap_timeout` is a protocol constant or the device's own choice.
+
+**Choices considered.** (a) A held item is kept durably by the device and MAY be acknowledged — it has taken
+responsibility for it, though it has not processed it — and is dropped on re-join; own deposits advance the gap
+tracker exactly as they advance the resume position; `gap_timeout` is the device's (300 s RECOMMENDED). (b) Do not
+acknowledge held items: the ack cursor is a single watermark, so one held item stalls acknowledgement for every group.
+(c) Leave own deposits out of the tracker: a device then sees its own items as a gap and re-joins for nothing — which
+is exactly what happened when this was first wired (Alice held Bob's re-join commit). A fourth question the wiring
+answered the same way: a device counts gaps from where it starts — the first sequenced item a fresh member processes,
+or the position an existing one committed — since everything before its welcome is history (M§12.3 step 5), not a gap
+(every group demo failed until this was right).
+
+**Draft choice.** (a), in M§6.5 as a 1.0 erratum. `gap-trace` takes `gap_timeout` in its context
+(`gap-timeout-configurable`), and `resume-trace` gains `rejoined` (`resume-rejoin-passes-every-seq-seen`): every seq
+up to the highest seen is passed, so a redelivery is a duplicate. The device holds items durably, advances its
+trackers on a timer, and re-joins by external commit when one times out (`--gap-timeout` for the demo's sake).
+`demos/auto-rejoin-demo.sh`: Bob is away while Alice rekeys, his mailbox loses an item he never acknowledged (what
+`mls_retention_s` does), and on return he holds the rekey, re-joins by himself, and carries on from the current
+epoch. A tracker that never times out, a device that does not hold beyond a gap, and a re-join that does not pass the
+seqs behind it each fail the demo.
+
+**Suggested fix.** Carry the M§6.5 text into the next profile revision.
 
 ## Already-flagged (schema README / plan §11)
 
