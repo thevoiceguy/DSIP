@@ -1233,6 +1233,11 @@ The device encrypts it with AES-256-GCM under the current archive key: random no
   read watermark (M§10.3). A repeat, an older watermark, or a receipt about content the device does not
   hold changes nothing and is not archived. A receipt that arrived in the personal group (M§10.5) is
   archived under that group and its `seq`.
+- (spec-gap 68) **A device's own read watermark** is archived like the content it shows: when the hub accepts the
+  `read` receipt it sent — to the conversation or, undisclosed, to the personal group (M§10.5) — the device archives
+  it under that group and `seq`. A device added later then knows where its user had read. Its own `delivered` and
+  `played` receipts are not archived: they describe what other identities' devices have seen, which its siblings
+  learn from those identities directly.
 - (spec-gap 64) **Restoring.** A device opening archive records applies content and receipts to its
   receipt state as history: it sends no receipts for them (M§10.2 concerns new items) and does not
   archive them again. A restored receipt is not a timeline entry. A record for a conversation the device

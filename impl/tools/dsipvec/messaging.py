@@ -1149,6 +1149,14 @@ class History:
         return self._from_mls(e)
 
     def _sent(self, e: dict) -> list:
+        if e.get("object", "content") in ("receipt", "call-event"):
+            # spec-gap 68: a device archives the read watermark it sends, so a device added later knows where its
+            # user had read (M§10.3, M§10.5); like any archived receipt it is state, not a timeline entry
+            if e["id"] in self.applied:
+                return [{"duplicate": e["id"]}]
+            self.applied.add(e["id"])
+            akid = self._current()
+            return [] if akid is None else [{"archive": {"group": e["group"], "seq": e["seq"], "akid": akid}}]
         return self._from_mls(e)
 
     def _from_mls(self, e: dict) -> list:

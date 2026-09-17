@@ -1307,8 +1307,7 @@ archives Alice's delivered and read receipts; a laptop added later restores them
 watermark) and sends no receipts for history. Mutation-checked: restoring like a live sync, never archiving
 receipts.
 
-**Open.** A device's own receipts (its user's read watermark) change nothing in its own receipt state and are not
-archived; a new device learns the identity's read position only from later watermarks (M§10.5).
+**Open.** None; a device's own read watermark is archived under spec-gap 68.
 
 **Suggested fix.** Carry the M§12.2 text into the next profile revision.
 
@@ -1391,6 +1390,29 @@ mailbox is down, so its first fetch finds nothing; when the blob is readable aga
 Bob plays from his own mailbox. A mailbox that never retries fails it.
 
 **Suggested fix.** Carry the M§8.4 text into the next profile revision.
+
+## 68. M§12.2 / M§10.5 — a device's own read watermark is history too
+
+**Gap.** M§12.2 archives what a device "decrypts": content, and (spec-gap 64) receipts that change its rendering. A
+device's own `read` watermark is neither — it does not arrive, it is sent — so nothing archived it, and a device
+added later had no idea where its user had read. The gap is plain in the personal group, which exists precisely so
+an identity's devices share that watermark (M§10.5): the receipt is deposited, but only devices that were in the
+group at the time ever see it.
+
+**Choices considered.** (a) A device archives the `read` receipt it sends, under the group it sent it to and the
+`seq` the hub accepted, and not its own `delivered`/`played` (those describe other identities' devices, which
+siblings learn from those identities directly). (b) Archive every receipt a device sends — fills the archive with
+`delivered` receipts that tell a sibling nothing. (c) Leave it: a new device re-reads everything as unread until
+the user reads again.
+
+**Draft choice.** (a), in M§12.2 as a 1.0 erratum. `history-trace`'s `sent` event takes an `object`: a `receipt` or
+`call-event` is archived once and is not a timeline entry (`history-own-read-receipt-archived`).
+`demos/call-history-demo.sh`: Bob's phone marks the conversation read (undisclosed, so the watermark goes to his
+personal group), and the laptop added later restores it — its receipt state shows Bob's own watermark as well as
+Alice's, and neither device shows a receipt as a conversation entry. Not archiving the watermark, and treating it as
+timeline content, each fail the demo.
+
+**Suggested fix.** Carry the M§12.2 text into the next profile revision.
 
 ## Already-flagged (schema README / plan §11)
 
