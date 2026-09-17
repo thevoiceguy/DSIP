@@ -1,0 +1,38 @@
+{
+  "vector": "messaging/blob-sources-manifest-other-hash-ignored",
+  "format": 1,
+  "kind": "messaging",
+  "description": "A manifest entry for a different hash or size is not a source for this blob (the manifest is not encrypted; the content is).",
+  "spec_ref": [
+    "M§8.4"
+  ],
+  "context": {},
+  "input": {
+    "check": "blob-sources",
+    "blob": {
+      "uri": "https://mbx.alice.example/blobs/9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+      "sha256": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+      "size": 482220,
+      "key": "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk",
+      "alg": "A256GCM",
+      "content_type": "audio/ogg"
+    },
+    "manifest": [
+      {
+        "uri": "https://mbx.bob.example/blobs/2222222222222222222222222222222222222222222222222222222222222222",
+        "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "size": 482220
+      },
+      {
+        "uri": "https://mbx.bob.example/blobs/9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+        "sha256": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+        "size": 1
+      }
+    ]
+  },
+  "expect": {
+    "sources": [
+      "https://mbx.alice.example/blobs/9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"
+    ]
+  }
+}

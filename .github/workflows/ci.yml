@@ -140,6 +140,11 @@ jobs:
         # declined), receipts and calls restored from archive on a device added later, which sends nothing for history.
         run: timeout 300 bash demos/call-history-demo.sh | tail -20
         working-directory: impl
+      - name: blob replication
+        # Self-verifying: a member mailbox replicates a verified blob and serves it while the origin is down; a damaged
+        # copy fails the device's check and the origin serves it; a blob over the member's limit stays at the origin.
+        run: timeout 300 bash demos/blob-replication-demo.sh | tail -20
+        working-directory: impl
       - name: Rust/Python parity
         run: python3 impl/tools/parity.py
       - name: DHT local testnet (5 nodes)

@@ -990,6 +990,22 @@ Large payloads are encrypted client-side and stored as opaque blobs:
 7. A device MUST verify `sha256` and `size` before decrypting and MUST discard a mismatch.
 8. The source mailbox retains a blob at least `blob_retention_s` (RECOMMENDED 2,592,000 s).
 
+(spec-gap 65) Rule 6 precisely:
+
+- **When.** A member mailbox replicates the manifest blobs of an `application` item it stores for a
+  `sync`-mode owner, unless it already holds that `sha256`, the manifest `size` exceeds its own
+  `max_blob_bytes`, or the `uri` is not https.
+- **What it keeps.** It fetches the capability URL and stores the body only if the response is 200 and the
+  body's SHA-256 and length equal the manifest's `sha256` and `size`. Otherwise it stores nothing. A failed
+  replication leaves the original `uri` in place.
+- **Rewriting.** In `items` (M§5.4), each manifest entry whose `sha256` the mailbox holds carries
+  `uri` = `{blob_endpoint}/{sha256}` of that mailbox; other entries are unchanged. The content object inside
+  MLS is never changed.
+- **Fetching.** A device tries the manifest entry with the same `sha256` and `size` as the content's
+  `blob` at a different `uri` (its mailbox's copy) first, then the content's `uri`. The manifest is not
+  encrypted and only reorders sources: whichever source answers, the device verifies against the content's
+  `sha256` and `size` (rule 7) and moves on to the next source on a mismatch.
+
 ### M§8.5 Deduplication and ordering
 
 - **Deduplication key:** (`conversation`, `sender` identity, `id`). A client MUST retain seen keys

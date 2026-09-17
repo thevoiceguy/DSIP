@@ -1,0 +1,26 @@
+{
+  "vector": "messaging/blob-replicate-queue-mode-skips",
+  "format": 1,
+  "kind": "messaging",
+  "description": "Replication is for sync-mode owners only (M§4.4: queue mode keeps no history).",
+  "spec_ref": [
+    "M§8.4",
+    "M§4.4"
+  ],
+  "context": {},
+  "input": {
+    "check": "blob-replicate",
+    "mode": "queue",
+    "max_blob_bytes": 16777216,
+    "stored": [],
+    "entry": {
+      "uri": "https://mbx.alice.example/blobs/9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+      "sha256": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+      "size": 482220
+    }
+  },
+  "expect": {
+    "action": "skip",
+    "reason": "mode"
+  }
+}
