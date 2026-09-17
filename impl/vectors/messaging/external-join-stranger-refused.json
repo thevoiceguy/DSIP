@@ -1,0 +1,33 @@
+{
+  "vector": "messaging/external-join-stranger-refused",
+  "format": 1,
+  "kind": "messaging",
+  "description": "An identity with no leaf in the group may not join by external commit.",
+  "spec_ref": [
+    "M§6.8"
+  ],
+  "context": {},
+  "input": {
+    "check": "external-join",
+    "kind": "direct",
+    "roster": [
+      "did:web:alice.example",
+      "did:web:example.com:users:bob"
+    ],
+    "joiner": {
+      "identity": "did:web:carol.example",
+      "device": "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL"
+    },
+    "adds": [
+      {
+        "identity": "did:web:carol.example",
+        "device": "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL"
+      }
+    ],
+    "removes": []
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "external-join-not-member"
+  }
+}

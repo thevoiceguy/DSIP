@@ -1,0 +1,37 @@
+{
+  "vector": "messaging/external-join-returning-device-replaces-own-leaf",
+  "format": 1,
+  "kind": "messaging",
+  "description": "A device that lost its group state rejoins and removes its own stale leaf (same device, MLS resync).",
+  "spec_ref": [
+    "M§6.8"
+  ],
+  "context": {},
+  "input": {
+    "check": "external-join",
+    "kind": "direct",
+    "roster": [
+      "did:web:alice.example",
+      "did:web:example.com:users:bob"
+    ],
+    "joiner": {
+      "identity": "did:web:example.com:users:bob",
+      "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+    },
+    "adds": [
+      {
+        "identity": "did:web:example.com:users:bob",
+        "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+      }
+    ],
+    "removes": [
+      {
+        "identity": "did:web:example.com:users:bob",
+        "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+      }
+    ]
+  },
+  "expect": {
+    "verdict": "accept"
+  }
+}

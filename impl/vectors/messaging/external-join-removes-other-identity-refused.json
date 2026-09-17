@@ -1,0 +1,39 @@
+{
+  "vector": "messaging/external-join-removes-other-identity-refused",
+  "format": 1,
+  "kind": "messaging",
+  "description": "An external joiner may not remove another identity's leaf.",
+  "spec_ref": [
+    "M§6.8",
+    "M§7.3"
+  ],
+  "context": {},
+  "input": {
+    "check": "external-join",
+    "kind": "direct",
+    "roster": [
+      "did:web:alice.example",
+      "did:web:example.com:users:bob"
+    ],
+    "joiner": {
+      "identity": "did:web:example.com:users:bob",
+      "device": "did:key:z6MkBobTablet"
+    },
+    "adds": [
+      {
+        "identity": "did:web:example.com:users:bob",
+        "device": "did:key:z6MkBobTablet"
+      }
+    ],
+    "removes": [
+      {
+        "identity": "did:web:alice.example",
+        "device": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu"
+      }
+    ]
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "external-join-removes-other"
+  }
+}

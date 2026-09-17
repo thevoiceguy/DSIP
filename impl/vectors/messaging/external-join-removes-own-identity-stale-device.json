@@ -1,0 +1,37 @@
+{
+  "vector": "messaging/external-join-removes-own-identity-stale-device",
+  "format": 1,
+  "kind": "messaging",
+  "description": "It may remove another stale leaf of its own identity.",
+  "spec_ref": [
+    "M§6.8"
+  ],
+  "context": {},
+  "input": {
+    "check": "external-join",
+    "kind": "direct",
+    "roster": [
+      "did:web:alice.example",
+      "did:web:example.com:users:bob"
+    ],
+    "joiner": {
+      "identity": "did:web:example.com:users:bob",
+      "device": "did:key:z6MkBobTablet"
+    },
+    "adds": [
+      {
+        "identity": "did:web:example.com:users:bob",
+        "device": "did:key:z6MkBobTablet"
+      }
+    ],
+    "removes": [
+      {
+        "identity": "did:web:example.com:users:bob",
+        "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+      }
+    ]
+  },
+  "expect": {
+    "verdict": "accept"
+  }
+}

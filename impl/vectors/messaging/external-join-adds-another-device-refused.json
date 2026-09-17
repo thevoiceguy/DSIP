@@ -1,0 +1,37 @@
+{
+  "vector": "messaging/external-join-adds-another-device-refused",
+  "format": 1,
+  "kind": "messaging",
+  "description": "An external commit adds exactly the joiner's own device.",
+  "spec_ref": [
+    "M§6.8"
+  ],
+  "context": {},
+  "input": {
+    "check": "external-join",
+    "kind": "direct",
+    "roster": [
+      "did:web:alice.example",
+      "did:web:example.com:users:bob"
+    ],
+    "joiner": {
+      "identity": "did:web:example.com:users:bob",
+      "device": "did:key:z6MkBobTablet"
+    },
+    "adds": [
+      {
+        "identity": "did:web:example.com:users:bob",
+        "device": "did:key:z6MkBobTablet"
+      },
+      {
+        "identity": "did:web:example.com:users:bob",
+        "device": "did:key:z6MkBobTabletTwoTwoTwoTwoTwoTwoTwoTwoTwoTwoTwo"
+      }
+    ],
+    "removes": []
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "external-join-adds"
+  }
+}
