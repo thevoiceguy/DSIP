@@ -1,8 +1,8 @@
 {
-  "vector": "messaging/blob-replicate-size-mismatch-discarded",
+  "vector": "messaging/blob-replicate-unavailable-attempt-below-bound",
   "format": 1,
   "kind": "messaging",
-  "description": "The size must match too.",
+  "description": "Before the last attempt it is still retried.",
   "spec_ref": [
     "M§8.4"
   ],
@@ -18,14 +18,13 @@
       "size": 482220
     },
     "fetched": {
-      "status": 200,
-      "sha256": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
-      "size": 482221
-    }
+      "status": 0
+    },
+    "attempt": 4
   },
   "expect": {
     "action": "discard",
-    "reason": "mismatch",
-    "retry": false
+    "reason": "unavailable",
+    "retry": true
   }
 }
