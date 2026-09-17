@@ -861,6 +861,22 @@ own primary mailbox as hub, the dead group's last known roster (by identity) add
   the decoded ULID, not as its base64url text, whose sort order differs (same rule as M§7.2). A
   `group_id` that does not decode to a ULID cannot win.
 
+(spec-gap 61) Precisely:
+
+- **KeyPackages.** The creator re-adds members it may hold no grant from. A `key-package-fetch` carrying
+  `successor_of` is served without a grant when that group is registered for the target (M§6.6), on the
+  same footing as the successor's `welcome`. A hub fanning out a successor's `welcome` carries the group's
+  `successor_of` on it.
+- **The check.** The creator is the identity of leaf 0 of the successor group, the leaf that created it.
+  "The predecessor's last roster" is the roster the checking device last processed. A device that was
+  never a member of the named predecessor cannot check it and treats the group as first contact.
+- **Converging.** A device keeps every valid successor of a predecessor as a candidate and stays in only
+  the lowest: it does not stay in a higher one it is welcomed to, and it leaves one it had joined — or
+  created — when a lower one appears (leaving means it stops using the group and sends `mailbox-config`
+  `state: left`). The conversation continues in the lowest; the dead group stays readable.
+- **Creating.** A member that has already converged on a successor for a group does not create another.
+  When a hub counts as permanently unreachable is the member's decision (this profile sets no timer).
+
 ## M§8 Content
 
 ### M§8.1 Content objects
