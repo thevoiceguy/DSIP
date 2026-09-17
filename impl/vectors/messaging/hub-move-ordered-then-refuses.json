@@ -144,7 +144,8 @@
             ]
           },
           "group_info": false,
-          "moved_to": "did:web:mbx.bob.example"
+          "moved_to": "did:web:mbx.bob.example",
+          "welcomes": {}
         }
       },
       {
@@ -178,7 +179,8 @@
             ]
           },
           "group_info": false,
-          "moved_to": "did:web:mbx.bob.example"
+          "moved_to": "did:web:mbx.bob.example",
+          "welcomes": {}
         }
       },
       {
@@ -212,7 +214,8 @@
             ]
           },
           "group_info": false,
-          "moved_to": "did:web:mbx.bob.example"
+          "moved_to": "did:web:mbx.bob.example",
+          "welcomes": {}
         }
       },
       {
@@ -246,7 +249,8 @@
             ]
           },
           "group_info": false,
-          "moved_to": "did:web:mbx.bob.example"
+          "moved_to": "did:web:mbx.bob.example",
+          "welcomes": {}
         }
       },
       {
@@ -280,7 +284,8 @@
             ]
           },
           "group_info": false,
-          "moved_to": "did:web:mbx.bob.example"
+          "moved_to": "did:web:mbx.bob.example",
+          "welcomes": {}
         }
       }
     ]

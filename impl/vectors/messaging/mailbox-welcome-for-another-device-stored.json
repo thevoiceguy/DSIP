@@ -1,11 +1,12 @@
 {
-  "vector": "messaging/mailbox-welcome-admit-open",
+  "vector": "messaging/mailbox-welcome-for-another-device-stored",
   "format": 1,
   "kind": "messaging",
-  "description": "An owner with admit open accepts welcomes without a grant.",
+  "description": "A second welcome for a registered group with different MLS bytes is a new invitation — an owner device adding a sibling (M§6.7) — and is stored.",
   "spec_ref": [
     "M§14.2",
-    "M§5.7"
+    "M§6.7",
+    "M§12.3"
   ],
   "context": {
     "component": "mailbox",
@@ -20,7 +21,7 @@
     ],
     "now": 1760000000,
     "mode": "sync",
-    "admit": "open",
+    "admit": "grant",
     "pending_group_ttl": 604800,
     "pending_group_max_items": 2,
     "groups": {},
@@ -38,8 +39,30 @@
             "recipient": "did:web:example.com:users:bob",
             "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
             "hub": "did:web:mbx.alice.example",
-            "grant": null,
+            "grant": {
+              "id": "01K742SG00J1XCHR8G1856E6KZ",
+              "from": "did:web:example.com:users:bob",
+              "to": "did:web:carol.example",
+              "scope": [
+                "dsip.message"
+              ],
+              "valid_until": 1760086400
+            },
             "digest": "d-welcome-1"
+          }
+        }
+      },
+      {
+        "event": {
+          "welcome": {
+            "id": "01K742SG0037NNY7G8WCVB1HFW",
+            "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "adder_identity": "did:web:example.com:users:bob",
+            "recipient": "did:web:example.com:users:bob",
+            "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+            "hub": "did:web:mbx.alice.example",
+            "grant": null,
+            "digest": "d-welcome-2"
           }
         }
       }
@@ -60,6 +83,27 @@
         "state": {
           "items": [
             "c:0000000000000001"
+          ],
+          "groups": {
+            "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M": "pending"
+          },
+          "key_packages": {}
+        }
+      },
+      {
+        "emit": [
+          {
+            "accepted": {
+              "to": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+              "in_reply_to": "01K742SG0037NNY7G8WCVB1HFW",
+              "cursor": "c:0000000000000002"
+            }
+          }
+        ],
+        "state": {
+          "items": [
+            "c:0000000000000001",
+            "c:0000000000000002"
           ],
           "groups": {
             "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M": "pending"

@@ -44,6 +44,7 @@
             "group": "MDFLNzQyU0cwMDVCWTdRQzVDQkg4MUdSUVQ",
             "hub": "did:web:mbx.alice.example",
             "grant": null,
+            "digest": "d-welcome-1",
             "successor_of": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M"
           }
         }

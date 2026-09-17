@@ -78,6 +78,7 @@
           {
             "fanout": {
               "to": "did:web:carol.example",
+              "seq": 1,
               "class": "welcome"
             }
           }
@@ -106,7 +107,12 @@
             ]
           },
           "group_info": false,
-          "moved_to": null
+          "moved_to": null,
+          "welcomes": {
+            "did:web:carol.example": [
+              1
+            ]
+          }
         }
       }
     ]

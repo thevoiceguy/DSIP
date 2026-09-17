@@ -57,7 +57,8 @@
                 "dsip.message"
               ],
               "valid_until": 1760086400
-            }
+            },
+            "digest": "d-welcome-1"
           }
         }
       }

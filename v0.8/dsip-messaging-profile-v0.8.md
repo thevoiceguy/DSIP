@@ -674,9 +674,19 @@ The hub MUST:
    committer republishes it afterwards so the hub and the members' mailboxes hold a current one for
    external joins (M§6.8).
 
+**Welcomes are queued too** (spec-gap 66). A `welcome` is fanned out to the added identity's mailbox with the same
+retry as a sequenced item, in that identity's own queue (a member adding its own device needs both the commit, for
+its other devices, and the welcome, for the new one — same `seq`, two deposits). Until that mailbox acknowledges the
+welcome, the hub sends it nothing else for the group: it has no registration yet and would refuse the items (M§6.6).
+A welcome carries no `seq` on the wire, so a hub matches its acknowledgement by the deposit it answers. A member
+mailbox answers a welcome whose MLS bytes it already holds `accepted` with `duplicate` and that welcome's cursor
+(M§9.3's rule, applied to welcomes): a redelivery is the same Welcome, while a second welcome for a group the owner
+is already in is a new invitation for another of its devices (M§6.7) and is stored.
+
 **Restarts** (spec-gap 59). What rules 2–6 depend on is state, not memory: a hub MUST keep its epoch,
 public tree, next `seq`, the digests it answers idempotent re-deposits from (M§9.3) and its fan-out queues
-across a restart, and on restart re-sends the head of every unacknowledged queue before anything later.
+across a restart, and on restart re-sends the head of every unacknowledged queue — welcomes included — before anything
+later.
 A hub that lost this state would re-number items or accept a second commit for an epoch, forking the
 group. Retrying an unacknowledged deposit (rule 5) means a member mailbox can receive an item it already
 stored whenever the acknowledgement was lost; M§6.6 makes that harmless.
