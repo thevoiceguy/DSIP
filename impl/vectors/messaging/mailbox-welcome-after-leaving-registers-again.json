@@ -1,10 +1,10 @@
 {
-  "vector": "messaging/mailbox-pending-group-confirmed",
+  "vector": "messaging/mailbox-welcome-after-leaving-registers-again",
   "format": 1,
   "kind": "messaging",
-  "description": "After the owner confirms the group, the pending bound no longer applies.",
+  "description": "Once the owner has left the group, a new welcome re-registers it as pending; a redelivery of the welcome already stored stays a duplicate, whatever the registration.",
   "spec_ref": [
-    "M§6.6",
+    "M§14.2",
     "M§5.7"
   ],
   "context": {
@@ -53,37 +53,13 @@
       },
       {
         "event": {
-          "hub_deposit": {
-            "id": "01K742SG002WHVBMHZXKS2T47Q",
-            "from": "did:web:mbx.alice.example",
-            "recipient": "did:web:example.com:users:bob",
-            "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
-            "seq": 1,
-            "class": "application"
-          }
-        }
-      },
-      {
-        "event": {
-          "hub_deposit": {
-            "id": "01K742SG00WNBRGVCKQRP4FHNK",
-            "from": "did:web:mbx.alice.example",
-            "recipient": "did:web:example.com:users:bob",
-            "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
-            "seq": 2,
-            "class": "application"
-          }
-        }
-      },
-      {
-        "event": {
           "config": {
             "id": "01K742SG00CRGV1XBJ61930SY8",
             "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
             "groups": [
               {
                 "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
-                "state": "joined"
+                "state": "left"
               }
             ]
           }
@@ -91,13 +67,45 @@
       },
       {
         "event": {
-          "hub_deposit": {
-            "id": "01K742SG00QT0X99VF46FWX84Y",
-            "from": "did:web:mbx.alice.example",
+          "welcome": {
+            "id": "01K742SG00EHP7TPWJERTFD6PP",
+            "from": "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL",
+            "adder_identity": "did:web:carol.example",
             "recipient": "did:web:example.com:users:bob",
             "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
-            "seq": 3,
-            "class": "application"
+            "hub": "did:web:mbx.alice.example",
+            "grant": {
+              "id": "01K742SG00J1XCHR8G1856E6KZ",
+              "from": "did:web:example.com:users:bob",
+              "to": "did:web:carol.example",
+              "scope": [
+                "dsip.message"
+              ],
+              "valid_until": 1760086400
+            },
+            "digest": "d-welcome-1"
+          }
+        }
+      },
+      {
+        "event": {
+          "welcome": {
+            "id": "01K742SG0037NNY7G8WCVB1HFW",
+            "from": "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL",
+            "adder_identity": "did:web:carol.example",
+            "recipient": "did:web:example.com:users:bob",
+            "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+            "hub": "did:web:mbx.alice.example",
+            "grant": {
+              "id": "01K742SG00J1XCHR8G1856E6KZ",
+              "from": "did:web:example.com:users:bob",
+              "to": "did:web:carol.example",
+              "scope": [
+                "dsip.message"
+              ],
+              "valid_until": 1760086400
+            },
+            "digest": "d-welcome-3"
           }
         }
       }
@@ -129,8 +137,44 @@
         "emit": [
           {
             "accepted": {
-              "to": "did:web:mbx.alice.example",
-              "in_reply_to": "01K742SG002WHVBMHZXKS2T47Q",
+              "to": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+              "in_reply_to": "01K742SG00CRGV1XBJ61930SY8"
+            }
+          }
+        ],
+        "state": {
+          "items": [
+            "c:0000000000000001"
+          ],
+          "groups": {},
+          "key_packages": {}
+        }
+      },
+      {
+        "emit": [
+          {
+            "accepted": {
+              "to": "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL",
+              "in_reply_to": "01K742SG00EHP7TPWJERTFD6PP",
+              "cursor": "c:0000000000000001",
+              "duplicate": true
+            }
+          }
+        ],
+        "state": {
+          "items": [
+            "c:0000000000000001"
+          ],
+          "groups": {},
+          "key_packages": {}
+        }
+      },
+      {
+        "emit": [
+          {
+            "accepted": {
+              "to": "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL",
+              "in_reply_to": "01K742SG0037NNY7G8WCVB1HFW",
               "cursor": "c:0000000000000002"
             }
           }
@@ -142,72 +186,6 @@
           ],
           "groups": {
             "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M": "pending"
-          },
-          "key_packages": {}
-        }
-      },
-      {
-        "emit": [
-          {
-            "accepted": {
-              "to": "did:web:mbx.alice.example",
-              "in_reply_to": "01K742SG00WNBRGVCKQRP4FHNK",
-              "cursor": "c:0000000000000003"
-            }
-          }
-        ],
-        "state": {
-          "items": [
-            "c:0000000000000001",
-            "c:0000000000000002",
-            "c:0000000000000003"
-          ],
-          "groups": {
-            "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M": "pending"
-          },
-          "key_packages": {}
-        }
-      },
-      {
-        "emit": [
-          {
-            "accepted": {
-              "to": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
-              "in_reply_to": "01K742SG00CRGV1XBJ61930SY8"
-            }
-          }
-        ],
-        "state": {
-          "items": [
-            "c:0000000000000001",
-            "c:0000000000000002",
-            "c:0000000000000003"
-          ],
-          "groups": {
-            "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M": "joined"
-          },
-          "key_packages": {}
-        }
-      },
-      {
-        "emit": [
-          {
-            "accepted": {
-              "to": "did:web:mbx.alice.example",
-              "in_reply_to": "01K742SG00QT0X99VF46FWX84Y",
-              "cursor": "c:0000000000000004"
-            }
-          }
-        ],
-        "state": {
-          "items": [
-            "c:0000000000000001",
-            "c:0000000000000002",
-            "c:0000000000000003",
-            "c:0000000000000004"
-          ],
-          "groups": {
-            "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M": "joined"
           },
           "key_packages": {}
         }

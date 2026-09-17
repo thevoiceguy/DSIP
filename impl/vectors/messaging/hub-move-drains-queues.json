@@ -121,7 +121,8 @@
             ]
           },
           "group_info": false,
-          "moved_to": null
+          "moved_to": null,
+          "welcomes": {}
         }
       },
       {
@@ -157,7 +158,8 @@
             ]
           },
           "group_info": false,
-          "moved_to": "did:web:mbx.bob.example"
+          "moved_to": "did:web:mbx.bob.example",
+          "welcomes": {}
         }
       },
       {
@@ -192,7 +194,8 @@
             ]
           },
           "group_info": false,
-          "moved_to": "did:web:mbx.bob.example"
+          "moved_to": "did:web:mbx.bob.example",
+          "welcomes": {}
         }
       },
       {
@@ -226,7 +229,8 @@
             ]
           },
           "group_info": false,
-          "moved_to": "did:web:mbx.bob.example"
+          "moved_to": "did:web:mbx.bob.example",
+          "welcomes": {}
         }
       }
     ]

@@ -1,11 +1,12 @@
 {
-  "vector": "messaging/mailbox-forward-pending-group",
+  "vector": "messaging/mailbox-welcome-redelivered-duplicate",
   "format": 1,
   "kind": "messaging",
-  "description": "A group registered by a welcome but not yet confirmed is forwarded too.",
+  "description": "A hub retrying a welcome it saw no acknowledgement for — the same MLS bytes — gets a duplicate acknowledgement with the first welcome's cursor; the group is registered once (spec-gap 66).",
   "spec_ref": [
-    "M§5.2",
-    "M§6.6"
+    "M§14.2",
+    "M§6.6",
+    "M§9.3"
   ],
   "context": {
     "component": "mailbox",
@@ -53,12 +54,23 @@
       },
       {
         "event": {
-          "forward": {
-            "id": "01K742SG00G687MHBKVSG7M9EP",
-            "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
-            "identity": "did:web:example.com:users:bob",
+          "welcome": {
+            "id": "01K742SG00JCYAVCZ19BV740C5",
+            "from": "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL",
+            "adder_identity": "did:web:carol.example",
+            "recipient": "did:web:example.com:users:bob",
             "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
-            "to": "did:web:mbx.alice.example"
+            "hub": "did:web:mbx.alice.example",
+            "grant": {
+              "id": "01K742SG00J1XCHR8G1856E6KZ",
+              "from": "did:web:example.com:users:bob",
+              "to": "did:web:carol.example",
+              "scope": [
+                "dsip.message"
+              ],
+              "valid_until": 1760086400
+            },
+            "digest": "d-welcome-1"
           }
         }
       }
@@ -89,9 +101,11 @@
       {
         "emit": [
           {
-            "forward": {
-              "to": "did:web:mbx.alice.example",
-              "id": "01K742SG00G687MHBKVSG7M9EP"
+            "accepted": {
+              "to": "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL",
+              "in_reply_to": "01K742SG00JCYAVCZ19BV740C5",
+              "cursor": "c:0000000000000001",
+              "duplicate": true
             }
           }
         ],

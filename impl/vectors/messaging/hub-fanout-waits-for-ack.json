@@ -123,7 +123,8 @@
             ]
           },
           "group_info": false,
-          "moved_to": null
+          "moved_to": null,
+          "welcomes": {}
         }
       },
       {
@@ -146,7 +147,8 @@
             ]
           },
           "group_info": false,
-          "moved_to": null
+          "moved_to": null,
+          "welcomes": {}
         }
       },
       {
@@ -188,7 +190,8 @@
             ]
           },
           "group_info": false,
-          "moved_to": null
+          "moved_to": null,
+          "welcomes": {}
         }
       },
       {
@@ -215,7 +218,8 @@
             ]
           },
           "group_info": false,
-          "moved_to": null
+          "moved_to": null,
+          "welcomes": {}
         }
       },
       {
@@ -249,7 +253,8 @@
             ]
           },
           "group_info": false,
-          "moved_to": null
+          "moved_to": null,
+          "welcomes": {}
         }
       }
     ]

@@ -275,9 +275,9 @@ def hub_ctx(epoch=1, roster=None, kind="direct", owner=None):
     return ctx
 
 
-def hs(epoch, next_seq, roster, pending=None, group_info=False, moved_to=None):
+def hs(epoch, next_seq, roster, pending=None, group_info=False, moved_to=None, welcomes=None):
     return {"epoch": epoch, "next_seq": next_seq, "roster": roster, "pending": pending or {}, "group_info": group_info,
-            "moved_to": moved_to}
+            "moved_to": moved_to, "welcomes": welcomes or {}}
 
 
 def dep(label, device, identity, cls, epoch=None, digest=None, **kw):
@@ -365,16 +365,41 @@ def hub_vectors():
                      refs + ["M§7.3"], "hub-trace", hub_ctx(kind="group"), [
                          (dep("add-carol", APH, ALICE, "handshake", 1, commit={"adds": [{"identity": CAROL, "device": CPH}], "removes": []}),
                           [acc(APH, "add-carol", 1), fan(ALICE, 1, "handshake"), fan(BOB, 1, "handshake"),
-                           {"fanout": {"to": CAROL, "class": "welcome"}}],
-                          hs(2, 2, {ALICE: [ALA, APH], BOB: [BPH], CAROL: [CPH]}, {ALICE: [1], BOB: [1]})),
+                           fan(CAROL, 1, "welcome")],
+                          hs(2, 2, {ALICE: [ALA, APH], BOB: [BPH], CAROL: [CPH]}, {ALICE: [1], BOB: [1]}, welcomes={CAROL: [1]})),
                      ]))
     out.append(trace("hub-commit-adds-own-device-sends-welcome",
                      "A member adding its own new device gets a welcome to its own identity: the new device is not in the group yet.",
                      refs + ["M§6.7", "M§12.3"], "hub-trace", hub_ctx(kind="group"), [
                          (dep("add-bla", BPH, BOB, "handshake", 1, commit={"adds": [{"identity": BOB, "device": BLA}], "removes": []}),
                           [acc(BPH, "add-bla", 1), fan(ALICE, 1, "handshake"), fan(BOB, 1, "handshake"),
-                           {"fanout": {"to": BOB, "class": "welcome"}}],
-                          hs(2, 2, {ALICE: [ALA, APH], BOB: [BLA, BPH]}, {ALICE: [1], BOB: [1]})),
+                           fan(BOB, 1, "welcome")],
+                          hs(2, 2, {ALICE: [ALA, APH], BOB: [BLA, BPH]}, {ALICE: [1], BOB: [1]}, welcomes={BOB: [1]})),
+                     ]))
+    RC = {ALICE: [ALA, APH], BOB: [BPH], CAROL: [CPH]}
+    addc = dep("add-carol", APH, ALICE, "handshake", 1, commit={"adds": [{"identity": CAROL, "device": CPH}], "removes": []})
+    out.append(trace("hub-welcome-queued-and-retried",
+                     "A welcome is queued for the added identity and retried like any fan-out (spec-gap 66); nothing else goes to "
+                     "that mailbox until it acknowledges, since until then it has no registration for the group.",
+                     refs + ["M§6.6", "M§7.3"], "hub-trace", hub_ctx(kind="group"), [
+                         (addc, [acc(APH, "add-carol", 1), fan(ALICE, 1, "handshake"), fan(BOB, 1, "handshake"), fan(CAROL, 1, "welcome")],
+                          hs(2, 2, RC, {ALICE: [1], BOB: [1]}, welcomes={CAROL: [1]})),
+                         (dep("a1", APH, ALICE, "application", 2), [acc(APH, "a1", 2)],
+                          hs(2, 3, RC, {ALICE: [1, 2], BOB: [1, 2], CAROL: [2]}, welcomes={CAROL: [1]})),
+                         ({"ack": {"identity": CAROL, "seq": 1, "class": "welcome"}}, [fan(CAROL, 2)],
+                          hs(2, 3, RC, {ALICE: [1, 2], BOB: [1, 2], CAROL: [2]})),
+                         ({"ack": {"identity": CAROL, "seq": 2}}, [], hs(2, 3, RC, {ALICE: [1, 2], BOB: [1, 2]})),
+                     ]))
+    out.append(trace("hub-welcome-resent-after-restart",
+                     "A hub restart re-sends an unacknowledged welcome, so a member added while its mailbox was down still gets it "
+                     "(spec-gap 66 closes the gap left open by spec-gap 59).", refs + ["M§7.3"], "hub-trace", hub_ctx(kind="group"), [
+                         (addc, [acc(APH, "add-carol", 1), fan(ALICE, 1, "handshake"), fan(BOB, 1, "handshake"), fan(CAROL, 1, "welcome")],
+                          hs(2, 2, RC, {ALICE: [1], BOB: [1]}, welcomes={CAROL: [1]})),
+                         ({"ack": {"identity": ALICE, "seq": 1}}, [], hs(2, 2, RC, {BOB: [1]}, welcomes={CAROL: [1]})),
+                         (dep("a1", APH, ALICE, "application", 2), [acc(APH, "a1", 2), fan(ALICE, 2)],
+                          hs(2, 3, RC, {ALICE: [2], BOB: [1, 2], CAROL: [2]}, welcomes={CAROL: [1]})),
+                         ({"restart": {}}, [fan(ALICE, 2), fan(BOB, 1, "handshake"), fan(CAROL, 1, "welcome")],
+                          hs(2, 3, RC, {ALICE: [2], BOB: [1, 2], CAROL: [2]}, welcomes={CAROL: [1]})),
                      ]))
     out.append(trace("hub-commit-readds-existing-device-no-welcome",
                      "A commit that adds no device new to its identity sends no welcome.",
@@ -498,9 +523,10 @@ def grant(label="g1", scope=("dsip.message",), valid_until=NOW + 86400, frm=BOB,
     return {"id": uid(label), "from": frm, "to": to, "scope": list(scope), "valid_until": valid_until}
 
 
-def welcome(label="w1", adder=CAROL, device=CPH, grant_=None, group=GROUP, hub=HUB_A, recipient=BOB, successor_of=None):
+def welcome(label="w1", adder=CAROL, device=CPH, grant_=None, group=GROUP, hub=HUB_A, recipient=BOB, successor_of=None,
+            digest="d-welcome-1"):
     e = {"id": uid(label), "from": device, "adder_identity": adder, "recipient": recipient, "group": group, "hub": hub,
-         "grant": grant_}
+         "grant": grant_, "digest": digest}
     if successor_of is not None:
         e["successor_of"] = successor_of
     return {"welcome": e}
@@ -529,6 +555,28 @@ def mailbox_vectors():
                      "A welcome from an identity holding a dsip.message grant is stored and registers the group as pending.",
                      ["M§14.2", "M§6.6"], T, mbx_ctx(), [
                          (welcome(grant_=grant()), [macc(CPH, "w1", c(1))], ms([c(1)], P)),
+                     ]))
+    out.append(trace("mailbox-welcome-redelivered-duplicate",
+                     "A hub retrying a welcome it saw no acknowledgement for — the same MLS bytes — gets a duplicate "
+                     "acknowledgement with the first welcome's cursor; the group is registered once (spec-gap 66).",
+                     ["M§14.2", "M§6.6", "M§9.3"], T, mbx_ctx(), [
+                         (welcome(grant_=grant()), [macc(CPH, "w1", c(1))], ms([c(1)], P)),
+                         (welcome(label="w1-retry", grant_=grant()), [macc(CPH, "w1-retry", c(1), dup=True)], ms([c(1)], P)),
+                     ]))
+    out.append(trace("mailbox-welcome-for-another-device-stored",
+                     "A second welcome for a registered group with different MLS bytes is a new invitation — an owner device "
+                     "adding a sibling (M§6.7) — and is stored.", ["M§14.2", "M§6.7", "M§12.3"], T, mbx_ctx(), [
+                         (welcome(grant_=grant()), [macc(CPH, "w1", c(1))], ms([c(1)], P)),
+                         (welcome(label="w2", adder=BOB, device=BPH, digest="d-welcome-2"), [macc(BPH, "w2", c(2))], ms([c(1), c(2)], P)),
+                     ]))
+    out.append(trace("mailbox-welcome-after-leaving-registers-again",
+                     "Once the owner has left the group, a new welcome re-registers it as pending; a redelivery of the welcome "
+                     "already stored stays a duplicate, whatever the registration.", ["M§14.2", "M§5.7"], T, mbx_ctx(), [
+                         (welcome(grant_=grant()), [macc(CPH, "w1", c(1))], ms([c(1)], P)),
+                         ({"config": {"id": uid("cfg"), "device": BPH, "groups": [{"group": GROUP, "state": "left"}]}},
+                          [macc(BPH, "cfg")], ms([c(1)])),
+                         (welcome(label="w1-again", grant_=grant()), [macc(CPH, "w1-again", c(1), dup=True)], ms([c(1)])),
+                         (welcome(label="w2", grant_=grant(), digest="d-welcome-3"), [macc(CPH, "w2", c(2))], ms([c(1), c(2)], P)),
                      ]))
     out.append(trace("mailbox-welcome-without-grant-refused",
                      "Without a grant (and admit grant) the welcome is refused with first-contact-required.",

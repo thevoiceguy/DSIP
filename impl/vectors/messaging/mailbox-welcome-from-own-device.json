@@ -38,7 +38,8 @@
             "recipient": "did:web:example.com:users:bob",
             "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
             "hub": "did:web:mbx.alice.example",
-            "grant": null
+            "grant": null,
+            "digest": "d-welcome-1"
           }
         }
       }

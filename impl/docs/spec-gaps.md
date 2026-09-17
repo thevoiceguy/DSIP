@@ -1341,6 +1341,36 @@ Replicated blobs are kept for as long as the items that reference them (no separ
 
 **Suggested fix.** Carry the M§8.4 text into the next profile revision.
 
+## 66. M§6.5 rule 5 — a welcome is a fan-out too
+
+**Gap.** Rule 5 queues sequenced items per member mailbox and retries an unacknowledged one before sending later
+ones, but the welcome a commit sends to an added identity is not sequenced, so nothing said it is retried at all.
+An identity whose mailbox is down when it is added therefore never learns of the group: the commit's `seq` goes to
+the existing members, the welcome is sent once into the void, and the added member's devices wait forever (recorded
+as the open item of spec-gap 59). Two further questions follow: what the hub does with items sequenced after the
+add, since the added mailbox has no registration for the group until the welcome arrives and refuses them (M§6.6);
+and what a mailbox does with a welcome it has already stored, once retries make duplicates possible — it cannot
+simply drop a second welcome for a registered group, since that is how an owner's new device is let in (M§6.7).
+
+**Choices considered.** (a) The welcome is queued in the added identity's own queue at the commit's `seq` and
+retried like any fan-out; its items wait behind it; a mailbox answers a welcome whose MLS bytes it already holds
+`accepted` with `duplicate` and that welcome's cursor. (b) Queue the welcome in the same queue as sequenced items — a
+member adding its own device needs both the commit and the welcome for one `seq`, so one queue entry cannot carry
+both. (c) Leave the welcome unretried and let the added member discover the group by external join (M§6.8) — it
+cannot: an external join needs a `group-info` its mailbox would also have refused.
+
+**Draft choice.** (a), in M§6.5 as a 1.0 erratum. A welcome has no `seq` on the wire (M§5.2), so its
+acknowledgement is matched by the deposit it answers. Vectors: `hub-welcome-queued-and-retried` (queued, later items
+held, released on acknowledgement), `hub-welcome-resent-after-restart`, `mailbox-welcome-redelivered-duplicate` (same MLS bytes),
+`mailbox-welcome-for-another-device-stored` (different bytes, a sibling's invitation),
+`mailbox-welcome-after-leaving-registers-again`; the two existing welcome vectors now show the queue.
+`demos/welcome-retry-demo.sh`: Alice adds Carol with Carol's mailbox down (her KeyPackage fetched beforehand — new
+`prefetch`, M§5.5 allows holding one), Alice and Bob carry on, and when Carol's mailbox returns the welcome lands,
+her device joins once, and the messages that waited follow in order. A hub that sends the welcome once and never
+queues it fails the demo.
+
+**Suggested fix.** Carry the M§6.5 text into the next profile revision.
+
 ## Already-flagged (schema README / plan §11)
 
 - §15.3 codec example uses bare strings; §16.2 defines objects (schemas follow §16.2).
