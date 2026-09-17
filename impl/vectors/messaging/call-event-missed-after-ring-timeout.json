@@ -1,0 +1,22 @@
+{
+  "vector": "messaging/call-event-missed-after-ring-timeout",
+  "format": 1,
+  "kind": "messaging",
+  "description": "An alerted leg that rang out is a missed call.",
+  "spec_ref": [
+    "M§13.3",
+    "§12.10"
+  ],
+  "context": {},
+  "input": {
+    "check": "call-event",
+    "alerted": true,
+    "answered_here": false,
+    "ended_by": "local",
+    "reason": "session.timeout"
+  },
+  "expect": {
+    "send": true,
+    "outcome": "missed"
+  }
+}

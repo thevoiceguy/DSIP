@@ -97,6 +97,7 @@ def vectors() -> list[dict]:
     out += hub_change_vectors()
     out += successor_vectors()
     out += external_join_vectors()
+    out += call_history_vectors()
     return out
 
 
@@ -944,7 +945,7 @@ def client_vectors():
                      "A sibling device's delivered receipt later in the same batch suppresses this device's receipt for that item.",
                      ["M§10.2"], T, cl_ctx(), [
                          (sync(item(1, ct("m1")), item(2, ct("m2")), item(3, rc("delivered", BOB, targets=[m1]))),
-                          [send("conversation", "delivered", targets=[m2])], cs([m1, m2], delivered={m1: {BOB: NOW}})),
+                          [{"archive": {"seq": 3}}, send("conversation", "delivered", targets=[m2])], cs([m1, m2], delivered={m1: {BOB: NOW}})),
                      ]))
     out.append(trace("client-delivered-off-by-policy", "delivered receipts are not sent when the user has them off.",
                      ["M§10.2", "M§10.5"], T, cl_ctx(delivered=False), [
@@ -959,7 +960,7 @@ def client_vectors():
                      ["M§10.2"], T, cl_ctx(me=ALICE, delivered=False), [
                          (sync(item(1, ct("m1")), item(2, rc("delivered", BOB, at=NOW + 1, targets=[m1])),
                                item(3, rc("delivered", BOB, at=NOW + 2, targets=[m1]))),
-                          [], cs([m1], delivered={m1: {BOB: NOW + 1}})),
+                          [{"archive": {"seq": 2}}], cs([m1], delivered={m1: {BOB: NOW + 1}})),
                      ]))
     out.append(trace("client-receipt-from-content-sender-ignored",
                      "An identity's receipt about its own content is not a sender-visible receipt.", ["M§10.2"], T,
@@ -970,13 +971,13 @@ def client_vectors():
                      cl_ctx(me=ALICE, delivered=False), [
                          (sync(item(1, ct("m1")), item(2, ct("vm", kind="audio")),
                                item(3, rc("played", BOB, targets=[m1, vm]))),
-                          [], cs([m1, vm], played={vm: {BOB: NOW}})),
+                          [{"archive": {"seq": 3}}], cs([m1, vm], played={vm: {BOB: NOW}})),
                      ]))
     out.append(trace("client-read-watermark-monotone",
                      "A read watermark only advances; a lower or unknown through is ignored.", ["M§10.3"], T,
                      cl_ctx(me=ALICE, delivered=False), [
                          (sync(item(1, ct("m1")), item(2, ct("m2")), item(3, rc("read", BOB, through=m2))),
-                          [], cs([m1, m2], read_through={BOB: m2})),
+                          [{"archive": {"seq": 3}}], cs([m1, m2], read_through={BOB: m2})),
                          (sync(item(4, rc("read", BOB, through=m1))), [], cs([m1, m2], read_through={BOB: m2})),
                          (sync(item(5, rc("read", BOB, through=uid("never-seen")))), [], cs([m1, m2], read_through={BOB: m2})),
                      ]))
@@ -996,7 +997,7 @@ def client_vectors():
                      "A sibling device's watermark already covering the item means reading it here sends nothing.",
                      ["M§10.3"], T, cl_ctx(delivered=False, read=True), [
                          (sync(item(1, ct("m1")), item(2, ct("m2")), item(3, rc("read", BOB, through=m2))),
-                          [], cs([m1, m2], read_through={BOB: m2})),
+                          [{"archive": {"seq": 3}}], cs([m1, m2], read_through={BOB: m2})),
                          ({"read": {"through": m1}}, [], cs([m1, m2], read_through={BOB: m2})),
                      ]))
     out.append(trace("client-read-rate-limited",
@@ -2320,5 +2321,96 @@ def external_join_vectors():
                          (dep("ext-add", BTAB, BOB, "handshake", 1,
                               commit={"external": True, "adds": [{"identity": CAROL, "device": CPH}], "removes": []}),
                           [err(BTAB, "ext-add", "policy.blocked")], hs(1, 1, R)),
+                     ]))
+    return out
+
+
+# ---------------------------------------------------------------- call history and receipt archiving (M§13.3, M§12.2; spec-gaps 63, 64)
+
+def call_history_vectors():
+    out = []
+    refs = ["M§13.3"]
+
+    def ce(vid, desc, inp, expect, extra=()):
+        out.append(mv(vid, desc, refs + list(extra), {"check": "call-event", **inp}, expect))
+    ce("call-event-missed-after-caller-cancel", "An alerted leg the caller cancelled (gave up) is a missed call.",
+       {"alerted": True, "answered_here": False, "ended_by": "remote", "reason": "session.cancelled"}, {"send": True, "outcome": "missed"})
+    ce("call-event-missed-after-ring-timeout", "An alerted leg that rang out is a missed call.",
+       {"alerted": True, "answered_here": False, "ended_by": "local", "reason": "session.timeout"}, {"send": True, "outcome": "missed"}, ["§12.10"])
+    ce("call-event-answered-elsewhere-none", "A leg cancelled because another device answered sends nothing.",
+       {"alerted": True, "answered_here": False, "ended_by": "remote", "reason": "session.answered-elsewhere"}, {"send": False}, ["§12.7"])
+    ce("call-event-answered-here-none", "A call answered on this device is not missed.",
+       {"alerted": True, "answered_here": True, "ended_by": "remote", "reason": "session.ended"}, {"send": False})
+    ce("call-event-not-alerted-none", "A leg that never alerted (refused before ringing) is not shown as a call.",
+       {"alerted": False, "answered_here": False, "ended_by": "local", "reason": "endpoint.busy"}, {"send": False})
+    ce("call-event-declined-here", "A leg the user declined on this device is recorded as declined, not missed.",
+       {"alerted": True, "answered_here": False, "ended_by": "local", "reason": "user.declined"}, {"send": True, "outcome": "declined"})
+    ce("call-event-declined-elsewhere-missed", "A decline that arrives from elsewhere (another leg, the caller's cancel carrying it) is missed here.",
+       {"alerted": True, "answered_here": False, "ended_by": "remote", "reason": "user.declined"}, {"send": True, "outcome": "missed"})
+
+    S1, S2, S3 = uid("call-1"), uid("call-2"), uid("call-3")
+
+    def pt(vid, desc, inp, expect):
+        out.append(mv(vid, desc, refs + ["M§8.5"], {"check": "peer-timeline", **inp}, expect))
+    pt("peer-timeline-collapses-call-events-per-session",
+       "Each alerted device of the identity may report the same missed call; the timeline shows it once.",
+       {"content": [], "calls": [{"session": S1, "at": NOW, "outcome": "missed"}, {"session": S1, "at": NOW + 1, "outcome": "missed"}]},
+       {"timeline": ["call:" + S1], "collapsed": [S1]})
+    pt("peer-timeline-interleaves-by-time",
+       "Calls are placed among the peer's messages by time.",
+       {"content": [{"id": "m1", "at": NOW}, {"id": "m2", "at": NOW + 100}],
+        "calls": [{"session": S1, "at": NOW + 50, "outcome": "missed"}, {"session": S2, "at": NOW + 200, "outcome": "declined"}]},
+       {"timeline": ["content:m1", "call:" + S1, "content:m2", "call:" + S2], "collapsed": []})
+    pt("peer-timeline-content-order-is-seq-order",
+       "A backdated message does not move before earlier messages; only calls are placed by time around it.",
+       {"content": [{"id": "m1", "at": NOW + 100}, {"id": "m2", "at": NOW}],
+        "calls": [{"session": S3, "at": NOW + 50, "outcome": "missed"}]},
+       {"timeline": ["call:" + S3, "content:m1", "content:m2"], "collapsed": []})
+
+    # receipts that change rendering are archived; archived receipts restore rendering
+    T = "client-trace"
+    m1, m2 = uid("m1"), uid("m2")
+    out.append(trace("client-receipt-archived-when-rendering-changes",
+                     "A receipt that changes what is rendered is archived (spec-gap 64); one that changes nothing — a repeat, an "
+                     "older watermark, a receipt about unknown content — is not.", ["M§12.2", "M§10"], T, cl_ctx(me=ALICE, delivered=False), [
+                         (sync(item(1, ct("m1")), item(2, ct("m2")), item(3, rc("delivered", BOB, targets=[m1, m2])),
+                               item(4, rc("read", BOB, through=m2))),
+                          [{"archive": {"seq": 3}}, {"archive": {"seq": 4}}],
+                          cs([m1, m2], delivered={m1: {BOB: NOW}, m2: {BOB: NOW}}, read_through={BOB: m2})),
+                         (sync(item(5, rc("delivered", BOB, targets=[m1])), item(6, rc("read", BOB, through=m1)),
+                               item(7, rc("delivered", BOB, targets=[uid("unknown")]))),
+                          [], cs([m1, m2], delivered={m1: {BOB: NOW}, m2: {BOB: NOW}}, read_through={BOB: m2})),
+                     ]))
+    out.append(trace("client-restore-from-archive-sends-nothing",
+                     "A device restoring history from archive applies content and receipts to its rendering state without sending "
+                     "delivered receipts or archiving again; live items afterwards behave as usual.", ["M§12.2", "M§12.3", "M§10.2"], T,
+                     cl_ctx(me=ALICE), [
+                         ({"restore": {"items": [item(1, ct("m1", sender=BOB)), item(2, rc("delivered", ALICE, targets=[m1])),
+                                                 item(3, rc("read", CAROL, through=m1))]}},
+                          [], cs([m1], delivered={m1: {ALICE: NOW}}, read_through={CAROL: m1})),
+                         (sync(item(4, ct("m2", sender=BOB))), [send("conversation", "delivered", targets=[m2])],
+                          cs([m1, m2], delivered={m1: {ALICE: NOW}}, read_through={CAROL: m1})),
+                     ]))
+    H = "history-trace"
+    K1 = uid("akid-1")
+    hst = lambda timeline=(), held=(), current=None: {"timeline": list(timeline), "held": [c(n) for n in held], "current_akid": current}
+    out.append(trace("history-archived-receipt-applied-not-shown",
+                     "A restored device applies an archived receipt to its receipt state; it is not a timeline entry, and a second "
+                     "copy is a duplicate.", ["M§12.2", "M§12.3"], H, {"component": "history", "keys": [], "joined": {}}, [
+                         ({"archive": {"cursor": c(1), "akid": K1, "group": GROUP, "seq": 1, "id": "m1"}}, [{"hold": c(1)}], hst(held=[1])),
+                         ({"archive": {"cursor": c(2), "akid": K1, "group": GROUP, "seq": 2, "id": "r2", "object": "receipt"}},
+                          [{"hold": c(2)}], hst(held=[1, 2])),
+                         ({"archive_key": {"akid": K1, "created_at": NOW}}, [{"show": "m1"}, {"apply": c(2)}], hst(["m1"], current=K1)),
+                         ({"archive": {"cursor": c(3), "akid": K1, "group": GROUP, "seq": 2, "id": "r2", "object": "receipt"}},
+                          [{"duplicate": "r2"}], hst(["m1"], current=K1)),
+                     ]))
+    out.append(trace("history-archived-call-event-applied",
+                     "Call events are archived too (spec-gap 63), so a device added later has the identity's call history; like a "
+                     "receipt, a restored call event goes to the call log, once.", ["M§13.3", "M§12.2", "M§12.3"], H,
+                     {"component": "history", "keys": [{"akid": K1, "created_at": NOW}], "joined": {}}, [
+                         ({"archive": {"cursor": c(1), "akid": K1, "group": GROUP, "seq": 4, "id": "call|s1", "object": "call-event"}},
+                          [{"apply": c(1)}], hst(current=K1)),
+                         ({"archive": {"cursor": c(2), "akid": K1, "group": GROUP, "seq": 4, "id": "call|s1", "object": "call-event"}},
+                          [{"duplicate": "call|s1"}], hst(current=K1)),
                      ]))
     return out

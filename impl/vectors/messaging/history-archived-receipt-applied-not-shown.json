@@ -1,0 +1,127 @@
+{
+  "vector": "messaging/history-archived-receipt-applied-not-shown",
+  "format": 1,
+  "kind": "messaging",
+  "description": "A restored device applies an archived receipt to its receipt state; it is not a timeline entry, and a second copy is a duplicate.",
+  "spec_ref": [
+    "M§12.2",
+    "M§12.3"
+  ],
+  "context": {
+    "component": "history",
+    "keys": [],
+    "joined": {}
+  },
+  "input": {
+    "check": "history-trace",
+    "steps": [
+      {
+        "event": {
+          "archive": {
+            "cursor": "c:0000000000000001",
+            "akid": "01K742SG00FGJFA787KKTJ1Z45",
+            "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+            "seq": 1,
+            "id": "m1"
+          }
+        }
+      },
+      {
+        "event": {
+          "archive": {
+            "cursor": "c:0000000000000002",
+            "akid": "01K742SG00FGJFA787KKTJ1Z45",
+            "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+            "seq": 2,
+            "id": "r2",
+            "object": "receipt"
+          }
+        }
+      },
+      {
+        "event": {
+          "archive_key": {
+            "akid": "01K742SG00FGJFA787KKTJ1Z45",
+            "created_at": 1760000000
+          }
+        }
+      },
+      {
+        "event": {
+          "archive": {
+            "cursor": "c:0000000000000003",
+            "akid": "01K742SG00FGJFA787KKTJ1Z45",
+            "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+            "seq": 2,
+            "id": "r2",
+            "object": "receipt"
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "hold": "c:0000000000000001"
+          }
+        ],
+        "state": {
+          "timeline": [],
+          "held": [
+            "c:0000000000000001"
+          ],
+          "current_akid": null
+        }
+      },
+      {
+        "emit": [
+          {
+            "hold": "c:0000000000000002"
+          }
+        ],
+        "state": {
+          "timeline": [],
+          "held": [
+            "c:0000000000000001",
+            "c:0000000000000002"
+          ],
+          "current_akid": null
+        }
+      },
+      {
+        "emit": [
+          {
+            "show": "m1"
+          },
+          {
+            "apply": "c:0000000000000002"
+          }
+        ],
+        "state": {
+          "timeline": [
+            "m1"
+          ],
+          "held": [],
+          "current_akid": "01K742SG00FGJFA787KKTJ1Z45"
+        }
+      },
+      {
+        "emit": [
+          {
+            "duplicate": "r2"
+          }
+        ],
+        "state": {
+          "timeline": [
+            "m1"
+          ],
+          "held": [],
+          "current_akid": "01K742SG00FGJFA787KKTJ1Z45"
+        }
+      }
+    ]
+  }
+}

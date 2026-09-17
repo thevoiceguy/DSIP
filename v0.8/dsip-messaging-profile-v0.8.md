@@ -1199,6 +1199,15 @@ The device encrypts it with AES-256-GCM under the current archive key: random no
 - (spec-gap 51) A device archives what it shows from MLS **including its own sent content**, using the
   `seq` of its `accepted`, so a later device sees both sides of a conversation. In `items` an archive
   item is filed under `group` = `ref_group` with `seq` = `ref_seq`: a device needs both to open it.
+- (spec-gap 64) **A receipt "changes rendering"** when processing it adds a delivered or played entry
+  the device did not have for that content and identity (M§10.2, M§10.4) or advances that identity's
+  read watermark (M§10.3). A repeat, an older watermark, or a receipt about content the device does not
+  hold changes nothing and is not archived. A receipt that arrived in the personal group (M§10.5) is
+  archived under that group and its `seq`.
+- (spec-gap 64) **Restoring.** A device opening archive records applies content and receipts to its
+  receipt state as history: it sends no receipts for them (M§10.2 concerns new items) and does not
+  archive them again. A restored receipt is not a timeline entry. A record for a conversation the device
+  has not joined yet waits until it has.
 
 ### M§12.3 Adding a device
 
@@ -1294,6 +1303,21 @@ A callee device that alerted and was not answered sends a `call-event` object to
 This way every device of the identity shows one missed call. Devices MUST NOT send `call-event` for
 legs cancelled with `session.answered-elsewhere` (§12.7). Clients interleave call events, voicemail,
 and content into one conversation timeline by peer identity.
+
+(spec-gap 63) Precisely:
+
+- **Who sends what.** Every callee device whose leg alerted and was not answered on that device sends
+  one, since any of them may be the only one online. `outcome` is `declined` when this device ended the
+  leg on its user's decision (`user.declined`) and `missed` otherwise. A leg that never alerted, one
+  answered on this device, and one cancelled with `session.answered-elsewhere` send nothing.
+- **One call, one entry.** A `call-event` has no `id`: devices collapse call events by `session`,
+  keeping the first by `seq`.
+- **History.** A device archives each call event it records, like content (M§12.2), so a device added
+  later has the identity's call history; a restored call event goes to the call log, not the
+  conversation's content.
+- **Interleaving.** A peer's timeline is its direct conversation's content in `seq` order (M§8.5) with
+  the personal group's call events for that peer placed before the first content item whose `sent_at`
+  is later than the call's `at`. Time places calls; it never reorders content.
 
 ## M§14 First contact and abuse
 

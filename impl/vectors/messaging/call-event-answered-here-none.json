@@ -1,0 +1,20 @@
+{
+  "vector": "messaging/call-event-answered-here-none",
+  "format": 1,
+  "kind": "messaging",
+  "description": "A call answered on this device is not missed.",
+  "spec_ref": [
+    "M§13.3"
+  ],
+  "context": {},
+  "input": {
+    "check": "call-event",
+    "alerted": true,
+    "answered_here": true,
+    "ended_by": "remote",
+    "reason": "session.ended"
+  },
+  "expect": {
+    "send": false
+  }
+}

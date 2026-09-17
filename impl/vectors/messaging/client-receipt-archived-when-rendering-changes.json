@@ -1,10 +1,11 @@
 {
-  "vector": "messaging/client-read-watermark-monotone",
+  "vector": "messaging/client-receipt-archived-when-rendering-changes",
   "format": 1,
   "kind": "messaging",
-  "description": "A read watermark only advances; a lower or unknown through is ignored.",
+  "description": "A receipt that changes what is rendered is archived (spec-gap 64); one that changes nothing — a repeat, an older watermark, a receipt about unknown content — is not.",
   "spec_ref": [
-    "M§10.3"
+    "M§12.2",
+    "M§10"
   ],
   "context": {
     "component": "client",
@@ -48,6 +49,19 @@
                 "seq": 3,
                 "object": {
                   "object": "receipt",
+                  "kind": "delivered",
+                  "sender": "did:web:example.com:users:bob",
+                  "sent_at": 1760000000,
+                  "targets": [
+                    "01K742SG000ZJTETD6Q8F0473W",
+                    "01K742SG00MXS791W8S1ZXMFDN"
+                  ]
+                }
+              },
+              {
+                "seq": 4,
+                "object": {
+                  "object": "receipt",
                   "kind": "read",
                   "sender": "did:web:example.com:users:bob",
                   "sent_at": 1760000000,
@@ -63,7 +77,19 @@
           "sync": {
             "items": [
               {
-                "seq": 4,
+                "seq": 5,
+                "object": {
+                  "object": "receipt",
+                  "kind": "delivered",
+                  "sender": "did:web:example.com:users:bob",
+                  "sent_at": 1760000000,
+                  "targets": [
+                    "01K742SG000ZJTETD6Q8F0473W"
+                  ]
+                }
+              },
+              {
+                "seq": 6,
                 "object": {
                   "object": "receipt",
                   "kind": "read",
@@ -71,23 +97,17 @@
                   "sent_at": 1760000000,
                   "through": "01K742SG000ZJTETD6Q8F0473W"
                 }
-              }
-            ]
-          }
-        }
-      },
-      {
-        "event": {
-          "sync": {
-            "items": [
+              },
               {
-                "seq": 5,
+                "seq": 7,
                 "object": {
                   "object": "receipt",
-                  "kind": "read",
+                  "kind": "delivered",
                   "sender": "did:web:example.com:users:bob",
                   "sent_at": 1760000000,
-                  "through": "01K742SG003B6Z7NRX7PYC7P9C"
+                  "targets": [
+                    "01K742SG000CWZ4SZ1ZGJNPRJP"
+                  ]
                 }
               }
             ]
@@ -104,6 +124,11 @@
             "archive": {
               "seq": 3
             }
+          },
+          {
+            "archive": {
+              "seq": 4
+            }
           }
         ],
         "state": {
@@ -111,7 +136,14 @@
             "01K742SG000ZJTETD6Q8F0473W",
             "01K742SG00MXS791W8S1ZXMFDN"
           ],
-          "delivered": {},
+          "delivered": {
+            "01K742SG000ZJTETD6Q8F0473W": {
+              "did:web:example.com:users:bob": 1760000000
+            },
+            "01K742SG00MXS791W8S1ZXMFDN": {
+              "did:web:example.com:users:bob": 1760000000
+            }
+          },
           "played": {},
           "read_through": {
             "did:web:example.com:users:bob": "01K742SG00MXS791W8S1ZXMFDN"
@@ -126,22 +158,14 @@
             "01K742SG000ZJTETD6Q8F0473W",
             "01K742SG00MXS791W8S1ZXMFDN"
           ],
-          "delivered": {},
-          "played": {},
-          "read_through": {
-            "did:web:example.com:users:bob": "01K742SG00MXS791W8S1ZXMFDN"
+          "delivered": {
+            "01K742SG000ZJTETD6Q8F0473W": {
+              "did:web:example.com:users:bob": 1760000000
+            },
+            "01K742SG00MXS791W8S1ZXMFDN": {
+              "did:web:example.com:users:bob": 1760000000
+            }
           },
-          "activity": {}
-        }
-      },
-      {
-        "emit": [],
-        "state": {
-          "timeline": [
-            "01K742SG000ZJTETD6Q8F0473W",
-            "01K742SG00MXS791W8S1ZXMFDN"
-          ],
-          "delivered": {},
           "played": {},
           "read_through": {
             "did:web:example.com:users:bob": "01K742SG00MXS791W8S1ZXMFDN"

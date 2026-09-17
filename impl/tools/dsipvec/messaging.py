@@ -705,6 +705,49 @@ ACTIVITY_REFRESH_S = 5        # M§11.2
 GAP_TIMEOUT_S = 300           # M§6.5
 
 
+def call_event_decision(inp: dict) -> dict:
+    """M§13.3 (spec-gap 63): whether a callee device sends a `call-event` for a leg that ended, and with what outcome.
+
+    A leg that never alerted, or was answered on this device, sends nothing; nor does one cancelled with
+    `session.answered-elsewhere` (§12.7). A leg this device rejected on the user's decision is `declined`; any other
+    alerted, unanswered leg is `missed`.
+    """
+    if not inp.get("alerted") or inp.get("answered_here"):
+        return {"send": False}
+    reason = inp.get("reason", "")
+    if reason == "session.answered-elsewhere":
+        return {"send": False}
+    if inp.get("ended_by") == "local" and reason == "user.declined":
+        return {"send": True, "outcome": "declined"}
+    return {"send": True, "outcome": "missed"}
+
+
+def peer_timeline(inp: dict) -> dict:
+    """M§13.3 (spec-gap 63): one timeline per peer identity from its conversation's content (in seq order) and the
+    personal group's call events for that peer (in seq order).
+
+    Call events collapse by `session` (every alerted device of the identity may send one; the first by seq is kept).
+    A call is placed before the first content item whose `at` is later than the call's, content never moving relative
+    to other content (M§8.5: time does not reorder history).
+    """
+    calls, seen, collapsed = [], set(), []
+    for cev in inp.get("calls", []):
+        if cev["session"] in seen:
+            collapsed.append(cev["session"])
+            continue
+        seen.add(cev["session"])
+        calls.append(cev)
+    calls.sort(key=lambda cev: cev["at"])  # stable: equal times keep seq order
+    out, k = [], 0
+    for item in inp.get("content", []):
+        while k < len(calls) and calls[k]["at"] < item["at"]:
+            out.append("call:" + calls[k]["session"])
+            k += 1
+        out.append("content:" + item["id"])
+    out += ["call:" + cev["session"] for cev in calls[k:]]
+    return {"timeline": out, "collapsed": collapsed}
+
+
 def voicemail_offer(inp: dict) -> dict:
     """M§13.2: may the caller's client offer to record a voicemail after this attempt outcome?"""
     from .registry import REASONS
@@ -843,7 +886,7 @@ class Client:
         return getattr(self, "_" + name)(e)
 
     def _sync(self, e: dict) -> list:
-        fresh = []
+        fresh, archive = [], []
         for it in e["items"]:
             o, seq = it["object"], it["seq"]
             if o["object"] == "content":
@@ -853,8 +896,10 @@ class Client:
                 self.timeline.append(o["id"])
                 fresh.append(o["id"])
             elif o["object"] == "receipt":
-                self._receipt(o)
-        out = []
+                if self._receipt(o):
+                    # M§12.2 (spec-gap 64): a receipt that changes rendering is archived like content
+                    archive.append({"archive": {"seq": seq}})
+        out = archive
         if self.policy.get("delivered") and self.members <= DELIVERED_MAX_GROUP:
             # M§10.2: the whole batch is processed first, so a sibling's receipt in it suppresses ours
             targets = [i for i in fresh if self.content[i]["sender"] != self.me
@@ -865,8 +910,22 @@ class Client:
             self.sent_delivered |= set(targets)
         return out
 
-    def _receipt(self, o: dict) -> None:
+    def _restore(self, e: dict) -> list:
+        """spec-gap 64: content and receipts opened from archive update the rendering state and send nothing — no
+        delivered receipt for history, and no second archive of what already is archived."""
+        for it in e["items"]:
+            o, seq = it["object"], it["seq"]
+            if o["object"] == "content" and o["id"] not in self.content:
+                self.content[o["id"]] = {"sender": o["sender"], "seq": seq, "kind": o["kind"]}
+                self.timeline.append(o["id"])
+            elif o["object"] == "receipt":
+                self._receipt(o)
+        return []
+
+    def _receipt(self, o: dict) -> bool:
+        """Apply a receipt; True when it changed what is rendered."""
         kind, who = o["kind"], o["sender"]
+        changed = False
         if kind in ("delivered", "played"):
             book = self.delivered if kind == "delivered" else self.played
             for t in o.get("targets", []):
@@ -875,11 +934,15 @@ class Client:
                     continue
                 if kind == "played" and c["kind"] not in MEDIA_KINDS:
                     continue
-                book.setdefault(t, {}).setdefault(who, o["sent_at"])  # first by seq wins
+                if who not in book.get(t, {}):
+                    book.setdefault(t, {})[who] = o["sent_at"]  # first by seq wins
+                    changed = True
         elif kind == "read":
             c = self.content.get(o.get("through"))
             if c is not None and c["seq"] > self.read_seq.get(who, 0):  # M§10.3: monotone
                 self.read_seq[who], self.read_through[who] = c["seq"], o["through"]
+                changed = True
+        return changed
 
     def _read_send(self) -> list:
         self.last_read_sent, self.pending_read = self.now, False
@@ -1010,6 +1073,7 @@ class History:
         self.joined = dict(ctx.get("joined", {}))
         self.held: list[dict] = []
         self.shown: dict[str, tuple] = {}
+        self.applied: set[str] = set()
 
     def step(self, ev: dict) -> list:
         (name, e), = ev.items()
@@ -1033,7 +1097,7 @@ class History:
         out, keep = [], []
         for h in self.held:
             if h["akid"] == e["akid"]:
-                out.append(self._show(h))
+                out.append(self._open(h))
             else:
                 keep.append(h)
         self.held = keep
@@ -1043,7 +1107,16 @@ class History:
         if e["akid"] not in self.keys:
             self.held.append(e)
             return [{"hold": e["cursor"]}]
-        return [self._show(e)]
+        return [self._open(e)]
+
+    def _open(self, e: dict) -> dict:
+        if e.get("object", "content") in ("receipt", "call-event"):
+            # spec-gaps 63, 64: an archived receipt or call event restores state; it is not a conversation timeline entry
+            if e["id"] in self.applied:
+                return {"duplicate": e["id"]}
+            self.applied.add(e["id"])
+            return {"apply": e["cursor"]}
+        return self._show(e)
 
     def _mls(self, e: dict) -> list:
         if e["group"] in self.joined and e["epoch"] < self.joined[e["group"]]:
@@ -1604,6 +1677,10 @@ def run(v: dict) -> dict:
         return voicemail_offer(inp)
     if check == "direct-select":
         return select_direct(inp["candidates"])
+    if check == "call-event":
+        return call_event_decision(inp)
+    if check == "peer-timeline":
+        return peer_timeline(inp)
     if check == "external-join":
         return check_external_join(inp)
     if check == "successor-check":

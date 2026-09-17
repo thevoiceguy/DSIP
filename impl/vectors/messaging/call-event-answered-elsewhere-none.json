@@ -1,0 +1,21 @@
+{
+  "vector": "messaging/call-event-answered-elsewhere-none",
+  "format": 1,
+  "kind": "messaging",
+  "description": "A leg cancelled because another device answered sends nothing.",
+  "spec_ref": [
+    "M§13.3",
+    "§12.7"
+  ],
+  "context": {},
+  "input": {
+    "check": "call-event",
+    "alerted": true,
+    "answered_here": false,
+    "ended_by": "remote",
+    "reason": "session.answered-elsewhere"
+  },
+  "expect": {
+    "send": false
+  }
+}

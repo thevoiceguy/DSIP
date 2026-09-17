@@ -1,0 +1,39 @@
+{
+  "vector": "messaging/peer-timeline-content-order-is-seq-order",
+  "format": 1,
+  "kind": "messaging",
+  "description": "A backdated message does not move before earlier messages; only calls are placed by time around it.",
+  "spec_ref": [
+    "M§13.3",
+    "M§8.5"
+  ],
+  "context": {},
+  "input": {
+    "check": "peer-timeline",
+    "content": [
+      {
+        "id": "m1",
+        "at": 1760000100
+      },
+      {
+        "id": "m2",
+        "at": 1760000000
+      }
+    ],
+    "calls": [
+      {
+        "session": "01K742SG00B4FG1TE3FGW1HYV8",
+        "at": 1760000050,
+        "outcome": "missed"
+      }
+    ]
+  },
+  "expect": {
+    "timeline": [
+      "call:01K742SG00B4FG1TE3FGW1HYV8",
+      "content:m1",
+      "content:m2"
+    ],
+    "collapsed": []
+  }
+}

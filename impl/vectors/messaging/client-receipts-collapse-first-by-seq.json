@@ -68,7 +68,13 @@
   "expect": {
     "steps": [
       {
-        "emit": [],
+        "emit": [
+          {
+            "archive": {
+              "seq": 2
+            }
+          }
+        ],
         "state": {
           "timeline": [
             "01K742SG000ZJTETD6Q8F0473W"
