@@ -240,6 +240,23 @@ def check_conversation_ext(ext: dict) -> dict:
 
 # ---------------------------------------------------------------- hub (M§6.5–M§6.8, M§7.3)
 
+def check_external_join(inp: dict) -> dict:
+    """M§6.8 (spec-gap 62): what an external commit may do, checked alike by the hub and by every member.
+
+    The joiner is the identity and device of the commit's own (path) leaf. It must already be a member identity, or
+    the group is its own personal group; the commit adds nothing but the joiner's device; it removes only leaves of
+    the joiner's identity (the stale leaves it replaces).
+    """
+    j = inp["joiner"]
+    if [(a["identity"], a["device"]) for a in inp.get("adds", [])] != [(j["identity"], j["device"])]:
+        return reject("external-join-adds")
+    if not (j["identity"] in inp["roster"] or (inp.get("kind") == "personal" and j["identity"] == inp.get("owner"))):
+        return reject("external-join-not-member")
+    if any(r["identity"] != j["identity"] for r in inp.get("removes", [])):
+        return reject("external-join-removes-other")
+    return accept()
+
+
 class Hub:
     def __init__(self, ctx: dict):
         self.now = ctx["now"]
@@ -295,8 +312,11 @@ class Hub:
                                   "duplicate": True}}]
         commit = d.get("commit")
         external = bool(commit and commit.get("external"))
-        if external:  # M§6.8
-            if not (ident in self.roster or (self.kind == "personal" and ident == self.owner)):
+        if external:  # M§6.8 (spec-gap 62)
+            v = check_external_join({"kind": self.kind, "owner": self.owner, "roster": sorted(self.roster),
+                                     "joiner": {"identity": ident, "device": d["device"]},
+                                     "adds": commit.get("adds", []), "removes": commit.get("removes", [])})
+            if v["verdict"] != "accept":
                 return self._error(d, "policy.blocked")
         elif ident not in self.roster:  # M§6.5 rule 1
             return self._error(d, "policy.blocked")
@@ -1584,6 +1604,8 @@ def run(v: dict) -> dict:
         return voicemail_offer(inp)
     if check == "direct-select":
         return select_direct(inp["candidates"])
+    if check == "external-join":
+        return check_external_join(inp)
     if check == "successor-check":
         return check_successor(inp)
     if check == "successor-select":

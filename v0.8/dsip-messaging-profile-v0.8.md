@@ -751,6 +751,26 @@ A device MAY join by external commit, using the latest `group-info` item from it
 The hub MUST refuse any other external commit (`policy.blocked`). Every member MUST verify the same
 condition and MUST render the join ("Bob's new tablet joined") like any roster change (M§7.3).
 
+(spec-gap 62) Precisely, the condition the hub and every member check:
+
+- The **joiner** is the identity and device of the external commit's own leaf, the one its update path
+  installs; an external commit brings no Add proposals, so the joiner is not found among them.
+- The joiner's identity has a leaf in the group before the commit, or the group is that identity's
+  personal group.
+- The commit adds exactly the joiner's device, and removes only leaves of the joiner's identity. MLS
+  allows an external commit one Remove: the resync of a leaf with the joiner's own signature key (a device
+  that lost its group state rejoining with the same device key). A removed leaf that no longer
+  authenticates but whose credential names the joiner's device counts as the joiner's.
+- A member applies a refused external commit only by dropping it: it is not merged, and the device
+  surfaces the refusal (the hub, bound by the same check, should never have ordered it).
+- "The latest `group-info` item" is the one the device's own mailbox last delivered for the group. A
+  device keeps it even for groups it is not in, since that is what it joins from. A hub hosting a personal
+  group — at its owner's mailbox (M§7.1) — takes that mailbox's owner as the group's owner.
+- If the hub answers `mailbox.commit-conflict` or `mailbox.stale-epoch`, the GroupInfo was not the latest:
+  the device discards the joined state, syncs, and builds a new external commit from the newer GroupInfo
+  (M§6.5, spec-gap 58). An external joiner receives no archive key; history comes later, when a sibling
+  re-sends it (M§12.3).
+
 ### M§6.9 HPKE: sealed introductions
 
 HPKE is used for exactly one thing in 1.0: sealing the free-text part of a first-contact

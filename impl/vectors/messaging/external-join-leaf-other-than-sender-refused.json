@@ -1,0 +1,33 @@
+{
+  "vector": "messaging/external-join-leaf-other-than-sender-refused",
+  "format": 1,
+  "kind": "messaging",
+  "description": "The added leaf must be the joiner's: a device cannot join another in.",
+  "spec_ref": [
+    "M§6.8"
+  ],
+  "context": {},
+  "input": {
+    "check": "external-join",
+    "kind": "direct",
+    "roster": [
+      "did:web:alice.example",
+      "did:web:example.com:users:bob"
+    ],
+    "joiner": {
+      "identity": "did:web:example.com:users:bob",
+      "device": "did:key:z6MkBobTablet"
+    },
+    "adds": [
+      {
+        "identity": "did:web:alice.example",
+        "device": "did:key:z6MkfhenvjQ7awdpVWzPaeBuPkXCBLwzJKyosCrTL3huMb66"
+      }
+    ],
+    "removes": []
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "external-join-adds"
+  }
+}

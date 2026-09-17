@@ -1223,6 +1223,43 @@ superseded; members ignore it (M§7.5 says nothing about the predecessor's futur
 
 **Suggested fix.** Carry the M§7.5 text into the next profile revision; register `key-package-fetch.successor_of`.
 
+## 62. M§6.8 — what an external commit may do, and who the joiner is
+
+**Gap.** M§6.8 allows an external join when "its identity already has a leaf in the group" or the group is the
+identity's personal group, with the commit removing "that identity's stale leaves it replaces", and requires hub
+and members to check the same condition. Checking it needs definitions the text does not give. (1) Which leaf is
+"its identity"? An external commit carries no Add proposal for the joiner (MLS installs the joiner's leaf through
+the update path), so a hub looking at Add proposals sees nobody and cannot apply M§7.3 at all. (2) May the commit
+add anyone else, or remove another identity's leaf? (3) What "stale leaves" means given MLS permits exactly one
+Remove in an external commit — the resync of the joiner's own signature key — and that a returning device's old
+leaf may no longer authenticate. (4) What a member does with an external commit that fails the check, and where
+a device gets "the latest group-info" for a group it is not in. (5) The hub checks "the identity's own personal
+group", but a hub machine built from a GroupInfo has no owner.
+
+**Choices considered.** (1) (a) the path leaf, authenticated like any leaf (M§6.2); (b) the envelope's delegation
+alone — a device could commit a leaf for another device. (2) (a) exactly the joiner's device, removals only of the
+joiner's identity; (b) the M§7.3 member rules (whole-identity or lapsed removals) — an external joiner is not yet a
+member and has no business removing anyone else. (3) (a) a removed leaf naming the joiner's device counts as the
+joiner's even unauthenticated; (b) require it to authenticate — a device returning after its delegation lapsed
+could never replace its leaf. (4) (a) not merged, surfaced; the latest group-info item the mailbox delivered is kept
+per group. (5) (a) the mailbox hosting a personal group is its owner's (M§7.1).
+
+**Draft choice.** (a) throughout, in M§6.8 as a 1.0 erratum. Vectors: `external-join-*` (new device of a member,
+returning device replacing its own leaf, removing another own stale leaf, stranger, removing another identity,
+adding another device, a leaf other than the sender's, personal-group owner and non-owner) and
+`hub-external-commit-*` (removing another identity, bringing in another identity's leaf); the hub uses the same
+check. Real MLS (`dsip-mls` e2e): a new device joins from a GroupInfo and the public view names it; a device with a
+fresh store and the same key rejoins and the commit removes its old leaf; a stranger's external commit is refused.
+`demos/external-join-demo.sh`: Bob's tablet joins his personal group and his conversation with Alice while his phone
+is offline; then the phone loses its MLS state and rejoins, replacing its leaf; Alice and the tablet render both.
+A hub view that misses the path-leaf joiner, a device that keeps no GroupInfo, members refusing valid joins, and a
+check refusing any removal each fail it.
+
+**Open.** When a device should rejoin on its own (a seq gap past `gap_timeout`, M§6.5; offline beyond
+`mls_retention_s`) is implemented only as an explicit `rejoin` in the reference device.
+
+**Suggested fix.** Carry the M§6.8 text into the next profile revision.
+
 ## Already-flagged (schema README / plan §11)
 
 - §15.3 codec example uses bare strings; §16.2 defines objects (schemas follow §16.2).

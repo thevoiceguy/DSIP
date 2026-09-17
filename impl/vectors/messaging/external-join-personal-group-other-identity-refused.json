@@ -1,0 +1,32 @@
+{
+  "vector": "messaging/external-join-personal-group-other-identity-refused",
+  "format": 1,
+  "kind": "messaging",
+  "description": "No one else joins a personal group.",
+  "spec_ref": [
+    "M§6.8",
+    "M§7.1"
+  ],
+  "context": {},
+  "input": {
+    "check": "external-join",
+    "kind": "personal",
+    "owner": "did:web:example.com:users:bob",
+    "roster": [],
+    "joiner": {
+      "identity": "did:web:alice.example",
+      "device": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu"
+    },
+    "adds": [
+      {
+        "identity": "did:web:alice.example",
+        "device": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu"
+      }
+    ],
+    "removes": []
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "external-join-not-member"
+  }
+}

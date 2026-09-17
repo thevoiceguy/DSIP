@@ -1,0 +1,31 @@
+{
+  "vector": "messaging/external-join-personal-group-owner",
+  "format": 1,
+  "kind": "messaging",
+  "description": "The owner re-joins its own personal group even with no surviving leaf.",
+  "spec_ref": [
+    "M§6.8",
+    "M§7.1"
+  ],
+  "context": {},
+  "input": {
+    "check": "external-join",
+    "kind": "personal",
+    "owner": "did:web:example.com:users:bob",
+    "roster": [],
+    "joiner": {
+      "identity": "did:web:example.com:users:bob",
+      "device": "did:key:z6MkBobTablet"
+    },
+    "adds": [
+      {
+        "identity": "did:web:example.com:users:bob",
+        "device": "did:key:z6MkBobTablet"
+      }
+    ],
+    "removes": []
+  },
+  "expect": {
+    "verdict": "accept"
+  }
+}

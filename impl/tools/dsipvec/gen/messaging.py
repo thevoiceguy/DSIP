@@ -96,6 +96,7 @@ def vectors() -> list[dict]:
     out += restart_vectors()
     out += hub_change_vectors()
     out += successor_vectors()
+    out += external_join_vectors()
     return out
 
 
@@ -2264,4 +2265,60 @@ def successor_vectors():
                      ]))
     out.append(mv("key-package-fetch-successor-valid", "A fetch for a successor names the dead group.", refs + ["M§5.5"],
                   {"check": "message", "payload": msg("key-package-fetch", "kps", CPH, MBX_B, target=BOB, successor_of=GROUP)}, accept()))
+    return out
+
+
+# ---------------------------------------------------------------- external joins (M§6.8; spec-gap 62)
+
+def external_join_vectors():
+    out = []
+    refs = ["M§6.8"]
+    BTAB2 = "did:key:z6MkBobTabletTwoTwoTwoTwoTwoTwoTwoTwoTwoTwoTwo"
+    base = {"kind": "direct", "roster": [ALICE, BOB]}
+
+    def xj(vid, desc, inp, expect, extra=()):
+        out.append(mv(vid, desc, refs + list(extra), {"check": "external-join", **inp}, expect))
+    xj("external-join-new-device-of-member", "A new device of a member identity joins with no removal (its siblings may be alive).",
+       {**base, "joiner": {"identity": BOB, "device": BTAB}, "adds": [{"identity": BOB, "device": BTAB}], "removes": []}, accept())
+    xj("external-join-returning-device-replaces-own-leaf",
+       "A device that lost its group state rejoins and removes its own stale leaf (same device, MLS resync).",
+       {**base, "joiner": {"identity": BOB, "device": BPH}, "adds": [{"identity": BOB, "device": BPH}],
+        "removes": [{"identity": BOB, "device": BPH}]}, accept())
+    xj("external-join-removes-own-identity-stale-device", "It may remove another stale leaf of its own identity.",
+       {**base, "joiner": {"identity": BOB, "device": BTAB}, "adds": [{"identity": BOB, "device": BTAB}],
+        "removes": [{"identity": BOB, "device": BPH}]}, accept())
+    xj("external-join-stranger-refused", "An identity with no leaf in the group may not join by external commit.",
+       {**base, "joiner": {"identity": CAROL, "device": CPH}, "adds": [{"identity": CAROL, "device": CPH}], "removes": []},
+       reject("external-join-not-member"))
+    xj("external-join-removes-other-identity-refused", "An external joiner may not remove another identity's leaf.",
+       {**base, "joiner": {"identity": BOB, "device": BTAB}, "adds": [{"identity": BOB, "device": BTAB}],
+        "removes": [{"identity": ALICE, "device": APH}]}, reject("external-join-removes-other"), ["M§7.3"])
+    xj("external-join-adds-another-device-refused", "An external commit adds exactly the joiner's own device.",
+       {**base, "joiner": {"identity": BOB, "device": BTAB}, "adds": [{"identity": BOB, "device": BTAB}, {"identity": BOB, "device": BTAB2}],
+        "removes": []}, reject("external-join-adds"))
+    xj("external-join-leaf-other-than-sender-refused", "The added leaf must be the joiner's: a device cannot join another in.",
+       {**base, "joiner": {"identity": BOB, "device": BTAB}, "adds": [{"identity": ALICE, "device": ALA}], "removes": []},
+       reject("external-join-adds"))
+    xj("external-join-personal-group-owner", "The owner re-joins its own personal group even with no surviving leaf.",
+       {"kind": "personal", "owner": BOB, "roster": [], "joiner": {"identity": BOB, "device": BTAB},
+        "adds": [{"identity": BOB, "device": BTAB}], "removes": []}, accept(), ["M§7.1"])
+    xj("external-join-personal-group-other-identity-refused", "No one else joins a personal group.",
+       {"kind": "personal", "owner": BOB, "roster": [], "joiner": {"identity": ALICE, "device": APH},
+        "adds": [{"identity": ALICE, "device": APH}], "removes": []}, reject("external-join-not-member"), ["M§7.1"])
+
+    R = {ALICE: [ALA, APH], BOB: [BPH]}
+    out.append(trace("hub-external-commit-removing-other-identity-refused",
+                     "The hub refuses an external commit that removes another identity's leaf.", refs + ["M§7.3"], "hub-trace", hub_ctx(), [
+                         (dep("ext-rm", BTAB, BOB, "handshake", 1,
+                              commit={"external": True, "adds": [{"identity": BOB, "device": BTAB}],
+                                      "removes": [{"identity": ALICE, "device": APH}]}),
+                          [err(BTAB, "ext-rm", "policy.blocked")], hs(1, 1, R)),
+                     ]))
+    out.append(trace("hub-external-commit-new-identity-leaf-refused",
+                     "A member's device cannot use an external commit to bring in a leaf of an identity outside the group.",
+                     refs + ["M§7.3"], "hub-trace", hub_ctx(), [
+                         (dep("ext-add", BTAB, BOB, "handshake", 1,
+                              commit={"external": True, "adds": [{"identity": CAROL, "device": CPH}], "removes": []}),
+                          [err(BTAB, "ext-add", "policy.blocked")], hs(1, 1, R)),
+                     ]))
     return out
