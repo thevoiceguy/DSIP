@@ -1185,6 +1185,44 @@ holds the new hub off indefinitely; the owner's device can still recover by succ
 
 **Suggested fix.** Carry the M§7.4 text into the next profile revision; register `hub_uri` and `handover_seq`.
 
+## 61. M§7.5 — successor groups: re-adding members, checking, converging
+
+**Gap.** M§7.5 lets any member recreate a group whose hub is gone, and says mailboxes admit the successor's
+welcome without a grant, clients check creator and roster, and concurrent successors converge on the lowest
+`group_id`. Building one over the wire needs more. (1) The creator must fetch every member's KeyPackages, and
+M§5.5/M§14.2 demand a grant it may not hold (in a group, members hold grants only from whoever added them).
+(2) Hubs fan welcomes out; nothing says the fanned-out welcome carries `successor_of`, which is what the
+mailbox admits it by. (3) "The successor's creator": MLS has no creator field. (4) What "converge" does to a
+device already in a higher successor, or that created one; and whether a member should create a successor when
+one exists. (5) What a device does with an invalid one its mailbox admitted only as a successor.
+
+**Choices considered.** (1) (a) a registered predecessor authorizes the fetch, mirroring the welcome; (b)
+require grants — successors fail in exactly the groups that need them; (c) re-add only identities the creator
+holds grants from — silently drops members. (3) (a) leaf 0, the creating leaf; (b) the committer of the
+first Add — needs the commit history, which a joiner does not have. (4) (a) keep candidates, stay only in the
+lowest, leave a higher one joined or created; (b) first successor wins — not convergent under concurrency.
+
+**Draft choice.** (a) throughout, in M§7.5 as a 1.0 erratum: `key-package-fetch.successor_of`; the hub
+carries `successor_of` on successor welcomes; creator = leaf 0; candidates per predecessor, lowest kept, a
+device leaving the others with `mailbox-config left`; a member already converged uses that successor instead of
+creating one; the reference device leaves an invalid successor (its mailbox admitted it only as one), which is
+"new conversation under first contact" with no grant behind it. When a hub counts as dead stays the member's
+call (the reference device acts on an explicit `successor` command).
+
+Vectors: `successor-trace` (valid joined, invalid and unknown-predecessor as first contact, a lower successor
+arriving later switches, a higher one declined, create when one exists, own successor losing or winning against
+a concurrent one, non-member refused), `mailbox-key-packages-for-successor`, `key-package-fetch-successor-valid`.
+`demos/successor-demo.sh` moves a three-member group to a dedicated hub service, kills it and deletes its state;
+Bob and Carol create successors at the same moment; all three devices converge on the lower `group_id` and the
+conversation continues there. A device keeping a superseded successor, a mailbox refusing successor KeyPackage
+fetches, welcomes fanned out without `successor_of`, and joining every successor each fail it.
+
+**Open.** A device that left a losing successor is still a leaf in it; its members can remove it once they
+converge too (nobody is left to order anything there in practice). A dead hub that comes back finds its group
+superseded; members ignore it (M§7.5 says nothing about the predecessor's future).
+
+**Suggested fix.** Carry the M§7.5 text into the next profile revision; register `key-package-fetch.successor_of`.
+
 ## Already-flagged (schema README / plan §11)
 
 - §15.3 codec example uses bare strings; §16.2 defines objects (schemas follow §16.2).

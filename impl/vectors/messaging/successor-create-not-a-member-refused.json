@@ -1,0 +1,37 @@
+{
+  "vector": "messaging/successor-create-not-a-member-refused",
+  "format": 1,
+  "kind": "messaging",
+  "description": "Only a member of the predecessor creates its successor.",
+  "spec_ref": [
+    "M§7.5"
+  ],
+  "context": {
+    "component": "successor",
+    "groups": {}
+  },
+  "input": {
+    "check": "successor-trace",
+    "steps": [
+      {
+        "event": {
+          "create": {
+            "predecessor": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M"
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "refuse": "not-a-member"
+          }
+        ],
+        "state": {}
+      }
+    ]
+  }
+}

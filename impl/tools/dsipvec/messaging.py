@@ -635,7 +635,10 @@ class Mailbox:
         if e["target"] not in self.serves:
             return self._error(e["from"], e["id"], "transport.unknown-recipient")
         who = e["from_identity"]
-        if not (self.admit == "open" or who == e["target"] or self._grant_ok(e.get("grant"), who, e["target"])):
+        # M§7.5 (spec-gap 61): a successor's creator re-adds members it may hold no grant from; a registered predecessor
+        # authorizes the fetch as it authorizes the successor's welcome
+        successor = e.get("successor_of") is not None and e["successor_of"] in self.groups
+        if not (self.admit == "open" or who == e["target"] or successor or self._grant_ok(e.get("grant"), who, e["target"])):
             return self._error(e["from"], e["id"], "policy.first-contact-required")
         served = {}
         for dv in self.devices:  # M§5.5: one per device, single use, then last resort
@@ -736,6 +739,62 @@ def select_successor(candidates: list) -> dict:
         else:
             discarded.append(g)
     return {"winner": min(kept)[1] if kept else None, "discarded": discarded}
+
+
+class SuccessorTracker:
+    """A device converging on one successor per dead group (M§7.5; spec-gap 61).
+
+    `groups` are the groups the device is (or was) a member of, with their last known roster by identity. A successor
+    welcome for an unknown group, or failing `check_successor`, is a new conversation under first contact. Valid
+    successors of one predecessor are candidates: the device keeps only the lowest `group_id` (decoded ULID),
+    declining any other and leaving one it had kept when a lower one appears. A request to create a successor when
+    one exists uses it instead.
+    """
+
+    def __init__(self, ctx: dict):
+        self.groups = {g: sorted(r) for g, r in ctx.get("groups", {}).items()}
+        self.candidates: dict[str, list[str]] = {}
+        self.winner: dict[str, str] = {}
+
+    def step(self, ev: dict) -> list:
+        (name, e), = ev.items()
+        return getattr(self, "_" + name)(e)
+
+    def _create(self, e: dict) -> list:
+        pred = e["predecessor"]
+        if pred in self.winner:
+            return [{"use": self.winner[pred]}]
+        if pred not in self.groups:
+            return [{"refuse": "not-a-member"}]
+        return [{"create": {"successor_of": pred, "roster": self.groups[pred]}}]
+
+    def _created(self, e: dict) -> list:
+        return self._candidate(e["group"], e["successor_of"], self.groups.get(e["successor_of"], []), mine=True)
+
+    def _welcome(self, e: dict) -> list:
+        pred = e["successor_of"]
+        if pred not in self.groups or check_successor(
+                {"predecessor_roster": self.groups[pred], "creator": e["creator"], "roster": e["roster"]})["verdict"] != "accept":
+            return [{"first_contact": e["group"]}]
+        return self._candidate(e["group"], pred, e["roster"], mine=False)
+
+    def _candidate(self, group: str, pred: str, roster: list, mine: bool) -> list:
+        cands = self.candidates.setdefault(pred, [])
+        if group not in cands:
+            cands.append(group)
+        best = select_successor(cands)["winner"]
+        prev = self.winner.get(pred)
+        if best != group:
+            return [{"leave" if mine else "decline": group}]
+        self.winner[pred] = group
+        self.groups[group] = sorted(roster)  # a successor can itself be succeeded
+        out = [] if mine else [{"join": group}]
+        if prev is not None and prev != group:
+            out.append({"leave": prev})
+        return out
+
+    def snapshot(self) -> dict:
+        return {p: {"successor": self.winner.get(p), "candidates": sorted(c)} for p, c in sorted(self.candidates.items())}
 
 
 class Client:
@@ -1529,9 +1588,11 @@ def run(v: dict) -> dict:
         return check_successor(inp)
     if check == "successor-select":
         return select_successor(inp["candidates"])
-    if check in ("hub-trace", "mailbox-trace", "client-trace", "gap-trace", "resume-trace", "history-trace", "commit-retry-trace"):
+    if check in ("hub-trace", "mailbox-trace", "client-trace", "gap-trace", "resume-trace", "history-trace", "commit-retry-trace",
+                 "successor-trace"):
         comp = {"hub-trace": Hub, "mailbox-trace": Mailbox, "client-trace": Client, "gap-trace": GapTracker,
-                "resume-trace": Resume, "history-trace": History, "commit-retry-trace": CommitRetry}[check](v["context"])
+                "resume-trace": Resume, "history-trace": History, "commit-retry-trace": CommitRetry,
+                "successor-trace": SuccessorTracker}[check](v["context"])
         steps = []
         for st in inp["steps"]:
             emit = comp.step(st["event"])

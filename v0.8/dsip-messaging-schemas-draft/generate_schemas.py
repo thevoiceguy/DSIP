@@ -210,6 +210,9 @@ MESSAGES = {
     "key-package-fetch": envelope_payload("key-package-fetch", {
         "target": {"$ref": "#/$defs/did"},
         "grant": {"type": "string", "minLength": 1},
+        "successor_of": {"$ref": "#/$defs/b64url",
+                         "description": "The dead group a successor is being created for: authorizes the fetch when that group is "
+                                        "registered for the target (M§7.5, spec-gap 61)."},
     }, ["target"], "Request a target identity's KeyPackages (M§5.5); authorization per M§14.2."),
     "blob-put": envelope_payload("blob-put", {
         "sha256": {"$ref": "#/$defs/sha256"},

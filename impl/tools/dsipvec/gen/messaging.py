@@ -95,6 +95,7 @@ def vectors() -> list[dict]:
     out += revocation_vectors()
     out += restart_vectors()
     out += hub_change_vectors()
+    out += successor_vectors()
     return out
 
 
@@ -2180,4 +2181,87 @@ def hub_change_vectors():
     m("mailbox-config-handover-seq-zero-refused", "A seq starts at 1.",
       msg("mailbox-config", "cfgz", BPH, MBX_B, subject=BOB,
           groups=[{"group": GROUP, "hub": HUB_B, "handover_seq": 0, "state": "joined"}]), reject("schema-invalid"))
+    return out
+
+
+# ---------------------------------------------------------------- successor groups when the hub is gone (M§7.5; spec-gap 61)
+
+def successor_vectors():
+    out = []
+    T = "successor-trace"
+    refs = ["M§7.5"]
+    EARLY = b64url_encode(uid("successor-early", NOW).encode())
+    LATE = b64url_encode(uid("successor-late", NOW + 5).encode())
+    LATER = b64url_encode(uid("successor-later", NOW + 9).encode())
+    ROSTER = [ALICE, BOB, CAROL]
+    ctx = {"component": "successor", "groups": {GROUP: ROSTER}}
+    wel = lambda g, creator=BOB, roster=ROSTER, pred=GROUP: {"welcome": {"group": g, "successor_of": pred, "creator": creator, "roster": roster}}
+    st = lambda succ, cands: {GROUP: {"successor": succ, "candidates": sorted(cands)}}
+
+    out.append(trace("successor-valid-joined", "A predecessor member's successor re-adding predecessor members is joined.", refs, T, ctx, [
+        (wel(LATE), [{"join": LATE}], st(LATE, [LATE])),
+    ]))
+    out.append(trace("successor-invalid-is-first-contact",
+                     "A successor adding an outsider, or created by one, is a new conversation under first contact, not a successor.",
+                     refs + ["M§14"], T, ctx, [
+                         (wel(LATE, roster=[ALICE, BOB, MALLORY]), [{"first_contact": LATE}], {}),
+                         (wel(EARLY, creator=MALLORY, roster=[ALICE, MALLORY]), [{"first_contact": EARLY}], {}),
+                     ]))
+    out.append(trace("successor-of-unknown-group-is-first-contact",
+                     "A device that was never in the named predecessor cannot check the successor: first contact.", refs + ["M§14"], T,
+                     {"component": "successor", "groups": {}}, [
+                         (wel(LATE), [{"first_contact": LATE}], {}),
+                     ]))
+    out.append(trace("successor-lower-arrives-later-switches",
+                     "Concurrent successors: a lower group_id arriving after the device joined a higher one wins; the device joins it "
+                     "and leaves the other.", refs, T, ctx, [
+                         (wel(LATE, creator=CAROL), [{"join": LATE}], st(LATE, [LATE])),
+                         (wel(EARLY), [{"join": EARLY}, {"leave": LATE}], st(EARLY, [EARLY, LATE])),
+                     ]))
+    out.append(trace("successor-higher-arrives-later-declined",
+                     "A higher group_id arriving after the winner is declined: never joined.", refs, T, ctx, [
+                         (wel(EARLY), [{"join": EARLY}], st(EARLY, [EARLY])),
+                         (wel(LATER, creator=CAROL), [{"decline": LATER}], st(EARLY, [EARLY, LATER])),
+                     ]))
+    out.append(trace("successor-create-when-one-exists-uses-it",
+                     "Asked to create a successor for a group that already has one, the device uses the existing one.", refs, T, ctx, [
+                         (wel(LATE), [{"join": LATE}], st(LATE, [LATE])),
+                         ({"create": {"predecessor": GROUP}}, [{"use": LATE}], st(LATE, [LATE])),
+                     ]))
+    out.append(trace("successor-own-loses-to-concurrent",
+                     "Two members create successors at once: the creator whose group_id is higher leaves its own group for the lower.",
+                     refs, T, ctx, [
+                         ({"create": {"predecessor": GROUP}}, [{"create": {"successor_of": GROUP, "roster": sorted(ROSTER)}}], {}),
+                         ({"created": {"group": LATE, "successor_of": GROUP}}, [], st(LATE, [LATE])),
+                         (wel(EARLY), [{"join": EARLY}, {"leave": LATE}], st(EARLY, [EARLY, LATE])),
+                     ]))
+    out.append(trace("successor-own-wins-over-concurrent",
+                     "...and the creator whose group_id is lower keeps its group and declines the other.", refs, T, ctx, [
+                         ({"create": {"predecessor": GROUP}}, [{"create": {"successor_of": GROUP, "roster": sorted(ROSTER)}}], {}),
+                         ({"created": {"group": EARLY, "successor_of": GROUP}}, [], st(EARLY, [EARLY])),
+                         (wel(LATE, creator=CAROL), [{"decline": LATE}], st(EARLY, [EARLY, LATE])),
+                     ]))
+    out.append(trace("successor-create-not-a-member-refused", "Only a member of the predecessor creates its successor.", refs, T,
+                     {"component": "successor", "groups": {}}, [
+                         ({"create": {"predecessor": GROUP}}, [{"refuse": "not-a-member"}], {}),
+                     ]))
+
+    # the fetch that lets a creator re-add members it holds no grant from
+    M = "mailbox-trace"
+    fetch = lambda label, succ=None, grant_=None: {"kp_fetch": {"id": uid(label), "from": CPH, "from_identity": CAROL, "target": BOB,
+                                                              "grant": grant_, **({"successor_of": succ} if succ else {})}}
+    KP = {BPH: {"one_time": 2, "last_resort": False}}
+    out.append(trace("mailbox-key-packages-for-successor",
+                     "A KeyPackage fetch naming a group registered for the owner as successor_of is served without a grant (spec-gap 61), "
+                     "as the successor's welcome will be admitted; an unregistered one is not.", refs + ["M§5.5", "M§14.2"], M,
+                     mbx_ctx(key_packages=KP, groups={GROUP: {"hub": HUB_A, "state": "joined"}}), [
+                         (fetch("f1"), [err(CPH, "f1", "policy.first-contact-required")],
+                          ms(groups={GROUP: "joined"}, kps={BPH: {"one_time": 2, "last_resort": False}})),
+                         (fetch("f2", succ=GROUP2), [err(CPH, "f2", "policy.first-contact-required")],
+                          ms(groups={GROUP: "joined"}, kps={BPH: {"one_time": 2, "last_resort": False}})),
+                         (fetch("f3", succ=GROUP), [{"key_packages": {"to": CPH, "in_reply_to": uid("f3"), "devices": {BPH: "one-time"}}}],
+                          ms(groups={GROUP: "joined"}, kps={BPH: {"one_time": 1, "last_resort": False}})),
+                     ]))
+    out.append(mv("key-package-fetch-successor-valid", "A fetch for a successor names the dead group.", refs + ["M§5.5"],
+                  {"check": "message", "payload": msg("key-package-fetch", "kps", CPH, MBX_B, target=BOB, successor_of=GROUP)}, accept()))
     return out
