@@ -1,0 +1,27 @@
+{
+  "vector": "messaging/blob-sources-no-manifest",
+  "format": 1,
+  "kind": "messaging",
+  "description": "An item with no manifest: the original.",
+  "spec_ref": [
+    "M§8.4"
+  ],
+  "context": {},
+  "input": {
+    "check": "blob-sources",
+    "blob": {
+      "uri": "https://mbx.alice.example/blobs/9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+      "sha256": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+      "size": 482220,
+      "key": "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk",
+      "alg": "A256GCM",
+      "content_type": "audio/ogg"
+    },
+    "manifest": null
+  },
+  "expect": {
+    "sources": [
+      "https://mbx.alice.example/blobs/9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"
+    ]
+  }
+}

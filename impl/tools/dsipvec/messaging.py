@@ -1585,6 +1585,55 @@ def blob_get(inp: dict) -> dict:
     return {"status": 200 if inp["path_sha256"] in inp.get("stored", []) else 404}
 
 
+def blob_replicate(inp: dict) -> dict:
+    """M§8.4 rule 6 (spec-gap 65): whether a member mailbox replicates a manifest blob, and whether it keeps what it fetched.
+
+    Without `fetched`: `fetch`, or `skip` with a reason — the owner's mode is not `sync`, the blob is already stored,
+    it is larger than this mailbox's `max_blob_bytes`, or its `uri` is not https. With `fetched` (`{status, sha256,
+    size}` of the response body): `store` only for a 200 whose body matches the manifest's `sha256` and `size`,
+    otherwise `discard` (the item keeps the original `uri`).
+    """
+    e = inp["entry"]
+    if "fetched" not in inp:
+        if inp.get("mode") != "sync":
+            return {"action": "skip", "reason": "mode"}
+        if e["sha256"] in inp.get("stored", []):
+            return {"action": "skip", "reason": "stored"}
+        if e["size"] > inp["max_blob_bytes"]:
+            return {"action": "skip", "reason": "too-large"}
+        if not str(e.get("uri", "")).startswith("https://"):
+            return {"action": "skip", "reason": "not-https"}
+        return {"action": "fetch"}
+    f = inp["fetched"]
+    if f.get("status") != 200:
+        return {"action": "discard", "reason": "unavailable"}
+    if f.get("sha256") != e["sha256"] or f.get("size") != e["size"]:
+        return {"action": "discard", "reason": "mismatch"}
+    return {"action": "store"}
+
+
+def items_blobs(inp: dict) -> dict:
+    """M§8.4 rule 6 (spec-gap 65): the `blobs` manifest a mailbox puts in `items` — `uri` rewritten to its own blob
+    endpoint for every blob it holds, unchanged otherwise."""
+    out = []
+    for e in inp["manifest"]:
+        e = dict(e)
+        if e["sha256"] in inp.get("stored", []):
+            e["uri"] = inp["blob_endpoint"].rstrip("/") + "/" + e["sha256"]
+        out.append(e)
+    return {"blobs": out}
+
+
+def blob_sources(inp: dict) -> dict:
+    """M§8.4 rules 6–7 (spec-gap 65): where a device fetches a content blob from, in order. A manifest entry for the
+    same `sha256` and `size` at another `uri` (its own mailbox's copy) comes first, then the `uri` in the content
+    object. Either way the device verifies `sha256` and `size` before decrypting."""
+    b = inp["blob"]
+    first = [e["uri"] for e in inp.get("manifest") or []
+             if e.get("sha256") == b["sha256"] and e.get("size") == b["size"] and e.get("uri") != b["uri"]]
+    return {"sources": first[:1] + [b["uri"]]}
+
+
 # ---------------------------------------------------------------- discovery (M§4.2, §8.1)
 
 def select_mailbox(inp: dict) -> dict:
@@ -1671,6 +1720,12 @@ def run(v: dict) -> dict:
         return registration_on_removal(inp)
     if check == "blob-put":
         return blob_put(inp)
+    if check == "blob-replicate":
+        return blob_replicate(inp)
+    if check == "items-blobs":
+        return items_blobs(inp)
+    if check == "blob-sources":
+        return blob_sources(inp)
     if check == "blob-get":
         return blob_get(inp)
     if check == "voicemail-offer":

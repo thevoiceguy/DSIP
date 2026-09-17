@@ -1,0 +1,34 @@
+{
+  "vector": "messaging/blob-sources-own-mailbox-first",
+  "format": 1,
+  "kind": "messaging",
+  "description": "The device tries its own mailbox's copy first, then the original.",
+  "spec_ref": [
+    "M§8.4"
+  ],
+  "context": {},
+  "input": {
+    "check": "blob-sources",
+    "blob": {
+      "uri": "https://mbx.alice.example/blobs/9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+      "sha256": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+      "size": 482220,
+      "key": "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk",
+      "alg": "A256GCM",
+      "content_type": "audio/ogg"
+    },
+    "manifest": [
+      {
+        "uri": "https://mbx.bob.example/blobs/9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+        "sha256": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+        "size": 482220
+      }
+    ]
+  },
+  "expect": {
+    "sources": [
+      "https://mbx.bob.example/blobs/9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+      "https://mbx.alice.example/blobs/9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"
+    ]
+  }
+}

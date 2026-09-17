@@ -98,6 +98,7 @@ def vectors() -> list[dict]:
     out += successor_vectors()
     out += external_join_vectors()
     out += call_history_vectors()
+    out += blob_replication_vectors()
     return out
 
 
@@ -2413,4 +2414,54 @@ def call_history_vectors():
                          ({"archive": {"cursor": c(2), "akid": K1, "group": GROUP, "seq": 4, "id": "call|s1", "object": "call-event"}},
                           [{"duplicate": "call|s1"}], hst(current=K1)),
                      ]))
+    return out
+
+
+# ---------------------------------------------------------------- blob replication (M§8.4 rule 6; spec-gap 65)
+
+def blob_replication_vectors():
+    out = []
+    refs = ["M§8.4"]
+    ORIGIN = f"https://mbx.alice.example/blobs/{SHA}"
+    OWN = "https://mbx.bob.example/blobs"
+    entry = {"uri": ORIGIN, "sha256": SHA, "size": 482220}
+    base = {"mode": "sync", "max_blob_bytes": 16777216, "stored": [], "entry": entry}
+
+    def br(vid, desc, over, expect, extra=()):
+        out.append(mv(vid, desc, refs + list(extra), {"check": "blob-replicate", **base, **over}, expect))
+    br("blob-replicate-fetch", "A sync-mode member mailbox fetches a manifest blob it does not hold.", {}, {"action": "fetch"})
+    br("blob-replicate-queue-mode-skips", "Replication is for sync-mode owners only (M§4.4: queue mode keeps no history).",
+       {"mode": "queue"}, {"action": "skip", "reason": "mode"}, ["M§4.4"])
+    br("blob-replicate-already-stored", "A blob already held (the sender's own mailbox, or an earlier copy) is not fetched.",
+       {"stored": [SHA]}, {"action": "skip", "reason": "stored"})
+    br("blob-replicate-too-large-skips", "A blob over this mailbox's max_blob_bytes is not replicated; devices use the original.",
+       {"max_blob_bytes": 482219}, {"action": "skip", "reason": "too-large"}, ["M§4.3"])
+    br("blob-replicate-non-https-skips", "Only an https capability URL is fetched.",
+       {"entry": {**entry, "uri": f"http://mbx.alice.example/blobs/{SHA}"}}, {"action": "skip", "reason": "not-https"}, ["M§5.6"])
+    br("blob-replicate-store-verified", "A 200 whose body matches the manifest hash and size is stored.",
+       {"fetched": {"status": 200, "sha256": SHA, "size": 482220}}, {"action": "store"})
+    br("blob-replicate-mismatch-discarded", "A body that does not match the manifest is discarded, whatever the source says.",
+       {"fetched": {"status": 200, "sha256": "0" * 64, "size": 482220}}, {"action": "discard", "reason": "mismatch"})
+    br("blob-replicate-size-mismatch-discarded", "The size must match too.",
+       {"fetched": {"status": 200, "sha256": SHA, "size": 482221}}, {"action": "discard", "reason": "mismatch"})
+    br("blob-replicate-unavailable-discarded", "A failed fetch stores nothing; the item keeps the original uri.",
+       {"fetched": {"status": 404}}, {"action": "discard", "reason": "unavailable"})
+
+    other = {"uri": "https://mbx.alice.example/blobs/" + "1" * 64, "sha256": "1" * 64, "size": 10}
+    out.append(mv("items-blobs-rewrites-held-blobs",
+                  "In items, a blob the mailbox holds is named at its own blob endpoint; one it does not hold keeps its uri.",
+                  refs + ["M§5.4"], {"check": "items-blobs", "blob_endpoint": OWN, "stored": [SHA], "manifest": [entry, other]},
+                  {"blobs": [{**entry, "uri": f"{OWN}/{SHA}"}, other]}))
+
+    blob = {"uri": ORIGIN, "sha256": SHA, "size": 482220, "key": "k" * 43, "alg": "A256GCM", "content_type": "audio/ogg"}
+
+    def bs(vid, desc, manifest, expect):
+        out.append(mv(vid, desc, refs, {"check": "blob-sources", "blob": blob, "manifest": manifest}, {"sources": expect}))
+    bs("blob-sources-own-mailbox-first", "The device tries its own mailbox's copy first, then the original.",
+       [{"uri": f"{OWN}/{SHA}", "sha256": SHA, "size": 482220}], [f"{OWN}/{SHA}", ORIGIN])
+    bs("blob-sources-not-replicated", "Without a rewritten manifest entry, only the original.", [entry], [ORIGIN])
+    bs("blob-sources-manifest-other-hash-ignored",
+       "A manifest entry for a different hash or size is not a source for this blob (the manifest is not encrypted; the content is).",
+       [{"uri": f"{OWN}/{'2' * 64}", "sha256": "2" * 64, "size": 482220}, {"uri": f"{OWN}/{SHA}", "sha256": SHA, "size": 1}], [ORIGIN])
+    bs("blob-sources-no-manifest", "An item with no manifest: the original.", None, [ORIGIN])
     return out

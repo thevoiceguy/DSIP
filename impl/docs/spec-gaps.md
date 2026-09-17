@@ -1312,6 +1312,35 @@ archived; a new device learns the identity's read position only from later water
 
 **Suggested fix.** Carry the M§12.2 text into the next profile revision.
 
+## 65. M§8.4 rule 6 — replicating blobs to member mailboxes
+
+**Gap.** Rule 6 has a sync-mode member mailbox replicate "every manifest blob on receipt, verifying `sha256`, and
+rewrite `uri` in `items`", with devices fetching from their own mailbox and "falling back to the original `uri`".
+Unstated: whether size is verified too (the manifest carries it); what happens to a blob larger than the replicating
+mailbox's own `max_blob_bytes`; whether a failed or mismatching fetch changes anything; which `uri` in `items` is
+rewritten, given the content object's `uri` is inside MLS and cannot be; and how a device relates the unencrypted
+manifest to the encrypted content — a manifest entry must not be able to point a device at a different blob.
+
+**Choices considered.** (a) Replicate application items' manifest blobs in sync mode unless already held,
+over the local limit, or not https; store only a 200 matching both hash and size; rewrite only held entries in
+`items`; devices take a manifest entry as a source only for the exact `sha256` and `size` of the content's blob, try
+it first, verify every source and fall through on mismatch. (b) Verify the hash only — sufficient on its own, but the
+device checks both (rule 7), and one rule for mailbox and device is simpler to state and test. (c) Trust the rewritten `uri` alone — a damaged or malicious copy would make the
+blob unplayable instead of falling back.
+
+**Draft choice.** (a), in M§8.4 as a 1.0 erratum. Vectors: `blob-replicate-*` (9: fetch, queue mode, already
+stored, too large, non-https, store verified, hash mismatch, size mismatch, unavailable), `items-blobs-rewrites-
+held-blobs`, `blob-sources-*` (4). `demos/blob-replication-demo.sh`: Bob's mailbox replicates a voice message while
+Bob is offline; Alice's mailbox crashes and Bob plays from his own mailbox; a damaged replicated copy fails Bob's
+device's check and the original serves it; a message larger than Bob's mailbox's limit is not replicated and plays
+from the original. A mailbox that never replicates, `items` not rewritten, a device ignoring its mailbox's copy, a
+device that never falls back, and an ignored size limit each fail it.
+
+**Open.** Replication is attempted once, on receipt; a fetch that fails (origin down at that moment) is not retried.
+Replicated blobs are kept for as long as the items that reference them (no separate retention).
+
+**Suggested fix.** Carry the M§8.4 text into the next profile revision.
+
 ## Already-flagged (schema README / plan §11)
 
 - §15.3 codec example uses bare strings; §16.2 defines objects (schemas follow §16.2).

@@ -1,0 +1,44 @@
+{
+  "vector": "messaging/items-blobs-rewrites-held-blobs",
+  "format": 1,
+  "kind": "messaging",
+  "description": "In items, a blob the mailbox holds is named at its own blob endpoint; one it does not hold keeps its uri.",
+  "spec_ref": [
+    "M§8.4",
+    "M§5.4"
+  ],
+  "context": {},
+  "input": {
+    "check": "items-blobs",
+    "blob_endpoint": "https://mbx.bob.example/blobs",
+    "stored": [
+      "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"
+    ],
+    "manifest": [
+      {
+        "uri": "https://mbx.alice.example/blobs/9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+        "sha256": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+        "size": 482220
+      },
+      {
+        "uri": "https://mbx.alice.example/blobs/1111111111111111111111111111111111111111111111111111111111111111",
+        "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "size": 10
+      }
+    ]
+  },
+  "expect": {
+    "blobs": [
+      {
+        "uri": "https://mbx.bob.example/blobs/9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+        "sha256": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+        "size": 482220
+      },
+      {
+        "uri": "https://mbx.alice.example/blobs/1111111111111111111111111111111111111111111111111111111111111111",
+        "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "size": 10
+      }
+    ]
+  }
+}
