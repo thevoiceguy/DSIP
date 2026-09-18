@@ -1587,6 +1587,61 @@ vector needed no change. Reference: all three implementations agree; `impl-ts/sr
 cells of `session.expired` and `policy.terminated` (and whichever others §9.3 means), or state that the column
 governs only `reject`/`cancel`/`bye`/`error`.
 
+## 74. §19.4 — who an introduction's outcome is addressed to
+
+**Gap.** §19.4 gives two signed outcomes for an introduction, `grant` and `reject`, and says nothing about their `to`.
+Its `grant` example is addressed to `did:key:z6MkCarolPhone` — by its name a device — for an introduction `from` the
+same DID. The vectors pin an asymmetry nobody chose on the page: the endpoint sends the `grant` to the introducing
+**identity** (resolved through the delegation) and the `reject` to the introducing **device** (the introduction's
+`from`). Found by the second implementation, which addressed both to the identity and failed
+`state/first-contact-reject-and-silence`.
+
+**Choices considered.** (a) Both to the identity: a grant is held by an identity (any of its devices may invite
+under it), and a rejection is equally the identity's to know; the relay fans out. (b) Both to the introduction's
+`from`: simplest, but a grant that reaches one device leaves the identity's other devices unable to cite it.
+(c) As pinned: grant to the identity, reject to the device that asked.
+
+**Draft choice.** (c) stays pinned until decided — this entry records the asymmetry, it does not bless it. (a) reads
+best against §19.4's "the grantee also holds the signed grant".
+
+**Suggested fix.** §19.4: state the addressee of `grant` and of `reject`; fix the example's `to` if (a).
+
+## 75. §12.5 rule 2 / §12.7 rule 3 — `session.answered-elsewhere` at the leg that answered
+
+**Gap.** §12.5 rule 2: a `cancel` arriving after the responder's `answer`, with no initiator message since, "crossed
+the answer: the responder MUST treat the session as ended … and MUST NOT treat the crossed `cancel` as an error".
+§12.7 rule 3 has the initiator send `cancel session.answered-elsewhere` to the invited identity on accepting an
+answer; a conformant relay delivers it only to the legs that did not answer, but a relay without leg tracking (or a
+direct fan-out) hands it to the answering leg too — where, read literally, §12.5 rule 2 tears down the call that was
+just established. The vectors pin the sane outcome (`error session.invalid-state`, session stays ACTIVE); the spec
+text does not. Found by the second implementation, which followed §12.5 to the letter and ended the call.
+
+**Choices considered.** (a) `session.answered-elsewhere` is never a crossed withdrawal: at an ACTIVE responder it is
+`session.invalid-state`. (b) Silently ignore it there — no error traffic for what is a relay's shortcoming.
+(c) Literal §12.5: end the session.
+
+**Draft choice.** (a), as pinned by `state/race-responder-answered-elsewhere-at-answering-leg`.
+
+**Suggested fix.** §12.5 rule 2 and the §12.4 responder table: except reason `session.answered-elsewhere` from the
+crossed-cancel rule.
+
+## 76. §12.7 rule 6 — the attempt outcome when no leg rejected
+
+**Gap.** Rule 6 has the relay signal attempt completion by forwarding "that leg's `reject`", choosing the most
+informative reason "if legs differed". When every leg expires there is no `reject` to forward and no reason to choose.
+The vectors pin `reject endpoint.unavailable`, forwarded in the name of the first leg
+(`state/relay-all-legs-expired`); the spec names neither the token nor whose name it goes out in — and a `reject`
+the relay composes is not a leg's signed message at all.
+
+**Choices considered.** (a) As pinned: `endpoint.unavailable`, attributed to the first leg. (b) Signal nothing and let
+the initiator's T-Ring / T-Establish run out — rule 6 already calls them the backstop. (c) A relay-signed `error`
+(`transport.*` or `identity.*`), which is honest about who is speaking.
+
+**Draft choice.** (a) stays pinned; (c) is the better spec answer, because §15.2 forbids relays from putting words in
+envelopes they did not sign.
+
+**Suggested fix.** §12.7 rule 6: define the all-expired outcome and who signs it.
+
 ## Already-flagged (schema README / plan §11)
 
 - §15.3 codec example uses bare strings; §16.2 defines objects (schemas follow §16.2).

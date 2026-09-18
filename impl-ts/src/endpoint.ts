@@ -1,0 +1,551 @@
+/**
+ * The endpoint session engine: per-session initiator and responder state machines, timers,
+ * races, glare, renegotiation and first contact.
+ *
+ * Spec: §12.4 (state machine), §12.5 (cancel/answer race), §12.6 (glare), §12.7 (forking, as the
+ * initiator sees it), §12.8 (renegotiation), §12.9 (timers), §12.10 (progress), §12.12 (info),
+ * §19.4 (first contact).
+ *
+ * Every message reaching this engine has already passed signature, replay and shape checks
+ * (`envelope.ts`); the engine never verifies anything.
+ * Impl: ENDING is collapsed into ENDED — local teardown is synchronous here (§12.4 allows it).
+ */
+import type { Json, JsonObject } from "./did.js";
+import { effectiveAnsweredBy, effectiveStatus } from "./registry.js";
+import { Timers } from "./timers.js";
+
+/** Spec: §12.9 timer defaults and bounds, seconds. */
+const T_ESTABLISH = 15;
+const T_RING = 120;
+const T_RING_BOUNDS: [number, number] = [30, 300];
+/** Spec: §12.10 — T-Queue hard cap and the RECOMMENDED consecutive re-queue limit. */
+const T_QUEUE_CAP = 1800;
+const MAX_REQUEUES = 3;
+/** Spec: §12.12 — `about` values this endpoint hands to a binding. */
+const KNOWN_ABOUT = ["transport:webrtc", "media:dtmf"];
+
+type State = "INVITING" | "PROCEEDING" | "OFFERED" | "ALERTING" | "ACTIVE" | "ENDED";
+
+interface Session {
+  role: "initiator" | "responder";
+  state: State;
+  /** Initiator: the invite's `to`. Responder: the inviting device. */
+  to: string;
+  /** The device on the other side once known (answering leg, or the inviter). */
+  peer?: string;
+  /** Responder: the invite's `expires_at`. */
+  inviteExpires?: number;
+  outstanding: { id: string; direction: "outbound" | "inbound" } | null;
+  media: boolean;
+  /** Consecutive `queued` progresses (§12.10). */
+  requeues: number;
+  /** Initiator: why the attempt ended, which decides the `bye` a late answer gets (§12.4, §12.5). */
+  endedBy?: "cancel" | "other";
+  /** Responder: a message from the initiator has arrived since our answer (§12.5 rule 2). */
+  initiatorSpoke: boolean;
+}
+
+interface Grant {
+  id: string;
+  grantee: string;
+  scope: string[];
+  valid_until: number;
+}
+
+/** Trace context for an endpoint (vectors README, kind `state`). */
+export interface EndpointContext {
+  self: { device: string; identity: string };
+  /** Device DID → identity DID, standing in for verified delegations. */
+  identities?: Record<string, string>;
+  start: number;
+  timers?: { t_establish?: number; t_ring?: number; t_ring_local?: number };
+  policy?: { first_contact_required?: boolean; allow?: string[] };
+}
+
+function clamp(v: number, [lo, hi]: [number, number]): number {
+  return Math.min(hi, Math.max(lo, v));
+}
+
+/** One endpoint holding any number of sessions. */
+export class Endpoint {
+  private readonly sessions = new Map<string, Session>();
+  private readonly timers: Timers;
+  private emit: Json[] = [];
+  private readonly requests = new Map<string, { device: string; identity: string }>(); // by introduction id
+  private readonly pendingSent = new Set<string>();
+  private readonly grantsIssued = new Map<string, Grant>();
+  private readonly grantsHeld = new Map<string, string>(); // grant id → granting identity
+  private readonly tokens = new Map<string, string>(); // contact token → grant id to issue
+
+  constructor(private readonly ctx: EndpointContext) {
+    this.timers = new Timers(ctx.start);
+  }
+
+  /** Apply one trace event; returns the ordered emissions. */
+  step(event: JsonObject): Json[] {
+    this.emit = [];
+    if ("advance" in event) {
+      this.timers.advance(event["advance"] as number, (name, session) => this.fire(name, session));
+    } else if ("recv" in event) {
+      this.recv(event["recv"] as JsonObject);
+    } else {
+      this.local(event);
+    }
+    return this.emit;
+  }
+
+  /** The snapshot members a step's `expect` names. */
+  snapshot(expect: JsonObject): JsonObject {
+    const out: JsonObject = {};
+    if ("sessions" in expect) {
+      const sessions: JsonObject = {};
+      for (const id of Object.keys(expect["sessions"] as JsonObject)) {
+        const s = this.sessions.get(id);
+        if (s) {
+          sessions[id] = { role: s.role, state: s.state, renegotiating: s.outstanding?.direction === "outbound", outstanding_update: s.outstanding };
+        }
+      }
+      out["sessions"] = sessions;
+    }
+    if ("contacts" in expect) {
+      out["contacts"] = {
+        allow: [...(this.ctx.policy?.allow ?? [])].sort(),
+        grants_issued: [...this.grantsIssued.keys()].sort(),
+        grants_held: [...this.grantsHeld.keys()].sort(),
+        requests: [...this.requests.keys()].sort(),
+        pending_sent: [...this.pendingSent].sort(),
+      };
+    }
+    return out;
+  }
+
+  // ---- helpers
+
+  private get now(): number {
+    return this.timers.now;
+  }
+
+  private identityOf(did: string): string {
+    return this.ctx.identities?.[did] ?? did;
+  }
+
+  private send(type: string, to: string, fields: JsonObject = {}): void {
+    this.emit.push({ send: { type, to, ...fields } });
+  }
+
+  private stop(name: string, session: string): void {
+    if (this.timers.stop(name, session)) this.emit.push({ timer: "stop", name });
+  }
+
+  private start(name: string, session: string, seconds: number): void {
+    this.timers.start(name, session, seconds);
+    this.emit.push({ timer: "start", name, seconds });
+  }
+
+  private stopAll(session: string): void {
+    for (const name of ["T-Establish", "T-Ring", "T-Queue", "T-Ring-Local"]) this.stop(name, session);
+  }
+
+  /** End a session: media stops (when running) before the end is surfaced. */
+  private end(id: string, s: Session, surface?: string): void {
+    s.state = "ENDED";
+    s.outstanding = null; // §12.8 rule 6: bye discards a pending update
+    if (s.media) {
+      s.media = false;
+      this.emit.push({ media: "stop" });
+    }
+    if (surface !== undefined) this.emit.push({ ui: "ended", reason: surface });
+  }
+
+  private invalidState(msg: JsonObject): void {
+    this.send("error", msg["from"] as string, {
+      session: msg["session"] ?? msg["id"]!,
+      reason: "session.invalid-state",
+      in_reply_to: msg["id"]!,
+    });
+  }
+
+  // ---- timers
+
+  private fire(name: string, id: string): void {
+    const s = this.sessions.get(id)!;
+    this.emit.push({ timer: "fire", name });
+    if (name === "T-Ring-Local") {
+      // §12.9: local ring timeout → reject user.no-answer
+      this.send("reject", s.to, { session: id, reason: "user.no-answer" });
+      this.end(id, s, "user.no-answer");
+    } else {
+      this.timeoutCancel(id, s);
+    }
+  }
+
+  /** §12.4: T-Establish / T-Ring / T-Queue expiry → cancel session.timeout. */
+  private timeoutCancel(id: string, s: Session): void {
+    this.send("cancel", s.to, { session: id, reason: "session.timeout" });
+    s.endedBy = "cancel";
+    this.end(id, s, "session.timeout");
+  }
+
+  // ---- local events
+
+  private local(e: JsonObject): void {
+    const verb = e["local"] as string;
+    const id = e["session"] as string;
+    const s = this.sessions.get(id);
+    switch (verb) {
+      case "place_call": {
+        const to = e["to"] as string;
+        this.sessions.set(id, { role: "initiator", state: "INVITING", to, outstanding: null, media: false, requeues: 0, initiatorSpoke: false });
+        // §19.4: the grantee MAY reference a held grant in the invite's `grant` field
+        const held = [...this.grantsHeld.entries()].find(([, by]) => by === this.identityOf(to))?.[0];
+        this.send("invite", to, { session: id, ...(held !== undefined ? { grant: held } : {}) });
+        this.start("T-Establish", id, this.ctx.timers?.t_establish ?? T_ESTABLISH);
+        return;
+      }
+      case "cancel":
+        if (!s || (s.state !== "INVITING" && s.state !== "PROCEEDING")) return void this.emit.push({ refused: "invalid-state" });
+        this.stopAll(id);
+        this.send("cancel", s.to, { session: id, reason: "user.cancelled" });
+        s.endedBy = "cancel";
+        return this.end(id, s);
+      case "hangup":
+        if (!s || s.state !== "ACTIVE") return void this.emit.push({ refused: "invalid-state" });
+        this.send("bye", s.peer!, { session: id, reason: (e["reason"] as string) ?? "user.hangup" });
+        return this.end(id, s);
+      case "alert": {
+        if (!s || s.state !== "OFFERED") return void this.emit.push({ refused: "invalid-state" });
+        if (s.inviteExpires !== undefined && s.inviteExpires < this.now) {
+          // §12.9: expires_at bounds pre-alerting delivery
+          this.send("reject", s.to, { session: id, reason: "session.expired" });
+          return this.end(id, s);
+        }
+        const advertised = e["ring_timeout"] as number | undefined;
+        s.state = "ALERTING";
+        this.send("progress", s.to, { session: id, status: "ringing", ...(advertised !== undefined ? { ring_timeout: advertised } : {}) });
+        // §12.9: T-Ring-Local SHOULD be ≤ the advertised ring_timeout
+        this.start("T-Ring-Local", id, advertised ?? this.ctx.timers?.t_ring_local ?? T_RING);
+        return;
+      }
+      case "auto_reject":
+        if (!s || s.state !== "OFFERED") return void this.emit.push({ refused: "invalid-state" });
+        this.send("reject", s.to, { session: id, reason: e["reason"]! });
+        return this.end(id, s);
+      case "accept":
+        if (!s || s.state !== "ALERTING") return void this.emit.push({ refused: "invalid-state" });
+        this.stop("T-Ring-Local", id);
+        this.send("answer", s.to, { session: id, answered_by: e["answered_by"]! });
+        s.state = "ACTIVE";
+        s.peer = s.to;
+        s.media = true;
+        this.emit.push({ media: "start" });
+        return;
+      case "decline":
+        if (!s || s.state !== "ALERTING") return void this.emit.push({ refused: "invalid-state" });
+        this.stop("T-Ring-Local", id);
+        this.send("reject", s.to, { session: id, reason: "user.declined" });
+        return this.end(id, s);
+      case "update":
+        if (!s || s.state !== "ACTIVE") return void this.emit.push({ refused: "invalid-state" });
+        // §12.8 rule 2: one outstanding update per session, across both directions
+        if (s.outstanding) return void this.emit.push({ refused: "update-pending" });
+        s.outstanding = { id: e["id"] as string, direction: "outbound" };
+        this.send("update", s.peer!, { session: id, id: e["id"]!, ...("answered_by" in e ? { answered_by: e["answered_by"]! } : {}) });
+        return;
+      case "answer_update":
+      case "reject_update": {
+        if (!s || s.outstanding?.direction !== "inbound" || s.outstanding.id !== e["in_reply_to"]) {
+          return void this.emit.push({ refused: "no-pending-update" });
+        }
+        s.outstanding = null;
+        if (verb === "answer_update") {
+          // Impl: `answer` requires `answered_by`; a renegotiation answer is the user's unless the event says otherwise
+          this.send("answer", s.peer!, { session: id, answered_by: e["answered_by"] ?? "user", in_reply_to: e["in_reply_to"]! });
+          this.emit.push({ media: "apply_update" });
+        } else {
+          // §12.8 rule 5: a rejected update leaves the session as it was
+          this.send("reject", s.peer!, { session: id, reason: e["reason"]!, in_reply_to: e["in_reply_to"]! });
+        }
+        return;
+      }
+      case "info":
+        if (!s || s.state !== "ACTIVE") return void this.emit.push({ refused: "invalid-state" });
+        return this.send("info", s.peer!, { session: id });
+      case "introduce": {
+        const intro = e["id"] as string;
+        this.pendingSent.add(intro);
+        const extra: JsonObject = {};
+        for (const k of ["purpose", "contact_token"]) if (k in e) extra[k] = e[k]!;
+        return this.send("introduction", e["to"] as string, { id: intro, ...extra });
+      }
+      case "grant": {
+        const intro = e["introduction"] as string;
+        const grantee = this.requests.get(intro)?.identity;
+        if (grantee === undefined) return void this.emit.push({ refused: "unknown-introduction" });
+        this.requests.delete(intro);
+        return this.issueGrant(intro, grantee, e["id"] as string, e["scope"] as string[], e["valid_until"] as number);
+      }
+      case "reject_introduction": {
+        const intro = e["introduction"] as string;
+        const from = this.requests.get(intro);
+        if (from === undefined) return void this.emit.push({ refused: "unknown-introduction" });
+        this.requests.delete(intro);
+        return this.send("reject", from.device, { session: intro, reason: e["reason"]! });
+      }
+      case "revoke":
+        if (!this.grantsIssued.delete(e["grant"] as string)) this.emit.push({ refused: "unknown-grant" });
+        return;
+      case "issue_token":
+        this.tokens.set(e["token"] as string, e["grant_id"] as string);
+        return;
+      default:
+        throw new Error(`unknown local event ${verb}`);
+    }
+  }
+
+  private issueGrant(intro: string, grantee: string, id: string, scope: string[], valid_until: number): void {
+    this.grantsIssued.set(id, { id, grantee, scope, valid_until });
+    this.send("grant", grantee, { session: intro, id, scope, valid_until });
+  }
+
+  // ---- received messages
+
+  private recv(m: JsonObject): void {
+    const type = m["type"] as string;
+    if (type === "invite") return this.recvInvite(m);
+    if (type === "introduction") return this.recvIntroduction(m);
+    if (type === "error") return void this.emit.push({ ui: "error", reason: m["reason"]! });
+    const id = m["session"] as string;
+    if (type === "grant" || (type === "reject" && this.pendingSent.has(id))) return this.recvIntroductionOutcome(m);
+
+    const s = this.sessions.get(id);
+    if (!s) {
+      return this.send("error", m["from"] as string, { session: id, reason: "session.unknown-session", in_reply_to: m["id"]! });
+    }
+    if (s.state === "ENDED") {
+      if (type === "answer" && s.role === "initiator" && !("in_reply_to" in m)) {
+        // §12.5 rule 3 (after our cancel) / §12.4 (after a reject): never resurrect
+        const reason = s.endedBy === "cancel" ? "session.cancelled" : "session.failed";
+        return this.send("bye", m["from"] as string, { session: id, reason });
+      }
+      return void this.emit.push({ drop: "ended-session" });
+    }
+    if (s.role === "initiator") this.recvAsInitiator(id, s, m);
+    else this.recvAsResponder(id, s, m);
+  }
+
+  private recvAsInitiator(id: string, s: Session, m: JsonObject): void {
+    const type = m["type"] as string;
+    const pre = s.state === "INVITING" || s.state === "PROCEEDING";
+    if (type === "progress" && pre) return this.recvProgress(id, s, m);
+    if (type === "answer" && pre) {
+      this.stopAll(id);
+      s.state = "ACTIVE";
+      s.peer = m["from"] as string;
+      s.media = true;
+      this.emit.push({ media: "start" });
+      this.emit.push({ ui: "answered", answered_by: effectiveAnsweredBy(m["answered_by"] as string) });
+      // §12.7 rule 3: identity-addressed invite → cancel answered-elsewhere to the invite's `to`
+      if (s.peer !== s.to) this.send("cancel", s.to, { session: id, reason: "session.answered-elsewhere" });
+      return;
+    }
+    if (type === "reject" && pre) {
+      this.stopAll(id);
+      s.endedBy = "other";
+      return this.end(id, s, m["reason"] as string);
+    }
+    if (s.state === "ACTIVE") {
+      if (type === "answer" && !("in_reply_to" in m) && m["from"] !== s.peer) {
+        // §12.7 rule 4: exactly one answer is ever applied
+        return this.send("bye", m["from"] as string, { session: id, reason: "session.already-answered" });
+      }
+      if (this.recvActive(id, s, m)) return;
+    }
+    this.invalidState(m);
+  }
+
+  /** §12.9 / §12.10 timer adjustments on `progress`. */
+  private recvProgress(id: string, s: Session, m: JsonObject): void {
+    const status = effectiveStatus(m["status"] as string);
+    s.state = "PROCEEDING";
+    this.stop("T-Establish", id);
+    this.emit.push({ ui: "progress", status });
+    if (status === "queued") {
+      s.requeues += 1;
+      if (s.requeues > MAX_REQUEUES) {
+        // §12.10: a queued beyond the limit is treated as T-Queue expiry
+        this.stopAll(id);
+        return this.timeoutCancel(id, s);
+      }
+      this.stop("T-Ring", id);
+      this.timers.stop("T-Queue", id); // a restart emits only `start`
+      return this.start("T-Queue", id, Math.min(m["queue_timeout"] as number, T_QUEUE_CAP));
+    }
+    const ringRunning = this.timers.running("T-Ring", id);
+    const queueRunning = this.timers.running("T-Queue", id);
+    if (status === "ringing") {
+      s.requeues = 0;
+      this.stop("T-Queue", id);
+      const restart = typeof m["ring_timeout"] === "number";
+      if (restart) this.timers.stop("T-Ring", id);
+      if (restart) this.start("T-Ring", id, clamp(m["ring_timeout"] as number, T_RING_BOUNDS));
+      else if (!ringRunning) this.start("T-Ring", id, this.ctx.timers?.t_ring ?? T_RING);
+      return;
+    }
+    // §12.9: trying/forwarded start T-Ring when nothing bounds PROCEEDING yet
+    if (!ringRunning && !queueRunning) this.start("T-Ring", id, this.ctx.timers?.t_ring ?? T_RING);
+  }
+
+  private recvAsResponder(id: string, s: Session, m: JsonObject): void {
+    const type = m["type"] as string;
+    if (type === "cancel") {
+      const reason = m["reason"] as string;
+      if (s.state === "OFFERED") return this.end(id, s, reason);
+      if (s.state === "ALERTING") {
+        this.stop("T-Ring-Local", id);
+        // §12.11: answered-elsewhere MUST NOT surface as a missed call
+        if (reason !== "session.answered-elsewhere") this.emit.push({ ui: "missed_call" });
+        return this.end(id, s, reason);
+      }
+      // §12.5 rule 2: crossed if the initiator has not spoken since our answer; otherwise late
+      // Impl: `session.answered-elsewhere` is for the legs that did not answer (§12.7 rule 3); at the
+      // answering leg it is never a crossed withdrawal, so it is invalid for the state.
+      if (s.state === "ACTIVE" && !s.initiatorSpoke && reason !== "session.answered-elsewhere") return this.end(id, s, reason);
+      return this.invalidState(m);
+    }
+    if (s.state === "ACTIVE") {
+      s.initiatorSpoke = true;
+      if (this.recvActive(id, s, m)) return;
+    }
+    this.invalidState(m);
+  }
+
+  /** Messages valid in ACTIVE for either role: bye, update and its replies, info. */
+  private recvActive(id: string, s: Session, m: JsonObject): boolean {
+    const type = m["type"] as string;
+    if (type === "bye") {
+      this.end(id, s, m["reason"] as string);
+      return true;
+    }
+    if (type === "info") {
+      // §12.12: an unrecognized `about` is ignored silently
+      this.emit.push(KNOWN_ABOUT.includes(m["about"] as string) ? { info: { about: m["about"]! } } : { drop: "unknown-about" });
+      return true;
+    }
+    if (type === "update") {
+      const theirs = m["id"] as string;
+      if (s.outstanding?.direction === "inbound") {
+        // §12.8 rule 4: second update before the first resolves — process neither
+        s.outstanding = null;
+        this.send("error", m["from"] as string, { session: id, reason: "session.update-pending", in_reply_to: theirs });
+      } else if (s.outstanding && s.outstanding.id < theirs) {
+        // §12.8 rule 3: glare — the smaller id proceeds
+        this.send("reject", m["from"] as string, { session: id, reason: "session.glare", in_reply_to: theirs });
+      } else {
+        if (s.outstanding) this.emit.push({ ui: "update_rejected", reason: "session.glare" });
+        s.outstanding = { id: theirs, direction: "inbound" };
+        this.emit.push({ ui: "update_offered" });
+        // §14.4: an update may escalate a screening answer; the new `answered_by` is surfaced
+        if (typeof m["answered_by"] === "string") this.emit.push({ ui: "answered", answered_by: effectiveAnsweredBy(m["answered_by"]) });
+      }
+      return true;
+    }
+    if ((type === "answer" || type === "reject") && "in_reply_to" in m) {
+      if (s.outstanding?.direction !== "outbound" || s.outstanding.id !== m["in_reply_to"]) {
+        this.emit.push({ drop: "stale-update-reply" });
+      } else {
+        s.outstanding = null;
+        this.emit.push(type === "answer" ? { media: "apply_update" } : { ui: "update_rejected", reason: m["reason"]! });
+      }
+      return true;
+    }
+    return false;
+  }
+
+  private recvInvite(m: JsonObject): void {
+    const id = m["id"] as string;
+    const from = m["from"] as string;
+    const fresh = (state: State): Session => ({
+      role: "responder", state, to: from, peer: from, inviteExpires: m["expires_at"] as number | undefined,
+      outstanding: null, media: false, requeues: 0, initiatorSpoke: false,
+    });
+    if (typeof m["expires_at"] === "number" && m["expires_at"] < this.now) {
+      this.sessions.set(id, fresh("ENDED"));
+      return this.send("reject", from, { session: id, reason: "session.expired" });
+    }
+    if (this.ctx.policy?.first_contact_required && !this.admitted(m)) {
+      this.sessions.set(id, fresh("ENDED"));
+      return this.send("reject", from, { session: id, reason: "policy.first-contact-required" });
+    }
+    // §12.6: glare with our own outstanding invite to the same identity
+    const inviter = this.identityOf(from);
+    const rival = [...this.sessions.entries()].find(
+      ([, s]) => s.role === "initiator" && (s.state === "INVITING" || s.state === "PROCEEDING") && this.identityOf(s.to) === inviter,
+    );
+    if (rival) {
+      const [ours, s] = rival;
+      if (ours <= id) {
+        // ours wins (or ids are equal): reject theirs
+        this.sessions.set(id, fresh("ENDED"));
+        if (ours === id) {
+          // Impl: equal ids share one session key; the outbound session is the one kept
+          this.sessions.set(id, s);
+          this.stopAll(ours);
+          this.send("cancel", s.to, { session: ours, reason: "session.glare" });
+          s.endedBy = "cancel";
+          this.end(ours, s, "session.glare");
+          this.send("reject", from, { session: id, reason: "session.glare" });
+          return void this.emit.push({ ui: "glare_retry" });
+        }
+        return this.send("reject", from, { session: id, reason: "session.glare" });
+      }
+      this.stopAll(ours);
+      this.send("cancel", s.to, { session: ours, reason: "session.glare" });
+      s.endedBy = "cancel";
+      this.end(ours, s, "session.glare");
+    }
+    this.sessions.set(id, fresh("OFFERED"));
+    this.emit.push({ ui: "offered" });
+  }
+
+  /** §19.4: a live grant admits an invite by `grant` reference or by grantee, and only with `dsip.invite`. */
+  private admitted(invite: JsonObject): boolean {
+    const identity = this.identityOf(invite["from"] as string);
+    if ((this.ctx.policy?.allow ?? []).includes(identity)) return true;
+    return [...this.grantsIssued.values()].some(
+      (g) => (g.id === invite["grant"] || g.grantee === identity) && g.valid_until > this.now && g.scope.includes("dsip.invite"),
+    );
+  }
+
+  private recvIntroduction(m: JsonObject): void {
+    const id = m["id"] as string;
+    const identity = this.identityOf(m["from"] as string);
+    if (this.answered.has(id)) return void this.emit.push({ drop: "duplicate-introduction" });
+    const token = m["contact_token"];
+    const grantId = typeof token === "string" ? this.tokens.get(token) : undefined;
+    if (grantId !== undefined) {
+      // §19.4: tokens are single-use; the first introduction carrying one is auto-granted
+      this.tokens.delete(token as string);
+      this.answered.add(id);
+      this.emit.push({ ui: "introduction_received", from: identity, token: true });
+      return this.issueGrant(id, identity, grantId, ["dsip.invite"], this.now + 31536000);
+    }
+    this.requests.set(id, { device: m["from"] as string, identity });
+    this.answered.add(id);
+    // §19.4: a requests surface, never a ring
+    this.emit.push({ ui: "introduction_received", from: identity });
+  }
+
+  private readonly answered = new Set<string>();
+
+  private recvIntroductionOutcome(m: JsonObject): void {
+    const intro = m["session"] as string;
+    if (!this.pendingSent.has(intro)) return void this.emit.push({ drop: "unknown-introduction" });
+    this.pendingSent.delete(intro);
+    if (m["type"] === "grant") {
+      this.grantsHeld.set(m["id"] as string, this.identityOf(m["from"] as string));
+      this.emit.push({ ui: "granted", by: this.identityOf(m["from"] as string) });
+    } else {
+      this.emit.push({ ui: "introduction_rejected", reason: m["reason"]! });
+    }
+  }
+}
