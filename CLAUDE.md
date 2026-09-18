@@ -31,6 +31,9 @@ impl/crates/        dsip-core, dsip-schema, dsip-session, dsip-endpoint, dsip-tr
                     dsip-cli, dsip-wasm, dsip-gateway, dsip-messaging, dsip-mls,
                     dsip-mailbox
 impl/demos/         Browser client, broadcast UI (Phase 2+)
+impl-ts/            Second implementation (TypeScript), measured against impl/vectors.
+                    Written from the spec, schemas and vectors README ONLY — never by
+                    reading impl/crates or impl/tools/dsipvec verdict logic (impl-ts/README.md)
 ```
 
 Crate dependency order mirrors verification order: core → schema → session.
@@ -106,6 +109,10 @@ cargo build --workspace                       # run from impl/
 cargo test --workspace
 cargo run -p dsip-cli -- vectors run
 cargo doc --workspace --no-deps
+
+# Second implementation (TypeScript): build, vectors, Python/TypeScript parity
+(cd impl-ts && npm ci && npm run build && npm run vectors)
+python3 impl/tools/parity_ts.py
 
 # DHT local testnet (integration, not vectors)
 python3 impl/tools/dht_testnet.py --nodes 5

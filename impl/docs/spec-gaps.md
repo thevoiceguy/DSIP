@@ -1562,6 +1562,31 @@ the outbox alive is a host choice; the reference device queues application conte
 
 **Suggested fix.** Carry the M§9.4 text into the next profile revision; register `mailbox.hub-unreachable`.
 
+## 73. §9.3 / §15.1 / §15.4 — reason tokens on `notify`
+
+**Gap.** §9.3 says a terminal `notify` SHOULD carry a `reason`, "e.g., `session.expired` for lapsed subscriptions,
+`policy.terminated` for revoked authorization". §15.1 lists the reason-carrying types as `reject`, `cancel`, `bye`
+and `error` — not `notify` — and the §15.4 "valid on" column gives `session.expired` to `reject` only and
+`policy.terminated` to `bye` only. An implementation that applies the column as written flags the spec's own
+example. Found by the second implementation (`impl-ts/`, written from the spec and the vector README alone): it
+accepted `semantic/notify-terminated-reason` with `warnings: ["reason-not-valid-on-type"]`, the Python harness and the
+Rust runner with none. The vector README did not say how `actual` is compared with `expect`; read as "the members
+`expect` names", the extra warning passed. (The existing runners compare for deep equality; the README now says so.)
+
+**Choices considered.** (a) The column does not apply to `notify`: any registered token is warning-free there.
+(b) Apply it and extend the registry: add `notify` to the "valid on" cell of each token a terminal notify may carry
+(`session.expired`, `policy.terminated`, `policy.blocked`, `identity.not-in-service`, …) — precise, but it needs a
+decided list the spec does not have. (c) Apply it as written: every reasoned `notify` warns, including the spec's own
+examples.
+
+**Draft choice.** (a) now, (b) as the spec fix. `notify` is named in the README's effective-reason rule, and the
+README now states the deep-equality comparison (absent `warnings` = none), which is what pins this — the existing
+vector needed no change. Reference: all three implementations agree; `impl-ts/src/semantic.ts` carries the `Impl:` note.
+
+**Suggested fix.** §15.1: add `notify` to the types that carry a `reason`. §15.4: add `notify` to the "valid on"
+cells of `session.expired` and `policy.terminated` (and whichever others §9.3 means), or state that the column
+governs only `reject`/`cancel`/`bye`/`error`.
+
 ## Already-flagged (schema README / plan §11)
 
 - §15.3 codec example uses bare strings; §16.2 defines objects (schemas follow §16.2).

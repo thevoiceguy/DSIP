@@ -39,6 +39,10 @@ def vectors() -> list[dict]:
     out.append(sv("version-unknown-profile", "No mutually supported profile version.", ["§11.3"],
                   {**inv, "dsip": {**F.VERSION, "profiles": ["interactive-media/2.0"]}},
                   reject("version-unsupported", "session.unsupported-profile-version")))
+    out.append(sv("version-known-profile-among-unknown",
+                  "One listed profile is mutually supported; an unknown one beside it is not a version failure.",
+                  ["§11.2", "§11.3"],
+                  {**inv, "dsip": {**F.VERSION, "profiles": ["interactive-media/1.0", "holo-presence/1.0"]}}, accept()))
 
     # --- schema dispatch
     out.append(sv("unknown-message-type", "type not in the core message set.", ["§12.1"],

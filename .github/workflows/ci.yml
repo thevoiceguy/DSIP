@@ -170,6 +170,22 @@ jobs:
       - name: DHT local testnet (5 nodes)
         run: python3 impl/tools/dht_testnet.py --nodes 5 --report /tmp/dht-report.json
 
+  typescript:
+    name: second implementation (impl-ts) passes the vectors + Python/TypeScript parity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install jsonschema pynacl cryptography
+      - uses: actions/setup-node@v4
+        with: { node-version: "20" }
+      - run: npm ci && npm run build
+        working-directory: impl-ts
+      - run: npm run vectors
+        working-directory: impl-ts
+      - run: python3 impl/tools/parity_ts.py
+
   wasm:
     name: dsip-wasm builds and the Node smoke test passes
     runs-on: ubuntu-latest

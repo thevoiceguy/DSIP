@@ -1,0 +1,14 @@
+{
+  "name": "dsip-ts",
+  "version": "0.8.0",
+  "private": true,
+  "description": "Second DSIP implementation, written from the v0.8 spec and the conformance vectors only",
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "build": "tsc -p .",
+    "vectors": "node dist/run-vectors.js"
+  },
+  "dependencies": { "ajv": "^8.17.1" },
+  "devDependencies": { "typescript": "^5.6.0", "@types/node": "^20.0.0" }
+}
