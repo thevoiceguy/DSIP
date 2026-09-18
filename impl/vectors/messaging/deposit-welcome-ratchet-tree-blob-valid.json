@@ -1,0 +1,47 @@
+{
+  "vector": "messaging/deposit-welcome-ratchet-tree-blob-valid",
+  "format": 1,
+  "kind": "messaging",
+  "description": "A welcome too large to inline its ratchet tree names the tree blob (M§6.4).",
+  "spec_ref": [
+    "M§5.2",
+    "M§6.4"
+  ],
+  "context": {},
+  "input": {
+    "check": "message",
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "messaging/1.0"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "deposit",
+      "id": "01K742SG006EHMCZ0BS40ZNVS4",
+      "from": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+      "to": "did:web:mbx.alice.example",
+      "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+      "class": "welcome",
+      "mls": "AAFtbHMtbWVzc2FnZQ",
+      "recipient": "did:web:example.com:users:bob",
+      "hub": {
+        "did": "did:web:mbx.alice.example",
+        "uri": "wss://mbx.alice.example/dsip"
+      },
+      "ratchet_tree_blob": {
+        "uri": "https://mbx.alice.example/blobs/9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+        "sha256": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+        "size": 482220
+      },
+      "issued_at": 1760000000,
+      "expires_at": 1760000030
+    }
+  },
+  "expect": {
+    "verdict": "accept"
+  }
+}

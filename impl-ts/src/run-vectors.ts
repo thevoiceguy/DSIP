@@ -14,6 +14,12 @@ import { Endpoint, type EndpointContext } from "./endpoint.js";
 import type { Json, JsonObject } from "./did.js";
 import { verifyEnvelope, type ReceiverContext } from "./envelope.js";
 import { GatewayCall, descriptorsToSdp, downgrade, downgradeError, reasonInbound, reasonOutbound, sdpToDescriptors, telClaim } from "./gateway.js";
+import { checkConversationExt, checkConversationUpdate, checkMessage } from "./messaging/message.js";
+import { checkObject, type ObjectContext } from "./messaging/object.js";
+import * as mcrypto from "./messaging/crypto.js";
+import * as blobs from "./messaging/blobs.js";
+import * as rules from "./messaging/rules.js";
+import { messagingSchemas } from "./messaging/schemas.js";
 import { Relay, type RelayContext } from "./relay.js";
 import { SchemaSet } from "./schema.js";
 import { checkPayload } from "./semantic.js";
@@ -26,7 +32,7 @@ const schemas = new SchemaSet();
 type Vector = { vector: string; kind: string; context?: JsonObject; input: JsonObject; expect: JsonObject };
 
 /** Kinds this implementation covers so far; the rest are reported as skipped, never as passed. */
-const RUNNERS: Record<string, (v: Vector) => Json> = {
+const RUNNERS: Record<string, (v: Vector) => Json | undefined> = {
   envelope: (v) => envelope(v),
   transport: (v) => envelope(v),
   dht: (v) =>
@@ -45,6 +51,7 @@ const RUNNERS: Record<string, (v: Vector) => Json> = {
     ),
   "media-binding": (v) => mediaBinding(v),
   gateway: (v) => gateway(v),
+  messaging: (v) => messaging(v),
   trust: (v) =>
     v.input["check"] === "basis"
       ? verificationBasis(v.input["identity"] as string, v.input["claims"] as JsonObject[])
@@ -76,6 +83,89 @@ function trace(v: Vector): Json[] | null {
     const emit = component.step(step["event"] as JsonObject);
     return { emit, ...component.snapshot(step["expect"] as JsonObject) };
   });
+}
+
+function hex(value: Json | undefined): Buffer {
+  return Buffer.from(value as string, "hex");
+}
+
+/** Kind `messaging`; a check this implementation does not cover yet returns `undefined` and is reported as skipped. */
+function messaging(v: Vector): Json | undefined {
+  const i = v.input;
+  switch (i["check"]) {
+    case "payload":
+      return messagingSchemas.valid(i["schema"] as string, i["payload"]!) ? { verdict: "accept" } : reject("schema-invalid");
+    case "message":
+      return checkMessage(i["payload"] as JsonObject);
+    case "object":
+      return checkObject(i["object"] as JsonObject, v.context as unknown as ObjectContext);
+    case "voicemail-offer":
+      return rules.voicemailOffer(i["voicemail"] as JsonObject | null, i["can_send"] as boolean, i["outcome"] as never);
+    case "call-event":
+      return rules.callEvent(i as never);
+    case "peer-timeline":
+      return rules.peerTimeline(i["content"] as never, i["calls"] as never);
+    case "mailbox-select":
+      return rules.mailboxSelect((i["document_entries"] ?? []) as JsonObject[], (i["hint_entries"] ?? []) as JsonObject[], i["reachable"] as string[] | undefined);
+    case "mailbox-switch":
+      return rules.mailboxSwitch(i["established"] as never, i["candidate"] as never);
+    case "direct-select":
+      return rules.directSelect(i["candidates"] as never);
+    case "successor-select":
+      return rules.successorSelect(i["candidates"] as string[]);
+    case "successor-check":
+      return rules.successorCheck(i["predecessor_roster"] as string[], i["creator"] as string, i["roster"] as string[]);
+    case "external-join":
+      return rules.externalJoin(i as never);
+    case "registration-on-removal":
+      return rules.registrationOnRemoval(i["me"] as string, i["remaining_identities"] as string[]);
+    case "blob-put":
+      return blobs.blobPut(i as never);
+    case "blob-get":
+      return blobs.blobGet(i["path_sha256"] as string, i["stored"] as string[]);
+    case "blob-replicate":
+      return blobs.blobReplicate(i as never);
+    case "items-blobs":
+      return blobs.itemsBlobs(i["blob_endpoint"] as string, i["stored"] as string[], i["manifest"] as never);
+    case "blob-sources":
+      return blobs.blobSources(i["blob"] as never, i["manifest"] as never);
+    case "mls-extension-encode":
+      return { hex: mcrypto.encodeExtension(i["extension_type"] as number, hex(i["data_hex"])).toString("hex") };
+    case "mls-extension-decode":
+      return mcrypto.decodeExtension(hex(i["hex"]));
+    case "mls-conversation-bytes":
+      return mcrypto.checkConversationBytes(hex(i["data_hex"]));
+    case "mls-credential":
+      return mcrypto.checkCredential(i["credential"] as never, hex(i["signature_key_hex"]), i["extensions"] as never, v.context as unknown as ReceiverContext);
+    case "seal":
+      return { sealed_hex: mcrypto.seal(i as never, hex(i["key_hex"]), hex(i["nonce_hex"]), hex(i["plaintext_hex"])).toString("hex") };
+    case "open":
+      return mcrypto.open(i as never, hex(i["key_hex"]), hex(i["sealed_hex"]));
+    case "hpke-open": {
+      const pt = mcrypto.hpkeOpen(hex(i["enc_hex"]), hex(i["sk_r_hex"]), hex(i["info_hex"]), hex(i["aad_hex"]), hex(i["ct_hex"]));
+      return pt ? { verdict: "accept", plaintext_hex: pt.toString("hex") } : reject("hpke-open-failed");
+    }
+    case "hpke-derive-key-pair": {
+      const { sk, pk } = mcrypto.hpkeDeriveKeyPair(hex(i["ikm_hex"]));
+      return { sk_hex: sk.toString("hex"), pk_hex: pk.toString("hex") };
+    }
+    case "x25519-key-agreement":
+      return { x25519_pk_hex: mcrypto.x25519FromEd25519Seed(hex(i["ed25519_seed_hex"])).pk.toString("hex") };
+    case "sealed-introduction-open":
+      return mcrypto.openIntroduction(i["payload"] as JsonObject, mcrypto.x25519FromEd25519Seed(hex(i["recipient_ed25519_seed_hex"])).sk);
+    case "introduction": {
+      // the profile's introduction is the core message: stage 13 shape, then the stage 14 rule
+      const p = i["payload"] as JsonObject;
+      const failed = checkPayload(p, {}, schemas);
+      return failed.verdict === "reject" ? failed : { verdict: "accept", effective: { sealed: "sealed" in p } };
+    }
+    case "conversation-ext":
+      return checkConversationExt(i["extension"] as JsonObject);
+    case "conversation-update":
+      return checkConversationUpdate(i["before"] as JsonObject, i["after"] as JsonObject);
+    default:
+      return undefined;
+  }
 }
 
 function gateway(v: Vector): Json {
@@ -186,7 +276,13 @@ function main(): number {
       }
       let actual: Json;
       try {
-        actual = run(v);
+        const out = run(v);
+        if (out === undefined) {
+          skipped++;
+          results[v.vector] = { ok: false, skipped: true };
+          continue;
+        }
+        actual = out;
       } catch (e) {
         actual = { crash: String(e) };
       }

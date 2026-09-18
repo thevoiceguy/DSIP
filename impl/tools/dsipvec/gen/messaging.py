@@ -130,6 +130,17 @@ def message_vectors():
     m("deposit-welcome-valid", "Hub-forwarded welcome with hub, grant and origin.", ["M§5.2", "M§14.2"],
       deposit(cls="welcome", recipient=BOB, hub={"did": HUB_A, "uri": "wss://mbx.alice.example/dsip"},
               grants=["eyJ.grant.sig"], origin="eyJ.origin.sig"), accept())
+    blob = {"uri": "https://mbx.alice.example/blobs/" + "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+            "sha256": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08", "size": 482220}
+    m("deposit-application-fanout-valid", "A hub's fan-out to a member mailbox: `recipient` and `seq` belong to the addressing, not to a class.",
+      ["M§5.2", "M§6.5"], deposit("fanout", recipient=BOB, seq=7), accept())
+    m("deposit-handshake-with-blobs-refused", "The blob manifest names what content references: a handshake carries no content.",
+      ["M§5.2", "M§8.4"], deposit("hs-blobs", cls="handshake", blobs=[blob]), reject("deposit-fields"))
+    m("deposit-welcome-ratchet-tree-blob-valid", "A welcome too large to inline its ratchet tree names the tree blob (M§6.4).",
+      ["M§5.2", "M§6.4"], deposit("w-tree", cls="welcome", recipient=BOB, hub={"did": HUB_A, "uri": "wss://mbx.alice.example/dsip"},
+                                  ratchet_tree_blob=blob), accept())
+    m("deposit-group-info-ratchet-tree-blob-valid", "A GroupInfo for external joins may name the tree blob the same way.",
+      ["M§5.2", "M§6.4", "M§6.8"], deposit("gi-tree", cls="group-info", ratchet_tree_blob=blob), accept())
     m("deposit-welcome-with-seq-refused", "Only handshake and application items carry a hub seq.", ["M§5.2"],
       deposit(cls="welcome", hub={"did": HUB_A}, seq=3), reject("deposit-fields"))
     m("deposit-archive-valid", "Archive deposit with akid and item reference.", ["M§5.2", "M§12.2"],

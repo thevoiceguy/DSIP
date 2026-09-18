@@ -68,6 +68,11 @@ const REASONS: Record<string, string[]> = {
 /** Reason categories. Spec: §15.1 token grammar */
 const CATEGORIES = ["user", "endpoint", "identity", "session", "media", "policy", "transport", "gateway", "mailbox"];
 
+/** True when `token` is in the `dsip-reason` registry. Spec: §15.4 */
+export function isRegisteredReason(token: string): boolean {
+  return token in REASONS;
+}
+
 /** How a received reason token is to be read. */
 export interface EffectiveReason {
   /** The token whose behavior applies. */
