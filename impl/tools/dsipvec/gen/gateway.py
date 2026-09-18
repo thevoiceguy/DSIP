@@ -48,6 +48,10 @@ def vectors() -> list[dict]:
         ("inbound-bye-q850-16", None, 16, "active", {"reason": "user.hangup", "carry": "bye", "detail": "Q.850 16"}),
         ("inbound-bye-q850-41-unreachable", None, 41, "active", {"reason": "gateway.unreachable", "carry": "bye", "detail": "Q.850 41"}),
         ("inbound-active-attempt-token-becomes-mapped", None, 17, "active", {"reason": "gateway.mapped", "carry": "bye", "detail": "Q.850 17"}),
+        ("inbound-active-declined-becomes-mapped", None, 21, "active", {"reason": "gateway.mapped", "carry": "bye", "detail": "Q.850 21"}),
+        ("inbound-active-unavailable-becomes-mapped", None, 18, "active", {"reason": "gateway.mapped", "carry": "bye", "detail": "Q.850 18"}),
+        ("inbound-active-not-in-service-becomes-mapped", None, 22, "active", {"reason": "gateway.mapped", "carry": "bye", "detail": "Q.850 22"}),
+        ("inbound-active-media-token-stays", None, 65, "active", {"reason": "media.unsupported", "carry": "bye", "detail": "Q.850 65"}),
         ("inbound-transport-503-error", 503, None, "transport", {"reason": "gateway.unreachable", "carry": "error", "detail": "SIP 503"}),
     ]:
         inp = {"check": "reason-inbound", "phase": phase}
@@ -68,6 +72,7 @@ def vectors() -> list[dict]:
         ("outbound-media-unsupported-488", "media.unsupported", "pre-answer", {"status": 488, "q850": 65, "reason_header": DSIP_HDR("media.unsupported")}),
         ("outbound-rate-limited-503-retry-after", "policy.rate-limited", "pre-answer", {"status": 503, "q850": 42, "reason_header": DSIP_HDR("policy.rate-limited"), "retry_after": True}),
         ("outbound-unknown-token-category-fallback", "user.stepped-out", "pre-answer", {"status": 603, "q850": 21, "reason_header": DSIP_HDR("user.stepped-out")}),
+        ("outbound-unknown-endpoint-token-category-fallback", "endpoint.on-fire", "pre-answer", {"status": 480, "q850": 18, "reason_header": DSIP_HDR("endpoint.on-fire")}),
         ("outbound-unknown-category-500", "x-cc.queue-full", "pre-answer", {"status": 500, "q850": 41, "reason_header": DSIP_HDR("x-cc.queue-full")}),
         ("outbound-bye-hangup", "user.hangup", "active", {"method": "BYE", "q850": 16, "reason_header": DSIP_HDR("user.hangup")}),
         ("outbound-bye-media-failed", "media.failed", "active", {"method": "BYE", "q850": 47, "reason_header": DSIP_HDR("media.failed")}),

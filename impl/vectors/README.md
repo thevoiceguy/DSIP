@@ -439,6 +439,31 @@ carry, pinned before the gateway exists. `input.check` selects:
 | `downgrade` | `facts` (`direction`, `trunk_srtp`, `identity_assertable`, `attestation`, `policy_present`) | `{downgraded, lost: [no-srtp-on-trunk \| identity-not-assertable \| no-attestation \| policy-unenforceable]}` (§6.3) |
 | `trace` | `steps` of `{dsip: MSG}` / `{sip: {status}\|{request, …}}` / `{timer: "C"}`; `context.direction`, `context.early_media` | per-step `emit` (what each leg is told: `{sip: "INVITE"\|"ACK"\|"CANCEL"\|{response, direction?, q850?, reason_header?}\|{request, …}}`, `{dsip: {local: …}}`, `{media: bridge\|release}`) and `state: {dsip, sip}` |
 
+Details the table leaves out, all part of the contract:
+
+- **The gateway's identity is fixed**: `did:web:gw.example` is the `verifier` of every `tel` claim, and `trust_basis` is the
+  kind-`trust` `basis` line for that claim. `cnam` is carried only when given. A `moved_to` turns `identity.not-in-service`
+  into `identity.moved` with `detail` = the target; otherwise `detail` is `Q.850 <n>` when a cause was given and mapped (or
+  when there is no status), else `SIP <status>`. `phase` defaults to `pre-answer`.
+- **Attempt tokens** that become `gateway.mapped` once ACTIVE: `endpoint.busy`, `endpoint.unavailable`, `user.declined`,
+  `identity.unknown`, `identity.not-in-service`, `identity.moved`, `session.cancelled`, `policy.blocked` (spec-gap 78).
+  `user.hangup`, `media.*`, `gateway.*` and `session.timeout` are reported as they map.
+- **Outbound causes**: an unregistered token takes its category's status *and* the cause of that category's
+  representative row — `user` 603/21, `endpoint` 480/18, `identity` 404/1, `session` 500/41, `media` 488/65, `policy` 403/21,
+  `transport` 503/41, `gateway` 503/38; an unrecognized category is `session.failed`, 500/41 (spec-gap 79). A BYE carries
+  cause 16 for `user.hangup` and any `session.*`, 47 for `media.failed`, otherwise the token's table cause.
+  `retry_after: true` appears only for `policy.rate-limited`.
+- `downgrade-error` (input `facts`) is the `detail` of the informational `error gateway.downgraded`: `{losses: […]}`, or
+  `null` when nothing was lost. Losses are listed in G§7 table order; `no-attestation` is inbound-only,
+  `identity-not-assertable` outbound-only.
+- `trace` keeps expectations in `expect.steps[i]` = `{emit, state}`, parallel to `input.steps[i].event`. States — DSIP leg:
+  `inviting`/`proceeding` (outbound), `offered`/`alerting` (inbound), `active`, `ended`; SIP leg: `calling`, `early`,
+  `confirmed`, `terminated`. The DSIP leg is told things as the endpoint engine's own local events: `place_call {claims,
+  trust_basis}`, `alert`, `accept {answered_by: gateway}`, `auto_reject {reason, detail}`, `cancel`, `hangup {reason}`,
+  `update {direction}`, `info {about, data}`. What is not carried is `{"ignore": TEXT}` with exactly: `dsip info <about>`,
+  `dsip dtmf outside the established call`, `sip dtmf outside the established call`. A SIP request is answered before the
+  DSIP leg is told (`200` then `hangup`; `200`, `cancel`, then `487`); a 2xx is ACKed before anything else.
+
 ## Kind: `messaging`
 
 DSIP Messaging Profile 1.0 (`v0.8/dsip-messaging-profile-v0.8.md`, cited `M§n`), tranche 1.
@@ -524,6 +549,8 @@ Each item has a matching `spec-gap` issue draft in `impl/docs/spec-gaps.md`.
 31. §12.9 vs §19.4: held introductions — no 300 s age bound, 604,800 s validity cap enforced, id tracked until `expires_at` (`envelope/introduction-*`).
 74. §19.4: a `grant` is addressed to the introducing identity, a `reject` of the same introduction to the introducing device (`state/first-contact-*`).
 75. §12.5 rule 2 vs §12.7 rule 3: `cancel session.answered-elsewhere` reaching the leg that answered is `session.invalid-state`, not a crossed cancel (`state/race-responder-answered-elsewhere-at-answering-leg`).
+78. G§4: which tokens are "attempt" tokens once ACTIVE — the profile's list omits `endpoint.unavailable` and `identity.not-in-service` (`gateway/inbound-active-*`).
+79. G§4.2: the Q.850 cause of a category-fallback response, and of a BYE for a token the BYE rows do not name (`gateway/outbound-unknown-*`, `outbound-bye-policy-terminated`).
 77. §22.2/§22.3: every verified provenance statement is reported `integrity_mode: derivative-bound`, a `relay` included (`broadcast/provenance-relay-operation`).
 76. §12.7 rule 6: the attempt outcome when every leg expired and none rejected — `endpoint.unavailable` (`state/relay-all-legs-expired`).
 73. §9.3 vs §15.4: a terminal `notify` carries `session.expired` / `policy.terminated`, tokens the registry lists as valid on other types only; no warning on `notify` (`semantic/notify-terminated-reason`, by the deep-equality rule above).

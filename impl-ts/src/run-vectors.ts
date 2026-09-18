@@ -13,6 +13,7 @@ import { verifyHint } from "./dht.js";
 import { Endpoint, type EndpointContext } from "./endpoint.js";
 import type { Json, JsonObject } from "./did.js";
 import { verifyEnvelope, type ReceiverContext } from "./envelope.js";
+import { GatewayCall, descriptorsToSdp, downgrade, downgradeError, reasonInbound, reasonOutbound, sdpToDescriptors, telClaim } from "./gateway.js";
 import { Relay, type RelayContext } from "./relay.js";
 import { SchemaSet } from "./schema.js";
 import { checkPayload } from "./semantic.js";
@@ -43,6 +44,7 @@ const RUNNERS: Record<string, (v: Vector) => Json> = {
       schemas,
     ),
   "media-binding": (v) => mediaBinding(v),
+  gateway: (v) => gateway(v),
   trust: (v) =>
     v.input["check"] === "basis"
       ? verificationBasis(v.input["identity"] as string, v.input["claims"] as JsonObject[])
@@ -74,6 +76,32 @@ function trace(v: Vector): Json[] | null {
     const emit = component.step(step["event"] as JsonObject);
     return { emit, ...component.snapshot(step["expect"] as JsonObject) };
   });
+}
+
+function gateway(v: Vector): Json {
+  const i = v.input;
+  switch (i["check"]) {
+    case "reason-inbound":
+      return reasonInbound(i as never) as unknown as Json;
+    case "reason-outbound":
+      return reasonOutbound(i["reason"] as string, i["phase"] as string);
+    case "sdp-to-descriptors":
+      return sdpToDescriptors(i["sdp"] as string);
+    case "descriptors-to-sdp":
+      return descriptorsToSdp(i["media"] as JsonObject[]);
+    case "claims":
+      return telClaim(i as never);
+    case "downgrade":
+      return downgrade(i["facts"] as JsonObject);
+    case "downgrade-error":
+      return downgradeError(i["facts"] as JsonObject);
+    case "trace": {
+      const call = new GatewayCall(v.context as never);
+      return { steps: (i["steps"] as JsonObject[]).map((s) => call.step(s["event"] as JsonObject)) };
+    }
+    default:
+      throw new Error(`unknown gateway check ${String(i["check"])}`);
+  }
 }
 
 function mediaBinding(v: Vector): Json {
