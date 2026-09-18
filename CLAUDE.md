@@ -49,7 +49,8 @@ shape checks. Never invert this.
    until the runner agrees.
 
 2. **Rust/Python parity is CI-enforced.** Every vector must produce the same
-   verdict from the Python harness and the Rust runner. If they disagree,
+   verdict from the Python harness and the Rust runner — and from `impl-ts`, the
+   second implementation, which passes the whole suite (`parity_ts.py --require-all`). If they disagree,
    stop and find out why before proceeding — a divergence is either a vector
    bug or an implementation bug, and it must be identified, never papered over.
 

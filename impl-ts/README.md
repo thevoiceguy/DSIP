@@ -32,20 +32,19 @@ python3 ../impl/tools/parity_ts.py       # Python harness vs this implementation
 
 ## Coverage
 
-| Kind | Vectors | Status |
+**Every vector: 874 of 874**, no kind skipped. Python/TypeScript parity compares actual with actual on all of them.
+
+| Kind | Vectors | Modules |
 |---|---|---|
-| `envelope` | 65 | pass |
-| `transport` | 13 | pass |
-| `dht` | 12 | pass |
-| `payload` | 97 | pass |
-| `semantic` | 50 | pass |
-| `state` | 82 | pass — `endpoint` 59, `relay` 14, `authority` 7, `subscriber` 2 |
-| `broadcast` | 21 | pass |
-| `media-binding` | 42 | pass |
-| `trust` | 13 | pass |
-| `gateway` | 64 | pass |
-| `messaging`, stateless checks | 226 | pass — messages, objects, client rules, blobs, MLS encoding and credentials, AES-GCM sealing, HPKE |
-| `messaging`, traces | 181 | not yet implemented — mailbox 71, hub 32, client 23, resume 12, commit-retry 11, history 11, successor 9, hub-outage 6, gap 6 |
+| `envelope`, `transport`, `dht` | 65, 13, 12 | `envelope.ts`, `did.ts`, `encoding.ts`, `dht.ts` |
+| `payload`, `semantic` | 97, 50 | `schema.ts`, `semantic.ts`, `registry.ts` |
+| `state` | 82 | `endpoint.ts`, `relay.ts`, `broadcast-state.ts`, `timers.ts` |
+| `broadcast`, `trust`, `media-binding` | 21, 13, 42 | `broadcast.ts`, `trust.ts`, `binding.ts` |
+| `gateway` | 64 | `gateway.ts` |
+| `messaging` | 415 | `messaging/`: `message`, `object`, `rules`, `blobs`, `crypto` (stateless, 230); `device`, `sync`, `client`, `hub`, `mailbox` (the nine trace machines, 185) |
+
+What this is not: a product. It has no transport, no MLS library and no storage — it is the protocol's *decisions*,
+which is what the vectors measure. The wire demos in `../impl/demos` remain the Rust implementation's.
 
 ## Findings so far
 
@@ -99,6 +98,13 @@ every combination as temporary vectors, run all three implementations, and compa
 independence rule — nothing is read, only observed — and it is how findings 16 and 19 were made. Probes are deleted
 afterwards; the disagreements become real vectors.
 
+Stage 6 (`messaging`, the nine trace machines):
+
+| # | Finding | Disposition |
+|---|---|---|
+| 21 | Passing all 867 vectors was not agreement. Random traces run through all three implementations (180 for the device machines, about 700 for the hub, about 2,400 for the mailbox; Rust and Python never differed from each other) found: the order of a hub's refusals — notably that a re-deposit is answered `duplicate` *before* membership and epoch; that a handover wait holds off everything from the new hub and is judged before numbering; that grant deposits are rate-limited like introductions; push order; and that the §15.3 fallback's one retry is its own. | spec-gap 81; 8 new vectors (874). |
+| 22 | The README's mailbox table left out three events (`first_contact`, `forward`, `forward_failed`), two emissions (`handover_expired`, `close`), the `key_packages.devices` map, and the hub's ack-the-head rule. | README. |
+
 Readings this implementation makes that no vector pins yet (found by mutating the code and seeing the suite stay green):
 
 - A delegation *presented* in the protected header that links a different device/identity pair is
@@ -106,4 +112,6 @@ Readings this implementation makes that no vector pins yet (found by mutating th
 - Order of version failures when several hold at once: core → profile → critical extension.
 - A provenance statement whose `output_variant` the publication does not advertise is accepted (§22.3 constrains only `input_variant`).
 - Category-fallback causes for `identity`, `session`, `media`, `policy`, `transport`, `gateway` (only `user` and `endpoint` are pinned).
+- In a handover wait, the seqs reported `missing` are counted from the lowest seq the mailbox has stored (from 1 when it
+  has none); the random mailbox traces never told this apart from any other baseline.
 - The `trust` basis for a `tel` claim whose verifier is not a `did:web` shows the verifier DID as is.

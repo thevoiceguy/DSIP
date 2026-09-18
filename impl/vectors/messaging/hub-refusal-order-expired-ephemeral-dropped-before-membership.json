@@ -1,0 +1,108 @@
+{
+  "vector": "messaging/hub-refusal-order-expired-ephemeral-dropped-before-membership",
+  "format": 1,
+  "kind": "messaging",
+  "description": "Expired activity is dropped silently before the hub asks who sent it: nothing is answered, to anyone.",
+  "spec_ref": [
+    "M§11.2",
+    "M§6.5"
+  ],
+  "context": {
+    "component": "hub",
+    "hub": "did:web:mbx.alice.example",
+    "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+    "kind": "direct",
+    "now": 1760000000,
+    "epoch": 1,
+    "roster": {
+      "did:web:alice.example": [
+        "did:key:z6MkfhenvjQ7awdpVWzPaeBuPkXCBLwzJKyosCrTL3huMb66",
+        "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu"
+      ],
+      "did:web:example.com:users:bob": [
+        "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+      ]
+    }
+  },
+  "input": {
+    "check": "hub-trace",
+    "steps": [
+      {
+        "event": {
+          "deposit": {
+            "id": "01K742SG00QVR2MPCMM6SGVBJG",
+            "device": "did:key:z6MkrQ4CKj5x3MGbqmYBbfSXyh865wpvDStxi3HeGvfyJw8H",
+            "identity": "did:web:mallory.example",
+            "class": "ephemeral",
+            "digest": "typ-old-m",
+            "expires_at": 1759999999
+          }
+        }
+      },
+      {
+        "event": {
+          "deposit": {
+            "id": "01K742SG004QKP41GR5BG1K7D8",
+            "device": "did:key:z6MkrQ4CKj5x3MGbqmYBbfSXyh865wpvDStxi3HeGvfyJw8H",
+            "identity": "did:web:mallory.example",
+            "class": "ephemeral",
+            "digest": "typ-m",
+            "expires_at": 1760000010
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [],
+        "state": {
+          "epoch": 1,
+          "next_seq": 1,
+          "roster": {
+            "did:web:alice.example": [
+              "did:key:z6MkfhenvjQ7awdpVWzPaeBuPkXCBLwzJKyosCrTL3huMb66",
+              "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu"
+            ],
+            "did:web:example.com:users:bob": [
+              "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+            ]
+          },
+          "pending": {},
+          "group_info": false,
+          "moved_to": null,
+          "welcomes": {}
+        }
+      },
+      {
+        "emit": [
+          {
+            "error": {
+              "to": "did:key:z6MkrQ4CKj5x3MGbqmYBbfSXyh865wpvDStxi3HeGvfyJw8H",
+              "in_reply_to": "01K742SG004QKP41GR5BG1K7D8",
+              "reason": "policy.blocked"
+            }
+          }
+        ],
+        "state": {
+          "epoch": 1,
+          "next_seq": 1,
+          "roster": {
+            "did:web:alice.example": [
+              "did:key:z6MkfhenvjQ7awdpVWzPaeBuPkXCBLwzJKyosCrTL3huMb66",
+              "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu"
+            ],
+            "did:web:example.com:users:bob": [
+              "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+            ]
+          },
+          "pending": {},
+          "group_info": false,
+          "moved_to": null,
+          "welcomes": {}
+        }
+      }
+    ]
+  }
+}

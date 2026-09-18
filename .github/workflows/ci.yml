@@ -184,7 +184,7 @@ jobs:
         working-directory: impl-ts
       - run: npm run vectors
         working-directory: impl-ts
-      - run: python3 impl/tools/parity_ts.py
+      - run: python3 impl/tools/parity_ts.py --require-all
 
   wasm:
     name: dsip-wasm builds and the Node smoke test passes

@@ -1723,6 +1723,40 @@ and ignore the rest — simpler, but then two services disagree about the same d
 **Suggested fix.** M§5.2: replace the "carries" column with MUST-carry / MAY-carry columns, and say that `recipient`
 is class-independent.
 
+## 81. M§6.5 / M§7.4 / M§14.1 — orders and scopes the traces never exercised
+
+**Gap.** Three places where the profile gives a list of rules and the services must pick one answer. None had a vector
+with two rules in play, so the second implementation passed the whole suite (867 of 867) and still disagreed with Rust
+and Python once random traces were run through all three (about 3,000 generated hub and mailbox traces; Rust and Python never
+disagreed with each other):
+
+1. **A hub's refusals** (M§6.5 rules 1–3 are a list, not an order). The reference order: moved → unsupported class →
+   expired ephemeral dropped → *sequenced bytes seen before are `accepted duplicate`* → membership / M§6.8 → epoch →
+   commit validity. The second implementation authenticated first, as rule 1's position suggests. The notable point is
+   the fourth: a re-deposit is answered before membership and epoch, so a member removed since, or a retry arriving an
+   epoch late, still learns its item was ordered — and so does anyone else who holds those bytes.
+2. **The handover wait** (M§7.4, spec-gap 71) says the mailbox "refuses the new hub" until the old hub's items are
+   stored. The reference holds off *everything* from the new hub, a `group-info` included, and answers "retry"
+   (`mailbox.unknown-group`) before judging a wrong `seq` (`policy.blocked`); the second implementation held off only
+   sequenced items and judged numbering first.
+3. **First-contact rate limits** (M§14.1, §19.4) are stated for introductions. The reference counts, and limits, a
+   `grant` deposit the same way.
+
+**Choices considered.** (1) (a) the reference order; (b) membership first — but then a removed member's retry is
+refused `policy.blocked` though its item *was* ordered, which M§9.3's idempotence exists to prevent. (2) (a) everything
+waits; (b) only sequenced items — a GroupInfo from a hub the mailbox is not yet sure of would replace the stored one.
+(3) (a) both kinds; (b) introductions only — a grant answers an introduction the *owner of the other mailbox* sent, so
+limiting it with the stranger's budget can delay a legitimate answer; on the other hand an unlimited `grant` class is
+an unmetered way to write into someone's mailbox.
+
+**Draft choice.** (a) in all three, as pinned now: `hub-refusal-order-*` (4), `mailbox-hub-move-wait-covers-everything-
+from-the-new-hub`, `mailbox-grant-counts-toward-the-rate-limit`, `mailbox-push-in-device-order`, and
+`commit-retry-unknown-mailbox-condition-after-a-conflict` (the §15.3 fallback's one retry is its own, inside the bound
+of three proposals). (3) deserves a second look: a separate, more generous budget for grants would answer both worries.
+
+**Suggested fix.** M§6.5: state the order. M§7.4: "refuses every deposit from the new hub". M§14.1: say whether grant
+deposits are rate-limited, and with which budget.
+
 ## Already-flagged (schema README / plan §11)
 
 - §15.3 codec example uses bare strings; §16.2 defines objects (schemas follow §16.2).
