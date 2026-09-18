@@ -35,6 +35,7 @@ ULID_TOLERANCE_S = 300         # M§8.1 (§20.6 applied to content)
 REACTION_MAX_BYTES = 32        # M§8.2
 KEY_PACKAGES_PER_DEVICE = 100  # M§5.5 RECOMMENDED bound
 ORIGIN_SKEW_S = 300            # M§14.2: origin issued_at within 300 s of the hub deposit
+HANDOVER_WAIT_S = 300          # M§7.4 (spec-gap 71): how long a mailbox holds a new hub off for the old hub's last items
 
 MESSAGE_SCHEMAS = ["deposit", "accepted", "sync", "items", "key-packages", "key-package-fetch", "blob-put",
                    "mailbox-config"]
@@ -452,6 +453,7 @@ class Mailbox:
         self.admit = ctx.get("admit", "grant")
         self.pending_ttl = ctx.get("pending_group_ttl", 604800)
         self.pending_max = ctx.get("pending_group_max_items", 500)
+        self.handover_wait = ctx.get("handover_wait", HANDOVER_WAIT_S)
         self.groups = {g: {"hub": r["hub"], "state": r["state"], "since": self.now, "items": 0}
                        for g, r in ctx.get("groups", {}).items()}
         self.kp = {dv: {"one_time": k.get("one_time", 0), "last_resort": k.get("last_resort", False)}
@@ -551,24 +553,36 @@ class Mailbox:
             return self._error(e["from"], e["id"], "transport.unknown-recipient")
         reg = self.groups.get(e["group"])
         prev = reg.get("previous") if reg else None
+        late = False  # an item of the previous hub arriving after the wait for it expired (spec-gap 71)
+        out = []
         if reg is not None and prev is not None and e["from"] == prev["hub"] and reg["hub"] != e["from"]:
             # spec-gap 60: the previous hub still delivers what it ordered, through the commit that moved the group
             if e.get("seq") is None or e["seq"] > prev["through"]:
                 return self._error(e["from"], e["id"], "mailbox.unknown-group")
+            if prev.get("released") is not None and e["seq"] > prev["released"] and e["seq"] not in prev["late"]:
+                # spec-gap 71: after the wait, what the previous hub still delivers at or below handover_seq is stored
+                # (the owner's devices fill their gap with it); what was stored before is a redelivery as usual
+                late = True
         elif reg is None or reg["hub"] != e["from"]:  # M§6.6
             return self._error(e["from"], e["id"], "mailbox.unknown-group")
         elif prev is not None:
-            if reg.get("high_seq", 0) < prev["through"]:
-                # spec-gap 60: not before the previous hub's items through the move are stored (the new hub retries)
-                return self._error(e["from"], e["id"], "mailbox.unknown-group")
+            if reg.get("high_seq", 0) < prev["through"] and prev.get("released") is None:
+                if self.now - prev["since"] < self.handover_wait:
+                    # spec-gap 60: not before the previous hub's items through the move are stored (the new hub retries)
+                    return self._error(e["from"], e["id"], "mailbox.unknown-group")
+                # spec-gap 71: the previous hub did not finish within handover_wait of the owner naming the new one;
+                # the new hub is admitted and the missing seqs are left to the owner's devices (M§6.5 gap handling)
+                prev["released"], prev["late"] = reg.get("high_seq", 0), []
+                out.append({"handover_expired": {"group": e["group"], "hub": prev["hub"],
+                                                 "missing": list(range(prev["released"] + 1, prev["through"] + 1))}})
             if e.get("seq") is not None and e["seq"] <= prev["through"]:
                 return self._error(e["from"], e["id"], "policy.blocked")  # spec-gap 60: the new hub continues the numbering
         if e["class"] == "ephemeral":  # M§11.2: pushed to bound devices, never stored, never acknowledged
             if e.get("expires_at") is not None and e["expires_at"] < self.now:
-                return []  # M§11.2: dropped at expires_at (spec-gap 49: the originating deposit's)
-            return [{"push": {"to": dv, "class": "ephemeral"}} for dv in sorted(self.bound)]
+                return out  # M§11.2: dropped at expires_at (spec-gap 49: the originating deposit's)
+            return out + [{"push": {"to": dv, "class": "ephemeral"}} for dv in sorted(self.bound)]
         seq = e.get("seq")
-        if seq is not None and seq <= reg.get("high_seq", 0):
+        if seq is not None and seq <= reg.get("high_seq", 0) and not late:
             # spec-gap 59: a hub retries an unacknowledged fan-out (M§6.5 rule 5) and delivers in seq order, so a seq at
             # or below the highest stored for the group is a redelivery: acknowledged, duplicate, not stored or pushed
             # again (with the original cursor while the item is still retained)
@@ -580,10 +594,12 @@ class Mailbox:
         if reg["state"] == "pending" and reg["items"] >= self.pending_max:
             return self._error(e["from"], e["id"], "mailbox.quota-exceeded")
         reg["items"] += 1
-        if seq is not None:
+        if late:
+            prev["late"].append(seq)
+        elif seq is not None:
             reg["high_seq"] = seq
         c, pushes = self._store(e["class"], e["group"], seq=seq)
-        return [{"accepted": {"to": e["from"], "in_reply_to": e["id"], "cursor": c}}] + pushes
+        return out + [{"accepted": {"to": e["from"], "in_reply_to": e["id"], "cursor": c}}] + pushes
 
     def _forward(self, e: dict) -> list:
         # M§5.2, M§6.6 (spec-gap 45): an owner device's deposit addressed to another service is forwarded
@@ -640,7 +656,8 @@ class Mailbox:
                 if "hub" in g and g["hub"] != reg["hub"]:
                     # M§7.4 (spec-gap 60): an owner device that processed the commit moving the group names the new hub
                     # and the seq of that commit; the old hub's items through it are still admitted
-                    reg["previous"] = {"hub": reg["hub"], "through": g.get("handover_seq", reg.get("high_seq", 0))}
+                    reg["previous"] = {"hub": reg["hub"], "through": g.get("handover_seq", reg.get("high_seq", 0)),
+                                       "since": self.now}  # spec-gap 71: the wait for the old hub starts here
                     reg["hub"] = g["hub"]
             elif "hub" in g:
                 self.groups[g["group"]] = {"hub": g["hub"], "state": "joined", "since": self.now, "items": 0}
@@ -702,11 +719,12 @@ class Mailbox:
         state = json.loads(json.dumps({
             "now": self.now, "owner": self.owner, "serves": sorted(self.serves), "devices": self.devices, "mode": self.mode,
             "admit": self.admit, "pending_ttl": self.pending_ttl, "pending_max": self.pending_max, "groups": self.groups,
+            "handover_wait": self.handover_wait,
             "kp": self.kp, "revoked": sorted(self.revoked), "items": self.items, "counter": self.counter, "acks": self.acks,
             "archived": [[g, s, c] for (g, s), c in self.archived.items()], "intro_limit": self.intro_limit,
             "intro_window": self.intro_window, "inbox_cap": self.inbox_cap, "intro_log": self.intro_log}))
-        for k in ("now", "owner", "devices", "mode", "admit", "pending_ttl", "pending_max", "groups", "kp", "items", "counter",
-                  "acks", "intro_limit", "intro_window", "inbox_cap", "intro_log"):
+        for k in ("now", "owner", "devices", "mode", "admit", "pending_ttl", "pending_max", "handover_wait", "groups", "kp",
+                  "items", "counter", "acks", "intro_limit", "intro_window", "inbox_cap", "intro_log"):
             setattr(self, k, state[k])
         self.serves, self.revoked = set(state["serves"]), set(state["revoked"])
         self.archived = {(g, s): c for g, s, c in state["archived"]}

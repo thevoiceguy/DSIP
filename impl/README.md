@@ -90,10 +90,11 @@ demos/store-and-forward-demo.sh                                      # offline c
 
 # Messaging Profile 1.0 (v0.8 draft) over the wire: two identities, two mailboxes, real MLS
 demos/messaging-demo.sh                                              # Alice's mailbox hubs the group and federates fan-out to Bob's; text arrives live, after a disconnect, after a device restart, and after a crash before commit; then an Opus voicemail as a sealed blob over HTTPS (needs espeak-ng, ffmpeg)
-dsip-mailbox --state .mbx-a --listen 127.0.0.1:9451 --owner did:web:alice.example --resolver-file docs/alice.json --resolver-file docs/bob.json --ca ca.pem
+dsip-mailbox --state .mbx-a --listen 127.0.0.1:9451 --owner did:web:alice.example --resolver-file docs/alice.json --resolver-file docs/bob.json --ca ca.pem [--handover-wait 300] [--drop-fanout-to <mailbox did> (fault injection, demos)]
 demos/mailbox-restart-demo.sh                                        # kill -9 a mailbox with a message waiting and the hub with fan-out queued: state reloaded, queue heads re-sent, nothing lost or replayed, next commit validated
 demos/auto-rejoin-demo.sh                                            # a device whose mailbox lost an item holds what it cannot read and re-joins by external commit when the gap will not fill
 demos/welcome-retry-demo.sh                                          # a member added while her mailbox is down: the hub retries the welcome, holds her items behind it, and she joins when it returns
+demos/handover-wait-demo.sh                                          # a hub move whose old hub dies before delivering it to the committer's own mailbox: the mailbox holds the new hub off for handover_wait, then admits it and catches up
 demos/blob-replication-demo.sh                                       # Bob's mailbox replicates a voice blob; plays from it while Alice's mailbox is down; damaged copy → falls back; over-limit → origin (needs ffmpeg)
 demos/call-history-demo.sh                                           # missed/declined calls reported by every ringing device and shown once; receipts and calls archived and restored on a new laptop
 demos/external-join-demo.sh                                          # a new tablet with no sibling online, and a phone that lost its MLS state, join by external commit from the latest GroupInfo

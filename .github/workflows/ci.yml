@@ -155,6 +155,11 @@ jobs:
         # commit on its own timer, and carries on from the current epoch.
         run: timeout 300 bash demos/auto-rejoin-demo.sh | tail -20
         working-directory: impl
+      - name: a hub move whose old hub never finishes delivering
+        # Self-verifying: the old hub dies before Bob's mailbox has the move; the mailbox holds its own hub off for
+        # handover_wait, then admits it, and the queued fan-out is retried until Bob catches up.
+        run: timeout 300 bash demos/handover-wait-demo.sh | tail -20
+        working-directory: impl
       - name: Rust/Python parity
         run: python3 impl/tools/parity.py
       - name: DHT local testnet (5 nodes)
