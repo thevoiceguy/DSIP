@@ -326,6 +326,15 @@ class GatewayCall:
                     out.append({"dsip": {"local": "info", "about": "media:dtmf", "data": data}})
                 elif "dtmf" in s:
                     out.append({"ignore": "sip dtmf outside the established call"})
+            elif s.get("event") == "dtmf":
+                # G§9: a digit that arrived as RFC 4733 telephone-event has nothing to answer on the SIP leg
+                if self.answered and self.dsip != "ended":
+                    data = {"digits": s["dtmf"]}
+                    if "duration_ms" in s:
+                        data["duration_ms"] = s["duration_ms"]
+                    out.append({"dsip": {"local": "info", "about": "media:dtmf", "data": data}})
+                else:
+                    out.append({"ignore": "sip dtmf outside the established call"})
             elif s.get("request") == "REFER":
                 out.append({"sip": {"response": 603}})   # round one: no transfer
             elif s.get("request") == "re-INVITE":

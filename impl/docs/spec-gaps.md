@@ -1459,17 +1459,19 @@ high-frequency, nothing-negotiated data.
 **Draft choice.** (a), in §12.12 and G§9 as errata. `digits` is 1–32 RFC 4733 events (`0`–`9`, `*`, `#`, `A`–`D`) in
 the order pressed; `duration_ms` (40–10,000) is each digit's tone length and is optional. Vectors: `payload/info-dtmf-*`
 (7, through the binding data schema the harness validates per `about`), `state/info-active-only` (a `media:dtmf` info
-is delivered like any registered one), `gateway/trace-dtmf-*` (both directions, ignored outside the call, and other
-`about` values not carried). Mutation-checked: a gateway carrying any `about`, carrying DTMF before answer, an
+is delivered like any registered one), `gateway/trace-dtmf-*` (both directions, ignored outside the call, other
+`about` values not carried, and a digit arriving as an RFC 4733 event — a SIP-side event with nothing to answer). Mutation-checked: a gateway carrying any `about`, carrying DTMF before answer, an
 unregistered `media:dtmf`, and an unconstrained `digits` each fail vectors.
 
-**Open.** The reference gateway generates no RFC 4733 RTP events when the SIP leg negotiated `telephone-event` —
-G§9 allows either carriage, and RTP event injection is beyond what the PoC's media bridge does. (Its SIP leg has
-carried `INFO` since 2026-09-17: one `application/dtmf-relay` body per digit with an increasing CSeq, 160 ms when
-the DSIP `info` names no `duration_ms`; inbound dtmf-relay on a known call is answered 200 and reported, other INFO
-payloads 415, unknown calls 481. `tests/round_trip.rs` proves both directions on the wire against the SIP peer. Found
-on the way: the host re-sent the controller's `response` emission for a request the leg had already answered — for
-INFO that would have been a second 200 to the INVITE.)
+**Open.** None. Both carriages are on the wire in the reference gateway (2026-09-17). INFO: one
+`application/dtmf-relay` body per digit with an increasing CSeq, 160 ms when the DSIP `info` names no `duration_ms`;
+inbound dtmf-relay on a known call is answered 200 and reported, other INFO payloads 415, unknown calls 481. RFC 4733:
+the gateway offers `telephone-event` (payload type 101) and, when the trunk accepts it, sends each digit as a marked
+start packet, 20 ms updates and the end packet three times on one timestamp, and reports a trunk's event once, on its
+end packet, as the controller event `{"sip": {"event": "dtmf", …}}` (`trace-dtmf-rtp-events`), which answers nothing
+on the SIP leg. RTP events are preferred when negotiated. `tests/round_trip.rs` proves both carriages both ways
+against the SIP peer. Found on the way: the host re-sent the controller's `response` emission for a request the leg
+had already answered — for INFO that would have been a second 200 to the INVITE.
 
 **Suggested fix.** Register `media:dtmf` in `dsip-info-about` and carry the §12.12 and G§9 text into the next
 revision.

@@ -226,9 +226,11 @@ DSIP leg's own media binding (`transport:webrtc`) stays on that leg.
 - **Only while the call is up.** `info` is ACTIVE-only (§12.12): before answer or after the call has
   ended, DTMF is carried nowhere — a SIP `INFO` is still answered `200`, and a DSIP `info` is ignored.
 - **RFC 4733 telephone-event.** When the SIP leg negotiated `telephone-event`, a gateway MAY carry
-  DTMF as RTP events instead of SIP `INFO`; the DSIP side is the same either way. The reference
-  gateway does not (it bridges media without generating RTP events), which is a gateway's choice, not
-  a protocol difference.
+  DTMF as RTP events instead of SIP `INFO`; the DSIP side is the same either way. A digit that
+  arrives as an RTP event has nothing to answer on the SIP leg; it becomes the same `info` about
+  `media:dtmf`, only while the call is up. The reference gateway offers `telephone-event` and, when
+  the trunk accepts it, prefers RTP events (what trunks interoperate on) and falls back to `INFO`
+  otherwise — a gateway's choice, not a protocol difference.
 
 ## G§10 Conformance
 
