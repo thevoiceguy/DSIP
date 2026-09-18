@@ -276,7 +276,7 @@ attempt — through a scripted event sequence with a mock clock.
 | `{"local":"info","session":ID}` | send `info` |
 | `{"local":"introduce","id":ULID,"to":DID,"purpose":S,"contact_token":S?}` | send `introduction` (§19.4) |
 | `{"local":"grant","introduction":ID,"id":ULID,"scope":[…],"valid_until":T}` | issue a contact grant for a pending request: `send grant {to: the introducing IDENTITY, session: introduction id, id, scope, valid_until}`; unknown request → `refused unknown-introduction` |
-| `{"local":"reject_introduction","introduction":ID,"reason":TOKEN}` | decline a pending request (a policy choice): `send reject {to: the introducing DEVICE, session, reason}` (spec-gap 74) |
+| `{"local":"reject_introduction","introduction":ID,"reason":TOKEN}` | decline a pending request (a policy choice): `send reject {to: the introducing IDENTITY, session, reason}` — the same addressee as a grant (§19.4, spec-gap 74) |
 | `{"local":"revoke","grant":ID}` | revoke an issued grant (local policy); unknown grant → `refused unknown-grant` |
 | `{"local":"issue_token","token":S,"grant_id":ULID}` | pre-authorize an out-of-band contact token: the first introduction carrying it surfaces `introduction_received {token: true}` and is auto-granted at once — id `grant_id`, scope `["dsip.invite"]`, `valid_until` = now + 31,536,000 (Impl) — and the token is consumed |
 
@@ -313,11 +313,13 @@ transition depends on (`status`, `ring_timeout`, `queue_timeout`, `reason`,
 }
 ```
 
-For the relay: `"attempts": { ID: {"legs": {DEVICE: "delivered|answered|rejected|expired|cancelled"}, "outcome": null|"answered"|"rejected"|"cancelled"} }`
-(`cancelled`: the initiator withdrew and no leg is left outstanding), optionally `"inbox": {RECIPIENT: count}` — every
+For the relay: `"attempts": { ID: {"legs": {DEVICE: "delivered|answered|rejected|expired|cancelled"}, "outcome": null|"answered"|"rejected"|"cancelled"|"no-response"} }`
+(`cancelled`: the initiator withdrew and no leg is left outstanding; `no-response`: every leg expired and none rejected), optionally `"inbox": {RECIPIENT: count}` — every
 envelope queued for an identity or device, of any type; recipients with nothing queued are absent.
-When every leg ends without any leg having rejected, the relay forwards `reject endpoint.unavailable` in the name of the
-first leg (spec-gap 76). A forwarded `progress` carries its `status`. A message from a leg that has already terminated is
+When every leg ends without any leg having rejected there is nothing to forward: the relay speaks for itself,
+`send error {to: the initiator, session, reason: transport.no-response, in_reply_to: the invite id}` (§12.7 rule 6, spec-gap 76).
+An endpoint in INVITING or PROCEEDING that receives it ends the attempt (`timer stop` → `ui ended transport.no-response`,
+no `cancel`); in any other state it is `ui error` like any other error. A forwarded `progress` carries its `status`. A message from a leg that has already terminated is
 `drop leg-terminated`. An invite to an identity that has never bound here is answered `send error transport.unknown-recipient`.
 For an endpoint, optionally `"contacts": {"allow": […], "grants_issued": […], "grants_held": […], "requests": […], "pending_sent": […]}` (sorted ids).
 
@@ -357,7 +359,7 @@ Receiver-side verification of a publication record and its provenance (§22).
 "input":  { "publication": ENVELOPE, "provenance": [ENVELOPE, …], "capabilities": {"codecs": […], "transports": […]} },
 "expect": { "verdict": "accept", "type": "publish", "signer": …, "identity": …,
             "selected_variant": "main-opus" | null,
-            "provenance": [ {"verdict":"accept","processor":…,"operation":…,"integrity_mode":"derivative-bound","policy_violation"?:…} | {"verdict":"reject","code":…} ],
+            "provenance": [ {"verdict":"accept","processor":…,"operation":…,"policy_violation"?:…} | {"verdict":"reject","code":…} ],
             "display": {"original_publisher": …, "delivered_by": […], "transcoded_by": […], "integrity_mode": "metadata-only"|"derivative-bound"} }
 ```
 
@@ -370,8 +372,7 @@ delivered stream `derivative-bound`; a selected variant's own `integrity` overri
 
 A verified statement's `policy_violation` is `redistribution` when the record's policy says `redistribution: "forbidden"`
 (any operation), else `transcoding` for a `transcode` under `transcoding: "forbidden"`; absent otherwise. Its
-`integrity_mode` is `derivative-bound` for every verified statement, whatever the operation — only `display.integrity_mode`
-follows the operation (spec-gap 77). Statement checks run in this order after the envelope pipeline:
+A statement has no `integrity_mode` of its own (§22.3, spec-gap 77): the one integrity mode is `display.integrity_mode`. Statement checks run in this order after the envelope pipeline:
 `provenance-unknown-publication` → `provenance-stream-mismatch` → `provenance-processor-mismatch` → `provenance-variant-unknown`
 (`input_variant` only; the output variant is the processor's own).
 
@@ -554,7 +555,7 @@ An external joiner's identity is not sent its own commit unless it was already a
 **Mailbox events the table leaves out**: `first_contact {id, from, sender_identity, recipient, kind: introduction|grant,
 expires_at}` (spec-gap 54) — rate-limited per sender identity and per recipient inbox at `context.intro_limit` per
 `intro_window` (`error policy.rate-limited {retry_after}`, the seconds until the oldest counted deposit leaves the window;
-both kinds count and both are limited), then accepted **without a cursor** for an unserved recipient or an inbox already
+both kinds count and both are limited, except a solicited grant — below), then accepted **without a cursor** for an unserved recipient or an inbox already
 holding `inbox_cap` introductions, else stored until `expires_at` (kept at it, dropped after); `forward {id, device,
 identity, group, to}` (spec-gap 45) → `{"forward": {to, id}}`, or `policy.blocked` (not the owner's device) /
 `mailbox.unknown-group` (unregistered group, or `to` is not its hub); `forward_failed {id, device, to}` → `error
@@ -564,7 +565,9 @@ mailbox.hub-unreachable` (spec-gap 72). Other emissions: `{"handover_expired": {
 at 100 one-time packages per device. A pending group is dropped when its age **exceeds** `pending_group_ttl`.
 During a hub move the new hub is held off — whatever it sends, a GroupInfo included — while the old hub's items through
 `handover_seq` are missing and `handover_wait` has not run out; only then is a `seq` at or below `handover_seq` judged
-(`policy.blocked`). Pushes go to the bound devices in device (DID) order, never to the device that made the deposit.
+(`policy.blocked`). A `first_contact` of kind `grant` may carry `session`, the introduction it answers: when that id is
+one the owner's device listed in a `config` `introductions_sent`, the grant is solicited — not counted, not limited, and
+the entry is consumed (one introduction, one answer; the list survives a restart). Pushes go to the bound devices in device (DID) order, never to the device that made the deposit.
 
 Trace emission order: `accepted`/`error` first, then fan-out or pushes in identity/device order,
 then welcomes. Cursors are `c:` + 16 lowercase hex digits (Impl). Grants in mailbox traces are
@@ -607,14 +610,14 @@ Each item has a matching `spec-gap` issue draft in `impl/docs/spec-gaps.md`.
 21. §22.3: provenance statements reach subscribers in `notify.body.provenance`; carriage is otherwise unspecified.
 22. §7.5: rotation has no wire record; vectors pin only what a verifier observes through the rotated DID document (`envelope/rotated-did-web-*`).
 31. §12.9 vs §19.4: held introductions — no 300 s age bound, 604,800 s validity cap enforced, id tracked until `expires_at` (`envelope/introduction-*`).
-74. §19.4: a `grant` is addressed to the introducing identity, a `reject` of the same introduction to the introducing device (`state/first-contact-*`).
+74. §19.4: **decided** — `grant` and `reject` of an introduction are both addressed to the introducing identity (`state/first-contact-*`).
 75. §12.5 rule 2 vs §12.7 rule 3: `cancel session.answered-elsewhere` reaching the leg that answered is `session.invalid-state`, not a crossed cancel (`state/race-responder-answered-elsewhere-at-answering-leg`).
 78. G§4: which tokens are "attempt" tokens once ACTIVE — the profile's list omits `endpoint.unavailable` and `identity.not-in-service` (`gateway/inbound-active-*`).
 81. M§6.5 / M§7.4 / M§14.1: the order of a hub's refusals when several apply, what the new hub may send during a handover wait, and whether a grant deposit is rate-limited (`messaging/hub-refusal-order-*`, `mailbox-hub-move-wait-covers-*`, `mailbox-grant-counts-*`).
 80. M§5.2: the deposit class table says what each class "carries", not which other fields it may or may not carry; the rule is in this README (`messaging/deposit-*`).
 79. G§4.2: the Q.850 cause of a category-fallback response, and of a BYE for a token the BYE rows do not name (`gateway/outbound-unknown-*`, `outbound-bye-policy-terminated`).
-77. §22.2/§22.3: every verified provenance statement is reported `integrity_mode: derivative-bound`, a `relay` included (`broadcast/provenance-relay-operation`).
-76. §12.7 rule 6: the attempt outcome when every leg expired and none rejected — `endpoint.unavailable` (`state/relay-all-legs-expired`).
+77. §22.2/§22.3: **decided** — a statement has no integrity mode of its own; the per-statement field is gone.
+76. §12.7 rule 6: **decided** — when every leg expired and none rejected the relay sends its own `error transport.no-response`, which ends the attempt at the initiator (`state/relay-all-legs-expired`, `initiator-relay-no-response-ends-attempt`).
 73. §9.3 vs §15.4: a terminal `notify` carries `session.expired` / `policy.terminated`, tokens the registry lists as valid on other types only; no warning on `notify` (`semantic/notify-terminated-reason`, by the deep-equality rule above).
 34–43. Messaging Profile draft choices (hub ordering, archive first-wins, first-contact authorization, `mailbox` tokens, `MAX_MLS_BYTES`, ephemeral lifetime) pinned by `messaging/*`; see the v0.8 messaging worklist in `impl/docs/spec-gaps.md`.
 

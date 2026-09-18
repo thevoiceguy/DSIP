@@ -1,12 +1,13 @@
 {
-  "vector": "messaging/mailbox-grant-counts-toward-the-rate-limit",
+  "vector": "messaging/mailbox-solicited-grant-bypasses-the-rate-limit",
   "format": 1,
   "kind": "messaging",
-  "description": "The rate limit is on what an identity deposits this way, not on one kind of it: a grant counts, and is limited, like an introduction.",
+  "description": "The owner's device tells its mailbox which introductions it sent (mailbox-config introductions_sent). A grant answering one is the reply the owner asked for: stored though the sender is over its budget, and not counted.",
   "spec_ref": [
     "§19.4",
     "M§14.1",
-    "M§14.3"
+    "M§14.3",
+    "M§5.7"
   ],
   "context": {
     "component": "mailbox",
@@ -35,8 +36,43 @@
     "steps": [
       {
         "event": {
+          "config": {
+            "id": "01K742SG004B4R844GFKSWCAXY",
+            "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "introductions_sent": [
+              "01K742SG00B3XHTH8M5S66E4BY"
+            ]
+          }
+        }
+      },
+      {
+        "event": {
           "first_contact": {
             "id": "01K742SG003WS0123XMAGGPR03",
+            "from": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+            "sender_identity": "did:web:alice.example",
+            "recipient": "did:web:example.com:users:bob",
+            "kind": "introduction",
+            "expires_at": 1760604800
+          }
+        }
+      },
+      {
+        "event": {
+          "first_contact": {
+            "id": "01K742SG0055MGNM3TPHV17TCE",
+            "from": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+            "sender_identity": "did:web:alice.example",
+            "recipient": "did:web:example.com:users:bob",
+            "kind": "introduction",
+            "expires_at": 1760604800
+          }
+        }
+      },
+      {
+        "event": {
+          "first_contact": {
+            "id": "01K742SG00S34SVRJ50T8PEQES",
             "from": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
             "sender_identity": "did:web:alice.example",
             "recipient": "did:web:example.com:users:bob",
@@ -53,19 +89,8 @@
             "sender_identity": "did:web:alice.example",
             "recipient": "did:web:example.com:users:bob",
             "kind": "grant",
-            "expires_at": 1760000030
-          }
-        }
-      },
-      {
-        "event": {
-          "first_contact": {
-            "id": "01K742SG00BMB1BK2WZ11D7HJ9",
-            "from": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
-            "sender_identity": "did:web:alice.example",
-            "recipient": "did:web:example.com:users:bob",
-            "kind": "grant",
-            "expires_at": 1760000030
+            "expires_at": 1760000030,
+            "session": "01K742SG00B3XHTH8M5S66E4BY"
           }
         }
       }
@@ -73,6 +98,21 @@
   },
   "expect": {
     "steps": [
+      {
+        "emit": [
+          {
+            "accepted": {
+              "to": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+              "in_reply_to": "01K742SG004B4R844GFKSWCAXY"
+            }
+          }
+        ],
+        "state": {
+          "items": [],
+          "groups": {},
+          "key_packages": {}
+        }
+      },
       {
         "emit": [
           {
@@ -96,7 +136,7 @@
           {
             "accepted": {
               "to": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
-              "in_reply_to": "01K742SG00J1XCHR8G1856E6KZ",
+              "in_reply_to": "01K742SG0055MGNM3TPHV17TCE",
               "cursor": "c:0000000000000002"
             }
           }
@@ -115,7 +155,7 @@
           {
             "error": {
               "to": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
-              "in_reply_to": "01K742SG00BMB1BK2WZ11D7HJ9",
+              "in_reply_to": "01K742SG00S34SVRJ50T8PEQES",
               "reason": "policy.rate-limited",
               "retry_after": 3600
             }
@@ -125,6 +165,26 @@
           "items": [
             "c:0000000000000001",
             "c:0000000000000002"
+          ],
+          "groups": {},
+          "key_packages": {}
+        }
+      },
+      {
+        "emit": [
+          {
+            "accepted": {
+              "to": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+              "in_reply_to": "01K742SG00J1XCHR8G1856E6KZ",
+              "cursor": "c:0000000000000003"
+            }
+          }
+        ],
+        "state": {
+          "items": [
+            "c:0000000000000001",
+            "c:0000000000000002",
+            "c:0000000000000003"
           ],
           "groups": {},
           "key_packages": {}

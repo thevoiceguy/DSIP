@@ -1601,10 +1601,8 @@ under it), and a rejection is equally the identity's to know; the relay fans out
 `from`: simplest, but a grant that reaches one device leaves the identity's other devices unable to cite it.
 (c) As pinned: grant to the identity, reject to the device that asked.
 
-**Draft choice.** (c) stays pinned until decided — this entry records the asymmetry, it does not bless it. (a) reads
-best against §19.4's "the grantee also holds the signed grant".
-
-**Suggested fix.** §19.4: state the addressee of `grant` and of `reject`; fix the example's `to` if (a).
+**Decision (2026-09-18).** (a): both outcomes are addressed to the introducing identity. Applied: §19.4 says so and
+its `grant` example names the identity; `state/first-contact-reject-and-silence` changed; all three implementations.
 
 ## 75. §12.5 rule 2 / §12.7 rule 3 — `session.answered-elsewhere` at the leg that answered
 
@@ -1637,10 +1635,13 @@ the relay composes is not a leg's signed message at all.
 the initiator's T-Ring / T-Establish run out — rule 6 already calls them the backstop. (c) A relay-signed `error`
 (`transport.*` or `identity.*`), which is honest about who is speaking.
 
-**Draft choice.** (a) stays pinned; (c) is the better spec answer, because §15.2 forbids relays from putting words in
-envelopes they did not sign.
-
-**Suggested fix.** §12.7 rule 6: define the all-expired outcome and who signs it.
+**Decision (2026-09-18).** (c), with a token of its own: the relay sends a relay-signed `error` with reason
+`transport.no-response` (new in §15.4, valid on `error`) and `session` naming the invite. It keeps "no device said
+anything" apart from `endpoint.unavailable`, which a device says. An initiator in INVITING or PROCEEDING ends the attempt
+on it and sends no `cancel`; in any other state it is an error like any other. Applied: §12.4 (initiator table), §12.7
+rule 6, §15.4; `state/relay-all-legs-expired` changed (outcome `no-response`), `state/initiator-relay-no-response-ends-attempt`
+and `state/relay-no-response-after-answer-only-surfaced` added; all three implementations; `dsip-relay` signs and sends it,
+also from its timer, with no inbound frame in hand. The gateway maps it like any other `transport.*` (G§4.2: 503, cause 41).
 
 ## 77. §22.2 / §22.3 — the integrity mode of a statement that is not a transcode
 
@@ -1656,11 +1657,9 @@ reference to the original record is a `derivative-bound` artifact — and only t
 (b) The per-statement value follows the operation: `derivative-bound` for `transcode`, the record's mode otherwise;
 the vectors change. (c) Drop the per-statement field: it carries nothing the operation does not.
 
-**Draft choice.** (a) stays pinned, stated in the vectors README; flagged because (c) is probably what a reader of
-§22 expects — a field that is constant tells a client nothing, and showing "derivative-bound" next to a relay would
-mislead.
-
-**Suggested fix.** §22.3: say whether a statement has an integrity mode of its own; if not, the vectors drop the field.
+**Decision (2026-09-18).** (c): a statement has no integrity mode of its own. Applied: §22.3 says so (and that a
+receiver MUST NOT present a `relay` or `repackage` statement as `derivative-bound`); five broadcast vectors lose the
+member; all three implementations. No wire change: the field was only ever in the verification result.
 
 ## 78. G§4 — which tokens are "attempt" tokens
 
@@ -1754,8 +1753,18 @@ from-the-new-hub`, `mailbox-grant-counts-toward-the-rate-limit`, `mailbox-push-i
 `commit-retry-unknown-mailbox-condition-after-a-conflict` (the §15.3 fallback's one retry is its own, inside the bound
 of three proposals). (3) deserves a second look: a separate, more generous budget for grants would answer both worries.
 
-**Suggested fix.** M§6.5: state the order. M§7.4: "refuses every deposit from the new hub". M§14.1: say whether grant
-deposits are rate-limited, and with which budget.
+**Decision on (3) (2026-09-18).** Neither (a) nor (b): a **solicited** grant bypasses the limit. The owner's device
+tells its own mailbox which introductions it sent — `mailbox-config` `introductions_sent` (new schema field, ≤ 256 ids per
+message, durable) — before depositing each one. A `grant` deposit whose `session` names one is the answer the owner asked
+for: not counted, not limited, and it consumes the entry (one introduction, one answer). Any other grant is an
+unsolicited write and takes the introduction budget. It is the core's own `grant-unknown-introduction` test (§19.4),
+applied where the abuse would land. Applied: M§5.7, M§14.1, the profile schema set; `mailbox-grant-counts-toward-the-rate-
+limit` became `mailbox-unsolicited-grant-takes-the-introduction-budget`, plus `mailbox-solicited-grant-bypasses-the-rate-
+limit`, `-bypass-is-single-use`, `mailbox-introductions-sent-survives-restart` and two `mailbox-config-introductions-sent-*`
+message vectors; all three mailbox machines; the mailbox service passes a grant's `session` through and `dsip-msg`
+announces an introduction to its mailbox before sending it.
+
+**Suggested fix (still open).** M§6.5: state the order. M§7.4: "refuses every deposit from the new hub".
 
 ## Already-flagged (schema README / plan §11)
 

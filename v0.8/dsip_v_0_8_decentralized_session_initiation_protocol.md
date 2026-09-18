@@ -806,6 +806,7 @@ The initiator (caller) and responder (callee device) each maintain a per-session
 | PROCEEDING | Recv `reject` (attempt outcome, §12.7) | Surface reason | ENDED |
 | PROCEEDING | Local: abandon call | Send `cancel` (reason `user.cancelled`) | ENDED |
 | PROCEEDING | T-Ring or T-Queue expires | Send `cancel` (reason `session.timeout`) | ENDED |
+| INVITING, PROCEEDING | Recv `error` (reason `transport.no-response`) from the relay the invite went through (§12.7 rule 6) | Surface reason; send nothing — the relay has closed every leg | ENDED |
 | ACTIVE | Recv `answer` (late, different leg) | Send `bye` (reason `session.already-answered`) to that leg only | ACTIVE |
 | ACTIVE | Renegotiation events | Per §12.8 | ACTIVE |
 | ACTIVE | Local: hang up | Send `bye` | ENDING → ENDED |
@@ -878,7 +879,7 @@ When an identity has multiple delegated devices, the entity performing delivery 
 3. The initiator cannot observe forking, so the rule is stated in terms it can: upon accepting an answer to an **identity-addressed** invite (the answer's `from` differs from the invite's `to`), the initiator MUST send `cancel` with reason `session.answered-elsewhere` to the invite's `to`; an invite addressed to a device DID directly needs none. A forking relay MUST track which legs it delivered the invite to and which have terminated (answered, rejected, or expired), and MUST deliver the cancel **per-leg** to every leg that has not terminated. A device that binds (§13.2) while an attempt is live becomes a leg of that attempt if the invite is still unexpired. Identity-addressed fan-out without leg tracking is not conformant relay behavior: it risks re-alerting terminated legs, misses legs added mid-attempt, and cannot support targeted cancellation.
 4. Exactly one answer is ever applied per invite. Any subsequent `answer` from another leg MUST be terminated by the initiator with `bye`, reason `session.already-answered`, addressed to that device. This holds for media too: every leg receives the same media offer and each answers with its own selection (its own SDP answer under the WebRTC binding), but only the accepted leg's selection is applied, so forked media cannot occur (§14.1).
 5. `progress` messages from multiple legs are all valid; the initiator treats the session as PROCEEDING if any leg has sent progress.
-6. A `reject` ends the session attempt only when all legs have rejected or expired. Because the relay tracks leg state (rule 3), the relay MUST signal attempt completion to the initiator: when the final outstanding leg terminates without an answer, the relay forwards that leg's `reject` as the attempt outcome (choosing the most informative reason if legs differed — `user.declined` over `user.no-answer` over `endpoint.busy` over `endpoint.unavailable`; among tokens outside that order, the first seen). The initiator's T-Ring/T-Establish remain the backstop if the relay fails to signal.
+6. A `reject` ends the session attempt only when all legs have rejected or expired. Because the relay tracks leg state (rule 3), the relay MUST signal attempt completion to the initiator: when the final outstanding leg terminates without an answer, the relay forwards that leg's `reject` as the attempt outcome (choosing the most informative reason if legs differed — `user.declined` over `user.no-answer` over `endpoint.busy` over `endpoint.unavailable`; among tokens outside that order, the first seen). (spec-gap 76) When every leg expired and none rejected, there is no `reject` to forward, and a relay MUST NOT compose one in a leg's name (§15.2): it signals the outcome in its own voice, a relay-signed `error` with reason `transport.no-response` and `session` naming the invite, addressed to the initiator. An initiator in INVITING or PROCEEDING that receives it from the relay its invite went through ends the attempt and sends no `cancel`; a late `answer` is then handled as after any ended attempt (§12.4). In any other state it is an `error` like any other: surfaced, no state change. The initiator's T-Ring/T-Establish remain the backstop if the relay fails to signal.
 
 ### 12.8 Renegotiation
 
@@ -1348,6 +1349,7 @@ Registry: `dsip-reason`. Columns: token — meaning — valid on.
 | `transport.routing-refused` | Relay declines to route this envelope (policy) | error |
 | `transport.unknown-recipient` | Relay has no route for the addressed identity/device | error |
 | `transport.rate-limited` | Sender exceeded relay rate policy | error |
+| `transport.no-response` | Every leg of a forked invite expired without any response; sent by the forking relay as the attempt outcome (§12.7 rule 6; spec-gap 76) | error |
 
 **gateway.**
 
@@ -1776,7 +1778,7 @@ Three outcomes, deliberately including silence:
   "id": "01J5Y0QKGRT00AAAAAAAAAAAAG",
   "session": "01J5Y0QJ1NT00AAAAAAAAAAAAF",
   "from": "did:web:example.com:users:bob",
-  "to": "did:key:z6MkCarolPhone",
+  "to": "did:key:z6MkCarol",
   "scope": ["dsip.invite"],
   "valid_until": 1791536000,
   "issued_at": 1760000600,
@@ -1787,6 +1789,8 @@ Three outcomes, deliberately including silence:
    The grant is the consent receipt (§19.3) in message form: `scope` names what it permits (registry `dsip-grant-scope`; initial values `dsip.invite`, `dsip.subscribe`, and `dsip.message` for the Messaging Profile since v0.8), and `valid_until` bounds its life independently of the envelope's delivery expiry. The recipient's endpoint and relay record the grant; the grantee also holds the signed grant and MAY reference it in a future invite via the optional `grant` field (the grant's `id`) to aid stateless or migrated relays. A live grant admits an invite when the invite's `grant` names it **or** the inviting identity is the grantee — the `grant` field is an optimisation, never a requirement — and a grant admits only the operations in its `scope`: an invite requires `dsip.invite`. Grants are revocable: revocation is local policy at the granting side, optionally propagated as a signed revocation in deployments that need it.
 
 2. **`reject`** — with `session` set to the introduction `id` and a registered reason (`user.declined`, `policy.blocked`). Sending a rejection is a policy choice, not an obligation.
+
+   (spec-gap 74) Both signed outcomes are addressed to the introducing **identity** — the identity the introduction's signer acts for (§7.4) — not to the device that sent it: a grant is held by an identity, any of whose devices may invite under it, and a rejection is equally the identity's to know, or its other devices would go on showing the request as pending. The identity's relay or mailbox delivers it to its devices.
 
 3. **Silence** — the default posture. No response is ever required, no response deadline exists, and senders MUST NOT interpret silence as anything. Combined with the anti-enumeration rule (§9.3), this means an introduction to a nonexistent identity and an ignored introduction are indistinguishable to the sender.
 
@@ -2012,7 +2016,7 @@ A relay or transcoder does not overwrite the original publisher identity. It add
 Rules:
 
 - `processor` MUST equal the verified signing identity; `original_publication` and `original_stream` MUST name a publication the receiver has verified, and `input_variant` MUST be one that publication advertises. A statement failing any of these is rejected; the publication stands.
-- `operation` is a registered token (registry `dsip-provenance-operation`; initial values `transcode`, `relay`, `repackage`). `transcode` makes the output `derivative-bound` and lists the processor under "transcoded by"; other operations list it under "delivered by".
+- `operation` is a registered token (registry `dsip-provenance-operation`; initial values `transcode`, `relay`, `repackage`). `transcode` makes the output `derivative-bound` and lists the processor under "transcoded by"; other operations list it under "delivered by". (spec-gap 77) A statement has no integrity mode of its own: there is one integrity mode, the delivered stream's (§22.2), and a receiver MUST NOT present a `relay` or `repackage` statement as `derivative-bound`.
 - Carriage: a processor sends its statement to the publisher's authority (the relay or domain endpoint that holds the record), which attaches it to the record and lists processors in `notify.body.provenance` (§9.3); receivers fetch statements alongside the record. A receiver MAY also obtain statements directly from a processor. Either way it verifies them itself.
 - A statement is evaluated against the publication's `policy` (§16.4): a `transcode` where the policy forbids transcoding, or any statement where it forbids redistribution, still verifies but is surfaced as a policy violation — policy is displayed and enforced by receivers, not by magic.
 
@@ -2294,7 +2298,9 @@ v0.8 is again written from an implementation. The reference implementation built
 34. **`tel` claims** (§18.1, §24.2; spec-gap 25).
 35. **Statements** (§13.2, §20.7, §7.6; spec-gaps 33, 35, 40): profiles carry bulk data outside the signaling binding; what is end-to-end encrypted as of v0.8; identity-level profile secrets belong to the recovery model.
 
-Still open: spec-gap 26 (a DTMF carriage in `info`) is left for a later revision.
+Still open: spec-gap 26 (a DTMF carriage in `info`) is left for a later revision. *(Closed since by spec-gap 70, §12.12.)*
+
+Errata since the v0.8 snapshot, each marked in place with its spec-gap number: `media:dtmf` (§12.12; 70), the addressee of an introduction's outcome (§19.4; 74), the relay's `transport.no-response` (§12.4, §12.7, §15.4; 76), and the single integrity mode (§22.3; 77). Spec-gaps 73, 75, 78 and 79 are recorded in `impl/docs/spec-gaps.md` with suggested text and are not yet applied here.
 
 Every item above is pinned by vectors in the v0.8 conformance suite (737 vectors, Rust/Python parity).
 

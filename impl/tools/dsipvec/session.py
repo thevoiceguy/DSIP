@@ -230,7 +230,8 @@ class Endpoint:
                 self.emit({"refused": "unknown-introduction"})
                 return
             # §19.4 outcome 2: reject with session = introduction id; a policy choice, not an obligation
-            self.send(type="reject", to=req["device"], session=ev["introduction"], reason=ev.get("reason", "user.declined"))
+            # spec-gap 74: like a grant, the rejection is addressed to the introducing identity
+            self.send(type="reject", to=req["from"], session=ev["introduction"], reason=ev.get("reason", "user.declined"))
             return
         if kind == "revoke":
             if self.grants_issued.pop(ev["grant"], None) is None:
@@ -333,6 +334,13 @@ class Endpoint:
         if t == "invite":
             return self.recv_invite(m)
         if t == "error":
+            s = self.sessions.get(m.get("session"))
+            if (m.get("reason") == "transport.no-response" and s is not None and s.role == "initiator"
+                    and s.state in ("INVITING", "PROCEEDING")):
+                # §12.7 rule 6 (spec-gap 76): the relay's own error is the attempt outcome when every leg stayed
+                # silent; no cancel follows — the relay has closed every leg
+                self.end(s, "transport.no-response")
+                return
             self.emit({"ui": "error", "reason": m.get("reason")})
             return
         if t == "introduction":

@@ -81,6 +81,8 @@ export class Mailbox implements Machine {
   private readonly archive = new Map<string, string>();
   private readonly welcomes = new Map<string, string>();
   private readonly revokedGrants = new Set<string>();
+  /** Introductions the owner sent and has not yet been answered for (mailbox-config `introductions_sent`). */
+  private readonly introductionsSent = new Set<string>();
   private readonly introTimes: { sender: string; recipient: string; at: number }[] = [];
   private emit: Json[] = [];
 
@@ -265,9 +267,12 @@ export class Mailbox implements Machine {
     const window = this.ctx.intro_window ?? 3600;
     const recent = this.introTimes.filter((t) => this.now - t.at < window);
     const limit = this.ctx.intro_limit ?? Infinity;
-    {
-      // rate limits are mandatory, per sender identity and per recipient inbox — for whatever is
-      // deposited this way, a grant as much as an introduction
+    // M§14.1 (spec-gap 81): a grant answering an introduction the owner sent is the reply it asked for —
+    // not metered, and the entry is consumed: one introduction, one answer
+    const solicited = f["kind"] === "grant" && typeof f["session"] === "string" && this.introductionsSent.delete(f["session"]);
+    if (!solicited) {
+      // rate limits are mandatory, per sender identity and per recipient inbox; an unsolicited grant
+      // is an unmetered write into someone's mailbox otherwise, so it takes the introduction budget
       const bySender = recent.filter((t) => t.sender === sender);
       const byInbox = recent.filter((t) => t.recipient === f["recipient"]);
       const over = bySender.length >= limit ? bySender : byInbox.length >= limit ? byInbox : null;
@@ -334,6 +339,7 @@ export class Mailbox implements Machine {
       }
     }
     for (const grant of (c["revoked_grants"] ?? []) as string[]) this.revokedGrants.add(grant);
+    for (const intro of (c["introductions_sent"] ?? []) as string[]) this.introductionsSent.add(intro);
     this.accepted(device, id);
     for (const revoked of (c["revoked_devices"] ?? []) as string[]) {
       // spec-gap 57: refuse the device from then on, forget its registration and KeyPackages, close its binding

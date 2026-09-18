@@ -289,7 +289,8 @@ export class Endpoint {
         const from = this.requests.get(intro);
         if (from === undefined) return void this.emit.push({ refused: "unknown-introduction" });
         this.requests.delete(intro);
-        return this.send("reject", from.device, { session: intro, reason: e["reason"]! });
+        // §19.4 (spec-gap 74): an introduction's outcome — grant or reject — is addressed to the introducing identity
+        return this.send("reject", from.identity, { session: intro, reason: e["reason"]! });
       }
       case "revoke":
         if (!this.grantsIssued.delete(e["grant"] as string)) this.emit.push({ refused: "unknown-grant" });
@@ -313,7 +314,7 @@ export class Endpoint {
     const type = m["type"] as string;
     if (type === "invite") return this.recvInvite(m);
     if (type === "introduction") return this.recvIntroduction(m);
-    if (type === "error") return void this.emit.push({ ui: "error", reason: m["reason"]! });
+    if (type === "error") return this.recvError(m);
     const id = m["session"] as string;
     if (type === "grant" || (type === "reject" && this.pendingSent.has(id))) return this.recvIntroductionOutcome(m);
 
@@ -331,6 +332,21 @@ export class Endpoint {
     }
     if (s.role === "initiator") this.recvAsInitiator(id, s, m);
     else this.recvAsResponder(id, s, m);
+  }
+
+  /**
+   * A received `error` is surfaced and changes nothing — except the relay's own
+   * `transport.no-response`, which is the attempt outcome when every leg stayed silent.
+   * Spec: §12.7 rule 6 (spec-gap 76) — no `cancel` follows: the relay has closed every leg.
+   */
+  private recvError(m: JsonObject): void {
+    const id = m["session"] as string | undefined;
+    const s = id !== undefined ? this.sessions.get(id) : undefined;
+    const attempt = s?.role === "initiator" && (s.state === "INVITING" || s.state === "PROCEEDING");
+    if (m["reason"] !== "transport.no-response" || !s || !attempt) return void this.emit.push({ ui: "error", reason: m["reason"]! });
+    this.stopAll(id!);
+    s.endedBy = "other";
+    this.end(id!, s, "transport.no-response");
   }
 
   private recvAsInitiator(id: string, s: Session, m: JsonObject): void {

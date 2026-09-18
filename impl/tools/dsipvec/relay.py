@@ -84,7 +84,6 @@ class Relay:
             a = self.attempts[ev["session"]]
             if a.legs.get(ev["leg"]) == "delivered":
                 a.legs[ev["leg"]] = "expired"
-                a.reasons.setdefault(ev["leg"], "endpoint.unavailable")
                 self.check_complete(a)
         else:
             raise ValueError(ev)
@@ -218,15 +217,16 @@ class Relay:
         most informative reject as the attempt outcome."""
         if a.outcome is not None or any(st == "delivered" for st in a.legs.values()):
             return
-        a.outcome = "rejected"
         reasons = list(a.reasons.values())
-        best = None
-        for r in REASON_RANK:
-            if r in reasons:
-                best = r
-                break
-        if best is None:
-            best = reasons[0] if reasons else "endpoint.unavailable"
+        if not reasons:
+            # spec-gap 76: no leg said anything — nothing to forward, and the relay may not invent a reject in a
+            # leg's name (§15.2): it speaks for itself, in its own signed error
+            a.outcome = "no-response"
+            self.emit({"send": {"type": "error", "to": a.initiator, "session": a.session, "reason": "transport.no-response",
+                                "in_reply_to": a.session}})
+            return
+        a.outcome = "rejected"
+        best = next((r for r in REASON_RANK if r in reasons), reasons[0])
         src = next(leg for leg, r in a.reasons.items() if r == best)
         self.emit({"forward": {"type": "reject", "reason": best, "from": src}})
 

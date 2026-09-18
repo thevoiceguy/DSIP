@@ -1,0 +1,38 @@
+{
+  "vector": "messaging/mailbox-config-introductions-sent-valid",
+  "format": 1,
+  "kind": "messaging",
+  "description": "An owner device tells its mailbox which introductions it sent, so their grants are not rate-limited.",
+  "spec_ref": [
+    "M§5.7",
+    "M§14.1"
+  ],
+  "context": {},
+  "input": {
+    "check": "message",
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "messaging/1.0"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "mailbox-config",
+      "id": "01K742SG004B4R844GFKSWCAXY",
+      "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+      "to": "did:web:mbx.bob.example",
+      "subject": "did:web:example.com:users:bob",
+      "introductions_sent": [
+        "01K742SG00B3XHTH8M5S66E4BY"
+      ],
+      "issued_at": 1760000000,
+      "expires_at": 1760000030
+    }
+  },
+  "expect": {
+    "verdict": "accept"
+  }
+}

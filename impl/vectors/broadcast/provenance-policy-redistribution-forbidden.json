@@ -154,7 +154,6 @@
         "verdict": "accept",
         "processor": "did:key:z6Mkt5yU6sK3v7gxFHncQbmZ7VQvnVuJBGrDAbqhZp2gDW7G",
         "operation": "relay",
-        "integrity_mode": "derivative-bound",
         "policy_violation": "redistribution"
       }
     ],

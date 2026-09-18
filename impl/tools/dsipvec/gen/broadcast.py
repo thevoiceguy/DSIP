@@ -83,10 +83,10 @@ def vectors() -> list[dict]:
     prov_ok = signed(provenance(pub["id"]), "carol")
     out.append(bv("provenance-derivative-bound", "A transcoder's signed statement references the original record; receiver displays publisher + processor, integrity derivative-bound.",
                   ["§22.2", "§22.3"], pub_env,
-                  pub_accept("main-opus", provenance=[{"verdict": "accept", "processor": CAROL, "operation": "transcode", "integrity_mode": "derivative-bound"}],
+                  pub_accept("main-opus", provenance=[{"verdict": "accept", "processor": CAROL, "operation": "transcode"}],
                              transcoded=[CAROL], integrity="derivative-bound"), prov_envs=[prov_ok]))
     out.append(bv("provenance-relay-operation", "A relay statement (operation relay) shows as delivered-by; integrity stays metadata-only.", ["§22.3"],
-                  pub_env, pub_accept("main-opus", provenance=[{"verdict": "accept", "processor": CAROL, "operation": "relay", "integrity_mode": "derivative-bound"}],
+                  pub_env, pub_accept("main-opus", provenance=[{"verdict": "accept", "processor": CAROL, "operation": "relay"}],
                                       delivered=[CAROL], integrity="metadata-only"),
                   prov_envs=[signed(provenance(pub["id"], operation="relay", output_variant="main-opus"), "carol")]))
     out.append(bv("provenance-wrong-publication", "Statement references a publication id that is not this record.", ["§22.3"], pub_env,
@@ -107,18 +107,18 @@ def vectors() -> list[dict]:
     forb = publication("pub-forbid", policy={"redistribution": "allowed-with-attribution", "transcoding": "forbidden"})
     out.append(bv("provenance-policy-transcoding-forbidden", "Publisher policy forbids transcoding; the statement verifies but the receiver flags the violation (§16.4: policy is displayed, not magic).",
                   ["§22.3", "§16.4"], signed(forb, "bob"),
-                  pub_accept("main-opus", provenance=[{"verdict": "accept", "processor": CAROL, "operation": "transcode", "integrity_mode": "derivative-bound",
+                  pub_accept("main-opus", provenance=[{"verdict": "accept", "processor": CAROL, "operation": "transcode",
                                                        "policy_violation": "transcoding"}], transcoded=[CAROL], integrity="derivative-bound"),
                   prov_envs=[signed(provenance(forb["id"]), "carol")]))
     noredist = publication("pub-noredist", policy={"redistribution": "forbidden", "transcoding": "allowed"})
     out.append(bv("provenance-policy-redistribution-forbidden", "Publisher policy forbids redistribution; any statement — here a plain relay — verifies but is flagged (§22.3: \"any statement where it forbids redistribution\").",
                   ["§22.3", "§16.4"], signed(noredist, "bob"),
-                  pub_accept("main-opus", provenance=[{"verdict": "accept", "processor": CAROL, "operation": "relay", "integrity_mode": "derivative-bound",
+                  pub_accept("main-opus", provenance=[{"verdict": "accept", "processor": CAROL, "operation": "relay",
                                                        "policy_violation": "redistribution"}], delivered=[CAROL], integrity="metadata-only"),
                   prov_envs=[signed(provenance(noredist["id"], operation="relay", output_variant="main-opus"), "carol")]))
     out.append(bv("provenance-chain-two-processors", "Relay then transcoder: both processors displayed in their roles.", ["§22.3"], pub_env,
-                  pub_accept("main-opus", provenance=[{"verdict": "accept", "processor": CAROL, "operation": "relay", "integrity_mode": "derivative-bound"},
-                                                      {"verdict": "accept", "processor": ALICE, "operation": "transcode", "integrity_mode": "derivative-bound"}],
+                  pub_accept("main-opus", provenance=[{"verdict": "accept", "processor": CAROL, "operation": "relay"},
+                                                      {"verdict": "accept", "processor": ALICE, "operation": "transcode"}],
                              delivered=[CAROL], transcoded=[ALICE], integrity="derivative-bound"),
                   prov_envs=[signed(provenance(pub["id"], operation="relay", output_variant="main-opus"), "carol"),
                              signed(provenance(pub["id"], label="prov2", processor=ALICE, frm=ALICE), "alice")]))

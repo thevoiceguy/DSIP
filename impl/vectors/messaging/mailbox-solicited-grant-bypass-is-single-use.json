@@ -1,0 +1,199 @@
+{
+  "vector": "messaging/mailbox-solicited-grant-bypass-is-single-use",
+  "format": 1,
+  "kind": "messaging",
+  "description": "One introduction, one answer: the entry is consumed, so a second grant naming it is unsolicited again.",
+  "spec_ref": [
+    "§19.4",
+    "M§14.1",
+    "M§14.3",
+    "M§5.7"
+  ],
+  "context": {
+    "component": "mailbox",
+    "mailbox": "did:web:mbx.bob.example",
+    "owner": "did:web:example.com:users:bob",
+    "serves": [
+      "did:web:example.com:users:bob"
+    ],
+    "devices": [
+      "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ",
+      "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+    ],
+    "now": 1760000000,
+    "mode": "sync",
+    "admit": "grant",
+    "pending_group_ttl": 604800,
+    "pending_group_max_items": 2,
+    "groups": {},
+    "key_packages": {},
+    "intro_limit": 2,
+    "intro_window": 3600,
+    "inbox_cap": 3
+  },
+  "input": {
+    "check": "mailbox-trace",
+    "steps": [
+      {
+        "event": {
+          "config": {
+            "id": "01K742SG004B4R844GFKSWCAXY",
+            "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "introductions_sent": [
+              "01K742SG00B3XHTH8M5S66E4BY"
+            ]
+          }
+        }
+      },
+      {
+        "event": {
+          "first_contact": {
+            "id": "01K742SG00J1XCHR8G1856E6KZ",
+            "from": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+            "sender_identity": "did:web:alice.example",
+            "recipient": "did:web:example.com:users:bob",
+            "kind": "grant",
+            "expires_at": 1760000030,
+            "session": "01K742SG00B3XHTH8M5S66E4BY"
+          }
+        }
+      },
+      {
+        "event": {
+          "first_contact": {
+            "id": "01K742SG00BMB1BK2WZ11D7HJ9",
+            "from": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+            "sender_identity": "did:web:alice.example",
+            "recipient": "did:web:example.com:users:bob",
+            "kind": "grant",
+            "expires_at": 1760000030,
+            "session": "01K742SG00B3XHTH8M5S66E4BY"
+          }
+        }
+      },
+      {
+        "event": {
+          "first_contact": {
+            "id": "01K742SG00EYB5G17TPCWHV63F",
+            "from": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+            "sender_identity": "did:web:alice.example",
+            "recipient": "did:web:example.com:users:bob",
+            "kind": "grant",
+            "expires_at": 1760000030,
+            "session": "01K742SG00B3XHTH8M5S66E4BY"
+          }
+        }
+      },
+      {
+        "event": {
+          "first_contact": {
+            "id": "01K742SG0077VK8EY0AFQXN5TC",
+            "from": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+            "sender_identity": "did:web:alice.example",
+            "recipient": "did:web:example.com:users:bob",
+            "kind": "grant",
+            "expires_at": 1760000030,
+            "session": "01K742SG00B3XHTH8M5S66E4BY"
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "accepted": {
+              "to": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+              "in_reply_to": "01K742SG004B4R844GFKSWCAXY"
+            }
+          }
+        ],
+        "state": {
+          "items": [],
+          "groups": {},
+          "key_packages": {}
+        }
+      },
+      {
+        "emit": [
+          {
+            "accepted": {
+              "to": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+              "in_reply_to": "01K742SG00J1XCHR8G1856E6KZ",
+              "cursor": "c:0000000000000001"
+            }
+          }
+        ],
+        "state": {
+          "items": [
+            "c:0000000000000001"
+          ],
+          "groups": {},
+          "key_packages": {}
+        }
+      },
+      {
+        "emit": [
+          {
+            "accepted": {
+              "to": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+              "in_reply_to": "01K742SG00BMB1BK2WZ11D7HJ9",
+              "cursor": "c:0000000000000002"
+            }
+          }
+        ],
+        "state": {
+          "items": [
+            "c:0000000000000001",
+            "c:0000000000000002"
+          ],
+          "groups": {},
+          "key_packages": {}
+        }
+      },
+      {
+        "emit": [
+          {
+            "accepted": {
+              "to": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+              "in_reply_to": "01K742SG00EYB5G17TPCWHV63F",
+              "cursor": "c:0000000000000003"
+            }
+          }
+        ],
+        "state": {
+          "items": [
+            "c:0000000000000001",
+            "c:0000000000000002",
+            "c:0000000000000003"
+          ],
+          "groups": {},
+          "key_packages": {}
+        }
+      },
+      {
+        "emit": [
+          {
+            "error": {
+              "to": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+              "in_reply_to": "01K742SG0077VK8EY0AFQXN5TC",
+              "reason": "policy.rate-limited",
+              "retry_after": 3600
+            }
+          }
+        ],
+        "state": {
+          "items": [
+            "c:0000000000000001",
+            "c:0000000000000002",
+            "c:0000000000000003"
+          ],
+          "groups": {},
+          "key_packages": {}
+        }
+      }
+    ]
+  }
+}
