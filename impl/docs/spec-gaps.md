@@ -1463,10 +1463,13 @@ is delivered like any registered one), `gateway/trace-dtmf-*` (both directions, 
 `about` values not carried). Mutation-checked: a gateway carrying any `about`, carrying DTMF before answer, an
 unregistered `media:dtmf`, and an unconstrained `digits` each fail vectors.
 
-**Open.** Two things the reference gateway does not do yet, neither of them a protocol question. Its SIP leg has no
-`INFO` method (the controller decides the mapping and the vectors pin it, but the host cannot yet put a digit on the
-wire), and it generates no RFC 4733 RTP events when the SIP leg negotiated `telephone-event` — G§9 allows either
-carriage, and RTP event injection is beyond what the PoC's media bridge does.
+**Open.** The reference gateway generates no RFC 4733 RTP events when the SIP leg negotiated `telephone-event` —
+G§9 allows either carriage, and RTP event injection is beyond what the PoC's media bridge does. (Its SIP leg has
+carried `INFO` since 2026-09-17: one `application/dtmf-relay` body per digit with an increasing CSeq, 160 ms when
+the DSIP `info` names no `duration_ms`; inbound dtmf-relay on a known call is answered 200 and reported, other INFO
+payloads 415, unknown calls 481. `tests/round_trip.rs` proves both directions on the wire against the SIP peer. Found
+on the way: the host re-sent the controller's `response` emission for a request the leg had already answered — for
+INFO that would have been a second 200 to the INVITE.)
 
 **Suggested fix.** Register `media:dtmf` in `dsip-info-about` and carry the §12.12 and G§9 text into the next
 revision.
