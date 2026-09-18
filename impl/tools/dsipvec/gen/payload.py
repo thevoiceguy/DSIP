@@ -113,6 +113,21 @@ def vectors() -> list[dict]:
                   {**info, "data": {"candidates": [{"candidate": "candidate:1 1 udp 1 203.0.113.7 61481 typ srflx"}], "end_of_candidates": False}}, ok=False))
     out.append(pv("info-webrtc-end-only", "info", "An empty batch with end_of_candidates true is the end-of-gathering marker.", ["§12.12"],
                   {**info, "data": {"candidates": [], "end_of_candidates": True}}))
+    # DTMF (spec-gap 70): the same vehicle, a registered about and its own data shape
+    dtmf = {**info, "about": "media:dtmf", "data": {"digits": "12#", "duration_ms": 160}}
+    out.append(pv("info-dtmf-valid", "info", "DTMF digits carried in an info within an established session.", ["§12.12"], dtmf))
+    out.append(pv("info-dtmf-digits-only", "info", "duration_ms is optional; the digits are what matter.", ["§12.12"],
+                  {**dtmf, "data": {"digits": "5"}}))
+    out.append(pv("info-dtmf-bad-digit", "info", "Only RFC 4733 events: 0-9, *, #, A-D.", ["§12.12"],
+                  {**dtmf, "data": {"digits": "1E"}}, ok=False))
+    out.append(pv("info-dtmf-empty", "info", "An info that carries no digit says nothing.", ["§12.12"],
+                  {**dtmf, "data": {"digits": ""}}, ok=False))
+    out.append(pv("info-dtmf-too-long", "info", "At most 32 digits in one info.", ["§12.12"],
+                  {**dtmf, "data": {"digits": "1" * 33}}, ok=False))
+    out.append(pv("info-dtmf-duration-too-short", "info", "An RFC 4733 event lasts at least 40 ms.", ["§12.12"],
+                  {**dtmf, "data": {"digits": "1", "duration_ms": 39}}, ok=False))
+    out.append(pv("info-dtmf-extra-field", "info", "The binding's data carries digits and duration, nothing else.", ["§12.12"],
+                  {**dtmf, "data": {"digits": "1", "tone": "ring"}}, ok=False))
     out.append(pv("info-other-about-data-unchecked", "info", "data for an about the receiver does not implement is not validated (unknown about is ignored, never rejected).", ["§12.12"],
                   {**info, "about": "transport:other", "data": {"anything": 1}}))
 

@@ -20,7 +20,7 @@ T_RING_DEFAULT, T_RING_BOUNDS = 120, (30, 300)
 T_QUEUE_CAP = 1800
 T_RING_LOCAL_DEFAULT, T_RING_LOCAL_BOUNDS = 120, (30, 300)
 MAX_CONSECUTIVE_REQUEUES = 3   # §12.10 RECOMMENDED
-KNOWN_INFO_ABOUT = {"transport:webrtc"}  # registry dsip-info-about (§12.12)
+KNOWN_INFO_ABOUT = {"transport:webrtc", "media:dtmf"}  # registry dsip-info-about (§12.12, spec-gap 70)
 
 
 def clamp(v: int, bounds: tuple[int, int]) -> int:

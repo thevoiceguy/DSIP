@@ -422,11 +422,11 @@ Vectors: `gateway/claims-*`.
 **Gap.** DSIP Core v1.0 has no DTMF semantics; a gateway bridging RFC 2833 telephone-event has
 nowhere to put digits on the DSIP side.
 
-**PoC choice.** Round one does not forward DTMF across the gateway. The natural vehicle is a signed
-`info` (§12.12) with a gateway-defined `about` (`x-gateway:dtmf`).
+**PoC choice.** Round one did not forward DTMF across the gateway. The natural vehicle is a signed
+`info` (§12.12) with a registered `about`.
 
-**Suggested fix.** Define a DTMF `info` binding (`about` value + `data` schema) in a future
-revision; register the `about` in `dsip-info-about`.
+**Resolved by spec-gap 70:** `media:dtmf` is now a registered `dsip-info-about` value with its own
+`data` schema, and G§9 maps it to and from SIP `INFO`.
 
 ## 27. §6.3 — `gateway.downgraded` trigger conditions are undefined
 
@@ -1442,6 +1442,34 @@ epoch. A tracker that never times out, a device that does not hold beyond a gap,
 seqs behind it each fail the demo.
 
 **Suggested fix.** Carry the M§6.5 text into the next profile revision.
+
+## 70. §12.12 / G§9 — the DTMF binding
+
+**Gap.** Spec-gap 26 left DTMF with nowhere to go: core has no DTMF semantics, and the gateway profile said a future
+revision would define carriage, suggesting a gateway-defined `about` such as `x-gateway:dtmf`. That is the wrong
+shape — DTMF is not gateway-specific (a DSIP callee may run an IVR, with no PSTN anywhere) — and "gateway-defined"
+means every gateway invents its own, which G§9 itself forbids.
+
+**Choices considered.** (a) A core binding: `media:dtmf` in `dsip-info-about`, `data` of `{digits, duration_ms?}`,
+carried by `info` (§12.12) — ACTIVE-only, never critical, no reply, changes nothing negotiated; the gateway maps it
+to and from SIP `INFO`. (b) `x-gateway:dtmf` as the profile suggested: private to gateways, so two DSIP endpoints
+cannot send digits to each other. (c) A new message type: `info` exists for exactly this kind of in-session,
+high-frequency, nothing-negotiated data.
+
+**Draft choice.** (a), in §12.12 and G§9 as errata. `digits` is 1–32 RFC 4733 events (`0`–`9`, `*`, `#`, `A`–`D`) in
+the order pressed; `duration_ms` (40–10,000) is each digit's tone length and is optional. Vectors: `payload/info-dtmf-*`
+(7, through the binding data schema the harness validates per `about`), `state/info-active-only` (a `media:dtmf` info
+is delivered like any registered one), `gateway/trace-dtmf-*` (both directions, ignored outside the call, and other
+`about` values not carried). Mutation-checked: a gateway carrying any `about`, carrying DTMF before answer, an
+unregistered `media:dtmf`, and an unconstrained `digits` each fail vectors.
+
+**Open.** Two things the reference gateway does not do yet, neither of them a protocol question. Its SIP leg has no
+`INFO` method (the controller decides the mapping and the vectors pin it, but the host cannot yet put a digit on the
+wire), and it generates no RFC 4733 RTP events when the SIP leg negotiated `telephone-event` — G§9 allows either
+carriage, and RTP event injection is beyond what the PoC's media bridge does.
+
+**Suggested fix.** Register `media:dtmf` in `dsip-info-about` and carry the §12.12 and G§9 text into the next
+revision.
 
 ## Already-flagged (schema README / plan §11)
 

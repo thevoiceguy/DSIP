@@ -205,4 +205,33 @@ def vectors() -> list[dict]:
         ({"sip": {"request": "REFER"}}, [{"sip": {"response": 603}}], st("active", CONF)),
         ({"sip": {"request": "re-INVITE", "direction": "sendonly"}}, [{"dsip": {"local": "update", "direction": "sendonly"}}], st("active", CONF)),
     ], ctx={"direction": "inbound"}))
+    out.append(trace("trace-dtmf-both-ways",
+                     "DTMF crosses as info about media:dtmf (G§9, spec-gap 70): a SIP INFO becomes a DSIP info and a DSIP info becomes "
+                     "a SIP INFO, each acknowledged on its own leg.", ["G§9", "§12.12"], [
+        ({"sip": {"request": "INVITE", "from_tn": "+15551234567"}},
+         [{"dsip": {"local": "place_call", "claims": [{"type": "tel", "number": "+15551234567", "attestation": "none", "verified": False, "verifier": GW}], "trust_basis": "Gateway attested by gw.example · no attestation"}}, {"sip": {"response": 100}}], st("offered", EARLY)),
+        ({"dsip": {"type": "answer", "answered_by": "user"}}, [{"sip": {"response": 200, "direction": "sendrecv"}}, {"media": "bridge"}], st("active", CONF)),
+        ({"sip": {"request": "INFO", "dtmf": "5", "duration_ms": 160}},
+         [{"sip": {"response": 200}}, {"dsip": {"local": "info", "about": "media:dtmf", "data": {"digits": "5", "duration_ms": 160}}}], st("active", CONF)),
+        ({"dsip": {"type": "info", "about": "media:dtmf", "data": {"digits": "12#"}}},
+         [{"sip": {"request": "INFO", "dtmf": "12#"}}], st("active", CONF)),
+    ], ctx={"direction": "inbound"}))
+    out.append(trace("trace-dtmf-outside-the-call-ignored",
+                     "DTMF before the call is up is carried nowhere: the SIP INFO is still answered, and a DSIP info is ignored "
+                     "(§12.12: info is ACTIVE-only).", ["G§9", "§12.12"], [
+        ({"sip": {"request": "INVITE", "from_tn": "+15551234567"}},
+         [{"dsip": {"local": "place_call", "claims": [{"type": "tel", "number": "+15551234567", "attestation": "none", "verified": False, "verifier": GW}], "trust_basis": "Gateway attested by gw.example · no attestation"}}, {"sip": {"response": 100}}], st("offered", EARLY)),
+        ({"sip": {"request": "INFO", "dtmf": "5"}},
+         [{"sip": {"response": 200}}, {"ignore": "sip dtmf outside the established call"}], st("offered", EARLY)),
+        ({"dsip": {"type": "info", "about": "media:dtmf", "data": {"digits": "5"}}},
+         [{"ignore": "dsip dtmf outside the established call"}], st("offered", EARLY)),
+    ], ctx={"direction": "inbound"}))
+    out.append(trace("trace-dtmf-other-about-not-carried",
+                     "Only media:dtmf crosses: the DSIP leg's own transport chatter stays there (G§9).", ["G§9", "§16.3"], [
+        ({"sip": {"request": "INVITE", "from_tn": "+15551234567"}},
+         [{"dsip": {"local": "place_call", "claims": [{"type": "tel", "number": "+15551234567", "attestation": "none", "verified": False, "verifier": GW}], "trust_basis": "Gateway attested by gw.example · no attestation"}}, {"sip": {"response": 100}}], st("offered", EARLY)),
+        ({"dsip": {"type": "answer", "answered_by": "user"}}, [{"sip": {"response": 200, "direction": "sendrecv"}}, {"media": "bridge"}], st("active", CONF)),
+        ({"dsip": {"type": "info", "about": "transport:webrtc", "data": {"candidates": [], "end_of_candidates": True}}},
+         [{"ignore": "dsip info transport:webrtc"}], st("active", CONF)),
+    ], ctx={"direction": "inbound"}))
     return out

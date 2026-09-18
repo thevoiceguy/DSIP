@@ -233,6 +233,19 @@ class GatewayCall:
             elif t == "update":
                 direction = m.get("direction", "sendrecv")
                 out.append({"sip": {"request": "re-INVITE", "direction": direction}})
+            elif t == "info":
+                # G§9 (spec-gap 70): DTMF crosses as `info` about media:dtmf, only while the call is up;
+                # any other `about` is the DSIP leg's business and is not carried to the PSTN.
+                if m.get("about") != "media:dtmf":
+                    out.append({"ignore": f"dsip info {m.get('about')}"})
+                elif not self.answered or self.dsip == "ended":
+                    out.append({"ignore": "dsip dtmf outside the established call"})
+                else:
+                    d = m.get("data", {})
+                    sip = {"request": "INFO", "dtmf": d.get("digits")}
+                    if "duration_ms" in d:
+                        sip["duration_ms"] = d["duration_ms"]
+                    out.append({"sip": sip})
             elif t == "bye":
                 self.dsip = "ended"
                 if self.sip in ("calling", "early", "confirmed"):
@@ -303,6 +316,16 @@ class GatewayCall:
                     r = map_inbound(None, s.get("q850"), phase="active")
                     self.dsip = "ended"
                     out += [{"dsip": {"local": "hangup", "reason": r["reason"]}}, {"media": "release"}]
+            elif s.get("request") == "INFO":
+                # G§9: SIP INFO dtmf-relay becomes an `info` about media:dtmf on the DSIP leg (spec-gap 70)
+                out.append({"sip": {"response": 200}})
+                if "dtmf" in s and self.answered and self.dsip != "ended":
+                    data = {"digits": s["dtmf"]}
+                    if "duration_ms" in s:
+                        data["duration_ms"] = s["duration_ms"]
+                    out.append({"dsip": {"local": "info", "about": "media:dtmf", "data": data}})
+                elif "dtmf" in s:
+                    out.append({"ignore": "sip dtmf outside the established call"})
             elif s.get("request") == "REFER":
                 out.append({"sip": {"response": 603}})   # round one: no transfer
             elif s.get("request") == "re-INVITE":
