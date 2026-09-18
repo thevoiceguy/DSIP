@@ -1,10 +1,11 @@
 {
-  "vector": "messaging/deposit-welcome-with-seq-refused",
+  "vector": "messaging/deposit-ephemeral-with-seq-refused",
   "format": 1,
   "kind": "messaging",
-  "description": "Only handshake and application items carry a hub seq.",
+  "description": "Activity is never sequenced (M§11.2): an ephemeral deposit carries no seq.",
   "spec_ref": [
-    "M§5.2"
+    "M§5.2",
+    "M§11.2"
   ],
   "context": {},
   "input": {
@@ -20,18 +21,15 @@
         "critical": []
       },
       "type": "deposit",
-      "id": "01K742SG00J3DENTFY56PR9Y3S",
+      "id": "01K742SG00W67CJFKM88YNEZZ2",
       "from": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
       "to": "did:web:mbx.alice.example",
       "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
-      "class": "welcome",
-      "mls": "AAFtbHMtbWVzc2FnZQ",
-      "hub": {
-        "did": "did:web:mbx.alice.example"
-      },
+      "class": "ephemeral",
+      "sealed": "c2VhbGVk",
       "seq": 3,
       "issued_at": 1760000000,
-      "expires_at": 1760000030
+      "expires_at": 1760000010
     }
   },
   "expect": {

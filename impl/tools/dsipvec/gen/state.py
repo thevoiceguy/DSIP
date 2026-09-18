@@ -937,6 +937,117 @@ def vectors() -> list[dict]:
         sf({"relay": "bind", "device": BPH, "identity": BOB}, [{"deliver": {"leg": BPH, "type": "bye", "id": uid("b", NOW + 20)}}], {}),
     ], component="relay"))
 
+    # --- spec-gap 82: session traffic for a session this relay holds no attempt for (a relay that restarted mid-call)
+    lost = uid("sess-before-restart", NOW - 600)
+    gone = "did:key:z6MkNobodyHereAtAll11111111111111111111111111"
+    refs82 = ["§13.2", "§13.3", "§12.7"]
+    out.append(trace("relay-unknown-session-routed-by-to",
+                     "A relay that holds no attempt for a session (it restarted mid-call) still routes that session's traffic like "
+                     "any envelope: to the bound device it is addressed to — a leg's late answer goes to the initiator it names.",
+                     refs82, None, [
+        sf({"relay": "bind", "device": BPH, "identity": BOB}, [], {}),
+        sf({"relay": "bind", "device": APH, "identity": ALICE}, [], {}),
+        sf({"recv": msg("bye", "b82", APH, lost, NOW, to=BPH, reason="user.hangup")},
+           [{"deliver": {"leg": BPH, "type": "bye", "id": uid("b82", NOW)}}], {}),
+        sf({"recv": msg("info", "i82", BPH, lost, NOW, to=APH, about="transport:webrtc")},
+           [{"deliver": {"leg": APH, "type": "info", "id": uid("i82", NOW)}}], {}),
+        sf({"recv": msg("answer", "a82", BPH, lost, NOW, to=APH, answered_by="user")},
+           [{"deliver": {"leg": APH, "type": "answer", "id": uid("a82", NOW)}}], {}),
+    ], component="relay"))
+    out.append(trace("relay-unknown-session-identity-addressed-reaches-every-bound-device",
+                     "With no attempt there are no legs to choose among: identity-addressed traffic goes to every device bound for "
+                     "it, in device order (the suite's order wherever a relay or mailbox fans out).",
+                     refs82, None, [
+        sf({"relay": "bind", "device": BPH, "identity": BOB}, [], {}),
+        sf({"relay": "bind", "device": BLA, "identity": BOB}, [], {}),
+        sf({"recv": msg("cancel", "c82", APH, lost, NOW, to=BOB, reason="user.cancelled")},
+           [{"deliver": {"leg": BLA, "type": "cancel", "id": uid("c82", NOW)}}, {"deliver": {"leg": BPH, "type": "cancel", "id": uid("c82", NOW)}}], {}),
+    ], component="relay"))
+    out.append(trace("relay-unknown-session-held-for-known-offline",
+                     "…held for a recipient that is known and offline (§13.3), and flushed when it binds again.", refs82, None, [
+        sf({"relay": "bind", "device": BPH, "identity": BOB}, [], {}),
+        sf({"relay": "unbind", "device": BPH, "identity": BOB}, [], {}),
+        sf({"recv": msg("bye", "b82", APH, lost, NOW, to=BPH, reason="user.hangup", expires_at=NOW + 30)},
+           [{"queue": {"to": BPH, "type": "bye"}}], {BPH: 1}),
+        sf({"relay": "bind", "device": BPH, "identity": BOB}, [{"deliver": {"leg": BPH, "type": "bye", "id": uid("b82", NOW)}}], {}),
+    ], component="relay"))
+    fork2 = rstep({"relay": "invite", "session": sid, "from": APH, "to": BOB_WEB, "legs": [BPH, BLA]},
+                  [{"deliver": {"leg": BPH, "type": "invite"}}, {"deliver": {"leg": BLA, "type": "invite"}}],
+                  **{sid: {"legs": {BPH: "delivered", BLA: "delivered"}, "outcome": None}})
+    out.append(trace("relay-device-addressed-cancel-reaches-one-leg",
+                     "A cancel addressed to a device is a targeted cancel of that leg (§12.11); the other legs go on ringing and "
+                     "the attempt is still open. Found by fuzz.py: two implementations cancelled every leg.", ["§12.11", "§12.7"], None, [
+        fork2,
+        rstep({"recv": msg("cancel", "c-one", APH, sid, NOW + 3, to=BPH, reason="user.cancelled")},
+              [{"deliver": {"leg": BPH, "type": "cancel", "reason": "user.cancelled"}}],
+              **{sid: {"legs": {BPH: "cancelled", BLA: "delivered"}, "outcome": None}}),
+        rstep({"recv": msg("cancel", "c-all", APH, sid, NOW + 4, to=BOB_WEB, reason="user.cancelled")},
+              [{"deliver": {"leg": BLA, "type": "cancel", "reason": "user.cancelled"}}],
+              **{sid: {"legs": {BPH: "cancelled", BLA: "cancelled"}, "outcome": "cancelled"}}),
+    ], component="relay"))
+    intro = lambda label, to: msg("introduction", label, F.did("carol-phone"), None, NOW, to=to, purpose="hi", expires_at=NOW + 600)
+    out.append(trace("relay-device-addressed-cancel-leaves-the-identitys-queued-invite",
+                     "A held invite is withdrawn by a cancel addressed as it was. A cancel to one device (§12.11: one leg) does not "
+                     "withdraw what is held for the identity — it is routed by `to`, here to a device this relay has never seen.",
+                     ["§12.11", "§13.3"], None, [
+        sf({"relay": "bind", "device": BPH, "identity": BOB}, [], {}),
+        sf({"relay": "unbind", "device": BPH, "identity": BOB}, [], {}),
+        sf({"recv": INV("sess")}, [{"queue": {"to": BOB, "type": "invite"}}], {BOB: 1}),
+        sf({"recv": msg("cancel", "c-dev", APH, sid, NOW + 1, to=BLA, reason="user.cancelled")},
+           [{"send": {"type": "error", "to": APH, "reason": "transport.unknown-recipient", "in_reply_to": uid("c-dev", NOW + 1)}}], {BOB: 1}),
+        sf({"recv": msg("cancel", "c-id", APH, sid, NOW + 2, to=BOB, reason="user.cancelled")},
+           [{"dequeue": {"to": BOB, "type": "invite", "why": "cancelled"}}], {}),
+    ], component="relay"))
+    out.append(trace("relay-leg-added-at-the-invites-last-second",
+                     "A device that binds while an attempt is live becomes a leg if the invite is unexpired — as the envelope "
+                     "pipeline means it: expired is expires_at < now, so at now = expires_at it still is one; a second later it is not.",
+                     ["§12.7", "§12.9"], None, [
+        sf({"relay": "bind", "device": BPH, "identity": BOB}, [], {}),
+        sf({"recv": INV("sess", ttl=5)}, [{"deliver": {"leg": BPH, "type": "invite"}}], {}, **{sid: {"legs": {BPH: "delivered"}, "outcome": None}}),
+        sf({"advance": 5}, [], {}),
+        sf({"relay": "bind", "device": BLA, "identity": BOB}, [{"deliver": {"leg": BLA, "type": "invite", "id": sid}}], {},
+           **{sid: {"legs": {BPH: "delivered", BLA: "delivered"}, "outcome": None}}),
+        sf({"advance": 1}, [], {}),
+        sf({"relay": "bind", "device": "did:key:z6MkBobTablet111111111111111111111111111111", "identity": BOB}, [], {},
+           **{sid: {"legs": {BPH: "delivered", BLA: "delivered"}, "outcome": None}}),
+    ], component="relay"))
+    out.append(trace("relay-expiry-reports-in-recipient-order",
+                     "Held envelopes that expire together are dropped in recipient order, whatever order they were queued in.",
+                     ["§13.3"], None, [
+        sf({"recv": intro("i-z", "did:web:zed.example")}, [{"queue": {"to": "did:web:zed.example", "type": "introduction"}}],
+           {"did:web:zed.example": 1}),
+        sf({"recv": intro("i-a", "did:web:abe.example")}, [{"queue": {"to": "did:web:abe.example", "type": "introduction"}}],
+           {"did:web:abe.example": 1, "did:web:zed.example": 1}),
+        sf({"advance": 601}, [{"dequeue": {"to": "did:web:abe.example", "type": "introduction", "why": "expired"}},
+                              {"dequeue": {"to": "did:web:zed.example", "type": "introduction", "why": "expired"}}], {}),
+    ], component="relay"))
+    out.append(trace("relay-cancel-addressed-to-a-device-that-is-not-a-leg",
+                     "A cancel addressed to a device the relay never forked this attempt to cancels no leg of it: it is routed by "
+                     "`to` like any envelope, and with no route the initiator is told so (§13.2).", ["§12.11", "§13.2"], None, [
+        sf({"relay": "invite", "session": sid, "from": APH, "to": BOB_WEB, "legs": [BPH]},
+           [{"deliver": {"leg": BPH, "type": "invite"}}], {}, **{sid: {"legs": {BPH: "delivered"}, "outcome": None}}),
+        sf({"recv": msg("cancel", "c-stray", APH, sid, NOW + 3, to=BLA, reason="user.cancelled")},
+           [{"send": {"type": "error", "to": APH, "reason": "transport.unknown-recipient", "in_reply_to": uid("c-stray", NOW + 3)}}], {},
+           **{sid: {"legs": {BPH: "delivered"}, "outcome": None}}),
+    ], component="relay"))
+    out.append(trace("relay-traffic-from-a-device-that-is-not-a-leg-is-routed",
+                     "A device the relay did not fork to answers for a session the relay knows: not a leg, so not the attempt's "
+                     "business — routed by `to` like any envelope, never dropped silently (spec-gap 82). The initiator decides what "
+                     "an answer from that device is worth (§12.7 rule 2).", refs82, None, [
+        sf({"relay": "bind", "device": APH, "identity": ALICE}, [], {}),
+        sf({"relay": "invite", "session": sid, "from": APH, "to": BOB_WEB, "legs": [BPH]},
+           [{"deliver": {"leg": BPH, "type": "invite"}}], {}, **{sid: {"legs": {BPH: "delivered"}, "outcome": None}}),
+        sf({"recv": msg("answer", "a-other", BLA, sid, NOW + 5, to=APH, answered_by="user")},
+           [{"deliver": {"leg": APH, "type": "answer", "id": uid("a-other", NOW + 5)}}], {},
+           **{sid: {"legs": {BPH: "delivered"}, "outcome": None}}),
+    ], component="relay"))
+    out.append(trace("relay-unknown-session-no-route-is-said-so",
+                     "…and refused out loud when there is no route: a relay never drops an envelope silently on a live connection "
+                     "(§13.2). Before spec-gap 82 this was a silent drop.", refs82, None, [
+        sf({"recv": msg("bye", "b82", APH, lost, NOW, to=gone, reason="user.hangup")},
+           [{"send": {"type": "error", "to": APH, "reason": "transport.unknown-recipient", "in_reply_to": uid("b82", NOW)}}], {}),
+    ], component="relay"))
+
     # ---------------------------------------------------------------- §22 / §9.3 broadcast (Phase 3)
     STREAM = BOB + ":radio:main"
     AUTH = "did:key:z6MkAuthorityRelay11111111111111111111111111"

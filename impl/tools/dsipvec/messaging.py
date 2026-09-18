@@ -69,7 +69,8 @@ DEPOSIT_REQUIRED = {
 DEPOSIT_ALLOWED = {
     "handshake": {"mls", "seq", "welcome", "group_info", "ratchet_tree_blob", "grants"},
     "application": {"mls", "seq", "blobs"},
-    "welcome": {"mls", "hub", "grants", "origin", "successor_of", "ratchet_tree_blob"},
+    # `seq`: the adding commit's, so the new member knows where it starts counting the group (spec-gap 83)
+    "welcome": {"mls", "hub", "grants", "origin", "successor_of", "ratchet_tree_blob", "seq"},
     "group-info": {"mls", "ratchet_tree_blob", "handover_seq"},
     "ephemeral": {"sealed"},
     "archive": {"archive", "akid", "ref_group", "ref_seq"},
@@ -1399,6 +1400,10 @@ class Resume:
                 self._position(it["group"], it["seq"])
             elif it["class"] == "welcome":
                 self.joined.add(it["group"])
+                if it.get("seq") is not None:
+                    # spec-gap 83: the welcome carries the seq of the commit that added this device — its exact position.
+                    # What is at or below it is pre-join history; what follows is counted from there.
+                    self.groups[it["group"]] = {"contiguous": it["seq"], "seen": set()}
         return out
 
     def _sent(self, e: dict) -> list:
@@ -1417,7 +1422,12 @@ class Resume:
         return []
 
     def _position(self, group: str, seq: int) -> None:
-        p = self.groups.setdefault(group, {"contiguous": 0, "seen": set()})
+        if group not in self.groups:
+            # spec-gap 69, the fallback of spec-gap 83: with no position from a welcome, a device counts from where it
+            # starts — the first sequenced item it processes — not from seq 1
+            self.groups[group] = {"contiguous": seq, "seen": set()}
+            return
+        p = self.groups[group]
         if seq > p["contiguous"]:
             p["seen"].add(seq)
         while p["contiguous"] + 1 in p["seen"]:

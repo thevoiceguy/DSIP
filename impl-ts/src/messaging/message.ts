@@ -32,7 +32,8 @@ const MODES = ["sync", "queue"];
 const CLASS_FIELDS: Record<string, { required: string[]; optional: string[] }> = {
   handshake: { required: ["group", "mls"], optional: ["welcome", "group_info", "ratchet_tree_blob", "grants", "seq"] },
   application: { required: ["group", "mls"], optional: ["seq", "blobs"] },
-  welcome: { required: ["group", "mls", "hub"], optional: ["ratchet_tree_blob", "grants", "origin", "successor_of"] },
+  // `seq`: the adding commit's, so the new member knows where it starts counting (spec-gap 83)
+  welcome: { required: ["group", "mls", "hub"], optional: ["ratchet_tree_blob", "grants", "origin", "successor_of", "seq"] },
   "group-info": { required: ["group", "mls"], optional: ["ratchet_tree_blob", "handover_seq"] },
   ephemeral: { required: ["group", "sealed"], optional: [] },
   archive: { required: ["group", "archive", "akid", "ref_group", "ref_seq"], optional: [] },

@@ -14,6 +14,12 @@ on:
         description: "probes per target"
         default: "1000"
 
+# `shell: bash` makes GitHub run steps with `-eo pipefail`. Without it a step like `bash demos/x.sh | tail -20` takes
+# tail's exit status, and a failing demo passes CI — which is how a broken revocation demo got through PR #38.
+defaults:
+  run:
+    shell: bash
+
 jobs:
   fuzz:
     name: random-seed differential fuzz

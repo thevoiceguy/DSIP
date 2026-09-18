@@ -1786,8 +1786,22 @@ a relay carry session traffic for sessions that never existed.
 attempt names), but anything carrying a device `to` is store-and-forward (§13.3). (c) (b), but only while the attempt is
 unknown *because the relay lost it*: indistinguishable to the relay, so not really a choice.
 
-**Draft choice.** None — undecided, and `fuzz.py --target all` leaves the `relay` target out until it is. (b) reads
-better against §13.3 and survives a restart; (a) is the smaller attack surface.
+**Decision (2026-09-18).** (b): route by `to`. The attempt record is for three things only — forwarding a leg's
+pre-answer traffic to the initiator, delivering a `cancel` per leg, and signalling the outcome; everything else is an
+envelope like any other: to the bound device it names, or every device bound for the identity it names (in device
+order); held for a known, offline recipient; otherwise `error` `transport.unknown-recipient` to its sender, never a
+silent drop. Applying it surfaced four neighbours, settled the same way and pinned with it:
+
+- traffic from a device that is **not a leg** of a known attempt is routed by `to`, not dropped;
+- a `cancel` whose `to` is one leg's **device** cancels that leg alone (§12.11), the attempt going on with the others;
+  addressed to a device that is not a leg, it is routed by `to`; and it never takes the identity's queued invite with it;
+- a leg can still be added in the invite's last second (`expires_at >= now`, as §12.10 counts it);
+- when several queued invites expire together, the relay reports them in recipient order.
+
+Applied to the spec (§13.3, A.5), the vectors (`state/relay-unknown-session-*`, `state/relay-device-addressed-cancel-*`,
+`state/relay-cancel-addressed-to-a-device-that-is-not-a-leg`, `state/relay-traffic-from-a-device-that-is-not-a-leg-is-routed`,
+`state/relay-leg-added-at-the-invites-last-second`, `state/relay-expiry-reports-in-recipient-order`) and all three
+implementations; the `relay` fuzz target is back in `--target all`.
 
 ## 83. M§6.5 / M§8.5 — where a device starts counting a group's `seq`
 
@@ -1804,7 +1818,17 @@ items out of order, so "lower and later" can be a real item.
 reaches the items before the join. (c) (a), except that a welcome carries the `seq` of the commit that added the device,
 and the position starts there — exact, but it needs the welcome's seq in the resume state.
 
-**Draft choice.** None — undecided; the `resume` target is left out of `fuzz.py --target all` until it is.
+**Decision (2026-09-18).** (c): from the welcome's `seq`. A hub-forwarded `welcome` carries the `seq` of the commit
+that added the device (M§5.2: `welcome` MAY carry `seq`; `ephemeral` still may not); the device's position for the group
+starts there, so anything at or below it is a duplicate and anything above it is processed or waited for, whatever order
+the mailbox delivers in. A welcome with no `seq` keeps the old rule (the first sequenced item processed is the
+position). A welcome for a sibling device sets nothing; a re-join by external commit is a join, positioned at its own
+`accepted`. A mailbox never sequences a welcome by that `seq` nor echoes it in the acknowledgement (M§6.5, spec-gap 66).
+Applied to the profile (M§5.2, M§6.5), the vectors (`messaging/deposit-welcome-with-seq-valid` — replacing
+`deposit-welcome-with-seq-refused`, a reading the decision reverses — `deposit-ephemeral-with-seq-refused`,
+`resume-welcome-seq-is-the-starting-position`, `resume-late-item-after-the-join-is-processed`,
+`resume-welcome-without-seq-starts-at-the-first-item`, `resume-sibling-welcome-seq-sets-no-position`,
+`resume-rejoin-is-a-join`) and all three implementations; the `resume` fuzz target is back in `--target all`.
 
 ## 84. §12.6 — glare with more than one attempt of our own
 

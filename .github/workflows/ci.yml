@@ -5,6 +5,12 @@ on:
     branches: ["**"]
   pull_request:
 
+# `shell: bash` makes GitHub run steps with `-eo pipefail`. Without it a step like `bash demos/x.sh | tail -20` takes
+# tail's exit status, and a failing demo passes CI — which is how a broken revocation demo got through PR #38.
+defaults:
+  run:
+    shell: bash
+
 jobs:
   schemas:
     name: schemas are fresh + sample harness

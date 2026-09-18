@@ -141,8 +141,11 @@ def message_vectors():
                                   ratchet_tree_blob=blob), accept())
     m("deposit-group-info-ratchet-tree-blob-valid", "A GroupInfo for external joins may name the tree blob the same way.",
       ["M§5.2", "M§6.4", "M§6.8"], deposit("gi-tree", cls="group-info", ratchet_tree_blob=blob), accept())
-    m("deposit-welcome-with-seq-refused", "Only handshake and application items carry a hub seq.", ["M§5.2"],
-      deposit(cls="welcome", hub={"did": HUB_A}, seq=3), reject("deposit-fields"))
+    m("deposit-welcome-with-seq-valid", "A hub-forwarded welcome carries the seq of the commit that added the device: where the "
+      "new member starts counting the group (spec-gap 83). Before it, a welcome with a seq was refused.", ["M§5.2", "M§6.5"],
+      deposit("w-seq", cls="welcome", recipient=BOB, hub={"did": HUB_A, "uri": "wss://mbx.alice.example/dsip"}, seq=3), accept())
+    m("deposit-ephemeral-with-seq-refused", "Activity is never sequenced (M§11.2): an ephemeral deposit carries no seq.", ["M§5.2", "M§11.2"],
+      deposit("e-seq", cls="ephemeral", ttl=10, sealed="c2VhbGVk", seq=3), reject("deposit-fields"))
     m("deposit-archive-valid", "Archive deposit with akid and item reference.", ["M§5.2", "M§12.2"],
       msg("deposit", "arch", BPH, MBX_B, group=GROUP, **{"class": "archive"}, archive="YXJjaGl2ZQ",
           akid=uid("akid-1"), ref_group=GROUP, ref_seq=42), accept())
@@ -1326,6 +1329,41 @@ def resume_vectors():
                          ({"cursor_invalid": {}}, sync(None), st(None, {GROUP: (1,), GROUP2: (1,)}, sorted([GROUP, GROUP2]))),
                          (items(it(5, seq=1), it(6, seq=2, group=GROUP2)), [{"duplicate": c(5)}, {"process": c(6)}],
                           st(6, {GROUP: (1,), GROUP2: (2,)}, sorted([GROUP, GROUP2]))),
+                     ]))
+    # --- spec-gap 83: where a device starts counting a group
+    WS = {**it(1, "welcome"), "seq": 7}
+    out.append(trace("resume-welcome-seq-is-the-starting-position",
+                     "A welcome carries the seq of the commit that added the device (spec-gap 83): that is the device's position in "
+                     "the group at once. Everything at or below it is pre-join history — a duplicate, never a gap — and what "
+                     "follows is counted from there.", refs + ["M§6.5", "M§12.3"], T, ctx, [
+                         (items(WS), [{"process": c(1)}], st(1, {GROUP: (7,)}, [GROUP])),
+                         (items(it(2, seq=5), it(3, seq=8), it(4, seq=10)), [{"duplicate": c(2)}, {"process": c(3)}, {"process": c(4)}],
+                          st(4, {GROUP: (8, [10])}, [GROUP])),
+                         (items(it(5, seq=9)), [{"process": c(5)}], st(5, {GROUP: (10,)}, [GROUP])),
+                     ]))
+    out.append(trace("resume-late-item-after-the-join-is-processed",
+                     "Why the position comes from the welcome and not from arrival order: after a hub handover wait (spec-gap 71) a "
+                     "mailbox stores the old hub's late items behind newer ones. The first item a new member meets is then not its "
+                     "first: the lower one that follows is real, and is processed.", refs + ["M§6.5", "M§7.4"], T, ctx, [
+                         (items(WS, it(2, seq=9)), [{"process": c(1)}, {"process": c(2)}], st(2, {GROUP: (7, [9])}, [GROUP])),
+                         (items(it(3, seq=8)), [{"process": c(3)}], st(3, {GROUP: (9,)}, [GROUP])),
+                     ]))
+    out.append(trace("resume-welcome-without-seq-starts-at-the-first-item",
+                     "A welcome with no seq (a hub that does not send it yet; a group the device created) leaves the old rule: the "
+                     "first sequenced item the device processes is its position (spec-gap 69), and a lower one later is history.",
+                     refs + ["M§6.5"], T, ctx, [
+                         (items(W, it(2, seq=4)), [{"process": c(1)}, {"process": c(2)}], st(2, {GROUP: (4,)}, [GROUP])),
+                         (items(it(3, seq=2), it(4, seq=5)), [{"duplicate": c(3)}, {"process": c(4)}], st(4, {GROUP: (5,)}, [GROUP])),
+                     ]))
+    out.append(trace("resume-rejoin-is-a-join",
+                     "Re-joining by external commit (M§6.8) is a join like any other: the group is joined, and a welcome for it "
+                     "that turns up later is a duplicate (found by fuzz.py).", refs + ["M§6.8"], T, ctx, [
+                         ({"rejoined": {"group": GROUP, "seq": 6}}, [], st(None, {GROUP: (6,)}, [GROUP])),
+                         (items(W), [{"duplicate": c(1)}], st(1, {GROUP: (6,)}, [GROUP])),
+                     ]))
+    out.append(trace("resume-sibling-welcome-seq-sets-no-position",
+                     "A sibling's welcome is not a join (M§12.3): its seq says nothing about this device.", refs + ["M§12.3"], T, ctx, [
+                         (items({**WS, "sibling": True}), [{"sibling": c(1)}], st(1, {}, [])),
                      ]))
     out.append(trace("resume-seq-beyond-gap-remembered",
                      "An application item processed beyond a seq gap is remembered durably, so its redelivery is a duplicate "

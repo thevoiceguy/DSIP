@@ -1,0 +1,53 @@
+{
+  "vector": "messaging/resume-sibling-welcome-seq-sets-no-position",
+  "format": 1,
+  "kind": "messaging",
+  "description": "A sibling's welcome is not a join (M§12.3): its seq says nothing about this device.",
+  "spec_ref": [
+    "M§5.4",
+    "M§8.5",
+    "M§12.3"
+  ],
+  "context": {
+    "component": "resume",
+    "cursor": null,
+    "groups": {},
+    "joined": []
+  },
+  "input": {
+    "check": "resume-trace",
+    "steps": [
+      {
+        "event": {
+          "items": {
+            "items": [
+              {
+                "cursor": "c:0000000000000001",
+                "class": "welcome",
+                "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+                "seq": 7,
+                "sibling": true
+              }
+            ]
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "sibling": "c:0000000000000001"
+          }
+        ],
+        "state": {
+          "cursor": "c:0000000000000001",
+          "groups": {},
+          "joined": []
+        }
+      }
+    ]
+  }
+}

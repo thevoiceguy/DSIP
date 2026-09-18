@@ -327,7 +327,16 @@ When every leg ends without any leg having rejected there is nothing to forward:
 `send error {to: the initiator, session, reason: transport.no-response, in_reply_to: the invite id}` (§12.7 rule 6, spec-gap 76).
 An endpoint in INVITING or PROCEEDING that receives it ends the attempt (`timer stop` → `ui ended transport.no-response`,
 no `cancel`); in any other state it is `ui error` like any other error. A forwarded `progress` carries its `status`. A message from a leg that has already terminated is
-`drop leg-terminated`. An invite to an identity that has never bound here is answered `send error transport.unknown-recipient`.
+`drop leg-terminated`.
+
+The attempt record is used only for a leg's pre-answer traffic, a `cancel`, and the outcome. **Everything else is routed
+by `to`** (§13.3, spec-gap 82) — post-answer traffic, traffic from a device that is not a leg, a `cancel` addressed to a
+device that is not a leg, and any traffic for a session the relay holds no attempt for: `deliver` to the bound device
+named, or to every device bound for the identity named, in device order; queued when the recipient is known and
+offline; otherwise `send error transport.unknown-recipient` to the sender (`in_reply_to` the message's id). Nothing is
+dropped for naming a session the relay does not know. A `cancel` whose `to` is one leg's device cancels that leg alone
+(§12.11): the attempt goes on, and the identity's queued invite stays queued. A leg can be added while
+`expires_at >= now`. Queued envelopes that expire in the same step are reported in recipient order. An invite to an identity that has never bound here is answered `send error transport.unknown-recipient`.
 For an endpoint, optionally `"contacts": {"allow": […], "grants_issued": […], "grants_held": […], "requests": […], "pending_sent": […]}` (sorted ids).
 
 Only the sessions / attempts named in `expect` are compared (`{}` names none); `contacts`, `inbox`,
@@ -509,7 +518,7 @@ digest of the MLS bytes), just as relay traces abstract signatures. `input.check
 | `successor-select` | `candidates [group_id base64url]` | `{winner, discarded}` — lowest decoded ULID; non-ULID ids discarded (M§7.5) |
 | `client-trace` | `steps` of `{sync: {items: [{seq, object}]}}` / `{restore: {items}}` (spec-gap 64: rendering state only) / `{read: {through}}` / `{play: {id}}` / `{activity: {activity, state}}` / `{advance: s}`; `context.me`, `policy {delivered, read, played, activity}`, `member_identities` | per step `emit` (`archive {seq}` for a receipt that changed rendering (spec-gap 64), `send {to: conversation\|personal, receipt, targets\|through}` / `send {to, activity, state}`) and `state {timeline, delivered, played, read_through}` (M§10, M§11.2, M§8.5) |
 | `gap-trace` | `steps` of `{item: {seq, class}}` / `{advance: s}`; `context.contiguous`, `gap_timeout?` (spec-gap 69) | per step `emit` (`process`, `hold`, `duplicate`, `rejoin {held}`) and `state {contiguous, held}` (M§6.5) |
-| `resume-trace` | `steps` of `{items: {items: [{cursor, class, group, seq?, sibling?}], crash_at?}}` / `{sent: {group, seq}}` / `{rejoined: {group, seq}}` (spec-gap 69) / `{sync: {}}` / `{restart: {}}` / `{cursor_invalid: {}}`; `context.cursor`, `groups`, `joined` | per step `emit` (`process`, `duplicate`, `sibling`, `crash`, `sync {since, ack_through?}`) and `state {cursor, groups: {group: {contiguous, seen}}, joined}` (M§5.4, M§8.5; spec-gap 44) |
+| `resume-trace` | `steps` of `{items: {items: [{cursor, class, group, seq?, sibling?}], crash_at?}}` / `{sent: {group, seq}}` / `{rejoined: {group, seq}}` (spec-gap 69; a join: the group is joined from then on, at that `seq`) / `{sync: {}}` / `{restart: {}}` / `{cursor_invalid: {}}`; `context.cursor`, `groups`, `joined`; a non-sibling `welcome` with `seq` sets the group's position to it, one without leaves the first sequenced item processed to set it (spec-gap 83) | per step `emit` (`process`, `duplicate`, `sibling`, `crash`, `sync {since, ack_through?}`) and `state {cursor, groups: {group: {contiguous, seen}}, joined}` (M§5.4, M§8.5; spec-gap 44) |
 | `commit-retry-trace` | `steps` of `{answer: {reason?}}` / `{synced: {still_needed, hub_moved?}}`; `context.max_attempts` | per step `emit` (`merge`, `discard`, `sync`, `repropose {attempt}`, `done`, `surface`) and `state {attempt, state}` (M§6.5, spec-gap 58; `mailbox.unknown-group` retried only when `hub_moved`, spec-gap 60) |
 | `successor-trace` | `steps` of `{welcome: {group, successor_of, creator, roster}}` / `{create: {predecessor}}` / `{created: {group, successor_of}}`; `context.groups` (group → roster by identity) | per step `emit` (`join`, `decline`, `leave`, `first_contact`, `create {successor_of, roster}`, `use`, `refuse`) and `state {predecessor: {successor, candidates}}` (M§7.5, spec-gap 61) |
 | `history-trace` | `steps` of `{archive: {cursor, akid, group, seq, id, object?}}` / `{archive_key: {akid, created_at}}` / `{mls: {group, seq, epoch, id}}` / `{sent: {group, seq, id, object?}}` / `{joined: {group, epoch}}`; `context.keys`, `joined` | per step `emit` (`hold`, `show`, `apply` (a receipt or call event, spec-gaps 63–64, 68), `duplicate`, `prejoin`, `archive {group, seq, akid}`) and `state {timeline, held, current_akid}` (M§12.2, M§12.3, M§8.5) |
@@ -537,7 +546,7 @@ Every deposit may carry `recipient` — it is addressing, not class. Beyond the 
 |---|---|---|
 | `handshake` | `group`, `mls` | `welcome`, `group_info`, `ratchet_tree_blob`, `grants`, `seq` |
 | `application` | `group`, `mls` | `seq`, `blobs` |
-| `welcome` | `group`, `mls`, `hub` | `ratchet_tree_blob`, `grants`, `origin`, `successor_of` |
+| `welcome` | `group`, `mls`, `hub` | `ratchet_tree_blob`, `grants`, `origin`, `successor_of`, `seq` (the adding commit's: spec-gap 83) |
 | `group-info` | `group`, `mls` | `ratchet_tree_blob`, `handover_seq` |
 | `ephemeral` | `group`, `sealed` | — |
 | `archive` | `group`, `archive`, `akid`, `ref_group`, `ref_seq` | — |

@@ -1,0 +1,46 @@
+{
+  "vector": "state/relay-unknown-session-no-route-is-said-so",
+  "format": 1,
+  "kind": "state",
+  "description": "…and refused out loud when there is no route: a relay never drops an envelope silently on a live connection (§13.2). Before spec-gap 82 this was a silent drop.",
+  "spec_ref": [
+    "§13.2",
+    "§13.3",
+    "§12.7"
+  ],
+  "context": {
+    "component": "relay",
+    "start": 1760000000
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "recv": {
+            "type": "bye",
+            "id": "01K742SG00Z1KBXH8MZXDBHYYE",
+            "from": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+            "session": "01K7427620QEDZ0K2PAH5ZFXX2",
+            "to": "did:key:z6MkNobodyHereAtAll11111111111111111111111111",
+            "reason": "user.hangup"
+          }
+        },
+        "expect": {
+          "emit": [
+            {
+              "send": {
+                "type": "error",
+                "to": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+                "reason": "transport.unknown-recipient",
+                "in_reply_to": "01K742SG00Z1KBXH8MZXDBHYYE"
+              }
+            }
+          ],
+          "attempts": {},
+          "inbox": {}
+        }
+      }
+    ]
+  },
+  "expect": {}
+}
