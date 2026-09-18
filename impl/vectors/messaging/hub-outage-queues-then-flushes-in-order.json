@@ -1,0 +1,255 @@
+{
+  "vector": "messaging/hub-outage-queues-then-flushes-in-order",
+  "format": 1,
+  "kind": "messaging",
+  "description": "While the hub is down, later deposits queue behind the pending one; the first accepted answer ends the outage, flushes the queue in order and resets the backoff.",
+  "spec_ref": [
+    "M§9.4",
+    "M§9.3",
+    "§13.2",
+    "M§9.2"
+  ],
+  "context": {
+    "component": "hub-outage",
+    "now": 1760000000
+  },
+  "input": {
+    "check": "hub-outage-trace",
+    "steps": [
+      {
+        "event": {
+          "deposit": {
+            "id": "01K742SG00D93265YJRNSDN4ZD"
+          }
+        }
+      },
+      {
+        "event": {
+          "answer": {
+            "id": "01K742SG00D93265YJRNSDN4ZD",
+            "reason": "mailbox.hub-unreachable"
+          }
+        }
+      },
+      {
+        "event": {
+          "deposit": {
+            "id": "01K742SG00JS05SXJN2KSK6DDV"
+          }
+        }
+      },
+      {
+        "event": {
+          "deposit": {
+            "id": "01K742SG00STHKDBTG5HX7QP40"
+          }
+        }
+      },
+      {
+        "event": {
+          "advance": 1
+        }
+      },
+      {
+        "event": {
+          "answer": {
+            "id": "01K742SG00D93265YJRNSDN4ZD"
+          }
+        }
+      },
+      {
+        "event": {
+          "answer": {
+            "id": "01K742SG00JS05SXJN2KSK6DDV"
+          }
+        }
+      },
+      {
+        "event": {
+          "answer": {
+            "id": "01K742SG00STHKDBTG5HX7QP40"
+          }
+        }
+      },
+      {
+        "event": {
+          "deposit": {
+            "id": "01K742SG00D93265YJRNSDN4ZD"
+          }
+        }
+      },
+      {
+        "event": {
+          "answer": {
+            "id": "01K742SG00D93265YJRNSDN4ZD",
+            "reason": "mailbox.hub-unreachable"
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "forward": "01K742SG00D93265YJRNSDN4ZD"
+          }
+        ],
+        "state": {
+          "state": "up",
+          "pending": [
+            "01K742SG00D93265YJRNSDN4ZD"
+          ],
+          "attempt": 0,
+          "down_for": null
+        }
+      },
+      {
+        "emit": [
+          {
+            "retry_in": 1
+          }
+        ],
+        "state": {
+          "state": "down",
+          "pending": [
+            "01K742SG00D93265YJRNSDN4ZD"
+          ],
+          "attempt": 1,
+          "down_for": 0
+        }
+      },
+      {
+        "emit": [
+          {
+            "queued": "01K742SG00JS05SXJN2KSK6DDV"
+          }
+        ],
+        "state": {
+          "state": "down",
+          "pending": [
+            "01K742SG00D93265YJRNSDN4ZD",
+            "01K742SG00JS05SXJN2KSK6DDV"
+          ],
+          "attempt": 1,
+          "down_for": 0
+        }
+      },
+      {
+        "emit": [
+          {
+            "queued": "01K742SG00STHKDBTG5HX7QP40"
+          }
+        ],
+        "state": {
+          "state": "down",
+          "pending": [
+            "01K742SG00D93265YJRNSDN4ZD",
+            "01K742SG00JS05SXJN2KSK6DDV",
+            "01K742SG00STHKDBTG5HX7QP40"
+          ],
+          "attempt": 1,
+          "down_for": 0
+        }
+      },
+      {
+        "emit": [
+          {
+            "forward": "01K742SG00D93265YJRNSDN4ZD"
+          }
+        ],
+        "state": {
+          "state": "down",
+          "pending": [
+            "01K742SG00D93265YJRNSDN4ZD",
+            "01K742SG00JS05SXJN2KSK6DDV",
+            "01K742SG00STHKDBTG5HX7QP40"
+          ],
+          "attempt": 1,
+          "down_for": 1
+        }
+      },
+      {
+        "emit": [
+          {
+            "sent": "01K742SG00D93265YJRNSDN4ZD"
+          },
+          {
+            "forward": "01K742SG00JS05SXJN2KSK6DDV"
+          },
+          {
+            "forward": "01K742SG00STHKDBTG5HX7QP40"
+          }
+        ],
+        "state": {
+          "state": "up",
+          "pending": [
+            "01K742SG00JS05SXJN2KSK6DDV",
+            "01K742SG00STHKDBTG5HX7QP40"
+          ],
+          "attempt": 0,
+          "down_for": null
+        }
+      },
+      {
+        "emit": [
+          {
+            "sent": "01K742SG00JS05SXJN2KSK6DDV"
+          }
+        ],
+        "state": {
+          "state": "up",
+          "pending": [
+            "01K742SG00STHKDBTG5HX7QP40"
+          ],
+          "attempt": 0,
+          "down_for": null
+        }
+      },
+      {
+        "emit": [
+          {
+            "sent": "01K742SG00STHKDBTG5HX7QP40"
+          }
+        ],
+        "state": {
+          "state": "up",
+          "pending": [],
+          "attempt": 0,
+          "down_for": null
+        }
+      },
+      {
+        "emit": [
+          {
+            "forward": "01K742SG00D93265YJRNSDN4ZD"
+          }
+        ],
+        "state": {
+          "state": "up",
+          "pending": [
+            "01K742SG00D93265YJRNSDN4ZD"
+          ],
+          "attempt": 0,
+          "down_for": null
+        }
+      },
+      {
+        "emit": [
+          {
+            "retry_in": 1
+          }
+        ],
+        "state": {
+          "state": "down",
+          "pending": [
+            "01K742SG00D93265YJRNSDN4ZD"
+          ],
+          "attempt": 1,
+          "down_for": 0
+        }
+      }
+    ]
+  }
+}

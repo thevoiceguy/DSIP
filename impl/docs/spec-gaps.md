@@ -477,7 +477,7 @@ authority rule.
 
 **Status (2026-09-17): every gap in this worklist and in the gateway worklist (23–30) is disposed in the v0.8
 core (`v0.8/dsip_v_0_8_decentralized_session_initiation_protocol.md`, Appendix A.5) or in its companion profiles.
-Spec-gap 26 (DTMF carriage), open until 2026-09-17, is closed by spec-gap 70. Gaps 58–71 are profile 1.0 errata
+Spec-gap 26 (DTMF carriage), open until 2026-09-17, is closed by spec-gap 70. Gaps 58–72 are profile 1.0 errata
 found by running the profile; each is carried into the profile text as it lands.**
 
 **Status (2026-09-15):** filed with the **DSIP Messaging Profile 1.0** draft
@@ -1522,6 +1522,45 @@ mailbox clock (advanced before each message and every 2 s) now drives the machin
 held-introduction expiry, M§6.6 pending groups), which no demo exercises yet.
 
 **Suggested fix.** Carry the M§7.4 text into the next profile revision.
+
+## 72. M§9.4 — the hub cannot be reached
+
+**Gap.** M§9.4 says a client keeps content pending, retries with the §13.2 backoff, never deposits into members'
+mailboxes directly, and treats a hub unreachable past a client-chosen threshold (24 h RECOMMENDED) as the M§7.5
+successor trigger. Nothing pinned it: the reference device sent once, waited 20 s for an answer, and reported an
+error with nothing kept; the mailbox, whose dial to the hub had failed, told the device nothing at all (a forward
+queued behind a failed dial was dropped, and one in flight when the connection ended was forgotten); and the only
+way a successor group ever came about was a person typing `successor`. Coverage found it: M§9.4 was the one
+normative section of the profile with neither a module nor a vector (`docs/coverage.md`, spec-lint since PR #29).
+
+**Choices considered.** (a) An explicit signal: the mailbox answers `mailbox.hub-unreachable` when it cannot hand a
+forward to the hub, and the device also treats silence as an outage; the device's outbox is a machine with a
+pinned backoff and threshold. (b) Silence only: the device infers the outage from its own answer timeout — slow
+(20 s per attempt), and a mailbox that knows the hub is down would still say nothing. (c) The mailbox retries on the
+device's behalf: it would have to hold content and re-sign nothing (the envelope is the device's), and M§9.2's
+"pending" state is the device's to show; a mailbox is not the place for a device's outbox. Threshold: (a) counts
+from the start of the current outage, reset by any `accepted`; (b) cumulative downtime — a flapping hub would then
+be abandoned for no reason.
+
+**Draft choice.** (a) throughout, in M§9.4 as a 1.0 erratum and `mailbox.hub-unreachable` in M§16. The outbox:
+new content is encrypted at once and queued behind the pending items; the head is re-deposited as the same bytes
+after 1 s, doubling to 60 s (the ceiling; a host adds jitter); an `accepted` ends the outage, flushes in order and
+resets the backoff; any other refusal leaves the outbox for its own handling; at `hub_timeout` the device creates
+the successor, re-encrypts the pending items for it, and abandons the dead group's outbox. Pending items and the
+outage's start are durable. Vectors: `hub-outage-*` (6, `hub-outage-trace`) and
+`mailbox-forward-hub-unreachable-answered`. Reference: `dsip-messaging::client::HubOutage`; the mailbox service
+answers every forward a failed or lost hub connection left unanswered; `dsip-msg --hub-timeout`, `PENDING` /
+`OUTAGE-SUCCESSOR` / `RESENT` lines. `demos/hub-outage-demo.sh`: the hub service dies; Alice's message is pending
+and retried at 1, 2, 4, 8 s; a second one queues behind it; at 12 s her device creates the successor, re-adds Bob
+and Carol and re-sends both; they converge and reply. A device that never gives up (`HUB_TIMEOUT=100000`) fails it,
+and exactly one successor is created.
+
+**Open.** A member that has nothing to send never notices the dead hub and creates no successor; it converges on
+one another member creates. If nobody has anything to say, the group just stays dead until someone does, which is
+what M§7.5 says. Whether receipts and typing (which also go through the hub) should count as content that keeps
+the outbox alive is a host choice; the reference device queues application content only.
+
+**Suggested fix.** Carry the M§9.4 text into the next profile revision; register `mailbox.hub-unreachable`.
 
 ## Already-flagged (schema README / plan §11)
 

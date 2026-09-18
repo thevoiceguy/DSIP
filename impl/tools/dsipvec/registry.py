@@ -72,6 +72,7 @@ REASONS: dict[str, tuple[str, ...]] = {
     "mailbox.unsupported-class": ("error",),
     "mailbox.unsupported-mode": ("error",),
     "mailbox.blob-mismatch": ("error",),
+    "mailbox.hub-unreachable": ("error",),  # v0.8 (spec-gap 72): the mailbox could not reach the group's hub (M§9.4)
 }
 
 # §15.4 also lists reasons valid on `notify` in prose (§9.3: session.expired,
