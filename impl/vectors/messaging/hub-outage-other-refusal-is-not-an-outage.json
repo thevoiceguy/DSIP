@@ -1,0 +1,129 @@
+{
+  "vector": "messaging/hub-outage-other-refusal-is-not-an-outage",
+  "format": 1,
+  "kind": "messaging",
+  "description": "A refusal for any other reason takes the item out of the outbox for its own handling (M§6.5 for a commit); the hub is not down.",
+  "spec_ref": [
+    "M§9.4",
+    "M§9.3",
+    "§13.2",
+    "M§6.5"
+  ],
+  "context": {
+    "component": "hub-outage",
+    "now": 1760000000
+  },
+  "input": {
+    "check": "hub-outage-trace",
+    "steps": [
+      {
+        "event": {
+          "deposit": {
+            "id": "01K742SG00D93265YJRNSDN4ZD"
+          }
+        }
+      },
+      {
+        "event": {
+          "answer": {
+            "id": "01K742SG00D93265YJRNSDN4ZD",
+            "reason": "policy.blocked"
+          }
+        }
+      },
+      {
+        "event": {
+          "deposit": {
+            "id": "01K742SG00JS05SXJN2KSK6DDV"
+          }
+        }
+      },
+      {
+        "event": {
+          "answer": {
+            "id": "01K742SG00JS05SXJN2KSK6DDV"
+          }
+        }
+      },
+      {
+        "event": {
+          "answer": {
+            "id": "01K742SG00JS05SXJN2KSK6DDV"
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "forward": "01K742SG00D93265YJRNSDN4ZD"
+          }
+        ],
+        "state": {
+          "state": "up",
+          "pending": [
+            "01K742SG00D93265YJRNSDN4ZD"
+          ],
+          "attempt": 0,
+          "down_for": null
+        }
+      },
+      {
+        "emit": [
+          {
+            "refused": {
+              "id": "01K742SG00D93265YJRNSDN4ZD",
+              "reason": "policy.blocked"
+            }
+          }
+        ],
+        "state": {
+          "state": "up",
+          "pending": [],
+          "attempt": 0,
+          "down_for": null
+        }
+      },
+      {
+        "emit": [
+          {
+            "forward": "01K742SG00JS05SXJN2KSK6DDV"
+          }
+        ],
+        "state": {
+          "state": "up",
+          "pending": [
+            "01K742SG00JS05SXJN2KSK6DDV"
+          ],
+          "attempt": 0,
+          "down_for": null
+        }
+      },
+      {
+        "emit": [
+          {
+            "sent": "01K742SG00JS05SXJN2KSK6DDV"
+          }
+        ],
+        "state": {
+          "state": "up",
+          "pending": [],
+          "attempt": 0,
+          "down_for": null
+        }
+      },
+      {
+        "emit": [],
+        "state": {
+          "state": "up",
+          "pending": [],
+          "attempt": 0,
+          "down_for": null
+        }
+      }
+    ]
+  }
+}

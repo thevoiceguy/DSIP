@@ -1,0 +1,241 @@
+{
+  "vector": "messaging/hub-outage-successor-after-threshold",
+  "format": 1,
+  "kind": "messaging",
+  "description": "A hub down for hub_timeout is the M§7.5 trigger: the device creates the successor group and hands it the pending items to re-encrypt; the dead group's outbox is abandoned and takes no more deposits.",
+  "spec_ref": [
+    "M§9.4",
+    "M§9.3",
+    "§13.2",
+    "M§7.5"
+  ],
+  "context": {
+    "component": "hub-outage",
+    "now": 1760000000,
+    "hub_timeout": 3600
+  },
+  "input": {
+    "check": "hub-outage-trace",
+    "steps": [
+      {
+        "event": {
+          "deposit": {
+            "id": "01K742SG00D93265YJRNSDN4ZD"
+          }
+        }
+      },
+      {
+        "event": {
+          "answer": {
+            "id": "01K742SG00D93265YJRNSDN4ZD",
+            "reason": "mailbox.hub-unreachable"
+          }
+        }
+      },
+      {
+        "event": {
+          "deposit": {
+            "id": "01K742SG00JS05SXJN2KSK6DDV"
+          }
+        }
+      },
+      {
+        "event": {
+          "advance": 1
+        }
+      },
+      {
+        "event": {
+          "answer": {
+            "id": "01K742SG00D93265YJRNSDN4ZD",
+            "reason": "mailbox.hub-unreachable"
+          }
+        }
+      },
+      {
+        "event": {
+          "advance": 3598
+        }
+      },
+      {
+        "event": {
+          "answer": {
+            "id": "01K742SG00D93265YJRNSDN4ZD",
+            "reason": "mailbox.hub-unreachable"
+          }
+        }
+      },
+      {
+        "event": {
+          "advance": 1
+        }
+      },
+      {
+        "event": {
+          "advance": 100
+        }
+      },
+      {
+        "event": {
+          "deposit": {
+            "id": "01K742SG00STHKDBTG5HX7QP40"
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "forward": "01K742SG00D93265YJRNSDN4ZD"
+          }
+        ],
+        "state": {
+          "state": "up",
+          "pending": [
+            "01K742SG00D93265YJRNSDN4ZD"
+          ],
+          "attempt": 0,
+          "down_for": null
+        }
+      },
+      {
+        "emit": [
+          {
+            "retry_in": 1
+          }
+        ],
+        "state": {
+          "state": "down",
+          "pending": [
+            "01K742SG00D93265YJRNSDN4ZD"
+          ],
+          "attempt": 1,
+          "down_for": 0
+        }
+      },
+      {
+        "emit": [
+          {
+            "queued": "01K742SG00JS05SXJN2KSK6DDV"
+          }
+        ],
+        "state": {
+          "state": "down",
+          "pending": [
+            "01K742SG00D93265YJRNSDN4ZD",
+            "01K742SG00JS05SXJN2KSK6DDV"
+          ],
+          "attempt": 1,
+          "down_for": 0
+        }
+      },
+      {
+        "emit": [
+          {
+            "forward": "01K742SG00D93265YJRNSDN4ZD"
+          }
+        ],
+        "state": {
+          "state": "down",
+          "pending": [
+            "01K742SG00D93265YJRNSDN4ZD",
+            "01K742SG00JS05SXJN2KSK6DDV"
+          ],
+          "attempt": 1,
+          "down_for": 1
+        }
+      },
+      {
+        "emit": [
+          {
+            "retry_in": 2
+          }
+        ],
+        "state": {
+          "state": "down",
+          "pending": [
+            "01K742SG00D93265YJRNSDN4ZD",
+            "01K742SG00JS05SXJN2KSK6DDV"
+          ],
+          "attempt": 2,
+          "down_for": 1
+        }
+      },
+      {
+        "emit": [
+          {
+            "forward": "01K742SG00D93265YJRNSDN4ZD"
+          }
+        ],
+        "state": {
+          "state": "down",
+          "pending": [
+            "01K742SG00D93265YJRNSDN4ZD",
+            "01K742SG00JS05SXJN2KSK6DDV"
+          ],
+          "attempt": 2,
+          "down_for": 3599
+        }
+      },
+      {
+        "emit": [
+          {
+            "retry_in": 4
+          }
+        ],
+        "state": {
+          "state": "down",
+          "pending": [
+            "01K742SG00D93265YJRNSDN4ZD",
+            "01K742SG00JS05SXJN2KSK6DDV"
+          ],
+          "attempt": 3,
+          "down_for": 3599
+        }
+      },
+      {
+        "emit": [
+          {
+            "successor": {
+              "pending": [
+                "01K742SG00D93265YJRNSDN4ZD",
+                "01K742SG00JS05SXJN2KSK6DDV"
+              ]
+            }
+          }
+        ],
+        "state": {
+          "state": "abandoned",
+          "pending": [],
+          "attempt": 3,
+          "down_for": 3600
+        }
+      },
+      {
+        "emit": [],
+        "state": {
+          "state": "abandoned",
+          "pending": [],
+          "attempt": 3,
+          "down_for": 3700
+        }
+      },
+      {
+        "emit": [
+          {
+            "refuse": "group-abandoned"
+          }
+        ],
+        "state": {
+          "state": "abandoned",
+          "pending": [],
+          "attempt": 3,
+          "down_for": 3700
+        }
+      }
+    ]
+  }
+}

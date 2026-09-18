@@ -601,6 +601,11 @@ class Mailbox:
         c, pushes = self._store(e["class"], e["group"], seq=seq)
         return out + [{"accepted": {"to": e["from"], "in_reply_to": e["id"], "cursor": c}}] + pushes
 
+    def _forward_failed(self, e: dict) -> list:
+        # M§9.4 (spec-gap 72): a forwarded deposit the mailbox could not hand to the hub (connection refused or lost)
+        # is answered mailbox.hub-unreachable so the device keeps it pending and retries with the §13.2 backoff
+        return self._error(e["device"], e["id"], "mailbox.hub-unreachable")
+
     def _forward(self, e: dict) -> list:
         # M§5.2, M§6.6 (spec-gap 45): an owner device's deposit addressed to another service is forwarded
         # unchanged, only to the hub registered for its group; the mailbox stores nothing
@@ -746,6 +751,9 @@ RECEIPT_MAX_TARGETS = 256     # M§10.2
 READ_MIN_INTERVAL_S = 5       # M§10.3
 ACTIVITY_REFRESH_S = 5        # M§11.2
 GAP_TIMEOUT_S = 300           # M§6.5
+HUB_TIMEOUT_S = 86400         # M§9.4 RECOMMENDED: a hub unreachable this long triggers a successor group (M§7.5)
+RETRY_INITIAL_S = 1           # §13.2 backoff: initial 1 s, factor 2, max 60 s (the ceiling; hosts add full jitter)
+RETRY_MAX_S = 60
 
 
 def call_event_decision(inp: dict) -> dict:
@@ -1051,6 +1059,86 @@ class Client:
                 "played": {i: dict(m) for i, m in sorted(self.played.items()) if m},
                 "read_through": dict(sorted(self.read_through.items())),
                 "activity": {w: dict(sorted(a.items())) for w, a in sorted(self.shown.items())}}
+
+
+class HubOutage:
+    """A device's outbox for one group while its hub cannot be reached (M§9.4; spec-gap 72).
+
+    A deposit is forwarded at once while the hub is up and queued behind the pending ones while it is down. The hub is
+    down from the first `mailbox.hub-unreachable` (or no answer at all) until an `accepted`: pending items are
+    re-deposited as the same bytes (M§9.3), the head first, with the §13.2 backoff (1 s, doubling, 60 s ceiling); an
+    `accepted` flushes the rest in order and resets the backoff. Down for `hub_timeout` (24 h RECOMMENDED), the device
+    creates the successor group (M§7.5) and hands it the pending items to re-encrypt; the dead group's outbox is then
+    abandoned. Nothing is ever deposited into members' mailboxes directly. Any other refusal is not an outage: the item
+    leaves the outbox and the refusal is the caller's (M§6.5 handles a commit's).
+    """
+
+    def __init__(self, ctx: dict):
+        self.now = ctx["now"]
+        self.hub_timeout = ctx.get("hub_timeout", HUB_TIMEOUT_S)
+        # a host restoring its outbox passes `pending` and `down_since`; the first retry is then due at once
+        self.pending: list[str] = list(ctx.get("pending", []))
+        self.down_since: int | None = ctx.get("down_since")
+        self.attempt = 0
+        self.retry_at: int | None = self.now if self.down_since is not None else None
+        self.state = "down" if self.down_since is not None else "up"
+
+    def step(self, ev: dict) -> list:
+        (name, e), = ev.items()
+        return getattr(self, "_" + name)(e)
+
+    def _deposit(self, e: dict) -> list:
+        if self.state == "abandoned":
+            return [{"refuse": "group-abandoned"}]
+        self.pending.append(e["id"])
+        return [{"forward": e["id"]}] if self.state == "up" else [{"queued": e["id"]}]
+
+    def _unreachable(self, item_id: str) -> list:
+        if item_id not in self.pending:
+            return []
+        if self.down_since is None:
+            self.down_since = self.now
+            self.state = "down"
+        self.attempt += 1
+        delay = min(RETRY_INITIAL_S * 2 ** (self.attempt - 1), RETRY_MAX_S)
+        self.retry_at = self.now + delay
+        return [{"retry_in": delay}]
+
+    def _no_answer(self, e: dict) -> list:
+        return self._unreachable(e["id"])
+
+    def _answer(self, e: dict) -> list:
+        reason = e.get("reason")
+        if reason == "mailbox.hub-unreachable":
+            return self._unreachable(e["id"])
+        if e["id"] not in self.pending:
+            return []
+        self.pending.remove(e["id"])
+        if reason is not None:
+            return [{"refused": {"id": e["id"], "reason": reason}}]
+        out = [{"sent": e["id"]}]
+        if self.state == "down":
+            self.state, self.down_since, self.attempt, self.retry_at = "up", None, 0, None
+            out += [{"forward": p} for p in self.pending]  # the hub is back: flush in order
+        return out
+
+    def _advance(self, n: int) -> list:
+        self.now += n
+        if self.state != "down":
+            return []
+        if self.now - self.down_since >= self.hub_timeout:
+            # M§9.4: the successor-group trigger of M§7.5; the pending items are re-encrypted for the successor
+            out = [{"successor": {"pending": list(self.pending)}}]
+            self.pending, self.state, self.retry_at = [], "abandoned", None
+            return out
+        if self.pending and self.retry_at is not None and self.now >= self.retry_at:
+            self.retry_at = None  # the answer schedules the next attempt
+            return [{"forward": self.pending[0]}]
+        return []
+
+    def snapshot(self) -> dict:
+        return {"state": self.state, "pending": list(self.pending), "attempt": self.attempt,
+                "down_for": None if self.down_since is None else self.now - self.down_since}
 
 
 class GapTracker:
@@ -1810,10 +1898,10 @@ def run(v: dict) -> dict:
     if check == "successor-select":
         return select_successor(inp["candidates"])
     if check in ("hub-trace", "mailbox-trace", "client-trace", "gap-trace", "resume-trace", "history-trace", "commit-retry-trace",
-                 "successor-trace"):
+                 "successor-trace", "hub-outage-trace"):
         comp = {"hub-trace": Hub, "mailbox-trace": Mailbox, "client-trace": Client, "gap-trace": GapTracker,
                 "resume-trace": Resume, "history-trace": History, "commit-retry-trace": CommitRetry,
-                "successor-trace": SuccessorTracker}[check](v["context"])
+                "successor-trace": SuccessorTracker, "hub-outage-trace": HubOutage}[check](v["context"])
         steps = []
         for st in inp["steps"]:
             emit = comp.step(st["event"])

@@ -95,6 +95,7 @@ def vectors() -> list[dict]:
     out += revocation_vectors()
     out += restart_vectors()
     out += hub_change_vectors()
+    out += hub_outage_vectors()
     out += successor_vectors()
     out += external_join_vectors()
     out += call_history_vectors()
@@ -2101,6 +2102,120 @@ def restart_vectors():
 
 
 # ---------------------------------------------------------------- moving a group to another hub (M§7.4; spec-gap 60)
+
+# ---------------------------------------------------------------- the hub cannot be reached (M§9.4; spec-gap 72)
+
+def hub_outage_vectors():
+    out = []
+    T = "hub-outage-trace"
+    refs = ["M§9.4", "M§9.3", "§13.2"]
+    ctx = {"component": "hub-outage", "now": NOW}
+
+    def snap(state, pending=(), attempt=0, down_for=None):
+        return {"state": state, "pending": list(pending), "attempt": attempt, "down_for": down_for}
+
+    def dep(i):
+        return {"deposit": {"id": uid(i)}}
+
+    def unreachable(i):
+        return {"answer": {"id": uid(i), "reason": "mailbox.hub-unreachable"}}
+
+    def accepted(i):
+        return {"answer": {"id": uid(i)}}
+
+    a, b, c = uid("o-a"), uid("o-b"), uid("o-c")
+    out.append(trace("hub-outage-pending-and-backoff",
+                     "A deposit the mailbox could not hand to the hub stays pending and is re-deposited as the same bytes with the "
+                     "§13.2 backoff: 1 s, doubling, 60 s ceiling; the attempt count and the outage's age are visible.", refs, T, ctx, [
+                         (dep("o-a"), [{"forward": a}], snap("up", [a])),
+                         (unreachable("o-a"), [{"retry_in": 1}], snap("down", [a], 1, 0)),
+                         ({"advance": 1}, [{"forward": a}], snap("down", [a], 1, 1)),
+                         (unreachable("o-a"), [{"retry_in": 2}], snap("down", [a], 2, 1)),
+                         ({"advance": 1}, [], snap("down", [a], 2, 2)),
+                         ({"advance": 1}, [{"forward": a}], snap("down", [a], 2, 3)),
+                         (unreachable("o-a"), [{"retry_in": 4}], snap("down", [a], 3, 3)),
+                         ({"advance": 4}, [{"forward": a}], snap("down", [a], 3, 7)),
+                         (unreachable("o-a"), [{"retry_in": 8}], snap("down", [a], 4, 7)),
+                         ({"advance": 8}, [{"forward": a}], snap("down", [a], 4, 15)),
+                         (unreachable("o-a"), [{"retry_in": 16}], snap("down", [a], 5, 15)),
+                         ({"advance": 16}, [{"forward": a}], snap("down", [a], 5, 31)),
+                         (unreachable("o-a"), [{"retry_in": 32}], snap("down", [a], 6, 31)),
+                         ({"advance": 32}, [{"forward": a}], snap("down", [a], 6, 63)),
+                         (unreachable("o-a"), [{"retry_in": 60}], snap("down", [a], 7, 63)),
+                         ({"advance": 60}, [{"forward": a}], snap("down", [a], 7, 123)),
+                         (unreachable("o-a"), [{"retry_in": 60}], snap("down", [a], 8, 123)),
+                     ]))
+    out.append(trace("hub-outage-queues-then-flushes-in-order",
+                     "While the hub is down, later deposits queue behind the pending one; the first accepted answer ends the "
+                     "outage, flushes the queue in order and resets the backoff.", refs + ["M§9.2"], T, ctx, [
+                         (dep("o-a"), [{"forward": a}], snap("up", [a])),
+                         (unreachable("o-a"), [{"retry_in": 1}], snap("down", [a], 1, 0)),
+                         (dep("o-b"), [{"queued": b}], snap("down", [a, b], 1, 0)),
+                         (dep("o-c"), [{"queued": c}], snap("down", [a, b, c], 1, 0)),
+                         ({"advance": 1}, [{"forward": a}], snap("down", [a, b, c], 1, 1)),
+                         (accepted("o-a"), [{"sent": a}, {"forward": b}, {"forward": c}], snap("up", [b, c])),
+                         (accepted("o-b"), [{"sent": b}], snap("up", [c])),
+                         (accepted("o-c"), [{"sent": c}], snap("up")),
+                         (dep("o-a"), [{"forward": a}], snap("up", [a])),
+                         (unreachable("o-a"), [{"retry_in": 1}], snap("down", [a], 1, 0)),
+                     ]))
+    out.append(trace("hub-outage-no-answer-is-an-outage",
+                     "Silence is an outage too: a deposit with no answer at all is retried like one refused hub-unreachable.",
+                     refs, T, ctx, [
+                         (dep("o-a"), [{"forward": a}], snap("up", [a])),
+                         ({"no_answer": {"id": a}}, [{"retry_in": 1}], snap("down", [a], 1, 0)),
+                         ({"advance": 1}, [{"forward": a}], snap("down", [a], 1, 1)),
+                         (accepted("o-a"), [{"sent": a}], snap("up")),
+                     ]))
+    out.append(trace("hub-outage-other-refusal-is-not-an-outage",
+                     "A refusal for any other reason takes the item out of the outbox for its own handling (M§6.5 for a commit); "
+                     "the hub is not down.", refs + ["M§6.5"], T, ctx, [
+                         (dep("o-a"), [{"forward": a}], snap("up", [a])),
+                         ({"answer": {"id": a, "reason": "policy.blocked"}}, [{"refused": {"id": a, "reason": "policy.blocked"}}], snap("up")),
+                         (dep("o-b"), [{"forward": b}], snap("up", [b])),
+                         (accepted("o-b"), [{"sent": b}], snap("up")),
+                         ({"answer": {"id": b}}, [], snap("up")),
+                     ]))
+    out.append(trace("hub-outage-successor-after-threshold",
+                     "A hub down for hub_timeout is the M§7.5 trigger: the device creates the successor group and hands it the "
+                     "pending items to re-encrypt; the dead group's outbox is abandoned and takes no more deposits.",
+                     refs + ["M§7.5"], T, {**ctx, "hub_timeout": 3600}, [
+                         (dep("o-a"), [{"forward": a}], snap("up", [a])),
+                         (unreachable("o-a"), [{"retry_in": 1}], snap("down", [a], 1, 0)),
+                         (dep("o-b"), [{"queued": b}], snap("down", [a, b], 1, 0)),
+                         ({"advance": 1}, [{"forward": a}], snap("down", [a, b], 1, 1)),
+                         (unreachable("o-a"), [{"retry_in": 2}], snap("down", [a, b], 2, 1)),
+                         ({"advance": 3598}, [{"forward": a}], snap("down", [a, b], 2, 3599)),
+                         (unreachable("o-a"), [{"retry_in": 4}], snap("down", [a, b], 3, 3599)),
+                         ({"advance": 1}, [{"successor": {"pending": [a, b]}}], snap("abandoned", [], 3, 3600)),
+                         ({"advance": 100}, [], snap("abandoned", [], 3, 3700)),
+                         (dep("o-c"), [{"refuse": "group-abandoned"}], snap("abandoned", [], 3, 3700)),
+                     ]))
+    out.append(trace("hub-outage-threshold-counts-from-the-current-outage",
+                     "An accepted answer ends an outage; the threshold counts from the start of the next one, not the first.",
+                     refs + ["M§7.5"], T, {**ctx, "hub_timeout": 3600}, [
+                         (dep("o-a"), [{"forward": a}], snap("up", [a])),
+                         (unreachable("o-a"), [{"retry_in": 1}], snap("down", [a], 1, 0)),
+                         ({"advance": 3000}, [{"forward": a}], snap("down", [a], 1, 3000)),
+                         (accepted("o-a"), [{"sent": a}], snap("up")),
+                         (dep("o-b"), [{"forward": b}], snap("up", [b])),
+                         (unreachable("o-b"), [{"retry_in": 1}], snap("down", [b], 1, 0)),
+                         ({"advance": 3599}, [{"forward": b}], snap("down", [b], 1, 3599)),
+                         (unreachable("o-b"), [{"retry_in": 2}], snap("down", [b], 2, 3599)),
+                         ({"advance": 1}, [{"successor": {"pending": [b]}}], snap("abandoned", [], 2, 3600)),
+                     ]))
+    # the mailbox's side of it
+    out.append(trace("mailbox-forward-hub-unreachable-answered",
+                     "A forwarded deposit the mailbox could not hand to the group's hub (connection refused, or lost with the "
+                     "deposit in flight) is answered mailbox.hub-unreachable, so the device keeps it pending (M§9.4).",
+                     ["M§9.4", "M§5.2", "M§16"], "mailbox-trace", mbx_ctx(groups={GROUP: {"hub": HUB_A, "state": "joined"}}), [
+                         ({"forward": {"id": uid("fw-1"), "device": BPH, "identity": BOB, "group": GROUP, "to": HUB_A}},
+                          [{"forward": {"to": HUB_A, "id": uid("fw-1")}}], ms([], {GROUP: "joined"})),
+                         ({"forward_failed": {"id": uid("fw-1"), "device": BPH, "to": HUB_A}},
+                          [err(BPH, "fw-1", "mailbox.hub-unreachable")], ms([], {GROUP: "joined"})),
+                     ]))
+    return out
+
 
 def hub_change_vectors():
     out = []

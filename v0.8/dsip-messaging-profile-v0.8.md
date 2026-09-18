@@ -1104,6 +1104,21 @@ The client MUST NOT deposit application traffic directly into members' mailboxes
 ordering). A hub unreachable past a client-chosen threshold (RECOMMENDED 24 h) is the successor-group
 trigger of M§7.5.
 
+(spec-gap 72) Precisely:
+
+- **How a client learns.** A mailbox that cannot hand a forwarded deposit to the group's hub — the
+  dial refused, the connection lost with the deposit in flight, or no endpoint known for the hub —
+  answers the device `mailbox.hub-unreachable` (M§16). A deposit with no answer at all counts the same.
+- **The outage.** The hub is down for a group from the first such answer until an `accepted`. New
+  content is encrypted at once and queued behind the pending items; the head is re-deposited as the
+  same bytes (M§9.3) after 1 s, doubling to a 60 s ceiling (§13.2; a host adds jitter); an `accepted`
+  ends the outage, flushes the queue in order, and resets the backoff. Any other refusal is not an
+  outage: the item leaves the outbox for its own handling (M§6.5 for a commit).
+- **The threshold** (`hub_timeout`, the client's own, 24 h RECOMMENDED) counts from the start of the
+  current outage. When it passes, the client creates the successor group (M§7.5), re-encrypts the
+  pending items for it, and abandons the dead group's outbox: the dead group takes no more content.
+  Pending items and the outage's start survive a restart; the first retry is then due at once.
+
 ### M§9.5 Relationship to relay store-and-forward
 
 Mailbox traffic MUST NOT rely on relay store-and-forward (§13.3), which is best-effort, silently
@@ -1539,6 +1554,7 @@ re-sync, retry once, then surface the failure.
 | `mailbox.no-key-packages` | No KeyPackage or last resort is available for any device of the target | error |
 | `mailbox.unsupported-class` | Unknown deposit `class`, or one the receiver (hub, or the owner's mode) refuses | error |
 | `mailbox.unsupported-mode` | `mailbox-config.mode` is not a registered mode; nothing is changed | error |
+| `mailbox.hub-unreachable` | The mailbox could not hand a forwarded deposit to the group's hub; the device keeps it pending (M§9.4, spec-gap 72) | error |
 
 Existing tokens used unchanged: `policy.first-contact-required`, `policy.blocked`,
 `policy.rate-limited`, `transport.unknown-recipient`, `transport.envelope-too-large`.

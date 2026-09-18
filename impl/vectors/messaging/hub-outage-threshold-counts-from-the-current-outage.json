@@ -1,0 +1,221 @@
+{
+  "vector": "messaging/hub-outage-threshold-counts-from-the-current-outage",
+  "format": 1,
+  "kind": "messaging",
+  "description": "An accepted answer ends an outage; the threshold counts from the start of the next one, not the first.",
+  "spec_ref": [
+    "M§9.4",
+    "M§9.3",
+    "§13.2",
+    "M§7.5"
+  ],
+  "context": {
+    "component": "hub-outage",
+    "now": 1760000000,
+    "hub_timeout": 3600
+  },
+  "input": {
+    "check": "hub-outage-trace",
+    "steps": [
+      {
+        "event": {
+          "deposit": {
+            "id": "01K742SG00D93265YJRNSDN4ZD"
+          }
+        }
+      },
+      {
+        "event": {
+          "answer": {
+            "id": "01K742SG00D93265YJRNSDN4ZD",
+            "reason": "mailbox.hub-unreachable"
+          }
+        }
+      },
+      {
+        "event": {
+          "advance": 3000
+        }
+      },
+      {
+        "event": {
+          "answer": {
+            "id": "01K742SG00D93265YJRNSDN4ZD"
+          }
+        }
+      },
+      {
+        "event": {
+          "deposit": {
+            "id": "01K742SG00JS05SXJN2KSK6DDV"
+          }
+        }
+      },
+      {
+        "event": {
+          "answer": {
+            "id": "01K742SG00JS05SXJN2KSK6DDV",
+            "reason": "mailbox.hub-unreachable"
+          }
+        }
+      },
+      {
+        "event": {
+          "advance": 3599
+        }
+      },
+      {
+        "event": {
+          "answer": {
+            "id": "01K742SG00JS05SXJN2KSK6DDV",
+            "reason": "mailbox.hub-unreachable"
+          }
+        }
+      },
+      {
+        "event": {
+          "advance": 1
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "forward": "01K742SG00D93265YJRNSDN4ZD"
+          }
+        ],
+        "state": {
+          "state": "up",
+          "pending": [
+            "01K742SG00D93265YJRNSDN4ZD"
+          ],
+          "attempt": 0,
+          "down_for": null
+        }
+      },
+      {
+        "emit": [
+          {
+            "retry_in": 1
+          }
+        ],
+        "state": {
+          "state": "down",
+          "pending": [
+            "01K742SG00D93265YJRNSDN4ZD"
+          ],
+          "attempt": 1,
+          "down_for": 0
+        }
+      },
+      {
+        "emit": [
+          {
+            "forward": "01K742SG00D93265YJRNSDN4ZD"
+          }
+        ],
+        "state": {
+          "state": "down",
+          "pending": [
+            "01K742SG00D93265YJRNSDN4ZD"
+          ],
+          "attempt": 1,
+          "down_for": 3000
+        }
+      },
+      {
+        "emit": [
+          {
+            "sent": "01K742SG00D93265YJRNSDN4ZD"
+          }
+        ],
+        "state": {
+          "state": "up",
+          "pending": [],
+          "attempt": 0,
+          "down_for": null
+        }
+      },
+      {
+        "emit": [
+          {
+            "forward": "01K742SG00JS05SXJN2KSK6DDV"
+          }
+        ],
+        "state": {
+          "state": "up",
+          "pending": [
+            "01K742SG00JS05SXJN2KSK6DDV"
+          ],
+          "attempt": 0,
+          "down_for": null
+        }
+      },
+      {
+        "emit": [
+          {
+            "retry_in": 1
+          }
+        ],
+        "state": {
+          "state": "down",
+          "pending": [
+            "01K742SG00JS05SXJN2KSK6DDV"
+          ],
+          "attempt": 1,
+          "down_for": 0
+        }
+      },
+      {
+        "emit": [
+          {
+            "forward": "01K742SG00JS05SXJN2KSK6DDV"
+          }
+        ],
+        "state": {
+          "state": "down",
+          "pending": [
+            "01K742SG00JS05SXJN2KSK6DDV"
+          ],
+          "attempt": 1,
+          "down_for": 3599
+        }
+      },
+      {
+        "emit": [
+          {
+            "retry_in": 2
+          }
+        ],
+        "state": {
+          "state": "down",
+          "pending": [
+            "01K742SG00JS05SXJN2KSK6DDV"
+          ],
+          "attempt": 2,
+          "down_for": 3599
+        }
+      },
+      {
+        "emit": [
+          {
+            "successor": {
+              "pending": [
+                "01K742SG00JS05SXJN2KSK6DDV"
+              ]
+            }
+          }
+        ],
+        "state": {
+          "state": "abandoned",
+          "pending": [],
+          "attempt": 2,
+          "down_for": 3600
+        }
+      }
+    ]
+  }
+}

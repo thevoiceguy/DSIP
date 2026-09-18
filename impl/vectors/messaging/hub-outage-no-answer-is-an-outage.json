@@ -1,0 +1,108 @@
+{
+  "vector": "messaging/hub-outage-no-answer-is-an-outage",
+  "format": 1,
+  "kind": "messaging",
+  "description": "Silence is an outage too: a deposit with no answer at all is retried like one refused hub-unreachable.",
+  "spec_ref": [
+    "M§9.4",
+    "M§9.3",
+    "§13.2"
+  ],
+  "context": {
+    "component": "hub-outage",
+    "now": 1760000000
+  },
+  "input": {
+    "check": "hub-outage-trace",
+    "steps": [
+      {
+        "event": {
+          "deposit": {
+            "id": "01K742SG00D93265YJRNSDN4ZD"
+          }
+        }
+      },
+      {
+        "event": {
+          "no_answer": {
+            "id": "01K742SG00D93265YJRNSDN4ZD"
+          }
+        }
+      },
+      {
+        "event": {
+          "advance": 1
+        }
+      },
+      {
+        "event": {
+          "answer": {
+            "id": "01K742SG00D93265YJRNSDN4ZD"
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "forward": "01K742SG00D93265YJRNSDN4ZD"
+          }
+        ],
+        "state": {
+          "state": "up",
+          "pending": [
+            "01K742SG00D93265YJRNSDN4ZD"
+          ],
+          "attempt": 0,
+          "down_for": null
+        }
+      },
+      {
+        "emit": [
+          {
+            "retry_in": 1
+          }
+        ],
+        "state": {
+          "state": "down",
+          "pending": [
+            "01K742SG00D93265YJRNSDN4ZD"
+          ],
+          "attempt": 1,
+          "down_for": 0
+        }
+      },
+      {
+        "emit": [
+          {
+            "forward": "01K742SG00D93265YJRNSDN4ZD"
+          }
+        ],
+        "state": {
+          "state": "down",
+          "pending": [
+            "01K742SG00D93265YJRNSDN4ZD"
+          ],
+          "attempt": 1,
+          "down_for": 1
+        }
+      },
+      {
+        "emit": [
+          {
+            "sent": "01K742SG00D93265YJRNSDN4ZD"
+          }
+        ],
+        "state": {
+          "state": "up",
+          "pending": [],
+          "attempt": 0,
+          "down_for": null
+        }
+      }
+    ]
+  }
+}
