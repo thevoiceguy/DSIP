@@ -1662,6 +1662,44 @@ mislead.
 
 **Suggested fix.** §22.3: say whether a statement has an integrity mode of its own; if not, the vectors drop the field.
 
+## 78. G§4 — which tokens are "attempt" tokens
+
+**Gap.** G§4: "Tokens describing a failed *attempt* (busy, declined, unknown, moved, cancelled, blocked) that arrive
+after the DSIP leg is ACTIVE are reported as `gateway.mapped`." Read as a list, that is six tokens. The Rust and Python
+implementations also map `endpoint.unavailable` and `identity.not-in-service`; no vector said so (the only one was
+`endpoint.busy`). The second implementation took the list literally and a mid-call BYE with Q.850 18 came out as
+`bye endpoint.unavailable` — a token §15.4 does not even list as valid on `bye`. A real three-way divergence, found by
+adding the vector; the existing implementations' set was established black-box, with probe vectors, not by reading them.
+
+**Choices considered.** (a) The eight tokens the existing implementations use: every mapped token that says why a call
+could not be *set up*. (b) The six the profile names. (c) A rule instead of a list: any token §15.4 does not list as
+valid on `bye` — tidy, but it would also rewrite `gateway.unreachable`, `media.unsupported` and `session.timeout`, which
+are useful mid-call and which `gateway/inbound-bye-q850-41-unreachable` already pins as kept.
+
+**Draft choice.** (a). Vectors `inbound-active-declined-becomes-mapped`, `-unavailable-becomes-mapped`,
+`-not-in-service-becomes-mapped`, `inbound-active-media-token-stays`; all three implementations agree.
+
+**Suggested fix.** G§4: replace the parenthetical with the eight tokens. Separately, §15.4's "valid on" for
+`gateway.unreachable`, `media.unsupported` and `session.timeout` should admit `bye` if a gateway may send them there.
+
+## 79. G§4.2 — Q.850 causes the table does not give
+
+**Gap.** G§4.2 maps an unregistered token "by its §15.1 category (`user`→603, `endpoint`→480, …)" — statuses only — yet
+G§3 requires every crossing to carry a `Q.850;cause` where one applies, and the vectors pin one
+(`outbound-unknown-token-category-fallback`: 603 **with cause 21**). Likewise an ACTIVE teardown is "BYE with the
+cause", but the BYE rows name only `user.hangup`/`session.*` (16) and `media.failed` (47); `outbound-bye-policy-terminated`
+pins 31, taken from the token's pre-answer row.
+
+**Choices considered.** (a) A category fallback takes the cause of the category's representative row (`user` 21,
+`endpoint` 18, `identity` 1, `session` 41, `media` 65, `policy` 21, `transport` 41, `gateway` 38); a BYE takes the
+token's table cause when the BYE rows do not name it, else 16. (b) No cause on a fallback — the `Reason: DSIP` header
+already carries the literal token.
+
+**Draft choice.** (a), as the implementations already agreed; new vector
+`outbound-unknown-endpoint-token-category-fallback` (480, cause 18) pins a second category.
+
+**Suggested fix.** G§4.2: add the cause to each category fallback, and a sentence for BYE causes.
+
 ## Already-flagged (schema README / plan §11)
 
 - §15.3 codec example uses bare strings; §16.2 defines objects (schemas follow §16.2).

@@ -43,7 +43,8 @@ python3 ../impl/tools/parity_ts.py       # Python harness vs this implementation
 | `broadcast` | 21 | pass |
 | `media-binding` | 42 | pass |
 | `trust` | 13 | pass |
-| `gateway`, `messaging` | 462 | not yet implemented |
+| `gateway` | 64 | pass |
+| `messaging` | 403 | not yet implemented |
 
 ## Findings so far
 
@@ -77,10 +78,19 @@ Stage 3 (`trust`, `broadcast`, `media-binding`):
 | 14 | The order of the 13 media-binding checks, and that binding traces keep expectations in `expect.steps` (unlike `state`), were unstated. | README. |
 | 15 | This implementation first also required a statement's `output_variant` to be advertised — the `state` authority traces pass either way. §22.3 requires only `input_variant`; followed the spec. | Noted as unpinned below. |
 
+Stage 4 (`gateway`):
+
+| # | Finding | Disposition |
+|---|---|---|
+| 16 | G§4's list of "attempt" tokens names six; Rust and Python use eight. A literal reading sent `bye endpoint.unavailable` mid-call. The second real divergence — found by adding a vector, and the existing set established with probe vectors, not by reading the code. | spec-gap 78; four new vectors. |
+| 17 | G§4.2 gives category fallbacks a status but no Q.850 cause, and BYE causes for two rows only; the suite pins both. | spec-gap 79; one new vector. |
+| 18 | The gateway's DID (`did:web:gw.example`) is fixed by the suite, not an input; the `downgrade-error` check, the trace states, the local-event vocabulary and the exact `ignore` strings were undocumented. | README, kind `gateway`. |
+
 Readings this implementation makes that no vector pins yet (found by mutating the code and seeing the suite stay green):
 
 - A delegation *presented* in the protected header that links a different device/identity pair is
   `delegation-invalid`; one merely held in the verifier's store is ignored (`src/envelope.ts`, `bind`).
 - Order of version failures when several hold at once: core → profile → critical extension.
 - A provenance statement whose `output_variant` the publication does not advertise is accepted (§22.3 constrains only `input_variant`).
+- Category-fallback causes for `identity`, `session`, `media`, `policy`, `transport`, `gateway` (only `user` and `endpoint` are pinned).
 - The `trust` basis for a `tel` claim whose verifier is not a `did:web` shows the verifier DID as is.

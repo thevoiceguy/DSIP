@@ -1,0 +1,24 @@
+{
+  "vector": "gateway/outbound-unknown-endpoint-token-category-fallback",
+  "format": 1,
+  "kind": "gateway",
+  "description": "DSIP endpoint.on-fire in phase pre-answer → SIP 480 with Reason DSIP + Q.850.",
+  "spec_ref": [
+    "§15.5",
+    "§15.1"
+  ],
+  "context": {},
+  "input": {
+    "check": "reason-outbound",
+    "reason": "endpoint.on-fire",
+    "phase": "pre-answer"
+  },
+  "expect": {
+    "status": 480,
+    "q850": 18,
+    "reason_header": {
+      "protocol": "DSIP",
+      "text": "endpoint.on-fire"
+    }
+  }
+}
