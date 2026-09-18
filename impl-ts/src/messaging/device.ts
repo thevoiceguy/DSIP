@@ -182,7 +182,7 @@ export class HubOutage implements Machine {
         this.pending = [];
         this.state = "abandoned";
         this.retryAt = null;
-      } else if (this.state === "down" && this.retryAt !== null && this.now >= this.retryAt) {
+      } else if (this.state === "down" && this.retryAt !== null && this.now >= this.retryAt && this.pending.length > 0) {
         emit.push({ forward: this.pending[0]! }); // the same bytes (M§9.3)
         this.retryAt = null;
       }

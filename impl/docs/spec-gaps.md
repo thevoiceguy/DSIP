@@ -1691,7 +1691,11 @@ pins 31, taken from the token's pre-answer row.
 
 **Choices considered.** (a) A category fallback takes the cause of the category's representative row (`user` 21,
 `endpoint` 18, `identity` 1, `session` 41, `media` 65, `policy` 21, `transport` 41, `gateway` 38); a BYE takes the
-token's table cause when the BYE rows do not name it, else 16. (b) No cause on a fallback — the `Reason: DSIP` header
+token's table cause when the BYE rows do not name it, else 16. (Settled by fuzz.py, 2026-09-18: "`session.*` → 16" in the
+BYE rows means the `session.*` tokens that are *valid on* `bye` — `session.already-answered`, `session.cancelled`. Any
+other registered token keeps the cause of its own row, so a BYE for `session.timeout` is cause 102, which says more than
+"normal clearing"; an unregistered token has no row and is 16, category fallback being a pre-answer rule. Vectors
+`outbound-bye-session-timeout-keeps-its-cause`, `outbound-bye-unregistered-token-is-cause-16`.) (b) No cause on a fallback — the `Reason: DSIP` header
 already carries the literal token.
 
 **Draft choice.** (a), as the implementations already agreed; new vector
@@ -1765,6 +1769,56 @@ message vectors; all three mailbox machines; the mailbox service passes a grant'
 announces an introduction to its mailbox before sending it.
 
 **Suggested fix (still open).** M§6.5: state the order. M§7.4: "refuses every deposit from the new hub".
+
+## 82. §12.7 / §13.3 — session traffic for a session the relay never saw
+
+**Gap.** Found by `impl/tools/fuzz.py` (the `relay` target: the implementations differ on most random traces, all
+for this one reason). A relay tracks an attempt from the invite it forked. What does it do with session traffic —
+`progress`, `answer`, `reject`, `cancel`, `bye`, `info`, `update` — naming a `session` it holds no attempt for? Rust and
+Python drop it (`drop unknown-attempt`). The second implementation routes it by `to`, queueing for an unbound recipient,
+because the vectors README says of the relay "`{"recv": any}` to a known but unbound identity/device: queued (§13.3)".
+Neither the spec nor a vector says which. It is not an edge: a relay that restarts mid-call has no attempts, and under
+the first reading it then drops every `bye` of every call set up before the restart; under the second, anyone can have
+a relay carry session traffic for sessions that never existed.
+
+**Choices considered.** (a) Attempt-scoped: drop what belongs to no known attempt (as Rust and Python). (b) Routed by
+`to` like any envelope — pre-answer leg traffic needs the attempt (it is forwarded to the initiator, whom only the
+attempt names), but anything carrying a device `to` is store-and-forward (§13.3). (c) (b), but only while the attempt is
+unknown *because the relay lost it*: indistinguishable to the relay, so not really a choice.
+
+**Draft choice.** None — undecided, and `fuzz.py --target all` leaves the `relay` target out until it is. (b) reads
+better against §13.3 and survives a restart; (a) is the smaller attack surface.
+
+## 83. M§6.5 / M§8.5 — where a device starts counting a group's `seq`
+
+**Gap.** Found by `fuzz.py` (the `resume` target). Spec-gap 69 says "a device that has just joined takes the first
+sequenced item it processes as its position". In the durable delivery state (`resume-trace`), Rust and Python record a
+group's first item as *seen beyond a gap* (`contiguous: 0, seen: [4]`); the second implementation records it as the
+position (`contiguous: 4`). Every vector starts a group at `seq` 1, where the two are the same. They differ when a lower
+`seq` arrives later: the first reading processes it, the second calls it a duplicate. Lower seqs are normally pre-join
+history the device cannot decrypt — but after a hub handover wait (spec-gap 71) a mailbox does store the old hub's late
+items out of order, so "lower and later" can be a real item.
+
+**Choices considered.** (a) The first item is the position (spec-gap 69's words): what came before is history.
+(b) The first item is merely seen: nothing is ever wrongly called a duplicate, at the price of a `contiguous` that never
+reaches the items before the join. (c) (a), except that a welcome carries the `seq` of the commit that added the device,
+and the position starts there — exact, but it needs the welcome's seq in the resume state.
+
+**Draft choice.** None — undecided; the `resume` target is left out of `fuzz.py --target all` until it is.
+
+## 84. §12.6 — glare with more than one attempt of our own
+
+**Gap.** Found by `fuzz.py` as the first disagreement between Rust and Python themselves. An endpoint may have two live
+attempts to the same identity (one addressed to the identity, one to a device). §12.6 speaks of "its outbound invite",
+singular. On an inbound invite from that identity each implementation picked *one* rival — Python and TypeScript the
+first placed, Rust whichever its map yielded — withdrew that one, and left the other ringing.
+
+**Decision (2026-09-18, from the text).** "The invite with the lexicographically smaller `id` wins", over *all* the
+invites between the two identities: if any of ours is older than theirs, theirs is rejected and ours are left alone;
+otherwise each of ours lost, and each is withdrawn, in id order. Applied in all three; vectors
+`state/glare-every-losing-attempt-is-withdrawn`, `state/glare-lowest-id-of-all-decides`.
+
+**Suggested fix.** §12.6: say "each outbound invite to that identity".
 
 ## Already-flagged (schema README / plan §11)
 

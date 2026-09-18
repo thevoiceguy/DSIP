@@ -31,7 +31,7 @@ import { checkPayload } from "./semantic.js";
 import { downgradeSummary, telCallerLine, verificationBasis } from "./trust.js";
 import { reject, type Verdict } from "./verdict.js";
 
-const VECTORS = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "impl", "vectors");
+const DEFAULT_VECTORS = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "impl", "vectors");
 const schemas = new SchemaSet();
 
 type Vector = { vector: string; kind: string; context?: JsonObject; input: JsonObject; expect: JsonObject };
@@ -262,6 +262,8 @@ function equal(a: Json, b: Json): boolean {
 function main(): number {
   const args = process.argv.slice(2);
   const jsonOut = args.includes("--json") ? args[args.indexOf("--json") + 1] : undefined;
+  // `--dir`: another vector directory with the same layout (impl/tools/fuzz.py points it at generated probes)
+  const VECTORS = args.includes("--dir") ? args[args.indexOf("--dir") + 1]! : DEFAULT_VECTORS;
   const verbose = args.includes("-v");
   const results: Record<string, { ok: boolean; actual?: Json; steps?: Json[]; skipped?: true }> = {};
   let passed = 0, failed = 0, skipped = 0;

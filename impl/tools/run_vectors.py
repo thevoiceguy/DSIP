@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Python side of the Rust/Python parity contract: run every vector, compare with `expect`.
 
-Usage: run_vectors.py [--only PREFIX] [--json OUT] [-v]
+Usage: run_vectors.py [--dir DIR] [--only PREFIX] [--json OUT] [-v]
 Exit status 1 on any failure.
 """
 from __future__ import annotations
@@ -13,17 +13,18 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from dsipvec.harness import load_vectors, run_vector  # noqa: E402
+from dsipvec.harness import VECTOR_DIR, load_vectors, run_vector  # noqa: E402
 
 
 def main() -> int:
     ap = argparse.ArgumentParser()
+    ap.add_argument("--dir", help="vector directory (default: impl/vectors); fuzz.py points it at generated probes")
     ap.add_argument("--only", help="vector id prefix, e.g. state/ or envelope/valid")
     ap.add_argument("--json", help="write machine-readable results (for parity diffing)")
     ap.add_argument("-v", "--verbose", action="store_true")
     args = ap.parse_args()
 
-    results = [run_vector(v) for v in load_vectors(only=args.only)]
+    results = [run_vector(v) for v in load_vectors(Path(args.dir) if args.dir else VECTOR_DIR, only=args.only)]
     failures = [r for r in results if not r.ok]
     for r in results:
         if r.ok and not args.verbose:

@@ -28,7 +28,8 @@ impl/vectors/       Language-neutral JSON test vectors (envelope/ payload/
                     semantic/ state/ transport/ dht/ broadcast/ media-binding/
                     gateway/ trust/ messaging/)
 impl/tools/         Python: vector generator + reference harness (dsipvec/), parity.py
-                    (Rust/Python), parity_ts.py (Python/TypeScript), spec_lint.py
+                    (Rust/Python), parity_ts.py (Python/TypeScript), fuzz.py (differential
+                    fuzzing of all three), spec_lint.py
                     (Spec: headers + docs/coverage.md), dht_testnet.py, wan/ testbed
 impl/docs/          Plans, spec-gaps.md (every gap and its disposition), coverage.md
                     (generated), DHT / STIR findings
@@ -66,7 +67,8 @@ shape checks. Never invert this.
    over. Rust and Python share an author and rarely disagree; `impl-ts` is the
    independent reading. Passing the suite is not agreement: for table-shaped
    rules and state machines, probe all three with temporary generated vectors
-   and compare actual with actual (`impl-ts/README.md`, "Differential probing").
+   and compare actual with actual — `impl/tools/fuzz.py` does it. What it finds becomes a hand-authored
+   vector or a spec-gap, never a recorded expectation.
 
 3. **Signature over bytes.** The base64url payload is carried as raw bytes
    through signature verification and only then decoded to JSON (spec §10.2).
@@ -131,6 +133,10 @@ python3 impl/tools/spec_lint.py --check       # Spec: headers; regenerates docs/
 # Second implementation (TypeScript): build, vectors, Python/TypeScript parity
 (cd impl-ts && npm ci && npm run build && npm run vectors)
 python3 impl/tools/parity_ts.py --require-all
+
+# Differential fuzz: random traces through all three implementations, actual against actual
+python3 impl/tools/fuzz.py                      # fixed seed 1, as CI runs it
+python3 impl/tools/fuzz.py --seed random --target endpoint,hub --count 1000 --out /tmp/found
 
 # DHT local testnet (integration, not vectors)
 python3 impl/tools/dht_testnet.py --nodes 5

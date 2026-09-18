@@ -414,30 +414,32 @@ class Endpoint:
             return
         # §12.6 glare: an outbound invite to the identity this invite comes from
         from_identity = self.identity_of(m["from"])
-        glare = next((s for s in self.sessions.values()
-                      if s.role == "initiator" and s.state in ("INVITING", "PROCEEDING")
-                      and self.identity_of(s.invite_to) == from_identity), None)
-        if glare is None and sid in self.sessions:
+        # Every live attempt of ours to that identity is a rival; the smallest id of all the invites wins.
+        rivals = sorted((s for s in self.sessions.values()
+                         if s.role == "initiator" and s.state in ("INVITING", "PROCEEDING")
+                         and self.identity_of(s.invite_to) == from_identity), key=lambda s: s.id)
+        if not rivals and sid in self.sessions:
             if self.sessions[sid].state == "ENDED":
                 self.emit({"drop": "ended-session"})
             else:
                 self.error({"from": m["from"], "id": sid, "session": sid}, "session.invalid-state")
             return
-        if glare is not None:
-            if glare.id < sid:
+        if rivals:
+            if rivals[0].id < sid:
                 # We win: reject the inbound losing invite; proceed as initiator.
                 self.send(type="reject", to=m["from"], session=sid, reason="session.glare")
                 self.sessions[sid] = Session(sid, "responder", "ENDED", peer=m["from"])
                 return
-            # We lose (or pathological equal id): withdraw our invite with session.glare.
+            # We lose (or pathological equal id): each of our invites lost, so each is withdrawn, in id order.
             # Impl (spec-gap 2): the loser withdraws via `cancel session.glare` (cancel is the
             # initiator's withdrawal message; §15.4 lists session.glare as valid on cancel).
-            self.stop_all(glare)
-            self.send(type="cancel", to=glare.invite_to, session=glare.id, reason="session.glare")
-            glare.cancelled = True
-            glare.state = "ENDED"
-            self.emit({"ui": "ended", "reason": "session.glare"})
-            if glare.id == sid:
+            for glare in rivals:
+                self.stop_all(glare)
+                self.send(type="cancel", to=glare.invite_to, session=glare.id, reason="session.glare")
+                glare.cancelled = True
+                glare.state = "ENDED"
+                self.emit({"ui": "ended", "reason": "session.glare"})
+            if rivals[0].id == sid:
                 # §12.6: equal ids — both invites rejected; MAY retry after 1–4 s.
                 # The id collides with our own session record, which stays as the initiator's ENDED entry.
                 self.send(type="reject", to=m["from"], session=sid, reason="session.glare")

@@ -32,16 +32,16 @@ python3 ../impl/tools/parity_ts.py       # Python harness vs this implementation
 
 ## Coverage
 
-**Every vector: 881 of 881**, no kind skipped. Python/TypeScript parity compares actual with actual on all of them.
+**Every vector: 893 of 893**, no kind skipped. Python/TypeScript parity compares actual with actual on all of them.
 
 | Kind | Vectors | Modules |
 |---|---|---|
 | `envelope`, `transport`, `dht` | 65, 13, 12 | `envelope.ts`, `did.ts`, `encoding.ts`, `dht.ts` |
 | `payload`, `semantic` | 97, 50 | `schema.ts`, `semantic.ts`, `registry.ts` |
-| `state` | 84 | `endpoint.ts`, `relay.ts`, `broadcast-state.ts`, `timers.ts` |
+| `state` | 90 | `endpoint.ts`, `relay.ts`, `broadcast-state.ts`, `timers.ts` |
 | `broadcast`, `trust`, `media-binding` | 21, 13, 42 | `broadcast.ts`, `trust.ts`, `binding.ts` |
-| `gateway` | 64 | `gateway.ts` |
-| `messaging` | 420 | `messaging/`: `message`, `object`, `rules`, `blobs`, `crypto` (stateless, 232); `device`, `sync`, `client`, `hub`, `mailbox` (the nine trace machines, 188) |
+| `gateway` | 66 | `gateway.ts` |
+| `messaging` | 424 | `messaging/`: `message`, `object`, `rules`, `blobs`, `crypto` (stateless, 232); `device`, `sync`, `client`, `hub`, `mailbox` (the nine trace machines, 192) |
 
 What this is not: a product. It has no transport, no MLS library and no storage — it is the protocol's *decisions*,
 which is what the vectors measure. The wire demos in `../impl/demos` remain the Rust implementation's.
@@ -93,7 +93,11 @@ Stage 5 (`messaging`, the stateless checks):
 | 19 | The deposit class field table behind `deposit-fields` is written nowhere. This implementation's table, built from M§5.2's prose, passed every vector and still disagreed with Rust and Python on 7 of 87 class × field combinations — found by a differential probe with temporary vectors. | spec-gap 80; README table; 4 new vectors. |
 | 20 | Nine `messaging` checks were missing from the README table (`introduction`, `sealed-introduction-open`, `hpke-open`, `hpke-derive-key-pair`, `x25519-key-agreement`, `blob-put`, `blob-get`, `registration-on-removal`, `hub-outage-trace`), with their codes and check orders. | README. |
 
-**Differential probing.** When a rule is a table (class × field, token × phase), passing the vectors proves little: generate
+**Differential probing** is now a tool: `python3 ../impl/tools/fuzz.py` (random traces and table rows through all three
+implementations; CI runs it with a fixed seed, a weekly workflow with a fresh one). Its first run found a real bug in
+Rust *and* Python (the commit-retry fallback escaped M§6.5's bound of three proposals), the first disagreement between
+Rust and Python themselves (glare with two attempts of ours, spec-gap 84), seven wrong readings in this implementation,
+and two open protocol questions (spec-gaps 82, 83). When a rule is a table (class × field, token × phase), passing the vectors proves little: generate
 every combination as temporary vectors, run all three implementations, and compare `actual` with `actual`. It respects the
 independence rule — nothing is read, only observed — and it is how findings 16 and 19 were made. Probes are deleted
 afterwards; the disagreements become real vectors.

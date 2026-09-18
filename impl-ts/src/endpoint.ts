@@ -11,7 +11,7 @@
  * Impl: ENDING is collapsed into ENDED — local teardown is synchronous here (§12.4 allows it).
  */
 import type { Json, JsonObject } from "./did.js";
-import { effectiveAnsweredBy, effectiveStatus } from "./registry.js";
+import { effectiveAnsweredBy, effectiveReason, effectiveStatus } from "./registry.js";
 import { Timers } from "./timers.js";
 
 /** Spec: §12.9 timer defaults and bounds, seconds. */
@@ -192,6 +192,9 @@ export class Endpoint {
     const verb = e["local"] as string;
     const id = e["session"] as string;
     const s = this.sessions.get(id);
+    // a local request about a session this endpoint does not hold is refused as such
+    const SESSION_VERBS = ["cancel", "hangup", "alert", "auto_reject", "accept", "decline", "update", "answer_update", "reject_update", "info"];
+    if (!s && SESSION_VERBS.includes(verb)) return void this.emit.push({ refused: "unknown-session" });
     switch (verb) {
       case "place_call": {
         const to = e["to"] as string;
@@ -349,11 +352,16 @@ export class Endpoint {
     this.end(id!, s, "transport.no-response");
   }
 
+  /** Spec: §15.1 — what is surfaced is the effective reason: an unrecognized category reads as `session.failed`. */
+  private reasonOf(m: JsonObject): string {
+    return effectiveReason(m["reason"] as string, m["type"] as string).reason;
+  }
+
   private recvAsInitiator(id: string, s: Session, m: JsonObject): void {
     const type = m["type"] as string;
     const pre = s.state === "INVITING" || s.state === "PROCEEDING";
     if (type === "progress" && pre) return this.recvProgress(id, s, m);
-    if (type === "answer" && pre) {
+    if (type === "answer" && pre && !("in_reply_to" in m)) { // an answer naming an update is an update reply (§12.8), invalid before ACTIVE
       this.stopAll(id);
       s.state = "ACTIVE";
       s.peer = m["from"] as string;
@@ -364,10 +372,10 @@ export class Endpoint {
       if (s.peer !== s.to) this.send("cancel", s.to, { session: id, reason: "session.answered-elsewhere" });
       return;
     }
-    if (type === "reject" && pre) {
+    if (type === "reject" && pre && !("in_reply_to" in m)) { // likewise: a reject naming an update is an update reply
       this.stopAll(id);
       s.endedBy = "other";
-      return this.end(id, s, m["reason"] as string);
+      return this.end(id, s, this.reasonOf(m));
     }
     if (s.state === "ACTIVE") {
       if (type === "answer" && !("in_reply_to" in m) && m["from"] !== s.peer) {
@@ -414,7 +422,7 @@ export class Endpoint {
   private recvAsResponder(id: string, s: Session, m: JsonObject): void {
     const type = m["type"] as string;
     if (type === "cancel") {
-      const reason = m["reason"] as string;
+      const reason = this.reasonOf(m);
       if (s.state === "OFFERED") return this.end(id, s, reason);
       if (s.state === "ALERTING") {
         this.stop("T-Ring-Local", id);
@@ -439,7 +447,7 @@ export class Endpoint {
   private recvActive(id: string, s: Session, m: JsonObject): boolean {
     const type = m["type"] as string;
     if (type === "bye") {
-      this.end(id, s, m["reason"] as string);
+      this.end(id, s, this.reasonOf(m));
       return true;
     }
     if (type === "info") {
@@ -470,7 +478,7 @@ export class Endpoint {
         this.emit.push({ drop: "stale-update-reply" });
       } else {
         s.outstanding = null;
-        this.emit.push(type === "answer" ? { media: "apply_update" } : { ui: "update_rejected", reason: m["reason"]! });
+        this.emit.push(type === "answer" ? { media: "apply_update" } : { ui: "update_rejected", reason: this.reasonOf(m) });
       }
       return true;
     }
@@ -484,6 +492,14 @@ export class Endpoint {
       role: "responder", state, to: from, peer: from, inviteExpires: m["expires_at"] as number | undefined,
       outstanding: null, media: false, requeues: 0, initiatorSpoke: false,
     });
+    const existing = this.sessions.get(id);
+    const ownAttempt = existing?.role === "initiator" && (existing.state === "INVITING" || existing.state === "PROCEEDING");
+    if (existing && !ownAttempt) {
+      // an invite names a new session; one for a session this endpoint already holds is invalid for its state
+      // (§12.4) — or ignored when that session has ended. Our own live attempt under the same id is glare (§12.6).
+      if (existing.state === "ENDED") return void this.emit.push({ drop: "ended-session" });
+      return this.invalidState(m);
+    }
     if (typeof m["expires_at"] === "number" && m["expires_at"] < this.now) {
       this.sessions.set(id, fresh("ENDED"));
       return this.send("reject", from, { session: id, reason: "session.expired" });
@@ -492,32 +508,31 @@ export class Endpoint {
       this.sessions.set(id, fresh("ENDED"));
       return this.send("reject", from, { session: id, reason: "policy.first-contact-required" });
     }
-    // §12.6: glare with our own outstanding invite to the same identity
+    // §12.6: glare with our own outstanding invites to the same identity. Every live attempt of ours to it is a
+    // rival, and the smallest id among all the invites wins.
     const inviter = this.identityOf(from);
-    const rival = [...this.sessions.entries()].find(
-      ([, s]) => s.role === "initiator" && (s.state === "INVITING" || s.state === "PROCEEDING") && this.identityOf(s.to) === inviter,
-    );
-    if (rival) {
-      const [ours, s] = rival;
-      if (ours <= id) {
-        // ours wins (or ids are equal): reject theirs
+    const rivals = [...this.sessions.entries()]
+      .filter(([, s]) => s.role === "initiator" && (s.state === "INVITING" || s.state === "PROCEEDING") && this.identityOf(s.to) === inviter)
+      .sort(([a], [b]) => (a < b ? -1 : 1));
+    if (rivals.length > 0) {
+      const first = rivals[0]![0];
+      if (first < id) {
+        // ours wins: theirs is rejected, and we carry on as initiator
         this.sessions.set(id, fresh("ENDED"));
-        if (ours === id) {
-          // Impl: equal ids share one session key; the outbound session is the one kept
-          this.sessions.set(id, s);
-          this.stopAll(ours);
-          this.send("cancel", s.to, { session: ours, reason: "session.glare" });
-          s.endedBy = "cancel";
-          this.end(ours, s, "session.glare");
-          this.send("reject", from, { session: id, reason: "session.glare" });
-          return void this.emit.push({ ui: "glare_retry" });
-        }
         return this.send("reject", from, { session: id, reason: "session.glare" });
       }
-      this.stopAll(ours);
-      this.send("cancel", s.to, { session: ours, reason: "session.glare" });
-      s.endedBy = "cancel";
-      this.end(ours, s, "session.glare");
+      // each of our invites lost, so each is withdrawn, in id order
+      for (const [ours, s] of rivals) {
+        this.stopAll(ours);
+        this.send("cancel", s.to, { session: ours, reason: "session.glare" });
+        s.endedBy = "cancel";
+        this.end(ours, s, "session.glare");
+      }
+      if (first === id) {
+        // Impl: equal ids share one session key; the outbound session is the one kept
+        this.send("reject", from, { session: id, reason: "session.glare" });
+        return void this.emit.push({ ui: "glare_retry" });
+      }
     }
     this.sessions.set(id, fresh("OFFERED"));
     this.emit.push({ ui: "offered" });
@@ -561,7 +576,7 @@ export class Endpoint {
       this.grantsHeld.set(m["id"] as string, this.identityOf(m["from"] as string));
       this.emit.push({ ui: "granted", by: this.identityOf(m["from"] as string) });
     } else {
-      this.emit.push({ ui: "introduction_rejected", reason: m["reason"]! });
+      this.emit.push({ ui: "introduction_rejected", reason: this.reasonOf(m) });
     }
   }
 }

@@ -216,12 +216,17 @@ export class SuccessorTracker implements Machine {
     const list = (this.candidates[predecessor] ??= []);
     if (!list.includes(group)) list.push(group);
     list.sort();
-    const winner = successorSelect(list)["winner"] as string;
-    const previous = this.chosen[predecessor];
+    const winner = successorSelect(list)["winner"] as string | null;
     if (winner === group) {
       if (welcomed) emit.push({ join: group });
-      if (previous !== undefined && previous !== group) emit.push({ leave: previous });
-    } else if (welcomed) emit.push({ decline: group });
-    this.chosen[predecessor] = winner;
+      // what we were in until now — joined or created — is left for the lower one
+      for (const other of this.member) if (other !== group && list.includes(other)) emit.push({ leave: other });
+      for (const other of list) this.member.delete(other);
+      this.member.add(group);
+    } else emit.push(welcomed ? { decline: group } : { leave: group }); // not the lowest: never joined — or, if we created it, left
+    if (winner !== null) this.chosen[predecessor] = winner;
   }
+
+  /** Successor groups this device is in: welcomed and joined, or created. */
+  private readonly member = new Set<string>();
 }

@@ -84,8 +84,16 @@ const OUT: Record<string, [number, number?]> = {
   "session.expired": [480, 102], "session.timeout": [480, 102], "session.failed": [500, 41],
   "policy.blocked": [403, 21], "policy.trust-insufficient": [403, 21], "policy.first-contact-required": [403, 21],
   "policy.rate-limited": [503, 42], "policy.terminated": [480, 31],
-  "transport.unknown-recipient": [404, 1],
+  "media.unsupported": [488, 65], "media.offer-required": [488, 65], "media.encryption-required": [488, 65],
+  "transport.unknown-recipient": [404, 1], "transport.rate-limited": [503, 42],
+  "transport.envelope-too-large": [503, 41], "transport.hello-required": [503, 41], "transport.hello-rejected": [503, 41],
+  "transport.routing-refused": [503, 41],
   "gateway.unreachable": [503, 38], "gateway.mapped": [500, 41],
+};
+
+/** Spec: G§4.2 — the causes of the tokens that end an ACTIVE call in the ordinary way. */
+const BYE_CAUSES: Record<string, number> = {
+  "user.hangup": 16, "session.already-answered": 16, "session.cancelled": 16, "media.failed": 47, "policy.terminated": 31,
 };
 
 /** Spec: G§4.2 — fallback by §15.1 category; causes are those of the category's representative row. */
@@ -101,7 +109,10 @@ export function reasonOutbound(token: string, phase: string): JsonObject {
   // §15.1: an unrecognized category is read as session.failed
   const [status, cause] = OUT[token] ?? OUT_CATEGORY[category] ?? OUT["session.failed"]!;
   if (phase === "active") {
-    const q850 = token === "user.hangup" || category === "session" ? 16 : token === "media.failed" ? 47 : cause ?? 16;
+    // G§4.2 (spec-gap 79): the BYE rows — a normal ending is cause 16, a failed media path 47, a policy
+    // termination 31; any other registered token keeps the cause of its own row (`session.timeout` → 102 says
+    // more than "normal clearing"); an unregistered token has no row, so 16
+    const q850 = BYE_CAUSES[token] ?? OUT[token]?.[1] ?? 16;
     return { method: "BYE", q850, reason_header };
   }
   return {
