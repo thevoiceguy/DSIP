@@ -19,6 +19,8 @@ import { checkObject, type ObjectContext } from "./messaging/object.js";
 import { CommitRetry, GapTracker, HubOutage, type Machine } from "./messaging/device.js";
 import { Client } from "./messaging/client.js";
 import { History, Resume, SuccessorTracker } from "./messaging/sync.js";
+import { Hub } from "./messaging/hub.js";
+import { Mailbox } from "./messaging/mailbox.js";
 import * as mcrypto from "./messaging/crypto.js";
 import * as blobs from "./messaging/blobs.js";
 import * as rules from "./messaging/rules.js";
@@ -34,7 +36,7 @@ const schemas = new SchemaSet();
 
 type Vector = { vector: string; kind: string; context?: JsonObject; input: JsonObject; expect: JsonObject };
 
-/** Kinds this implementation covers so far; the rest are reported as skipped, never as passed. */
+/** One runner per vector kind. A kind or check with no runner is reported as skipped, never as passed. */
 const RUNNERS: Record<string, (v: Vector) => Json | undefined> = {
   envelope: (v) => envelope(v),
   transport: (v) => envelope(v),
@@ -98,6 +100,8 @@ const MACHINES: Record<string, (ctx: never) => Machine> = {
   "commit-retry-trace": (ctx) => new CommitRetry(ctx),
   "hub-outage-trace": (ctx) => new HubOutage(ctx),
   "client-trace": (ctx) => new Client(ctx),
+  "hub-trace": (ctx) => new Hub(ctx),
+  "mailbox-trace": (ctx) => new Mailbox(ctx),
   "resume-trace": (ctx) => new Resume(ctx),
   "history-trace": (ctx) => new History(ctx),
   "successor-trace": (ctx) => new SuccessorTracker(ctx),
@@ -310,12 +314,20 @@ function main(): number {
       ok ? passed++ : failed++;
       if (!ok || verbose) {
         console.log(`[${ok ? "ok" : "FAIL"}] ${v.vector}`);
-        if (!ok) console.log(`   expect ${JSON.stringify(v.expect)}\n   actual ${JSON.stringify(actual)}`);
+        if (!ok) {
+          // a trace: show the first step that differs, with the event that led to it
+          const [es, as] = [(v.expect as JsonObject)["steps"], (actual as JsonObject | null)?.["steps"]];
+          if (Array.isArray(es) && Array.isArray(as)) {
+            const n = es.findIndex((e, k) => !equal(e, as[k] ?? null));
+            console.log(`   step ${n} ${JSON.stringify((v.input["steps"] as JsonObject[])[n]?.["event"])}`);
+            console.log(`   expect ${JSON.stringify(es[n])}\n   actual ${JSON.stringify(as[n])}`);
+          } else console.log(`   expect ${JSON.stringify(v.expect)}\n   actual ${JSON.stringify(actual)}`);
+        }
       }
     }
   }
   if (jsonOut) writeFileSync(jsonOut, JSON.stringify(results, null, 1));
-  console.log(`dsip-ts: ${passed} passed, ${failed} failed, ${skipped} skipped (kinds not yet implemented)`);
+  console.log(`dsip-ts: ${passed} passed, ${failed} failed, ${skipped} skipped`);
   return failed ? 1 : 0;
 }
 

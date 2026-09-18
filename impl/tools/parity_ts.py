@@ -6,6 +6,8 @@ Same contract as `parity.py`: both runners already compare against `expect`; thi
 Vector kinds `impl-ts` does not implement yet are reported as skipped and excluded — never counted
 as agreeing. Exit status 1 on any divergence or any failure on either side.
 
+`--require-all` also fails when impl-ts skips anything: it implements every kind, and CI keeps it so.
+
 Build first: `npm ci && npm run build` in `impl-ts/`.
 """
 from __future__ import annotations
@@ -46,8 +48,11 @@ def main() -> int:
             print(f"[DIVERGE] {vid}")
             print(f"   python:     ok={pa['ok']} {json.dumps(_actual(pa))[:300]}")
             print(f"   typescript: ok={pb['ok']} {json.dumps(_actual(pb))[:300]}")
-    print(f"\n{len(compared)} vectors compared ({len(b) - len(compared)} skipped: kinds impl-ts does not implement yet), "
+    print(f"\n{len(compared)} vectors compared ({len(b) - len(compared)} skipped by impl-ts), "
           f"{diverged} divergences, {failing} failing on at least one side")
+    if "--require-all" in sys.argv and len(compared) != len(b):
+        print("impl-ts skipped vectors and --require-all was given", file=sys.stderr)
+        return 1
     return 1 if (diverged or failing) else 0
 
 

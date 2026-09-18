@@ -493,6 +493,38 @@ def hub_vectors():
                      ["M§11.2"], "hub-trace", hub_ctx(), [
                          (dep("typ-old", APH, ALICE, "ephemeral", expires_at=NOW - 1), [], hs(1, 1, R)),
                      ]))
+    # --- the order of a hub's refusals when several apply (spec-gap 81)
+    out.append(trace("hub-refusal-order-class-before-membership",
+                     "What a hub does not take at all is refused as such, whoever sends it: the class is checked before membership.",
+                     ["M§6.5", "M§5.2"], "hub-trace", hub_ctx(), [
+                         (dep("arch-m", MPH, MALLORY, "archive"), [err(MPH, "arch-m", "mailbox.unsupported-class")], hs(1, 1, R)),
+                     ]))
+    out.append(trace("hub-refusal-order-expired-ephemeral-dropped-before-membership",
+                     "Expired activity is dropped silently before the hub asks who sent it: nothing is answered, to anyone.",
+                     ["M§11.2", "M§6.5"], "hub-trace", hub_ctx(), [
+                         (dep("typ-old-m", MPH, MALLORY, "ephemeral", expires_at=NOW - 1), [], hs(1, 1, R)),
+                         (dep("typ-m", MPH, MALLORY, "ephemeral", expires_at=NOW + 10), [err(MPH, "typ-m", "policy.blocked")], hs(1, 1, R)),
+                     ]))
+    out.append(trace("hub-refusal-order-redeposit-before-membership",
+                     "A sequenced item's bytes were authenticated when first accepted: the same bytes again are answered "
+                     "`accepted` with `duplicate` before membership or epoch is looked at — a member removed since, or a "
+                     "retry arriving an epoch late, still learns its item was ordered. group-info is state, not sequenced: "
+                     "no such shortcut.",
+                     ["M§9.3", "M§6.5"], "hub-trace", hub_ctx(), [
+                         (dep("a4", APH, ALICE, "application", 1, digest="d-a4"), [acc(APH, "a4", 1), fan(ALICE, 1), fan(BOB, 1)],
+                          hs(1, 2, R, {ALICE: [1], BOB: [1]})),
+                         (dep("a4-m", MPH, MALLORY, "application", 0, digest="d-a4"), [acc(MPH, "a4-m", 1, dup=True)],
+                          hs(1, 2, R, {ALICE: [1], BOB: [1]})),
+                         (dep("gi-m", MPH, MALLORY, "group-info", 1, digest="d-a4"), [err(MPH, "gi-m", "policy.blocked")],
+                          hs(1, 2, R, {ALICE: [1], BOB: [1]})),
+                     ]))
+    out.append(trace("hub-refusal-order-external-join-authorization-before-epoch",
+                     "A stranger's external commit is refused for who sent it, not for the epoch it names.",
+                     ["M§6.8", "M§6.5"], "hub-trace", hub_ctx(), [
+                         (dep("ext-carol-late", CPH, CAROL, "handshake", 0,
+                              commit={"external": True, "adds": [{"identity": CAROL, "device": CPH}], "removes": []}),
+                          [err(CPH, "ext-carol-late", "policy.blocked")], hs(1, 1, R)),
+                     ]))
     out.append(trace("hub-unsupported-class-refused", "A hub stores no history: an archive deposit is refused.",
                      ["M§6.5", "M§5.2"], "hub-trace", hub_ctx(), [
                          (dep("arch", APH, ALICE, "archive"), [err(APH, "arch", "mailbox.unsupported-class")], hs(1, 1, R)),
@@ -1859,6 +1891,14 @@ def first_contact_vectors():
                          (intro_ev("i3"), [{"error": {"to": APH, "in_reply_to": uid("i3"), "reason": "policy.rate-limited", "retry_after": 3600}}],
                           ms([c(1), c(2)])),
                      ]))
+    out.append(trace("mailbox-grant-counts-toward-the-rate-limit",
+                     "The rate limit is on what an identity deposits this way, not on one kind of it: a grant counts, and is limited, "
+                     "like an introduction.", ["§19.4", "M§14.1", "M§14.3"], T, ctx, [
+                         (intro_ev("i1"), [acc_c(APH, "i1", 1)], ms([c(1)])),
+                         (intro_ev("g1", kind="grant", exp=NOW + 30), [acc_c(APH, "g1", 2)], ms([c(1), c(2)])),
+                         (intro_ev("g2", kind="grant", exp=NOW + 30),
+                          [{"error": {"to": APH, "in_reply_to": uid("g2"), "reason": "policy.rate-limited", "retry_after": 3600}}], ms([c(1), c(2)])),
+                     ]))
     out.append(trace("mailbox-introduction-inbox-bound-silent",
                      "Past the bounded inbox an introduction is accepted and not held, silently (§19.4 RECOMMENDED 16).",
                      ["§19.4"], T, mbx_ctx(intro_limit=10, inbox_cap=2), [
@@ -2324,6 +2364,28 @@ def hub_change_vectors():
                          (hd("b3", 3, HUB_B), [err(HUB_B, "b3", "mailbox.unknown-group")], ms([c(1)], J)),
                          (hd("h2", 2, HUB_A, "handshake"), [macc(HUB_A, "h2", c(2))], ms([c(1), c(2)], J)),
                          (hd("b3-retry", 3, HUB_B), [macc(HUB_B, "b3-retry", c(3))], ms([c(1), c(2), c(3)], J)),
+                     ]))
+    out.append(trace("mailbox-hub-move-wait-covers-everything-from-the-new-hub",
+                     "While the old hub's items are still missing, the new hub is held off whatever it sends: a GroupInfo too, and a "
+                     "wrongly numbered item is told to retry (mailbox.unknown-group) before its numbering is judged (policy.blocked).",
+                     mrefs + ["M§6.5"], T, mbx_ctx(groups=JA), [
+                         (hd("h1", 1, HUB_A), [macc(HUB_A, "h1", c(1))], ms([c(1)], J)),
+                         (cfg(), [macc(BPH, "cfg")], ms([c(1)], J)),
+                         (hubdep("b-gi", None, cls="group-info", frm=HUB_B), [err(HUB_B, "b-gi", "mailbox.unknown-group")], ms([c(1)], J)),
+                         (hd("b1", 1, HUB_B), [err(HUB_B, "b1", "mailbox.unknown-group")], ms([c(1)], J)),
+                         (hd("h2", 2, HUB_A, "handshake"), [macc(HUB_A, "h2", c(2))], ms([c(1), c(2)], J)),
+                         (hd("b1-retry", 1, HUB_B), [err(HUB_B, "b1-retry", "policy.blocked")], ms([c(1), c(2)], J)),
+                         (hubdep("b-gi-retry", None, cls="group-info", frm=HUB_B), [macc(HUB_B, "b-gi-retry", c(3))], ms([c(1), c(2), c(3)], J)),
+                     ]))
+    out.append(trace("mailbox-push-in-device-order",
+                     "A stored item is pushed to the bound devices in device order, not in the order they bound.",
+                     ["M§5.4"], T, mbx_ctx(groups=JA), [
+                         ({"sync": {"id": uid("s1"), "device": BPH, "since": None, "live": True}},
+                          [{"items": {"to": BPH, "in_reply_to": uid("s1"), "cursors": [], "next": None}}], ms([], J)),
+                         ({"sync": {"id": uid("s2"), "device": BLA, "since": None, "live": True}},
+                          [{"items": {"to": BLA, "in_reply_to": uid("s2"), "cursors": [], "next": None}}], ms([], J)),
+                         (hd("h1", 1, HUB_A), [macc(HUB_A, "h1", c(1)), {"push": {"to": BLA, "cursor": c(1)}}, {"push": {"to": BPH, "cursor": c(1)}}],
+                          ms([c(1)], J)),
                      ]))
     def expired(missing, hub=HUB_A):
         return {"handover_expired": {"group": GROUP, "hub": hub, "missing": missing}}

@@ -538,6 +538,34 @@ Anything else is `deposit-fields`. After it: `object-too-large` for `mls`, `welc
 `external-join` checks run `external-join-adds` → `external-join-not-member` → `external-join-removes-other`;
 `blob-replicate` skips run `mode` → `stored` → `too-large` → `not-https`, and `attempt` defaults to 1 of `max_attempts` 5.
 
+**All messaging traces** keep expectations in `expect.steps[i]` = `{emit, state}`, parallel to `input.steps[i].event`;
+`state` is compared in full.
+
+**Hub refusals, in order** (spec-gap 81): moved (`mailbox.unknown-group`, whatever the deposit) → class not one of
+`handshake`/`application`/`ephemeral`/`group-info` (`mailbox.unsupported-class`) → an expired `ephemeral` is dropped with no
+answer → a `handshake`/`application` whose `digest` was already sequenced is `accepted {seq, duplicate}` — before membership
+and epoch → membership, or for an external commit the M§6.8 check (`policy.blocked`) → epoch (`mailbox.commit-conflict`
+for a commit one epoch late, else `mailbox.stale-epoch`; an application is good for the current or previous epoch) →
+the commit's validity and M§7.3 (`policy.blocked`). Device lists in `roster` are sorted. An `ack` is taken only for the
+head of that identity's queue (a welcome's with `class: welcome`); anything else changes nothing. Fan-out to an identity
+the commit brought in waits for its welcome's acknowledgement; a member gaining a device gets the commit *and* a welcome.
+An external joiner's identity is not sent its own commit unless it was already a member.
+
+**Mailbox events the table leaves out**: `first_contact {id, from, sender_identity, recipient, kind: introduction|grant,
+expires_at}` (spec-gap 54) — rate-limited per sender identity and per recipient inbox at `context.intro_limit` per
+`intro_window` (`error policy.rate-limited {retry_after}`, the seconds until the oldest counted deposit leaves the window;
+both kinds count and both are limited), then accepted **without a cursor** for an unserved recipient or an inbox already
+holding `inbox_cap` introductions, else stored until `expires_at` (kept at it, dropped after); `forward {id, device,
+identity, group, to}` (spec-gap 45) → `{"forward": {to, id}}`, or `policy.blocked` (not the owner's device) /
+`mailbox.unknown-group` (unregistered group, or `to` is not its hub); `forward_failed {id, device, to}` → `error
+mailbox.hub-unreachable` (spec-gap 72). Other emissions: `{"handover_expired": {group, hub: the OLD hub, missing}}`
+(spec-gap 71) and `{"close": {device, reason: "delegation-revoked"}}` after the `accepted` of a config with
+`revoked_devices` (spec-gap 57). `key_packages.devices` is a map `device → "one-time"|"last-resort"`; an upload is bounded
+at 100 one-time packages per device. A pending group is dropped when its age **exceeds** `pending_group_ttl`.
+During a hub move the new hub is held off — whatever it sends, a GroupInfo included — while the old hub's items through
+`handover_seq` are missing and `handover_wait` has not run out; only then is a `seq` at or below `handover_seq` judged
+(`policy.blocked`). Pushes go to the bound devices in device (DID) order, never to the device that made the deposit.
+
 Trace emission order: `accepted`/`error` first, then fan-out or pushes in identity/device order,
 then welcomes. Cursors are `c:` + 16 lowercase hex digits (Impl). Grants in mailbox traces are
 presented already verified; their signatures are the envelope pipeline's concern.
@@ -582,6 +610,7 @@ Each item has a matching `spec-gap` issue draft in `impl/docs/spec-gaps.md`.
 74. §19.4: a `grant` is addressed to the introducing identity, a `reject` of the same introduction to the introducing device (`state/first-contact-*`).
 75. §12.5 rule 2 vs §12.7 rule 3: `cancel session.answered-elsewhere` reaching the leg that answered is `session.invalid-state`, not a crossed cancel (`state/race-responder-answered-elsewhere-at-answering-leg`).
 78. G§4: which tokens are "attempt" tokens once ACTIVE — the profile's list omits `endpoint.unavailable` and `identity.not-in-service` (`gateway/inbound-active-*`).
+81. M§6.5 / M§7.4 / M§14.1: the order of a hub's refusals when several apply, what the new hub may send during a handover wait, and whether a grant deposit is rate-limited (`messaging/hub-refusal-order-*`, `mailbox-hub-move-wait-covers-*`, `mailbox-grant-counts-*`).
 80. M§5.2: the deposit class table says what each class "carries", not which other fields it may or may not carry; the rule is in this README (`messaging/deposit-*`).
 79. G§4.2: the Q.850 cause of a category-fallback response, and of a BYE for a token the BYE rows do not name (`gateway/outbound-unknown-*`, `outbound-bye-policy-terminated`).
 77. §22.2/§22.3: every verified provenance statement is reported `integrity_mode: derivative-bound`, a `relay` included (`broadcast/provenance-relay-operation`).
