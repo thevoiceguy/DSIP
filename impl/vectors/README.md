@@ -261,7 +261,7 @@ attempt — through a scripted event sequence with a mock clock.
 
 | event | meaning |
 |---|---|
-| `{"local":"place_call","session":ID,"to":DID}` | send `invite` (id = session), start T-Establish |
+| `{"local":"place_call","session":ID,"to":DID}` | send `invite` (id = session), start T-Establish; when the endpoint holds a grant issued by `to`'s identity, the `send` carries `grant` (its id, §19.4) |
 | `{"local":"cancel","session":ID}` | user abandons → `cancel user.cancelled` |
 | `{"local":"hangup","session":ID,"reason":TOKEN?}` | `bye` with `reason` (default `user.hangup`; the media layer uses `media.failed`, B§8) |
 | `{"local":"alert","session":ID,"ring_timeout":N?}` | policy admits invite → `progress ringing`, start T-Ring-Local |
@@ -269,14 +269,14 @@ attempt — through a scripted event sequence with a mock clock.
 | `{"local":"accept","session":ID,"answered_by":V}` | user/service answers → `answer` |
 | `{"local":"decline","session":ID}` | `reject user.declined` |
 | `{"local":"update","session":ID,"id":ULID,"answered_by":V?}` | send `update` |
-| `{"local":"answer_update","session":ID,"in_reply_to":ULID}` | answer the inbound outstanding update |
+| `{"local":"answer_update","session":ID,"in_reply_to":ULID}` | answer the inbound outstanding update; the `send` carries `answered_by: "user"` (the schema requires it on every `answer`); with no matching inbound update → `refused no-pending-update` |
 | `{"local":"reject_update","session":ID,"in_reply_to":ULID,"reason":TOKEN}` | reject it |
 | `{"local":"info","session":ID}` | send `info` |
 | `{"local":"introduce","id":ULID,"to":DID,"purpose":S,"contact_token":S?}` | send `introduction` (§19.4) |
-| `{"local":"grant","introduction":ID,"id":ULID,"scope":[…],"valid_until":T}` | issue a contact grant for a pending request |
-| `{"local":"reject_introduction","introduction":ID,"reason":TOKEN}` | decline a pending request (a policy choice) |
-| `{"local":"revoke","grant":ID}` | revoke an issued grant (local policy) |
-| `{"local":"issue_token","token":S,"grant_id":ULID}` | pre-authorize an out-of-band contact token (auto-grant on match) |
+| `{"local":"grant","introduction":ID,"id":ULID,"scope":[…],"valid_until":T}` | issue a contact grant for a pending request: `send grant {to: the introducing IDENTITY, session: introduction id, id, scope, valid_until}`; unknown request → `refused unknown-introduction` |
+| `{"local":"reject_introduction","introduction":ID,"reason":TOKEN}` | decline a pending request (a policy choice): `send reject {to: the introducing DEVICE, session, reason}` (spec-gap 74) |
+| `{"local":"revoke","grant":ID}` | revoke an issued grant (local policy); unknown grant → `refused unknown-grant` |
+| `{"local":"issue_token","token":S,"grant_id":ULID}` | pre-authorize an out-of-band contact token: the first introduction carrying it surfaces `introduction_received {token: true}` and is auto-granted at once — id `grant_id`, scope `["dsip.invite"]`, `valid_until` = now + 31,536,000 (Impl) — and the token is consumed |
 
 `context.policy` = `{"first_contact_required": bool, "allow": [identity DIDs]}` (default: off).
 With the policy on, an invite from an identity holding no live `dsip.invite` grant (matched by
@@ -311,12 +311,16 @@ transition depends on (`status`, `ring_timeout`, `queue_timeout`, `reason`,
 }
 ```
 
-For the relay: `"attempts": { ID: {"legs": {DEVICE: "alerting|answered|rejected|expired|cancelled"}, "outcome": null|"answered"|"rejected"} }`,
-optionally `"inbox": {IDENTITY: queued-introduction-count}`.
+For the relay: `"attempts": { ID: {"legs": {DEVICE: "delivered|answered|rejected|expired|cancelled"}, "outcome": null|"answered"|"rejected"|"cancelled"} }`
+(`cancelled`: the initiator withdrew and no leg is left outstanding), optionally `"inbox": {RECIPIENT: count}` — every
+envelope queued for an identity or device, of any type; recipients with nothing queued are absent.
+When every leg ends without any leg having rejected, the relay forwards `reject endpoint.unavailable` in the name of the
+first leg (spec-gap 76). A forwarded `progress` carries its `status`. A message from a leg that has already terminated is
+`drop leg-terminated`. An invite to an identity that has never bound here is answered `send error transport.unknown-recipient`.
 For an endpoint, optionally `"contacts": {"allow": […], "grants_issued": […], "grants_held": […], "requests": […], "pending_sent": […]}` (sorted ids).
 
-Only the sessions / attempts named in `expect` are compared. `emit` is compared
-exactly, in order.
+Only the sessions / attempts named in `expect` are compared (`{}` names none); `contacts`, `inbox`,
+`publications` and `subscriptions` are compared in full when present. `emit` is compared exactly, in order.
 
 ### Emission vocabulary
 
@@ -340,7 +344,7 @@ exactly, in order.
 | `{"queue": {"to": IDENTITY, "type": "introduction"}}` | relay queued an introduction for an unbound identity |
 | `{"ui": "error", "reason": …}` | a received `error` is surfaced; no state change |
 | `{"info": {"about": …}}` | an `info` with a recognized `about` is handed to the binding |
-| `{"refused": "update-pending"}` | a local request was refused by the engine |
+| `{"refused": REASON}` | a local request was refused by the engine (`update-pending`, `no-pending-update`, `unknown-introduction`, `unknown-grant`) |
 | `{"drop": REASON}` | message silently ignored (`ended-session`, `unknown-about`, `stale-update-reply`, `duplicate-introduction`, `unknown-introduction`) |
 
 ## Kind: `broadcast`
@@ -487,9 +491,24 @@ Each item has a matching `spec-gap` issue draft in `impl/docs/spec-gaps.md`.
 21. §22.3: provenance statements reach subscribers in `notify.body.provenance`; carriage is otherwise unspecified.
 22. §7.5: rotation has no wire record; vectors pin only what a verifier observes through the rotated DID document (`envelope/rotated-did-web-*`).
 31. §12.9 vs §19.4: held introductions — no 300 s age bound, 604,800 s validity cap enforced, id tracked until `expires_at` (`envelope/introduction-*`).
+74. §19.4: a `grant` is addressed to the introducing identity, a `reject` of the same introduction to the introducing device (`state/first-contact-*`).
+75. §12.5 rule 2 vs §12.7 rule 3: `cancel session.answered-elsewhere` reaching the leg that answered is `session.invalid-state`, not a crossed cancel (`state/race-responder-answered-elsewhere-at-answering-leg`).
+76. §12.7 rule 6: the attempt outcome when every leg expired and none rejected — `endpoint.unavailable` (`state/relay-all-legs-expired`).
 73. §9.3 vs §15.4: a terminal `notify` carries `session.expired` / `policy.terminated`, tokens the registry lists as valid on other types only; no warning on `notify` (`semantic/notify-terminated-reason`, by the deep-equality rule above).
 34–43. Messaging Profile draft choices (hub ordering, archive first-wins, first-contact authorization, `mailbox` tokens, `MAX_MLS_BYTES`, ephemeral lifetime) pinned by `messaging/*`; see the v0.8 messaging worklist in `impl/docs/spec-gaps.md`.
 
 Emission ordering convention for state traces: timer stops → sends → media →
 ui → timer starts. A session ending emits `media stop` (when media was running)
-before `ui ended`.
+before `ui ended`. The places the suite departs from that order, so they are part of the contract:
+
+- accepting an answer: `timer stop` → `media start` → `ui answered` → **then** `send cancel session.answered-elsewhere`;
+- a `progress`: `timer stop T-Establish` → `ui progress` → **then** the T-Ring / T-Queue adjustment (`stop`, `start`);
+  a `queued` beyond the re-queue limit is `ui progress` → `timer stop T-Queue` → `send cancel` → `ui ended`;
+- a `cancel` at ALERTING: `timer stop` → `ui missed_call` → `ui ended`; T-Ring-Local expiry is `timer fire` →
+  `send reject user.no-answer` → `ui ended user.no-answer`, with no `missed_call`;
+- equal-id glare: our invite is withdrawn first (`send cancel session.glare` → `ui ended`), then theirs is rejected
+  (`send reject session.glare`), then `ui glare_retry`; one session entry (ours) remains under the shared id;
+- an inbound `update` carrying `answered_by` (screening escalation, §14.4): `ui update_offered` → `ui answered`.
+
+A responder in ACTIVE that receives `cancel session.answered-elsewhere` answers `error session.invalid-state` even when
+the initiator has not spoken since the answer: that reason is never a crossed withdrawal (spec-gap 75).

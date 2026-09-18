@@ -39,7 +39,8 @@ python3 ../impl/tools/parity_ts.py       # Python harness vs this implementation
 | `dht` | 12 | pass |
 | `payload` | 97 | pass |
 | `semantic` | 50 | pass |
-| `state`, `broadcast`, `media-binding`, `gateway`, `trust`, `messaging` | 619 | not yet implemented |
+| `state` | 82 | pass — `endpoint` 59, `relay` 14, `authority` 7, `subscriber` 2 |
+| `broadcast`, `media-binding`, `gateway`, `trust`, `messaging` | 537 | not yet implemented |
 
 ## Findings so far
 
@@ -52,6 +53,16 @@ What writing this from the contract alone turned up (stage 1: the verification p
 | 3 | `payload-shape` was documented as "missing or wrong primitive type"; the suite also expects it for an `id` that is not a ULID (`envelope/payload-prose-ulid`). | README verdict table. |
 | 4 | §11.2 does not say what a profile list with one mutual and one unknown profile means; no vector had one. All three implementations turned out to agree (accept). | New vector `semantic/version-known-profile-among-unknown`. |
 | 5 | The README has no section for kind `trust` (13 vectors). | Open — to be written when `trust` is implemented here. |
+
+Stage 2 (the state traces):
+
+| # | Finding | Disposition |
+|---|---|---|
+| 6 | The README's emission-order convention (timer stops → sends → media → ui → timer starts) is not what the suite does in five places (answered-elsewhere cancel after `ui answered`, `ui progress` before the T-Ring/T-Queue adjustment, `missed_call` before `ended`, equal-id glare, screening escalation). | README: the departures are listed as part of the contract. |
+| 7 | Undocumented engine behavior the traces expect: `place_call` cites a held grant; `answer_update` sends `answered_by: user`; the token auto-grant's scope and one-year `valid_until`; `refused` and `drop` reasons; relay leg state is `delivered` (README said `alerting`), outcome `cancelled`, `inbox` counts every queued envelope; which snapshots are compared in full. | README event, snapshot and vocabulary tables. |
+| 8 | A `grant` goes to the introducing identity, the `reject` of the same introduction to the device. | spec-gap 74. |
+| 9 | §12.5 rule 2 read literally ends a just-answered call when `cancel session.answered-elsewhere` reaches the answering leg. | spec-gap 75. |
+| 10 | §12.7 rule 6 has nothing to forward when every leg expired; the suite pins `endpoint.unavailable` in the first leg's name. | spec-gap 76. |
 
 Readings this implementation makes that no vector pins yet (found by mutating the code and seeing the suite stay green):
 
