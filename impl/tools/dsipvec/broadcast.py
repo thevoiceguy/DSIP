@@ -300,8 +300,8 @@ def evaluate_provenance(stmt: dict, stmt_identity: str, publication: dict) -> di
         return {"verdict": "reject", "code": "provenance-processor-mismatch"}
     if stmt.get("input_variant") not in [v["id"] for v in publication.get("variants", [])]:
         return {"verdict": "reject", "code": "provenance-variant-unknown"}
-    out = {"verdict": "accept", "processor": stmt["processor"], "operation": stmt["operation"],
-           "integrity_mode": "derivative-bound"}
+    # spec-gap 77: a statement has no integrity mode of its own; the delivered stream's mode is the display's
+    out = {"verdict": "accept", "processor": stmt["processor"], "operation": stmt["operation"]}
     pol = publication.get("policy", {})
     if stmt["operation"] == "transcode" and pol.get("transcoding") in ("forbidden", "denied"):
         out["policy_violation"] = "transcoding"  # §16.4: policy is displayed/enforced by receivers, not magic

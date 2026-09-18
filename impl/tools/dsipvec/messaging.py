@@ -468,6 +468,7 @@ class Mailbox:
         self.intro_window = ctx.get("intro_window", 3600)
         self.inbox_cap = ctx.get("inbox_cap", 16)
         self.intro_log: dict[str, list] = {}
+        self.introductions_sent: list = []  # mailbox-config introductions_sent (spec-gap 81), durable
 
     # --- helpers
     @staticmethod
@@ -495,6 +496,12 @@ class Mailbox:
     def _first_contact(self, e: dict) -> list:
         """M§14.1 (spec-gap 54): an introduction or grant deposited for an identity, under §19.4's relay rules."""
         keys = ["sender:" + e["sender_identity"], "inbox:" + e["recipient"]]
+        if e["kind"] == "grant" and e.get("session") in self.introductions_sent:
+            # M§14.1 (spec-gap 81): a grant answering an introduction the owner sent is the reply it asked for — not
+            # metered, and the entry is consumed: one introduction, one answer. Any other grant is an unsolicited write
+            # into the mailbox and takes the introduction budget below.
+            self.introductions_sent.remove(e["session"])
+            keys = []
         for k in keys:  # §19.4: rate-limited per sender identity and per recipient inbox
             log = [t for t in self.intro_log.get(k, []) if t > self.now - self.intro_window]
             self.intro_log[k] = log
@@ -667,6 +674,7 @@ class Mailbox:
             elif "hub" in g:
                 self.groups[g["group"]] = {"hub": g["hub"], "state": "joined", "since": self.now, "items": 0}
         self.revoked |= set(e.get("revoked_grants", []))
+        self.introductions_sent += [i for i in e.get("introductions_sent", []) if i not in self.introductions_sent]
         out = [{"accepted": {"to": dev, "in_reply_to": e["id"]}}]
         for d in e.get("revoked_devices", []):
             # spec-gap 57: a revoked device loses its binding now, its registration and its KeyPackages
@@ -727,9 +735,10 @@ class Mailbox:
             "handover_wait": self.handover_wait,
             "kp": self.kp, "revoked": sorted(self.revoked), "items": self.items, "counter": self.counter, "acks": self.acks,
             "archived": [[g, s, c] for (g, s), c in self.archived.items()], "intro_limit": self.intro_limit,
-            "intro_window": self.intro_window, "inbox_cap": self.inbox_cap, "intro_log": self.intro_log}))
+            "intro_window": self.intro_window, "inbox_cap": self.inbox_cap, "intro_log": self.intro_log,
+            "introductions_sent": self.introductions_sent}))
         for k in ("now", "owner", "devices", "mode", "admit", "pending_ttl", "pending_max", "handover_wait", "groups", "kp",
-                  "items", "counter", "acks", "intro_limit", "intro_window", "inbox_cap", "intro_log"):
+                  "items", "counter", "acks", "intro_limit", "intro_window", "inbox_cap", "intro_log", "introductions_sent"):
             setattr(self, k, state[k])
         self.serves, self.revoked = set(state["serves"]), set(state["revoked"])
         self.archived = {(g, s): c for g, s, c in state["archived"]}

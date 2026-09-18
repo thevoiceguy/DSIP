@@ -1,0 +1,38 @@
+{
+  "vector": "messaging/mailbox-config-introductions-sent-not-ulid-refused",
+  "format": 1,
+  "kind": "messaging",
+  "description": "introductions_sent holds introduction ids: ULIDs.",
+  "spec_ref": [
+    "M§5.7"
+  ],
+  "context": {},
+  "input": {
+    "check": "message",
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "messaging/1.0"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "mailbox-config",
+      "id": "01K742SG005SB8FDQ8VW9FXVV1",
+      "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+      "to": "did:web:mbx.bob.example",
+      "subject": "did:web:example.com:users:bob",
+      "introductions_sent": [
+        "01HZINTROABC"
+      ],
+      "issued_at": 1760000000,
+      "expires_at": 1760000030
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "schema-invalid"
+  }
+}

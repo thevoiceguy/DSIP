@@ -2,7 +2,7 @@
   "vector": "state/first-contact-reject-and-silence",
   "format": 1,
   "kind": "state",
-  "description": "Rejecting an introduction is a policy choice addressed to the introduction id; ignoring it is the default; granting an unknown introduction is refused.",
+  "description": "Rejecting an introduction is a policy choice naming the introduction id and addressed, like a grant, to the introducing identity (spec-gap 74); ignoring it is the default; granting an unknown introduction is refused.",
   "spec_ref": [
     "§19.4"
   ],
@@ -66,7 +66,7 @@
             {
               "send": {
                 "type": "reject",
-                "to": "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL",
+                "to": "did:key:z6Mkt5yU6sK3v7gxFHncQbmZ7VQvnVuJBGrDAbqhZp2gDW7G",
                 "session": "01K742SG008KG93RNF92TESQ98",
                 "reason": "user.declined"
               }

@@ -553,6 +553,10 @@ An owner device configures its own mailbox:
 - `groups[].state` ∈ {`joined`, `left`}: confirms a pending registration (M§6.6) or ends one. A
   registration belongs to the identity, not to a device (spec-gap 53): a device removed from a group
   sends `left` only when no leaf of its identity remains in the group, so its siblings keep receiving.
+- `introductions_sent` (spec-gap 81) lists the ids of introductions the owner has sent (at most 256 per message; the
+  mailbox adds them to what it holds). A `grant` deposit whose `session` names one is the answer the owner asked for
+  and is not rate-limited (M§14.1); the entry is consumed by it. A device sends this **before** depositing the
+  introduction, so a quick answer finds it. The list is durable (M§6.6).
 - `revoked_grants` lists grant ids the owner has revoked; the mailbox MUST refuse authorization by
   them from then on (§19.4 "revocation is local policy at the granting side" — this is its
   propagation to the mailbox).
@@ -1428,7 +1432,11 @@ same way at the requester's mailbox. The mailbox applies §19.4's relay rules: i
 when deposited (signature, delegation, the 4,096-byte cap, validity), rate-limits per sender identity
 and per recipient inbox (`policy.rate-limited` with `retry_after`), accepts an introduction for an
 identity it does not serve — or beyond its bounded inbox — exactly as it accepts a held one and then
-drops it, and holds what it keeps only until the envelope's `expires_at`. A device renders a delivered
+drops it, and holds what it keeps only until the envelope's `expires_at`. (spec-gap 81) The rate limits cover whatever
+is deposited this way, with one exception: a `grant` whose `session` names an introduction the owner sent
+(`mailbox-config` `introductions_sent`, M§5.7) is solicited — it is not counted and not limited, and it consumes the
+entry, so one introduction admits one answer. Any other `grant` is an unsolicited write into the mailbox and takes the
+introduction budget, per sender identity and per recipient inbox, exactly like an introduction. A device renders a delivered
 introduction as a request, never as a message, and verifies a delivered grant as a credential: its
 signature and the binding of its signer to `from`, not its delivery window, which has passed.
 

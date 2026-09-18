@@ -569,6 +569,28 @@ def vectors() -> list[dict]:
              **{sid: sess("initiator", "INVITING")}),
     ]))
 
+    RELAY = F.did("relay")
+    out.append(trace("initiator-relay-no-response-ends-attempt",
+                     "The relay's own error transport.no-response is the attempt outcome when every leg stayed silent (spec-gap 76): the "
+                     "initiator ends the attempt at once and sends no cancel — the relay has closed every leg; a late answer is not resurrected.",
+                     ["§12.7", "§12.4"], ALICE_SELF, [
+        step({"local": "place_call", "session": sid, "to": BOB_WEB},
+             [S(type="invite", to=BOB_WEB, session=sid), TS("T-Establish", 15)], **{sid: sess("initiator", "INVITING")}),
+        step({"recv": msg("progress", "p1", BPH, sid, NOW + 2, status="ringing")},
+             [TP("T-Establish"), UI("progress", status="ringing"), TS("T-Ring", 120)], **{sid: sess("initiator", "PROCEEDING")}),
+        step({"recv": msg("error", "e-nr", RELAY, sid, NOW + 30, reason="transport.no-response")},
+             [TP("T-Ring"), UI("ended", reason="transport.no-response")], **{sid: sess("initiator", "ENDED")}),
+        step({"recv": msg("answer", "late", BPH, sid, NOW + 31, answered_by="user")},
+             [S(type="bye", to=BPH, session=sid, reason="session.failed")], **{sid: sess("initiator", "ENDED")}),
+    ]))
+    out.append(trace("relay-no-response-after-answer-only-surfaced",
+                     "Once ACTIVE the attempt is over: a transport.no-response arriving then is an error like any other — surfaced, no state change.",
+                     ["§12.7", "§12.4"], ALICE_SELF, [
+        *initiator_to_active(sid),
+        step({"recv": msg("error", "e-nr", RELAY, sid, NOW + 30, reason="transport.no-response")},
+             [UI("error", reason="transport.no-response")], **{sid: sess("initiator", "ACTIVE")}),
+    ]))
+
     # ---------------------------------------------------------------- §19.4 first contact (Phase 2)
     CAR = F.did("carol-phone")
     CAROL = F.did("carol")
@@ -634,11 +656,12 @@ def vectors() -> list[dict]:
                {uid("inv-b", NOW + 10): sess("responder", "ENDED")}),
     ]))
     out.append(fctrace("first-contact-reject-and-silence",
-                       "Rejecting an introduction is a policy choice addressed to the introduction id; ignoring it is the default; "
-                       "granting an unknown introduction is refused.", BOBPH_SELF, [
+                       "Rejecting an introduction is a policy choice naming the introduction id and addressed, like a grant, to the "
+                       "introducing identity (spec-gap 74); ignoring it is the default; granting an unknown introduction is refused.",
+                       BOBPH_SELF, [
         fcstep({"recv": intro1}, [UI("introduction_received", **{"from": CAROL})], {}, contacts(requests=[I1])),
         fcstep({"local": "reject_introduction", "introduction": I1, "reason": "user.declined"},
-               [S(type="reject", to=CAR, session=I1, reason="user.declined")], {}, contacts()),
+               [S(type="reject", to=CAROL, session=I1, reason="user.declined")], {}, contacts()),
         fcstep({"recv": {**intro1, "id": I2}}, [UI("introduction_received", **{"from": CAROL})], {}, contacts(requests=[I2])),
         fcstep({"advance": 604800}, [], {}, contacts(requests=[I2])),
         fcstep({"local": "grant", "introduction": I9, "id": G1, "scope": ["dsip.invite"], "valid_until": year},
@@ -724,15 +747,16 @@ def vectors() -> list[dict]:
               [{"forward": {"type": "reject", "reason": "endpoint.busy", "from": BPH}}],
               **{sid: {"legs": {BPH: "rejected", BLA: "expired"}, "outcome": "rejected"}}),
     ], component="relay"))
-    out.append(trace("relay-all-legs-expired", "Every leg expires without a response → endpoint.unavailable as the attempt outcome.", ["§12.7"], None, [
+    out.append(trace("relay-all-legs-expired", "Every leg expires and none said anything: there is no reject to forward, so the relay "
+                     "speaks for itself — its own error transport.no-response to the initiator (spec-gap 76).", ["§12.7", "§15.2"], None, [
         rstep({"relay": "invite", "session": sid, "from": APH, "to": BOB_WEB, "legs": [BPH, BLA]},
               [{"deliver": {"leg": BPH, "type": "invite"}}, {"deliver": {"leg": BLA, "type": "invite"}}],
               **{sid: {"legs": {BPH: "delivered", BLA: "delivered"}, "outcome": None}}),
         rstep({"relay": "leg_expired", "session": sid, "leg": BPH}, [],
               **{sid: {"legs": {BPH: "expired", BLA: "delivered"}, "outcome": None}}),
         rstep({"relay": "leg_expired", "session": sid, "leg": BLA},
-              [{"forward": {"type": "reject", "reason": "endpoint.unavailable", "from": BPH}}],
-              **{sid: {"legs": {BPH: "expired", BLA: "expired"}, "outcome": "rejected"}}),
+              [{"send": {"type": "error", "to": APH, "session": sid, "reason": "transport.no-response", "in_reply_to": sid}}],
+              **{sid: {"legs": {BPH: "expired", BLA: "expired"}, "outcome": "no-response"}}),
     ], component="relay"))
     out.append(trace("relay-user-cancel-all-legs", "Initiator abandons: cancel delivered per-leg to every live leg; later leg traffic dropped.", ["§12.7"], None, [
         rstep({"relay": "invite", "session": sid, "from": APH, "to": BOB_WEB, "legs": [BPH, BLA]},

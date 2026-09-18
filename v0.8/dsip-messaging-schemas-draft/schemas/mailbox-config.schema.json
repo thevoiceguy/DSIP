@@ -81,6 +81,14 @@
         "$ref": "#/$defs/ulid"
       }
     },
+    "introductions_sent": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ulid"
+      },
+      "maxItems": 256,
+      "description": "Ids of introductions the owner has sent (M\u00a714.1, spec-gap 81): a grant deposit answering one is not rate-limited."
+    },
     "revoked_delegations": {
       "type": "array",
       "items": {

@@ -75,10 +75,8 @@ export function verifyPublication(
       : undefined;
     return {
       verdict: "accept", processor, operation,
-      // Impl: the suite reports every verified statement as `derivative-bound` — the mode of the
-      // statement itself (a processor signing a reference to the original, §22.2) — whatever the
-      // operation; only a `transcode` changes the mode that is displayed (spec-gap 77).
-      integrity_mode: "derivative-bound",
+      // §22.3 (spec-gap 77): a statement has no integrity mode of its own — the operation says what it
+      // is, and the delivered stream's mode is the display's (§22.2)
       ...(violation ? { policy_violation: violation } : {}),
     };
   });

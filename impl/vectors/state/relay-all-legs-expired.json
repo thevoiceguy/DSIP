@@ -2,9 +2,10 @@
   "vector": "state/relay-all-legs-expired",
   "format": 1,
   "kind": "state",
-  "description": "Every leg expires without a response → endpoint.unavailable as the attempt outcome.",
+  "description": "Every leg expires and none said anything: there is no reject to forward, so the relay speaks for itself — its own error transport.no-response to the initiator (spec-gap 76).",
   "spec_ref": [
-    "§12.7"
+    "§12.7",
+    "§15.2"
   ],
   "context": {
     "component": "relay",
@@ -77,10 +78,12 @@
         "expect": {
           "emit": [
             {
-              "forward": {
-                "type": "reject",
-                "reason": "endpoint.unavailable",
-                "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+              "send": {
+                "type": "error",
+                "to": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+                "session": "01K742SG00YYNVBMYAQK1CB31F",
+                "reason": "transport.no-response",
+                "in_reply_to": "01K742SG00YYNVBMYAQK1CB31F"
               }
             }
           ],
@@ -90,7 +93,7 @@
                 "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn": "expired",
                 "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ": "expired"
               },
-              "outcome": "rejected"
+              "outcome": "no-response"
             }
           }
         }

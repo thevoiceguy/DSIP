@@ -16,7 +16,7 @@ interface Attempt {
   to: string;
   expires?: number;
   legs: Map<string, LegState>;
-  outcome: null | "answered" | "rejected" | "cancelled";
+  outcome: null | "answered" | "rejected" | "cancelled" | "no-response";
   /** Leg rejections in arrival order, for the attempt outcome (§12.7 rule 6). */
   rejections: { leg: string; reason: string }[];
 }
@@ -208,12 +208,16 @@ export class Relay {
     if (!a || a.legs.get(leg) !== "delivered") return;
     a.legs.set(leg, state);
     if (a.outcome !== null || [...a.legs.values()].some((s) => s === "delivered")) return;
-    a.outcome = "rejected";
     const rank = (r: string): number => (INFORMATIVE.includes(r) ? INFORMATIVE.indexOf(r) : INFORMATIVE.length);
     const best = [...a.rejections].sort((x, y) => rank(x.reason) - rank(y.reason))[0];
-    if (best) return void this.emit.push({ forward: { type: "reject", reason: best.reason, from: best.leg } });
-    // Impl: no leg said anything — the relay reports the attempt as `endpoint.unavailable`, in the name of the first leg.
-    this.emit.push({ forward: { type: "reject", reason: "endpoint.unavailable", from: [...a.legs.keys()][0]! } });
+    if (best) {
+      a.outcome = "rejected";
+      return void this.emit.push({ forward: { type: "reject", reason: best.reason, from: best.leg } });
+    }
+    // spec-gap 76: no leg said anything, so there is no reject to forward and the relay may not invent
+    // one in a leg's name (§15.2) — it speaks for itself, in its own signed error
+    a.outcome = "no-response";
+    this.emit.push({ send: { type: "error", to: a.from, session, reason: "transport.no-response", in_reply_to: session } });
   }
 
   /** §12.7 rule 3: deliver the cancel per-leg to every leg that has not terminated. */

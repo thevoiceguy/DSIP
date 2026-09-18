@@ -153,8 +153,7 @@
       {
         "verdict": "accept",
         "processor": "did:key:z6Mkt5yU6sK3v7gxFHncQbmZ7VQvnVuJBGrDAbqhZp2gDW7G",
-        "operation": "transcode",
-        "integrity_mode": "derivative-bound"
+        "operation": "transcode"
       }
     ],
     "display": {

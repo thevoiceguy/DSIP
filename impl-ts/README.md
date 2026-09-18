@@ -32,16 +32,16 @@ python3 ../impl/tools/parity_ts.py       # Python harness vs this implementation
 
 ## Coverage
 
-**Every vector: 874 of 874**, no kind skipped. Python/TypeScript parity compares actual with actual on all of them.
+**Every vector: 881 of 881**, no kind skipped. Python/TypeScript parity compares actual with actual on all of them.
 
 | Kind | Vectors | Modules |
 |---|---|---|
 | `envelope`, `transport`, `dht` | 65, 13, 12 | `envelope.ts`, `did.ts`, `encoding.ts`, `dht.ts` |
 | `payload`, `semantic` | 97, 50 | `schema.ts`, `semantic.ts`, `registry.ts` |
-| `state` | 82 | `endpoint.ts`, `relay.ts`, `broadcast-state.ts`, `timers.ts` |
+| `state` | 84 | `endpoint.ts`, `relay.ts`, `broadcast-state.ts`, `timers.ts` |
 | `broadcast`, `trust`, `media-binding` | 21, 13, 42 | `broadcast.ts`, `trust.ts`, `binding.ts` |
 | `gateway` | 64 | `gateway.ts` |
-| `messaging` | 415 | `messaging/`: `message`, `object`, `rules`, `blobs`, `crypto` (stateless, 230); `device`, `sync`, `client`, `hub`, `mailbox` (the nine trace machines, 185) |
+| `messaging` | 420 | `messaging/`: `message`, `object`, `rules`, `blobs`, `crypto` (stateless, 232); `device`, `sync`, `client`, `hub`, `mailbox` (the nine trace machines, 188) |
 
 What this is not: a product. It has no transport, no MLS library and no storage — it is the protocol's *decisions*,
 which is what the vectors measure. The wire demos in `../impl/demos` remain the Rust implementation's.
@@ -64,16 +64,16 @@ Stage 2 (the state traces):
 |---|---|---|
 | 6 | The README's emission-order convention (timer stops → sends → media → ui → timer starts) is not what the suite does in five places (answered-elsewhere cancel after `ui answered`, `ui progress` before the T-Ring/T-Queue adjustment, `missed_call` before `ended`, equal-id glare, screening escalation). | README: the departures are listed as part of the contract. |
 | 7 | Undocumented engine behavior the traces expect: `place_call` cites a held grant; `answer_update` sends `answered_by: user`; the token auto-grant's scope and one-year `valid_until`; `refused` and `drop` reasons; relay leg state is `delivered` (README said `alerting`), outcome `cancelled`, `inbox` counts every queued envelope; which snapshots are compared in full. | README event, snapshot and vocabulary tables. |
-| 8 | A `grant` goes to the introducing identity, the `reject` of the same introduction to the device. | spec-gap 74. |
+| 8 | A `grant` goes to the introducing identity, the `reject` of the same introduction to the device. | spec-gap 74 — decided: both to the identity. |
 | 9 | §12.5 rule 2 read literally ends a just-answered call when `cancel session.answered-elsewhere` reaches the answering leg. | spec-gap 75. |
-| 10 | §12.7 rule 6 has nothing to forward when every leg expired; the suite pins `endpoint.unavailable` in the first leg's name. | spec-gap 76. |
+| 10 | §12.7 rule 6 has nothing to forward when every leg expired; the suite pinned `endpoint.unavailable` in the first leg's name. | spec-gap 76 — decided: the relay's own `error transport.no-response`. |
 
 Stage 3 (`trust`, `broadcast`, `media-binding`):
 
 | # | Finding | Disposition |
 |---|---|---|
 | 11 | Kind `trust` compares exact display strings that exist nowhere but in the vectors — §18.1 gives "Domain verified by did:web", the suite expects `Domain verified (<did>)`. | README "Kind: `trust`" now carries every template. |
-| 12 | Every verified provenance statement is `integrity_mode: derivative-bound`, a plain `relay` too, while the displayed mode for the same stream is `metadata-only`. | spec-gap 77. |
+| 12 | Every verified provenance statement is `integrity_mode: derivative-bound`, a plain `relay` too, while the displayed mode for the same stream is `metadata-only`. | spec-gap 77 — decided: the per-statement field is gone. |
 | 13 | §22.3's "any statement where [policy] forbids redistribution" had no vector, and the `policy_violation` tokens were undocumented. | New vector `broadcast/provenance-policy-redistribution-forbidden` (all three agree); README. |
 | 14 | The order of the 13 media-binding checks, and that binding traces keep expectations in `expect.steps` (unlike `state`), were unstated. | README. |
 | 15 | This implementation first also required a statement's `output_variant` to be advertised — the `state` authority traces pass either way. §22.3 requires only `input_variant`; followed the spec. | Noted as unpinned below. |

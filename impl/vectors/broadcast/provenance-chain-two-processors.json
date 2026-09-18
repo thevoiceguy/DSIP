@@ -157,14 +157,12 @@
       {
         "verdict": "accept",
         "processor": "did:key:z6Mkt5yU6sK3v7gxFHncQbmZ7VQvnVuJBGrDAbqhZp2gDW7G",
-        "operation": "relay",
-        "integrity_mode": "derivative-bound"
+        "operation": "relay"
       },
       {
         "verdict": "accept",
         "processor": "did:key:z6MkhzX9qTeXBWkucyMVric1E9JrqUD5LPAkD2BNavakAptf",
-        "operation": "transcode",
-        "integrity_mode": "derivative-bound"
+        "operation": "transcode"
       }
     ],
     "display": {

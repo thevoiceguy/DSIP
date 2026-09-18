@@ -188,6 +188,10 @@ def message_vectors():
     m("mailbox-config-valid", "Mode, admit, group confirmation and a revoked grant.", ["M§5.7"],
       msg("mailbox-config", "cfg", BPH, MBX_B, subject=BOB, mode="sync", admit="grant",
           groups=[{"group": GROUP, "hub": HUB_A, "state": "joined"}], revoked_grants=[uid("grant-x")]), accept())
+    m("mailbox-config-introductions-sent-valid", "An owner device tells its mailbox which introductions it sent, so their grants are not rate-limited.",
+      ["M§5.7", "M§14.1"], msg("mailbox-config", "cfg-is", BPH, MBX_B, subject=BOB, introductions_sent=[uid("intro-out")]), accept())
+    m("mailbox-config-introductions-sent-not-ulid-refused", "introductions_sent holds introduction ids: ULIDs.",
+      ["M§5.7"], msg("mailbox-config", "cfg-is2", BPH, MBX_B, subject=BOB, introductions_sent=["01HZINTROABC"]), reject("schema-invalid"))
     m("mailbox-config-unknown-mode-refused", "An unregistered mailbox mode is refused.", ["M§4.4", "M§16"],
       msg("mailbox-config", "cfg2", BPH, MBX_B, subject=BOB, mode="archive-forever"),
       reject("mailbox-mode-unsupported", "mailbox.unsupported-mode"))
@@ -1891,13 +1895,54 @@ def first_contact_vectors():
                          (intro_ev("i3"), [{"error": {"to": APH, "in_reply_to": uid("i3"), "reason": "policy.rate-limited", "retry_after": 3600}}],
                           ms([c(1), c(2)])),
                      ]))
-    out.append(trace("mailbox-grant-counts-toward-the-rate-limit",
-                     "The rate limit is on what an identity deposits this way, not on one kind of it: a grant counts, and is limited, "
-                     "like an introduction.", ["§19.4", "M§14.1", "M§14.3"], T, ctx, [
+    # --- grants: solicited ones are not metered (spec-gap 81)
+    SENT = uid("intro-out")
+
+    def grant_ev(label, session=None, exp=NOW + 30):
+        e = intro_ev(label, kind="grant", exp=exp)
+        if session is not None:
+            e["first_contact"]["session"] = session
+        return e
+
+    def sent_cfg(label="cfg-is", ids=(SENT,)):
+        return {"config": {"id": uid(label), "device": BPH, "introductions_sent": list(ids)}}
+
+    limited = lambda label: [{"error": {"to": APH, "in_reply_to": uid(label), "reason": "policy.rate-limited", "retry_after": 3600}}]
+    grefs = ["§19.4", "M§14.1", "M§14.3"]
+    out.append(trace("mailbox-unsolicited-grant-takes-the-introduction-budget",
+                     "A grant that answers nothing the owner sent is an unsolicited write into the mailbox: it counts, and is limited, "
+                     "like an introduction — naming a session the owner never sent changes nothing.", grefs, T, ctx, [
                          (intro_ev("i1"), [acc_c(APH, "i1", 1)], ms([c(1)])),
-                         (intro_ev("g1", kind="grant", exp=NOW + 30), [acc_c(APH, "g1", 2)], ms([c(1), c(2)])),
-                         (intro_ev("g2", kind="grant", exp=NOW + 30),
-                          [{"error": {"to": APH, "in_reply_to": uid("g2"), "reason": "policy.rate-limited", "retry_after": 3600}}], ms([c(1), c(2)])),
+                         (grant_ev("g1"), [acc_c(APH, "g1", 2)], ms([c(1), c(2)])),
+                         (grant_ev("g2", session=SENT), limited("g2"), ms([c(1), c(2)])),
+                     ]))
+    out.append(trace("mailbox-solicited-grant-bypasses-the-rate-limit",
+                     "The owner's device tells its mailbox which introductions it sent (mailbox-config introductions_sent). A grant "
+                     "answering one is the reply the owner asked for: stored though the sender is over its budget, and not counted.",
+                     grefs + ["M§5.7"], T, ctx, [
+                         (sent_cfg(), [macc(BPH, "cfg-is")], ms()),
+                         (intro_ev("i1"), [acc_c(APH, "i1", 1)], ms([c(1)])),
+                         (intro_ev("i2"), [acc_c(APH, "i2", 2)], ms([c(1), c(2)])),
+                         (intro_ev("i3"), limited("i3"), ms([c(1), c(2)])),
+                         (grant_ev("g1", session=SENT), [acc_c(APH, "g1", 3)], ms([c(1), c(2), c(3)])),
+                     ]))
+    out.append(trace("mailbox-solicited-grant-bypass-is-single-use",
+                     "One introduction, one answer: the entry is consumed, so a second grant naming it is unsolicited again.",
+                     grefs + ["M§5.7"], T, ctx, [
+                         (sent_cfg(), [macc(BPH, "cfg-is")], ms()),
+                         (grant_ev("g1", session=SENT), [acc_c(APH, "g1", 1)], ms([c(1)])),
+                         (grant_ev("g2", session=SENT), [acc_c(APH, "g2", 2)], ms([c(1), c(2)])),
+                         (grant_ev("g3", session=SENT), [acc_c(APH, "g3", 3)], ms([c(1), c(2), c(3)])),
+                         (grant_ev("g4", session=SENT), limited("g4"), ms([c(1), c(2), c(3)])),
+                     ]))
+    out.append(trace("mailbox-introductions-sent-survives-restart",
+                     "What a mailbox answers from is durable (spec-gap 59): the introductions its owner sent are, too.",
+                     grefs + ["M§6.6"], T, ctx, [
+                         (sent_cfg(), [macc(BPH, "cfg-is")], ms()),
+                         (intro_ev("i1"), [acc_c(APH, "i1", 1)], ms([c(1)])),
+                         (intro_ev("i2"), [acc_c(APH, "i2", 2)], ms([c(1), c(2)])),
+                         ({"restart": {}}, [], ms([c(1), c(2)])),
+                         (grant_ev("g1", session=SENT), [acc_c(APH, "g1", 3)], ms([c(1), c(2), c(3)])),
                      ]))
     out.append(trace("mailbox-introduction-inbox-bound-silent",
                      "Past the bounded inbox an introduction is accepted and not held, silently (§19.4 RECOMMENDED 16).",
