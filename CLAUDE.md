@@ -4,8 +4,10 @@
 
 DSIP (Decentralized Session Initiation Protocol) is an identity-first signaling
 and media negotiation protocol for trusted real-time sessions. This repo holds
-both the **specification** (versioned document snapshots) and the **reference
-implementation PoC** (a living Rust codebase that tracks spec versions).
+both the **specification** (versioned document snapshots), the **reference
+implementation PoC** (a living Rust codebase that tracks spec versions), and a
+**second implementation** (`impl-ts/`, TypeScript) written from the spec and the
+vectors alone, which passes the whole suite.
 
 The PoC's purpose, in priority order:
 1. **Prove the spec is implementable.** Every MUST is implemented or generates a filed spec issue.
@@ -25,12 +27,19 @@ impl/               PoC Cargo workspace (living code; tracks spec versions via
 impl/vectors/       Language-neutral JSON test vectors (envelope/ payload/
                     semantic/ state/ transport/ dht/ broadcast/ media-binding/
                     gateway/ trust/ messaging/)
-impl/tools/         Python: vector generator, parity harness, testnet harness
+impl/tools/         Python: vector generator + reference harness (dsipvec/), parity.py
+                    (Rust/Python), parity_ts.py (Python/TypeScript), spec_lint.py
+                    (Spec: headers + docs/coverage.md), dht_testnet.py, wan/ testbed
+impl/docs/          Plans, spec-gaps.md (every gap and its disposition), coverage.md
+                    (generated), DHT / STIR findings
 impl/crates/        dsip-core, dsip-schema, dsip-session, dsip-endpoint, dsip-transport,
                     dsip-media, dsip-webrtc-binding, dsip-broadcast, dsip-dht, dsip-relay,
                     dsip-cli, dsip-wasm, dsip-gateway, dsip-messaging, dsip-mls,
                     dsip-mailbox
-impl/demos/         Browser client, broadcast UI (Phase 2+)
+impl/demos/         Self-verifying wire demos run in CI: calls, media, broadcast, DHT,
+                    gateway, and the messaging profile (one *-demo.sh per behaviour);
+                    browser/ is the wasm client. Check names before adding one —
+                    first-contact-demo.sh (core) ≠ messaging-first-contact-demo.sh
 impl-ts/            Second implementation (TypeScript), measured against impl/vectors.
                     Written from the spec, schemas and vectors README ONLY — never by
                     reading impl/crates or impl/tools/dsipvec verdict logic (impl-ts/README.md)
@@ -46,13 +55,18 @@ shape checks. Never invert this.
    timer, race resolution) ships without a vector or trace exercising it.
    When implementing new behavior: write/generate the vector first in
    `impl/tools/`, confirm the Python harness verdict, then implement in Rust
-   until the runner agrees.
+   and in `impl-ts` until all three runners agree. Expected outcomes are
+   authored by hand from the spec, never recorded from an implementation.
 
-2. **Rust/Python parity is CI-enforced.** Every vector must produce the same
-   verdict from the Python harness and the Rust runner — and from `impl-ts`, the
-   second implementation, which passes the whole suite (`parity_ts.py --require-all`). If they disagree,
-   stop and find out why before proceeding — a divergence is either a vector
-   bug or an implementation bug, and it must be identified, never papered over.
+2. **Three-way parity is CI-enforced.** Every vector must produce the same
+   result from the Python harness, the Rust runner (`parity.py`) and `impl-ts`
+   (`parity_ts.py --require-all`: it may skip nothing). If they disagree, stop
+   and find out why before proceeding — a divergence is a vector bug, an
+   implementation bug or a spec gap, and it must be identified, never papered
+   over. Rust and Python share an author and rarely disagree; `impl-ts` is the
+   independent reading. Passing the suite is not agreement: for table-shaped
+   rules and state machines, probe all three with temporary generated vectors
+   and compare actual with actual (`impl-ts/README.md`, "Differential probing").
 
 3. **Signature over bytes.** The base64url payload is carried as raw bytes
    through signature verification and only then decoded to JSON (spec §10.2).
@@ -78,8 +92,9 @@ shape checks. Never invert this.
 ## Documentation standard (enforced)
 
 - Every module, public type, and public function implementing normative
-  behavior carries a rustdoc comment with a `Spec:` line citing the v0.8
-  section (e.g. `Spec: §12.6`). Grep-able, consistent format.
+  behavior carries a doc comment (rustdoc; TSDoc in `impl-ts`) with a `Spec:`
+  line citing the v0.8 section (e.g. `Spec: §12.6`, `Spec: M§6.5`). Grep-able,
+  consistent format; `spec_lint.py --check` enforces the Rust module headers.
 - Where code resolves a choice the spec leaves open, add an `Impl:` line
   explaining the decision. `Spec:` = citation, `Impl:` = decision. Never mix.
 - Every `Impl:` note resolving a genuine ambiguity requires a matching
@@ -110,16 +125,19 @@ cargo build --workspace                       # run from impl/
 cargo test --workspace
 cargo run -p dsip-cli -- vectors run
 cargo doc --workspace --no-deps
+python3 impl/tools/parity.py                  # Rust/Python, actual against actual
+python3 impl/tools/spec_lint.py --check       # Spec: headers; regenerates docs/coverage.md without --check
 
 # Second implementation (TypeScript): build, vectors, Python/TypeScript parity
 (cd impl-ts && npm ci && npm run build && npm run vectors)
-python3 impl/tools/parity_ts.py
+python3 impl/tools/parity_ts.py --require-all
 
 # DHT local testnet (integration, not vectors)
 python3 impl/tools/dht_testnet.py --nodes 5
 ```
 
 pip installs in this environment need `--break-system-packages`.
+`impl/target/debug` grows without bound (it has filled the disk): `cargo clean --profile dev` when short of space.
 
 ## Key spec sections (v0.8; numbering unchanged from v0.6) you will cite constantly
 
@@ -138,21 +156,25 @@ pip installs in this environment need `--break-system-packages`.
 | B§2–B§8 | WebRTC Media Binding 1.0 (`v0.8/dsip-webrtc-media-binding-v0.8.md`) — cite as `B§n` |
 | G§n | Gateway Profile 1.0 (`v0.8/dsip-gateway-profile-v0.8.md`) — cite as `G§n` |
 | M§n | Messaging Profile 1.0 (`v0.8/dsip-messaging-profile-v0.8.md`) — cite as `M§n` |
+| R§n | RTP/SRTP Media Binding, draft (`v0.8/dsip-rtp-srtp-media-binding-v0.8-draft.md`) — cite as `R§n` |
+| — | DHT Reachability Hints Profile, draft (`v0.8/dsip-dht-hints-profile-v0.8-draft.md`) — no prefix of its own; cite core §8.3 / §8.5 |
 
 ## Semantic checks (post-schema, must-implement)
 
-The 11 checks in the schema README are the authoritative list. Highlights that
+The 12 checks in the schema README are the authoritative list. Highlights that
 recur in reviews: 300 s replay window + `expires_at` > `issued_at`; ULID
 timestamp consistent with `issued_at` (glare-backdating guard); one
 outstanding `update` per session across both directions; relay `hello`
 `in_reply_to` anti-splicing; answer/reject selections ⊆ referenced offer;
 registry *shape* in schema vs *membership* in registries with category
-fallback for unknown tokens.
+fallback for unknown tokens; `key-rotation` and `delegation-revocation`
+subject/signer rules (§7.4, §7.5). The pipeline order that decides which
+failure is reported is normative in `impl/vectors/README.md`.
 
 ## Things Claude should NOT do
 
-- Do not edit generated schema files, anything in `v0.5/`, or renumber spec
-  sections without an explicit request.
+- Do not edit generated schema files, anything in `v0.5/`, `v0.6/` or `v0.7/`,
+  or renumber spec sections without an explicit request.
 - Do not resolve a spec ambiguity silently — implement a choice only alongside
   an `Impl:` comment and a `spec-gap` issue.
 - Do not weaken a vector to make an implementation pass. If a vector looks
@@ -164,7 +186,15 @@ fallback for unknown tokens.
   instrumented, not solved (§3.2, plan §10.5).
 - Do not treat prose example ids like `01HZINVITEABC` as valid ULIDs; they
   fail validation by design.
-- Do not begin gateway (Phase 4) work; it is a follow-on plan.
+- Do not write `impl-ts` by reading `impl/crates` or the verdict logic in
+  `impl/tools/dsipvec`; when the spec and the vectors README are not enough,
+  that is a finding to fix there. Observing the other implementations through
+  probe vectors is fine; reading them is not.
+- Do not leave probe vectors (`zzprobe-*`) in `impl/vectors`: they are
+  temporary; a disagreement they find becomes a hand-authored vector.
+- Do not extend the gateway past Gateway Profile 1.0 without an explicit
+  request: production outbound STIR signing, video across the gateway, SIP 3xx
+  as DSIP forking (spec-gap 29) and REFER/transfer are out of scope.
 
 ## Workflow expectations
 
