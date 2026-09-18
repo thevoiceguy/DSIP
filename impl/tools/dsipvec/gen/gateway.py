@@ -216,6 +216,17 @@ def vectors() -> list[dict]:
         ({"dsip": {"type": "info", "about": "media:dtmf", "data": {"digits": "12#"}}},
          [{"sip": {"request": "INFO", "dtmf": "12#"}}], st("active", CONF)),
     ], ctx={"direction": "inbound"}))
+    out.append(trace("trace-dtmf-rtp-events",
+                     "DTMF carried as RFC 4733 telephone-event (the SIP leg negotiated it) reaches the controller as a SIP-side "
+                     "event with no request to answer: the same DSIP info, nothing sent on the SIP leg; outside the call it is "
+                     "ignored like an INFO's digit (G§9).", ["G§9", "§12.12"], [
+        ({"sip": {"request": "INVITE", "from_tn": "+15551234567"}},
+         [{"dsip": {"local": "place_call", "claims": [{"type": "tel", "number": "+15551234567", "attestation": "none", "verified": False, "verifier": GW}], "trust_basis": "Gateway attested by gw.example · no attestation"}}, {"sip": {"response": 100}}], st("offered", EARLY)),
+        ({"sip": {"event": "dtmf", "dtmf": "1"}}, [{"ignore": "sip dtmf outside the established call"}], st("offered", EARLY)),
+        ({"dsip": {"type": "answer", "answered_by": "user"}}, [{"sip": {"response": 200, "direction": "sendrecv"}}, {"media": "bridge"}], st("active", CONF)),
+        ({"sip": {"event": "dtmf", "dtmf": "5", "duration_ms": 160}},
+         [{"dsip": {"local": "info", "about": "media:dtmf", "data": {"digits": "5", "duration_ms": 160}}}], st("active", CONF)),
+    ], ctx={"direction": "inbound"}))
     out.append(trace("trace-dtmf-outside-the-call-ignored",
                      "DTMF before the call is up is carried nowhere: the SIP INFO is still answered, and a DSIP info is ignored "
                      "(§12.12: info is ACTIVE-only).", ["G§9", "§12.12"], [

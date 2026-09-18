@@ -1,0 +1,129 @@
+{
+  "vector": "gateway/trace-dtmf-rtp-events",
+  "format": 1,
+  "kind": "gateway",
+  "description": "DTMF carried as RFC 4733 telephone-event (the SIP leg negotiated it) reaches the controller as a SIP-side event with no request to answer: the same DSIP info, nothing sent on the SIP leg; outside the call it is ignored like an INFO's digit (G§9).",
+  "spec_ref": [
+    "G§9",
+    "§12.12"
+  ],
+  "context": {
+    "direction": "inbound"
+  },
+  "input": {
+    "check": "trace",
+    "steps": [
+      {
+        "event": {
+          "sip": {
+            "request": "INVITE",
+            "from_tn": "+15551234567"
+          }
+        }
+      },
+      {
+        "event": {
+          "sip": {
+            "event": "dtmf",
+            "dtmf": "1"
+          }
+        }
+      },
+      {
+        "event": {
+          "dsip": {
+            "type": "answer",
+            "answered_by": "user"
+          }
+        }
+      },
+      {
+        "event": {
+          "sip": {
+            "event": "dtmf",
+            "dtmf": "5",
+            "duration_ms": 160
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "dsip": {
+              "local": "place_call",
+              "claims": [
+                {
+                  "type": "tel",
+                  "number": "+15551234567",
+                  "attestation": "none",
+                  "verified": false,
+                  "verifier": "did:web:gw.example"
+                }
+              ],
+              "trust_basis": "Gateway attested by gw.example · no attestation"
+            }
+          },
+          {
+            "sip": {
+              "response": 100
+            }
+          }
+        ],
+        "state": {
+          "dsip": "offered",
+          "sip": "early"
+        }
+      },
+      {
+        "emit": [
+          {
+            "ignore": "sip dtmf outside the established call"
+          }
+        ],
+        "state": {
+          "dsip": "offered",
+          "sip": "early"
+        }
+      },
+      {
+        "emit": [
+          {
+            "sip": {
+              "response": 200,
+              "direction": "sendrecv"
+            }
+          },
+          {
+            "media": "bridge"
+          }
+        ],
+        "state": {
+          "dsip": "active",
+          "sip": "confirmed"
+        }
+      },
+      {
+        "emit": [
+          {
+            "dsip": {
+              "local": "info",
+              "about": "media:dtmf",
+              "data": {
+                "digits": "5",
+                "duration_ms": 160
+              }
+            }
+          }
+        ],
+        "state": {
+          "dsip": "active",
+          "sip": "confirmed"
+        }
+      }
+    ]
+  }
+}
