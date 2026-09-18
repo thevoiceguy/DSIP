@@ -135,7 +135,9 @@ export class Client implements Machine {
     const at = (r["sent_at"] as number | undefined) ?? this.now;
     if (r["kind"] === "read") {
       const through = r["through"] as string;
-      if (this.content.get(through)?.sender === sender || !this.advances(sender, through)) return false;
+      // M§10.3: "through" marks a position in the conversation — it may well be the reader's own message;
+      // M§10.2's "a receipt from the identity that sent the target" is about delivered and played
+      if (!this.advances(sender, through)) return false;
       this.readThrough[sender] = through;
       return true;
     }

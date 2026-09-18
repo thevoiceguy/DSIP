@@ -167,6 +167,12 @@ jobs:
         working-directory: impl
       - name: Rust/Python parity
         run: python3 impl/tools/parity.py
+      - uses: actions/setup-node@v4
+        with: { node-version: "20" }
+      - name: differential fuzz — Python, Rust and TypeScript on generated traces (fixed seed)
+        run: |
+          (cd impl-ts && npm ci && npm run build)
+          python3 impl/tools/fuzz.py --seed 1 --count 150
       - name: DHT local testnet (5 nodes)
         run: python3 impl/tools/dht_testnet.py --nodes 5 --report /tmp/dht-report.json
 

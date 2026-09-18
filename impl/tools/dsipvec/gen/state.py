@@ -170,6 +170,46 @@ def vectors() -> list[dict]:
                          step({"recv": msg("bye", "b", BPH, uid("nope"), NOW, reason="user.hangup")},
                               [S(type="error", to=BPH, session=uid("nope"), reason="session.unknown-session", in_reply_to=uid("b"))]),
                      ]))
+    # --- found by impl/tools/fuzz.py: behaviour every implementation must share and no vector exercised
+    ghost = uid("no-such-session", NOW)
+    out.append(trace("local-request-for-an-unknown-session-is-refused",
+                     "A local request about a session the endpoint does not hold is refused as such, whatever the request.",
+                     ["§12.4"], ALICE_SELF, [
+                         step({"local": "hangup", "session": ghost}, [{"refused": "unknown-session"}]),
+                         step({"local": "accept", "session": ghost, "answered_by": "user"}, [{"refused": "unknown-session"}]),
+                         step({"local": "update", "session": ghost, "id": uid("u-ghost", NOW)}, [{"refused": "unknown-session"}]),
+                     ]))
+    out.append(trace("update-reply-before-active-is-invalid-state",
+                     "An answer or reject that names an update (in_reply_to) is an update reply, never the attempt's outcome: before "
+                     "ACTIVE there is no update, so it is session.invalid-state and the attempt goes on.", ["§12.8", "§12.4"],
+                     ALICE_SELF, initiator_to_active(sid)[:1] + [
+                         step({"recv": msg("answer", "a-upd", BPH, sid, NOW + 1, answered_by="user", in_reply_to=uid("u-none", NOW))},
+                              [S(type="error", to=BPH, session=sid, reason="session.invalid-state", in_reply_to=uid("a-upd", NOW + 1))],
+                              **{sid: sess("initiator", "INVITING")}),
+                         step({"recv": msg("reject", "r-upd", BPH, sid, NOW + 1, reason="media.unsupported", in_reply_to=uid("u-none", NOW))},
+                              [S(type="error", to=BPH, session=sid, reason="session.invalid-state", in_reply_to=uid("r-upd", NOW + 1))],
+                              **{sid: sess("initiator", "INVITING")}),
+                     ]))
+    out.append(trace("unknown-category-reason-is-surfaced-as-session-failed",
+                     "What is surfaced is the effective reason (§15.1): a reject whose category this endpoint does not recognize ends "
+                     "the attempt as session.failed.", ["§15.1", "§12.4"], ALICE_SELF, initiator_to_active(sid)[:1] + [
+                         step({"recv": msg("reject", "r-x", BPH, sid, NOW + 1, reason="x-contactcenter.queue-full")},
+                              [TP("T-Establish"), UI("ended", reason="session.failed")], **{sid: sess("initiator", "ENDED")}),
+                     ]))
+    held = uid("inv-held", NOW)
+    out.append(trace("invite-for-a-session-already-held-is-invalid-state",
+                     "An invite names a new session. One for a session the endpoint already holds is invalid for its state — and "
+                     "ignored once that session has ended.", ["§12.4"], ALICE_SELF, [
+                         step({"recv": msg("invite", "inv-held", BPH, None, NOW, to=ALICE, expires_at=NOW + 30)}, [UI("offered")],
+                              **{held: sess("responder", "OFFERED")}),
+                         step({"recv": msg("invite", "inv-held", BPH, None, NOW, to=ALICE, expires_at=NOW + 30)},
+                              [S(type="error", to=BPH, session=held, reason="session.invalid-state", in_reply_to=held)],
+                              **{held: sess("responder", "OFFERED")}),
+                         step({"recv": msg("cancel", "c-held", BPH, held, NOW + 1, reason="user.cancelled")}, [UI("ended", reason="user.cancelled")],
+                              **{held: sess("responder", "ENDED")}),
+                         step({"recv": msg("invite", "inv-held", BPH, None, NOW, to=ALICE, expires_at=NOW + 30)}, [{"drop": "ended-session"}],
+                              **{held: sess("responder", "ENDED")}),
+                     ]))
     out.append(trace("invalid-state-messages", "bye/update/info before ACTIVE and answer at a responder → error session.invalid-state.",
                      ["§12.4", "§12.8", "§12.12"], ALICE_SELF, initiator_to_active(sid)[:3] + [
                          step({"recv": msg("bye", "b", BPH, sid, NOW + 3, reason="user.hangup")},
@@ -364,6 +404,30 @@ def vectors() -> list[dict]:
              **{theirs_earlier: sess("responder", "ALERTING")}),
         step({"recv": msg("reject", "r", BPH, ours, NOW, reason="session.glare")}, [{"drop": "ended-session"}],
              **{ours: sess("initiator", "ENDED")}),
+    ]))
+    ours2 = uid("g-ours2", NOW + 2)
+    two_calls = [
+        step({"local": "place_call", "session": ours, "to": BOB}, [S(type="invite", to=BOB, session=ours), TS("T-Establish", 15)],
+             **{ours: sess("initiator", "INVITING")}),
+        step({"local": "place_call", "session": ours2, "to": BPH}, [S(type="invite", to=BPH, session=ours2), TS("T-Establish", 15)],
+             **{ours2: sess("initiator", "INVITING")}),
+    ]
+    out.append(trace("glare-every-losing-attempt-is-withdrawn",
+                     "Two attempts of ours to the same identity (one identity-addressed, one to a device) and an inbound invite older "
+                     "than both: each of our invites lost, so each is withdrawn, in id order (found by fuzz.py: the implementations "
+                     "withdrew one, and not the same one).", ["§12.6"], ALICE_SELF, two_calls + [
+        step({"recv": msg("invite", "g-theirs", BPH, None, NOW - 1, to=ALICE, expires_at=NOW + 29)},
+             [TP("T-Establish"), S(type="cancel", to=BOB, session=ours, reason="session.glare"), UI("ended", reason="session.glare"),
+              TP("T-Establish"), S(type="cancel", to=BPH, session=ours2, reason="session.glare"), UI("ended", reason="session.glare"),
+              UI("offered")],
+             **{ours: sess("initiator", "ENDED"), ours2: sess("initiator", "ENDED"), theirs_earlier: sess("responder", "OFFERED")}),
+    ]))
+    out.append(trace("glare-lowest-id-of-all-decides",
+                     "The smallest id among all the invites between the two identities wins: with one of ours older than the inbound "
+                     "invite, theirs is rejected and our later attempt is left alone.", ["§12.6"], ALICE_SELF, two_calls + [
+        step({"recv": msg("invite", "g-theirs", BPH, None, NOW + 1, to=ALICE, expires_at=NOW + 31)},
+             [S(type="reject", to=BPH, session=theirs_later, reason="session.glare")],
+             **{ours: sess("initiator", "INVITING"), ours2: sess("initiator", "INVITING"), theirs_later: sess("responder", "ENDED")}),
     ]))
     out.append(trace("glare-equal-ids", "Pathological equal ids: both invites rejected with session.glare; retry hint surfaced.", ["§12.6"], ALICE_SELF, [
         step({"local": "place_call", "session": ours, "to": BOB}, [S(type="invite", to=BOB, session=ours), TS("T-Establish", 15)],

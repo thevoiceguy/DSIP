@@ -1,0 +1,140 @@
+{
+  "vector": "state/invite-for-a-session-already-held-is-invalid-state",
+  "format": 1,
+  "kind": "state",
+  "description": "An invite names a new session. One for a session the endpoint already holds is invalid for its state — and ignored once that session has ended.",
+  "spec_ref": [
+    "§12.4"
+  ],
+  "context": {
+    "component": "endpoint",
+    "start": 1760000000,
+    "self": {
+      "device": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+      "identity": "did:key:z6MkhzX9qTeXBWkucyMVric1E9JrqUD5LPAkD2BNavakAptf"
+    },
+    "identities": {
+      "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu": "did:key:z6MkhzX9qTeXBWkucyMVric1E9JrqUD5LPAkD2BNavakAptf",
+      "did:key:z6MkfhenvjQ7awdpVWzPaeBuPkXCBLwzJKyosCrTL3huMb66": "did:key:z6MkhzX9qTeXBWkucyMVric1E9JrqUD5LPAkD2BNavakAptf",
+      "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+      "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+      "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL": "did:key:z6Mkt5yU6sK3v7gxFHncQbmZ7VQvnVuJBGrDAbqhZp2gDW7G"
+    }
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "recv": {
+            "type": "invite",
+            "id": "01K742SG0031PP8Q4TN55MQ09C",
+            "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "to": "did:key:z6MkhzX9qTeXBWkucyMVric1E9JrqUD5LPAkD2BNavakAptf",
+            "expires_at": 1760000030
+          }
+        },
+        "expect": {
+          "emit": [
+            {
+              "ui": "offered"
+            }
+          ],
+          "sessions": {
+            "01K742SG0031PP8Q4TN55MQ09C": {
+              "role": "responder",
+              "state": "OFFERED",
+              "renegotiating": false,
+              "outstanding_update": null
+            }
+          }
+        }
+      },
+      {
+        "event": {
+          "recv": {
+            "type": "invite",
+            "id": "01K742SG0031PP8Q4TN55MQ09C",
+            "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "to": "did:key:z6MkhzX9qTeXBWkucyMVric1E9JrqUD5LPAkD2BNavakAptf",
+            "expires_at": 1760000030
+          }
+        },
+        "expect": {
+          "emit": [
+            {
+              "send": {
+                "type": "error",
+                "to": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+                "session": "01K742SG0031PP8Q4TN55MQ09C",
+                "reason": "session.invalid-state",
+                "in_reply_to": "01K742SG0031PP8Q4TN55MQ09C"
+              }
+            }
+          ],
+          "sessions": {
+            "01K742SG0031PP8Q4TN55MQ09C": {
+              "role": "responder",
+              "state": "OFFERED",
+              "renegotiating": false,
+              "outstanding_update": null
+            }
+          }
+        }
+      },
+      {
+        "event": {
+          "recv": {
+            "type": "cancel",
+            "id": "01K742SGZ89QFRABG9PESC1AHZ",
+            "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "session": "01K742SG0031PP8Q4TN55MQ09C",
+            "reason": "user.cancelled"
+          }
+        },
+        "expect": {
+          "emit": [
+            {
+              "ui": "ended",
+              "reason": "user.cancelled"
+            }
+          ],
+          "sessions": {
+            "01K742SG0031PP8Q4TN55MQ09C": {
+              "role": "responder",
+              "state": "ENDED",
+              "renegotiating": false,
+              "outstanding_update": null
+            }
+          }
+        }
+      },
+      {
+        "event": {
+          "recv": {
+            "type": "invite",
+            "id": "01K742SG0031PP8Q4TN55MQ09C",
+            "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "to": "did:key:z6MkhzX9qTeXBWkucyMVric1E9JrqUD5LPAkD2BNavakAptf",
+            "expires_at": 1760000030
+          }
+        },
+        "expect": {
+          "emit": [
+            {
+              "drop": "ended-session"
+            }
+          ],
+          "sessions": {
+            "01K742SG0031PP8Q4TN55MQ09C": {
+              "role": "responder",
+              "state": "ENDED",
+              "renegotiating": false,
+              "outstanding_update": null
+            }
+          }
+        }
+      }
+    ]
+  },
+  "expect": {}
+}

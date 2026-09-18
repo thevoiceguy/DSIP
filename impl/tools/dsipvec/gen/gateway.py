@@ -76,6 +76,8 @@ def vectors() -> list[dict]:
         ("outbound-unknown-category-500", "x-cc.queue-full", "pre-answer", {"status": 500, "q850": 41, "reason_header": DSIP_HDR("x-cc.queue-full")}),
         ("outbound-bye-hangup", "user.hangup", "active", {"method": "BYE", "q850": 16, "reason_header": DSIP_HDR("user.hangup")}),
         ("outbound-bye-media-failed", "media.failed", "active", {"method": "BYE", "q850": 47, "reason_header": DSIP_HDR("media.failed")}),
+        ("outbound-bye-session-timeout-keeps-its-cause", "session.timeout", "active", {"method": "BYE", "q850": 102, "reason_header": DSIP_HDR("session.timeout")}),
+        ("outbound-bye-unregistered-token-is-cause-16", "endpoint.on-fire", "active", {"method": "BYE", "q850": 16, "reason_header": DSIP_HDR("endpoint.on-fire")}),
         ("outbound-bye-policy-terminated", "policy.terminated", "active", {"method": "BYE", "q850": 31, "reason_header": DSIP_HDR("policy.terminated")}),
     ]:
         out.append(gv(vid, f"DSIP {tok} in phase {phase} → SIP {exp.get('status') or exp.get('method')} with Reason DSIP + Q.850.", ["§15.5", "§15.1"],

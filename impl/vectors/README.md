@@ -64,6 +64,13 @@ in place of `actual` for traces). Parity tools diff these files, so two implemen
 satisfy `expect` but disagree on something it leaves unsaid are still caught. A runner that does
 not implement a kind reports `{"ok": false, "skipped": true}`; a skipped vector never counts as agreeing.
 
+## Beyond the vectors: differential fuzzing
+
+A vector exercises one rule; implementations can pass every vector and still disagree when two rules meet.
+`impl/tools/fuzz.py` generates random well-formed traces and table rows, runs them through all three runners
+(`--dir`, `--json`) and compares actual with actual. CI runs it with a fixed seed; a weekly workflow uses a fresh one.
+A disagreement never becomes a recorded expectation: it becomes a hand-authored vector here, or a spec-gap.
+
 ## Fixed fixtures
 
 All vectors share the fixture set in `fixtures.json` (also generated):
@@ -348,7 +355,7 @@ Only the sessions / attempts named in `expect` are compared (`{}` names none); `
 | `{"queue": {"to": IDENTITY, "type": "introduction"}}` | relay queued an introduction for an unbound identity |
 | `{"ui": "error", "reason": …}` | a received `error` is surfaced; no state change |
 | `{"info": {"about": …}}` | an `info` with a recognized `about` is handed to the binding |
-| `{"refused": REASON}` | a local request was refused by the engine (`update-pending`, `no-pending-update`, `unknown-introduction`, `unknown-grant`) |
+| `{"refused": REASON}` | a local request was refused by the engine (`unknown-session` for any request about a session the endpoint does not hold, `update-pending`, `no-pending-update`, `unknown-introduction`, `unknown-grant`) |
 | `{"drop": REASON}` | message silently ignored (`ended-session`, `unknown-about`, `stale-update-reply`, `duplicate-introduction`, `unknown-introduction`) |
 
 ## Kind: `broadcast`
@@ -452,7 +459,9 @@ Details the table leaves out, all part of the contract:
 - **Outbound causes**: an unregistered token takes its category's status *and* the cause of that category's
   representative row — `user` 603/21, `endpoint` 480/18, `identity` 404/1, `session` 500/41, `media` 488/65, `policy` 403/21,
   `transport` 503/41, `gateway` 503/38; an unrecognized category is `session.failed`, 500/41 (spec-gap 79). A BYE carries
-  cause 16 for `user.hangup` and any `session.*`, 47 for `media.failed`, otherwise the token's table cause.
+  cause 16 for `user.hangup`, `session.already-answered` and `session.cancelled`, 47 for `media.failed`, 31 for
+  `policy.terminated`; any other registered token keeps its own row's cause (`session.timeout` → 102), and an
+  unregistered token is 16 — category fallback is a pre-answer rule.
   `retry_after: true` appears only for `policy.rate-limited`.
 - `downgrade-error` (input `facts`) is the `detail` of the informational `error gateway.downgraded`: `{losses: […]}`, or
   `null` when nothing was lost. Losses are listed in G§7 table order; `no-attestation` is inbound-only,
@@ -633,6 +642,13 @@ before `ui ended`. The places the suite departs from that order, so they are par
 - equal-id glare: our invite is withdrawn first (`send cancel session.glare` → `ui ended`), then theirs is rejected
   (`send reject session.glare`), then `ui glare_retry`; one session entry (ours) remains under the shared id;
 - an inbound `update` carrying `answered_by` (screening escalation, §14.4): `ui update_offered` → `ui answered`.
+
+Found by `impl/tools/fuzz.py` and part of the contract since: a reason is surfaced as its **effective** token (§15.1: an
+unrecognized category is `ui ended session.failed`); an `answer` or `reject` carrying `in_reply_to` is an update reply and
+never the attempt's outcome (before ACTIVE: `error session.invalid-state`); an `invite` for a session already held is
+`error session.invalid-state`, or `drop ended-session` once it has ended; with several live attempts of ours to one
+identity, the smallest id of all the invites wins and every losing attempt of ours is withdrawn, in id order (spec-gap 84).
+A `recv` is a message that passed the envelope pipeline: its id is new and an `invite` is not yet expired.
 
 A responder in ACTIVE that receives `cancel session.answered-elsewhere` answers `error session.invalid-state` even when
 the initiator has not spoken since the answer: that reason is never a crossed withdrawal (spec-gap 75).

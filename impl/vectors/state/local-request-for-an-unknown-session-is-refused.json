@@ -1,0 +1,73 @@
+{
+  "vector": "state/local-request-for-an-unknown-session-is-refused",
+  "format": 1,
+  "kind": "state",
+  "description": "A local request about a session the endpoint does not hold is refused as such, whatever the request.",
+  "spec_ref": [
+    "§12.4"
+  ],
+  "context": {
+    "component": "endpoint",
+    "start": 1760000000,
+    "self": {
+      "device": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+      "identity": "did:key:z6MkhzX9qTeXBWkucyMVric1E9JrqUD5LPAkD2BNavakAptf"
+    },
+    "identities": {
+      "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu": "did:key:z6MkhzX9qTeXBWkucyMVric1E9JrqUD5LPAkD2BNavakAptf",
+      "did:key:z6MkfhenvjQ7awdpVWzPaeBuPkXCBLwzJKyosCrTL3huMb66": "did:key:z6MkhzX9qTeXBWkucyMVric1E9JrqUD5LPAkD2BNavakAptf",
+      "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+      "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+      "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL": "did:key:z6Mkt5yU6sK3v7gxFHncQbmZ7VQvnVuJBGrDAbqhZp2gDW7G"
+    }
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "local": "hangup",
+          "session": "01K742SG001XWVEBAJRC0PXC95"
+        },
+        "expect": {
+          "emit": [
+            {
+              "refused": "unknown-session"
+            }
+          ],
+          "sessions": {}
+        }
+      },
+      {
+        "event": {
+          "local": "accept",
+          "session": "01K742SG001XWVEBAJRC0PXC95",
+          "answered_by": "user"
+        },
+        "expect": {
+          "emit": [
+            {
+              "refused": "unknown-session"
+            }
+          ],
+          "sessions": {}
+        }
+      },
+      {
+        "event": {
+          "local": "update",
+          "session": "01K742SG001XWVEBAJRC0PXC95",
+          "id": "01K742SG00Q802GXKW36HGSX2F"
+        },
+        "expect": {
+          "emit": [
+            {
+              "refused": "unknown-session"
+            }
+          ],
+          "sessions": {}
+        }
+      }
+    ]
+  },
+  "expect": {}
+}

@@ -1,0 +1,24 @@
+{
+  "vector": "gateway/outbound-bye-session-timeout-keeps-its-cause",
+  "format": 1,
+  "kind": "gateway",
+  "description": "DSIP session.timeout in phase active → SIP BYE with Reason DSIP + Q.850.",
+  "spec_ref": [
+    "§15.5",
+    "§15.1"
+  ],
+  "context": {},
+  "input": {
+    "check": "reason-outbound",
+    "reason": "session.timeout",
+    "phase": "active"
+  },
+  "expect": {
+    "method": "BYE",
+    "q850": 102,
+    "reason_header": {
+      "protocol": "DSIP",
+      "text": "session.timeout"
+    }
+  }
+}

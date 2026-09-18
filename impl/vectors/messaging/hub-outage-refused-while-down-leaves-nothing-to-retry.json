@@ -1,0 +1,107 @@
+{
+  "vector": "messaging/hub-outage-refused-while-down-leaves-nothing-to-retry",
+  "format": 1,
+  "kind": "messaging",
+  "description": "During an outage the pending item is refused for a reason of its own: it leaves the outbox, and the retry that was due finds nothing to send. The outage itself ends only with an accepted.",
+  "spec_ref": [
+    "M§9.4",
+    "M§9.3",
+    "§13.2"
+  ],
+  "context": {
+    "component": "hub-outage",
+    "now": 1760000000
+  },
+  "input": {
+    "check": "hub-outage-trace",
+    "steps": [
+      {
+        "event": {
+          "deposit": {
+            "id": "01K742SG00D93265YJRNSDN4ZD"
+          }
+        }
+      },
+      {
+        "event": {
+          "answer": {
+            "id": "01K742SG00D93265YJRNSDN4ZD",
+            "reason": "mailbox.hub-unreachable"
+          }
+        }
+      },
+      {
+        "event": {
+          "answer": {
+            "id": "01K742SG00D93265YJRNSDN4ZD",
+            "reason": "policy.blocked"
+          }
+        }
+      },
+      {
+        "event": {
+          "advance": 1
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "forward": "01K742SG00D93265YJRNSDN4ZD"
+          }
+        ],
+        "state": {
+          "state": "up",
+          "pending": [
+            "01K742SG00D93265YJRNSDN4ZD"
+          ],
+          "attempt": 0,
+          "down_for": null
+        }
+      },
+      {
+        "emit": [
+          {
+            "retry_in": 1
+          }
+        ],
+        "state": {
+          "state": "down",
+          "pending": [
+            "01K742SG00D93265YJRNSDN4ZD"
+          ],
+          "attempt": 1,
+          "down_for": 0
+        }
+      },
+      {
+        "emit": [
+          {
+            "refused": {
+              "id": "01K742SG00D93265YJRNSDN4ZD",
+              "reason": "policy.blocked"
+            }
+          }
+        ],
+        "state": {
+          "state": "down",
+          "pending": [],
+          "attempt": 1,
+          "down_for": 0
+        }
+      },
+      {
+        "emit": [],
+        "state": {
+          "state": "down",
+          "pending": [],
+          "attempt": 1,
+          "down_for": 1
+        }
+      }
+    ]
+  }
+}

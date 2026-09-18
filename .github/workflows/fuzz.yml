@@ -1,0 +1,38 @@
+name: fuzz
+
+# Differential fuzzing with a fresh seed: what the fixed seed in ci.yml cannot find. A failure here is a finding,
+# not a regression — reproduce with the seed it prints, shrink, and turn it into a hand-authored vector or a spec-gap.
+on:
+  schedule:
+    - cron: "17 4 * * 1"
+  workflow_dispatch:
+    inputs:
+      seed:
+        description: "seed (integer, or `random`)"
+        default: "random"
+      count:
+        description: "probes per target"
+        default: "1000"
+
+jobs:
+  fuzz:
+    name: random-seed differential fuzz
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install jsonschema pynacl cryptography
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with: { workspaces: impl }
+      - uses: actions/setup-node@v4
+        with: { node-version: "20" }
+      - run: cargo build -p dsip-cli
+        working-directory: impl
+      - run: npm ci && npm run build
+        working-directory: impl-ts
+      - run: python3 impl/tools/fuzz.py --seed "${{ inputs.seed || 'random' }}" --count "${{ inputs.count || '1000' }}" --out found
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with: { name: fuzz-reproducers, path: found }

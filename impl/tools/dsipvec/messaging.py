@@ -1325,8 +1325,10 @@ class CommitRetry:
         if reason in self.RETRY_REASONS:
             if self.attempt >= self.max_attempts:
                 return self._surface(reason)
-        elif reason.split(".", 1)[0] == "mailbox" and reason not in REASONS and not self.unknown_retry_used:
-            self.unknown_retry_used = True  # §15.3 mailbox fallback: re-sync, retry once, then surface
+        elif (reason.split(".", 1)[0] == "mailbox" and reason not in REASONS and not self.unknown_retry_used
+              and self.attempt < self.max_attempts):
+            # §15.3 mailbox fallback: re-sync, retry once, then surface — inside M§6.5's bound of three proposals
+            self.unknown_retry_used = True
         else:
             return self._surface(reason)
         self.state = "syncing"

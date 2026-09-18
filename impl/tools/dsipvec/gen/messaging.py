@@ -1078,6 +1078,14 @@ def client_vectors():
                          (sync(item(4, rc("read", BOB, through=m1))), [], cs([m1, m2], read_through={BOB: m2})),
                          (sync(item(5, rc("read", BOB, through=uid("never-seen")))), [], cs([m1, m2], read_through={BOB: m2})),
                      ]))
+    out.append(trace("client-read-through-the-readers-own-content",
+                     "A watermark marks a position in the conversation, which may be the reader's own message: it is applied. "
+                     "\"A receipt from the identity that sent the target\" (M§10.2) is about delivered and played.", ["M§10.3", "M§10.2"], T,
+                     cl_ctx(me=ALICE, delivered=False), [
+                         (sync(item(1, ct("m1")), item(2, ct("m2", sender=BOB)), item(3, rc("read", BOB, through=m2)),
+                               item(4, rc("delivered", BOB, targets=[m2]))),
+                          [{"archive": {"seq": 3}}], cs([m1, m2], read_through={BOB: m2})),
+                     ]))
     out.append(trace("client-read-private-goes-to-personal-group",
                      "With read receipts off, the device still syncs its watermark, to its personal group only.",
                      ["M§10.5"], T, cl_ctx(delivered=False, read=False), [
@@ -2067,6 +2075,16 @@ def commit_retry_vectors():
                          (synced(), [{"repropose": {"attempt": 3}}], st(3, "pending")),
                          (ans("mailbox.hub-draining"), [{"discard": {}}, {"surface": "mailbox.hub-draining"}], st(3, "surfaced")),
                      ]))
+    out.append(trace("commit-retry-fallback-retry-stays-inside-the-bound",
+                     "At most three proposals for one operation, whatever the refusals were: after two conflicts the third "
+                     "proposal is the last, so an unregistered mailbox condition is surfaced, not retried (found by fuzz.py: "
+                     "the fallback's retry escaped the bound in two implementations).", refs, T, ctx, [
+                         (ans("mailbox.commit-conflict"), retry, st(1, "syncing")),
+                         (synced(), [{"repropose": {"attempt": 2}}], st(2, "pending")),
+                         (ans("mailbox.stale-epoch"), retry, st(2, "syncing")),
+                         (synced(), [{"repropose": {"attempt": 3}}], st(3, "pending")),
+                         (ans("mailbox.hub-draining"), [{"discard": {}}, {"surface": "mailbox.hub-draining"}], st(3, "surfaced")),
+                     ]))
     out.append(trace("commit-retry-unknown-category-surfaces",
                      "An unrecognized category is session.failed to this device: surfaced without retry.", refs, T, ctx, [
                          (ans("x-hubs.overloaded"), [{"discard": {}}, {"surface": "x-hubs.overloaded"}], st(1, "surfaced")),
@@ -2280,6 +2298,15 @@ def hub_outage_vectors():
                          (dep("o-b"), [{"forward": b}], snap("up", [b])),
                          (accepted("o-b"), [{"sent": b}], snap("up")),
                          ({"answer": {"id": b}}, [], snap("up")),
+                     ]))
+    out.append(trace("hub-outage-refused-while-down-leaves-nothing-to-retry",
+                     "During an outage the pending item is refused for a reason of its own: it leaves the outbox, and the retry that "
+                     "was due finds nothing to send. The outage itself ends only with an accepted.", refs, T, ctx, [
+                         (dep("o-a"), [{"forward": a}], snap("up", [a])),
+                         (unreachable("o-a"), [{"retry_in": 1}], snap("down", [a], 1, 0)),
+                         ({"answer": {"id": a, "reason": "policy.blocked"}}, [{"refused": {"id": a, "reason": "policy.blocked"}}],
+                          snap("down", [], 1, 0)),
+                         ({"advance": 1}, [], snap("down", [], 1, 1)),
                      ]))
     out.append(trace("hub-outage-successor-after-threshold",
                      "A hub down for hub_timeout is the M§7.5 trigger: the device creates the successor group and hands it the "
@@ -2596,6 +2623,12 @@ def successor_vectors():
                          ({"create": {"predecessor": GROUP}}, [{"create": {"successor_of": GROUP, "roster": sorted(ROSTER)}}], {}),
                          ({"created": {"group": LATE, "successor_of": GROUP}}, [], st(LATE, [LATE])),
                          (wel(EARLY), [{"join": EARLY}, {"leave": LATE}], st(EARLY, [EARLY, LATE])),
+                     ]))
+    out.append(trace("successor-own-created-after-joining-a-lower-one-is-left",
+                     "A device that created a successor while a lower one it had already joined exists leaves its own: it stays in "
+                     "only the lowest, created or not.", refs, T, ctx, [
+                         (wel(EARLY), [{"join": EARLY}], st(EARLY, [EARLY])),
+                         ({"created": {"group": LATE, "successor_of": GROUP}}, [{"leave": LATE}], st(EARLY, [EARLY, LATE])),
                      ]))
     out.append(trace("successor-own-wins-over-concurrent",
                      "...and the creator whose group_id is lower keeps its group and declines the other.", refs, T, ctx, [
