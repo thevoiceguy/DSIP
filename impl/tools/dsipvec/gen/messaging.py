@@ -1973,6 +1973,15 @@ def commit_retry_vectors():
                          (synced(), [{"repropose": {"attempt": 2}}], st(2, "pending")),
                          (ans("mailbox.hub-draining"), [{"discard": {}}, {"surface": "mailbox.hub-draining"}], st(2, "surfaced")),
                      ]))
+    out.append(trace("commit-retry-unknown-mailbox-condition-after-a-conflict",
+                     "The category fallback's one retry is its own: an unregistered mailbox condition met after a conflict's "
+                     "re-proposal is still retried once, inside the bound of three proposals.", refs, T, ctx, [
+                         (ans("mailbox.commit-conflict"), retry, st(1, "syncing")),
+                         (synced(), [{"repropose": {"attempt": 2}}], st(2, "pending")),
+                         (ans("mailbox.hub-draining"), retry, st(2, "syncing")),
+                         (synced(), [{"repropose": {"attempt": 3}}], st(3, "pending")),
+                         (ans("mailbox.hub-draining"), [{"discard": {}}, {"surface": "mailbox.hub-draining"}], st(3, "surfaced")),
+                     ]))
     out.append(trace("commit-retry-unknown-category-surfaces",
                      "An unrecognized category is session.failed to this device: surfaced without retry.", refs, T, ctx, [
                          (ans("x-hubs.overloaded"), [{"discard": {}}, {"surface": "x-hubs.overloaded"}], st(1, "surfaced")),

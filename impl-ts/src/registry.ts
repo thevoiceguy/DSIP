@@ -63,6 +63,7 @@ const REASONS: Record<string, string[]> = {
   "mailbox.unsupported-class": ["error"],
   "mailbox.unsupported-mode": ["error"],
   "mailbox.blob-mismatch": ["error"],
+  "mailbox.hub-unreachable": ["error"], // M§16 (spec-gap 72); not yet in the core §15.4 table
 };
 
 /** Reason categories. Spec: §15.1 token grammar */
