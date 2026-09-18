@@ -43,7 +43,7 @@ vectors change first. No gap is awaiting a decision.
 | 23 | §15.5, §6.3 | adopt → **Gateway Profile 1.0** (`v0.8/dsip-gateway-profile-v0.8.md`) | `gateway/*` (53) |
 | 24 | §15.5 | adopt (`Reason: DSIP;text=`) | `gateway/reason-outbound-*`, `gateway/trace-*` |
 | 25 | §18.1, §24.2 | adopt; register `tel` claim type | `gateway/claims-*` |
-| 26 | §12.12 | **open** (DTMF `info` binding — future revision) | — (round one does not forward DTMF) |
+| 26 | §12.12 | adopt → `media:dtmf` in `dsip-info-about` with `dtmf-info-data` (spec-gap 70; core v0.8 §12.12 + G§9 errata, 2026-09-17) | `payload/info-dtmf-*` (7), `gateway/trace-dtmf-*` (3) |
 | 27 | §6.3 | adopt (named downgrade losses) | `gateway/downgrade-*` |
 | 28 | §15.5, App. C | adopt (per-trunk early-media policy) | `gateway/trace-outbound-early-media*` |
 | 29 | §12.7 | adopt (single contact; no SIP→DSIP forking in v1) | `gateway/trace-*` |
@@ -476,8 +476,9 @@ authority rule.
 ## v0.8 messaging worklist (gaps 31–58)
 
 **Status (2026-09-17): every gap in this worklist and in the gateway worklist (23–30) is disposed in the v0.8
-core (`v0.8/dsip_v_0_8_decentralized_session_initiation_protocol.md`, Appendix A.5) or in its companion profiles,
-except spec-gap 26 (DTMF carriage), which stays open.**
+core (`v0.8/dsip_v_0_8_decentralized_session_initiation_protocol.md`, Appendix A.5) or in its companion profiles.
+Spec-gap 26 (DTMF carriage), open until 2026-09-17, is closed by spec-gap 70. Gaps 58–71 are profile 1.0 errata
+found by running the profile; each is carried into the profile text as it lands.**
 
 **Status (2026-09-15):** filed with the **DSIP Messaging Profile 1.0** draft
 (`v0.8/dsip-messaging-profile-v0.8.md`, cited M§n). Unlike gaps 1–30, these were not found
@@ -1180,8 +1181,7 @@ three-member group from Alice's mailbox to Bob's while Carol's device is offline
 is refused by the old hub, syncs and re-sends. A mailbox ignoring the switch, a new hub restarting at 1, a
 device not re-sending, and an old hub that keeps ordering each fail it.
 
-**Open.** If the old hub dies after ordering the move but before delivering it to some mailbox, that mailbox
-holds the new hub off indefinitely; the owner's device can still recover by successor group (M§7.5).
+**Open.** None; an old hub that dies before delivering the move to some mailbox is spec-gap 71.
 
 **Suggested fix.** Carry the M§7.4 text into the next profile revision; register `hub_uri` and `handover_seq`.
 
@@ -1470,6 +1470,53 @@ carriage, and RTP event injection is beyond what the PoC's media bridge does.
 
 **Suggested fix.** Register `media:dtmf` in `dsip-info-about` and carry the §12.12 and G§9 text into the next
 revision.
+
+## 71. M§7.4 — a move whose old hub never finishes delivering
+
+**Gap.** Spec-gap 60 has a member mailbox hold the new hub off (`mailbox.unknown-group`, retried) until the old
+hub's items through `handover_seq` are stored, so that items reach the owner's devices in `seq` order. It says
+nothing about an old hub that dies after ordering the move and before every mailbox has those items. The
+committer's own mailbox is the usual victim: the committer processes its own commit from `accepted` (spec-gap 47)
+and names the new hub at once, so if the old hub's fan-out of that commit is lost, the mailbox waits for an item
+that will never come and refuses its own hub forever. The reference service had a second problem underneath: a
+hub delivered its own owner's fan-out in-process and acknowledged its queue unconditionally, so a refusal there
+was never retried at all. (The other members are not stranded by this: their devices learn of the move only from
+the old hub's fan-out, so their mailboxes have everything through `handover_seq` by the time they switch. A hub
+that dies before fanning out to anyone is the dead-hub case, spec-gap 61.)
+
+**Choices considered.** (a) Bound the hold: the mailbox waits `handover_wait` from the `mailbox-config` that
+named the new hub, then admits it and leaves the missing seqs to the owner's devices, whose gap handling
+(spec-gap 69) already covers a `seq` that never arrives; what the old hub still delivers after that, at or below
+`handover_seq`, is stored out of order so a merely slow old hub fills the gap. (b) The committer tells its mailbox
+it holds everything through `handover_seq` (a new `mailbox-config` field): true for the committer, false for its
+sibling devices, and a device asserting what its mailbox should believe. (c) The new hub carries the old hub's
+tail: it has nothing before `handover_seq + 1`, and the committer's `group-info` deposit is the wrong place for
+other members' content. (d) Drop the hold and let devices sort every move out by gap handling: a routine move
+would then cost every sibling device a `gap_timeout` and an external re-join.
+
+**Draft choice.** (a), in M§7.4 as a 1.0 erratum. `handover_wait` is the mailbox's own (300 s RECOMMENDED,
+`handover_wait` in the `mailbox` vector context, `--handover-wait` on the service), measured from the config
+naming the new hub and durable across a restart. Expiry is an internal event of the mailbox machine
+(`handover_expired`, naming the seqs given up on), not a wire message. After it, the old hub's items at or below
+`handover_seq` are stored unless already stored, its items above it are refused as before, and the new hub's at or
+below it are still `policy.blocked`. Vectors: `mailbox-hub-move-handover-wait-expires`,
+`mailbox-hub-move-handover-wait-configurable`, `mailbox-hub-move-late-previous-items-stored`,
+`mailbox-hub-move-handover-wait-survives-restart`. The service delivers its own owner's fan-out through the same
+queue discipline as everyone else's (acknowledged only when the mailbox stored it, retried with backoff
+otherwise), which the demo depends on. `demos/handover-wait-demo.sh`: a dedicated hub orders Bob's move, delivers
+it to Alice and Carol, never to Bob's mailbox (`--drop-fanout-to`, fault injection), and dies; Bob's mailbox
+refuses its own hub, the wait expires, the queued fan-out is retried, and Bob receives Alice's reply. A mailbox
+that never releases (`HANDOVER_WAIT=100000`) fails it, as did the service's unconditional self-acknowledgement
+before it was fixed (the refused fan-out was never retried).
+
+**Open.** A sibling device of the committer, if the missing items included a commit, pays a `gap_timeout` and an
+external re-join (spec-gap 69); so does the committer itself if other members' items were lost along with its
+commit (the demo lets receipts land before the move for that reason); nothing shorter is available without the
+old hub. The reference service's
+mailbox clock (advanced before each message and every 2 s) now drives the machine's other timers too (§19.4
+held-introduction expiry, M§6.6 pending groups), which no demo exercises yet.
+
+**Suggested fix.** Carry the M§7.4 text into the next profile revision.
 
 ## Already-flagged (schema README / plan §11)
 

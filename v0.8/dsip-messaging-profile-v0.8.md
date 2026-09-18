@@ -887,6 +887,17 @@ hub, which initializes its state from the latest `group-info`.
   duplicate, M§6.6). Until the old hub's items through `handover_seq` are stored it refuses the new hub
   with `mailbox.unknown-group` (the hub retries, M§6.6), so items stay in `seq` order; a deposit from the
   new hub with `seq` ≤ `handover_seq` is refused `policy.blocked`.
+- **An old hub that never finishes** (spec-gap 71). The old hub may die after ordering the move and before
+  every mailbox has its last items — the committer's own mailbox is the usual victim, since the committer
+  names the new hub on `accepted` without waiting for the fan-out. A mailbox therefore holds the new hub
+  off for at most `handover_wait` from the `mailbox-config` that named it (the mailbox's own choice; 300 s
+  is RECOMMENDED; the wait is durable across a restart). When it expires with items still missing, the
+  mailbox admits the new hub and leaves the missing `seq`s to its owner's devices, which treat them as a
+  gap (M§6.5: hold, then re-join; the committer has the moving commit already, so it has a gap only if other
+  items were lost with it). What the
+  old hub still delivers after that, at or below `handover_seq`, is stored rather than taken for a
+  redelivery, so a slow old hub fills the gap; above `handover_seq` it stays refused. The numbering rule
+  is unchanged: the new hub's items are still refused `policy.blocked` at or below `handover_seq`.
 - **A member that missed the move** deposits to the old hub and gets `mailbox.unknown-group`. It syncs;
   if the group has moved, it re-proposes a commit (M§6.5) or re-encrypts and re-sends an application
   message to the new hub; otherwise the refusal is final.

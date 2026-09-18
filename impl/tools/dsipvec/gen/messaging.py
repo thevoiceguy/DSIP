@@ -2190,6 +2190,57 @@ def hub_change_vectors():
                          (hd("h2", 2, HUB_A, "handshake"), [macc(HUB_A, "h2", c(2))], ms([c(1), c(2)], J)),
                          (hd("b3-retry", 3, HUB_B), [macc(HUB_B, "b3-retry", c(3))], ms([c(1), c(2), c(3)], J)),
                      ]))
+    def expired(missing, hub=HUB_A):
+        return {"handover_expired": {"group": GROUP, "hub": hub, "missing": missing}}
+
+    xrefs = mrefs + ["M§6.5"]
+    out.append(trace("mailbox-hub-move-handover-wait-expires",
+                     "The old hub never delivers the moving commit (it died after ordering it; spec-gap 71): the new hub is held "
+                     "off for handover_wait after the owner's device named it, then admitted, and the seqs never stored are left "
+                     "to the owner's devices as a gap (M§6.5). The numbering rule still holds afterwards.", xrefs, T,
+                     mbx_ctx(groups=JA), [
+                         (hd("h1", 1, HUB_A), [macc(HUB_A, "h1", c(1))], ms([c(1)], J)),
+                         (cfg(), [macc(BPH, "cfg")], ms([c(1)], J)),
+                         (hd("b3", 3, HUB_B), [err(HUB_B, "b3", "mailbox.unknown-group")], ms([c(1)], J)),
+                         ({"advance": 299}, [], ms([c(1)], J)),
+                         (hd("b3-r1", 3, HUB_B), [err(HUB_B, "b3-r1", "mailbox.unknown-group")], ms([c(1)], J)),
+                         ({"advance": 1}, [], ms([c(1)], J)),
+                         (hd("b3-r2", 3, HUB_B), [expired([2]), macc(HUB_B, "b3-r2", c(2))], ms([c(1), c(2)], J)),
+                         (hd("b4", 4, HUB_B), [macc(HUB_B, "b4", c(3))], ms([c(1), c(2), c(3)], J)),
+                         (hd("b2", 2, HUB_B), [err(HUB_B, "b2", "policy.blocked")], ms([c(1), c(2), c(3)], J)),
+                     ]))
+    out.append(trace("mailbox-hub-move-handover-wait-configurable",
+                     "handover_wait is the mailbox's own choice (300 s RECOMMENDED); the wait starts at the config naming the new hub.",
+                     xrefs, T, mbx_ctx(groups=JA, handover_wait=30), [
+                         (cfg(handover=1), [macc(BPH, "cfg")], ms([], J)),
+                         (hd("b2", 2, HUB_B), [err(HUB_B, "b2", "mailbox.unknown-group")], ms([], J)),
+                         ({"advance": 30}, [], ms([], J)),
+                         (hd("b2-r", 2, HUB_B), [expired([1]), macc(HUB_B, "b2-r", c(1))], ms([c(1)], J)),
+                     ]))
+    out.append(trace("mailbox-hub-move-late-previous-items-stored",
+                     "What the old hub still delivers after the wait, at or below handover_seq, is stored rather than taken for "
+                     "a redelivery (the owner's devices fill their gap with it); what was stored before is a duplicate, and above "
+                     "handover_seq the old hub is refused as before.", xrefs, T, mbx_ctx(groups=JA), [
+                         (hd("h1", 1, HUB_A), [macc(HUB_A, "h1", c(1))], ms([c(1)], J)),
+                         (cfg(handover=3), [macc(BPH, "cfg")], ms([c(1)], J)),
+                         ({"advance": 300}, [], ms([c(1)], J)),
+                         (hd("b4", 4, HUB_B), [expired([2, 3]), macc(HUB_B, "b4", c(2))], ms([c(1), c(2)], J)),
+                         (hd("h2", 2, HUB_A), [macc(HUB_A, "h2", c(3))], ms([c(1), c(2), c(3)], J)),
+                         (hd("h2-retry", 2, HUB_A), [macc(HUB_A, "h2-retry", c(3), dup=True)], ms([c(1), c(2), c(3)], J)),
+                         (hd("h1-retry", 1, HUB_A), [macc(HUB_A, "h1-retry", c(1), dup=True)], ms([c(1), c(2), c(3)], J)),
+                         (hd("h3", 3, HUB_A, "handshake"), [macc(HUB_A, "h3", c(4))], ms([c(1), c(2), c(3), c(4)], J)),
+                         (hd("h4", 4, HUB_A), [err(HUB_A, "h4", "mailbox.unknown-group")], ms([c(1), c(2), c(3), c(4)], J)),
+                     ]))
+    out.append(trace("mailbox-hub-move-handover-wait-survives-restart",
+                     "The wait is measured from the config that named the new hub and is durable: a restart (spec-gap 59) "
+                     "neither resets nor ends it.", xrefs + ["M§6.6"], T, mbx_ctx(groups=JA), [
+                         (cfg(handover=1), [macc(BPH, "cfg")], ms([], J)),
+                         ({"advance": 100}, [], ms([], J)),
+                         ({"restart": {}}, [], ms([], J)),
+                         (hd("b2", 2, HUB_B), [err(HUB_B, "b2", "mailbox.unknown-group")], ms([], J)),
+                         ({"advance": 200}, [], ms([], J)),
+                         (hd("b2-r", 2, HUB_B), [expired([1]), macc(HUB_B, "b2-r", c(1))], ms([c(1)], J)),
+                     ]))
     out.append(trace("mailbox-hub-move-new-hub-renumbering-refused",
                      "A new hub whose numbering does not continue past handover_seq (a wrong handover) is refused policy.blocked "
                      "rather than having its items taken for redeliveries and silently dropped.", mrefs + ["M§6.5"], T,
