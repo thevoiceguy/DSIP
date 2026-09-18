@@ -7,6 +7,8 @@ import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Authority, Subscriber, type BroadcastContext } from "./broadcast-state.js";
+import { Candidates, Renegotiation, checkAnswer, checkOffer, dtlsRoles, oneAnswer } from "./binding.js";
+import { verifyPublication, type Capabilities } from "./broadcast.js";
 import { verifyHint } from "./dht.js";
 import { Endpoint, type EndpointContext } from "./endpoint.js";
 import type { Json, JsonObject } from "./did.js";
@@ -14,6 +16,7 @@ import { verifyEnvelope, type ReceiverContext } from "./envelope.js";
 import { Relay, type RelayContext } from "./relay.js";
 import { SchemaSet } from "./schema.js";
 import { checkPayload } from "./semantic.js";
+import { downgradeSummary, telCallerLine, verificationBasis } from "./trust.js";
 import { reject, type Verdict } from "./verdict.js";
 
 const VECTORS = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "impl", "vectors");
@@ -31,6 +34,21 @@ const RUNNERS: Record<string, (v: Vector) => Json> = {
     schemas.validMessage(v.input["schema"] as string, v.input["payload"] as JsonObject)
       ? { verdict: "accept" }
       : reject("schema-invalid"),
+  broadcast: (v) =>
+    verifyPublication(
+      v.input["publication"]!,
+      v.input["provenance"] as Json[],
+      v.input["capabilities"] as unknown as Capabilities,
+      v.context as unknown as ReceiverContext,
+      schemas,
+    ),
+  "media-binding": (v) => mediaBinding(v),
+  trust: (v) =>
+    v.input["check"] === "basis"
+      ? verificationBasis(v.input["identity"] as string, v.input["claims"] as JsonObject[])
+      : v.input["check"] === "tel-caller"
+        ? telCallerLine(v.input["claim"] as JsonObject)
+        : downgradeSummary(v.input["losses"] as string[]),
   semantic: (v) => checkPayload(v.input["payload"] as JsonObject, v.context ?? {}, schemas),
 };
 
@@ -56,6 +74,28 @@ function trace(v: Vector): Json[] | null {
     const emit = component.step(step["event"] as JsonObject);
     return { emit, ...component.snapshot(step["expect"] as JsonObject) };
   });
+}
+
+function mediaBinding(v: Vector): Json {
+  const i = v.input;
+  switch (i["check"]) {
+    case "offer":
+      return checkOffer(i["payload"] as JsonObject);
+    case "answer":
+      return checkAnswer(i["offer"] as JsonObject, i["payload"] as JsonObject);
+    case "role":
+      return dtlsRoles(i["offer_setup"] as string, i["answer_setup"] as string);
+    case "one-answer":
+      return oneAnswer(i["offer"] as JsonObject, i["answers"] as JsonObject[]);
+    case "candidates":
+    case "renegotiation": {
+      const machine =
+        i["check"] === "candidates" ? new Candidates(v.context!["peer"] as string) : new Renegotiation(v.context!["ufrag"] as string);
+      return { steps: (i["steps"] as JsonObject[]).map((s) => ({ emit: machine.step(s["event"] as JsonObject) })) };
+    }
+    default:
+      throw new Error(`unknown media-binding check ${String(i["check"])}`);
+  }
 }
 
 function envelope(v: Vector): Verdict {

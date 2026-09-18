@@ -27,6 +27,8 @@ vectors/
   state/       Scripted endpoint and relay state-machine traces (§12)
   transport/   ws/1.0 hello binding, anti-splicing, size cap (§13.2)
   dht/         Reachability hint records and §8.3 conflict rules
+  broadcast/   Receiver-side verification of a publication record and its provenance (§22)
+  trust/       The basis-of-verification lines a client shows (§18.1, §6.3) — exact text
 ```
 
 One vector per file. The vector id is its path relative to `vectors/` without
@@ -366,6 +368,13 @@ Provenance statements are the core `provenance` message (v0.7, §22.3; schema `p
 no extension declaration. The record's `integrity` (§22.2) is shown unless a verified transcode statement makes the
 delivered stream `derivative-bound`; a selected variant's own `integrity` overrides the record's; unknown tokens fall back to `metadata-only`.
 
+A verified statement's `policy_violation` is `redistribution` when the record's policy says `redistribution: "forbidden"`
+(any operation), else `transcoding` for a `transcode` under `transcoding: "forbidden"`; absent otherwise. Its
+`integrity_mode` is `derivative-bound` for every verified statement, whatever the operation — only `display.integrity_mode`
+follows the operation (spec-gap 77). Statement checks run in this order after the envelope pipeline:
+`provenance-unknown-publication` → `provenance-stream-mismatch` → `provenance-processor-mismatch` → `provenance-variant-unknown`
+(`input_variant` only; the output variant is the processor's own).
+
 ### State components `authority` and `subscriber`
 
 `authority` (a target's relay/domain endpoint, §9.3/§22): events `{"recv": publish|unpublish|subscribe|provenance}`,
@@ -392,6 +401,28 @@ envelope pipeline: inputs are decoded payloads or event traces. `input.check` se
 | `candidates` | `steps` of `local_candidate` / `gathering_complete` / `active` / `remote_description` / `remote_info{from,candidates,end_of_candidates}` / `session_end`; `context.peer` | per-step `emit`: `buffer{local\|remote,n}`, `send_info{candidates,end_of_candidates}`, `apply n`, `remote_end`, `ignore{after-end\|not-party\|ended}`, `drop_buffered n` (B§4.2–B§4.4) |
 | `renegotiation` | `steps` of `local_reoffer{ufrag}` / `remote_answer` / `remote_reject` / `remote_reoffer{ufrag}` / `answer_update`; `context.ufrag` | per-step `emit`: `local_description{pending\|current}`, `apply`, `rollback`, `reject{reason,detail}`, `error binding-ice-restart` (B§5) |
 | `one-answer` | `offer` + `answers[]` | `{"applied": DID, "legs": [{from, applied\|bye[,code]}]}` — first valid answer applied, earlier invalid legs `bye media.failed`, later legs `bye session.already-answered` (B§6.1) |
+
+Offer/answer checks run in this order, first failure wins: `binding-ice-mode` → `binding-sdp-missing` →
+`binding-sdp-invalid` → `binding-extra-section` → `binding-section-count` → per live section in order
+`binding-kind-mismatch` → `binding-direction-mismatch` → `binding-codec-missing` → then per live section
+`binding-encryption` → `binding-rtcp-mux-missing` → `binding-fingerprint-missing` → `binding-ice-credentials-missing` →
+`binding-setup-invalid`. Almost every vector breaks exactly one rule, so of this order the suite itself pins only `binding-extra-section`
+before `binding-section-count`; the rest is the order the implementations share. A live section is an `m=` line whose port is not 0; attributes fall back to the session level.
+An offer or answer that does not select `transport:webrtc` is `{"verdict":"accept","binding":"not-webrtc"}`.
+Trace checks (`candidates`, `renegotiation`) put their expectations in `expect.steps[i].emit`, parallel to
+`input.steps[i].event` — unlike kind `state`, where each step carries its own `expect`.
+
+## Kind: `trust`
+
+The lines a client shows for who is on the other side (§18.1: the basis of verification, never a generic badge).
+The spec gives the *form* of each line; the exact text below is this suite's and is compared as a string.
+`expect` is the string itself (or `null`), not an object. `input.check` selects:
+
+| check | input | expect |
+|---|---|---|
+| `basis` | `identity` (DID), `claims` | with a `tel` claim (first one; it outranks the carrying identity's own basis): `Gateway attested by <verifier> · STIR attestation <A\|B\|C> (verified\|unverified)`, or `… · no attestation` when `attestation` is `none`; `<verifier>` is the host of the claim's `did:web` verifier. Otherwise `Self-issued identity` (`did:key`), `Domain verified (<did>)` (`did:web`), `Unrecognized identity method` |
+| `tel-caller` | `claim` | `PSTN caller <number>`, plus ` · <cnam>` when the claim has one; `null` for a claim that is not `tel` |
+| `downgrade` | `losses` (tokens of the gateway `downgrade` check) | `Trust downgraded crossing the gateway (§6.3)`, then `: ` and the losses joined by `; ` — `no-srtp-on-trunk` → `media is not encrypted on the PSTN trunk`, `identity-not-assertable` → `your identity could not be asserted into the PSTN`, `no-attestation` → `the caller carried no verified attestation`, `policy-unenforceable` → `your media policy cannot be enforced past the gateway` |
 
 ## Kind: `gateway`
 
@@ -493,6 +524,7 @@ Each item has a matching `spec-gap` issue draft in `impl/docs/spec-gaps.md`.
 31. §12.9 vs §19.4: held introductions — no 300 s age bound, 604,800 s validity cap enforced, id tracked until `expires_at` (`envelope/introduction-*`).
 74. §19.4: a `grant` is addressed to the introducing identity, a `reject` of the same introduction to the introducing device (`state/first-contact-*`).
 75. §12.5 rule 2 vs §12.7 rule 3: `cancel session.answered-elsewhere` reaching the leg that answered is `session.invalid-state`, not a crossed cancel (`state/race-responder-answered-elsewhere-at-answering-leg`).
+77. §22.2/§22.3: every verified provenance statement is reported `integrity_mode: derivative-bound`, a `relay` included (`broadcast/provenance-relay-operation`).
 76. §12.7 rule 6: the attempt outcome when every leg expired and none rejected — `endpoint.unavailable` (`state/relay-all-legs-expired`).
 73. §9.3 vs §15.4: a terminal `notify` carries `session.expired` / `policy.terminated`, tokens the registry lists as valid on other types only; no warning on `notify` (`semantic/notify-terminated-reason`, by the deep-equality rule above).
 34–43. Messaging Profile draft choices (hub ordering, archive first-wins, first-contact authorization, `mailbox` tokens, `MAX_MLS_BYTES`, ephemeral lifetime) pinned by `messaging/*`; see the v0.8 messaging worklist in `impl/docs/spec-gaps.md`.
