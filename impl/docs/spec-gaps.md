@@ -1642,6 +1642,26 @@ envelopes they did not sign.
 
 **Suggested fix.** §12.7 rule 6: define the all-expired outcome and who signs it.
 
+## 77. §22.2 / §22.3 — the integrity mode of a statement that is not a transcode
+
+**Gap.** §22.3: "`transcode` makes the output `derivative-bound` …; other operations list it under 'delivered by'."
+The vectors report a per-statement `integrity_mode`, and it is `derivative-bound` for every verified statement — a
+plain `relay` too (`broadcast/provenance-relay-operation`, `provenance-chain-two-processors`) — while the *displayed*
+mode for the same relay-only stream is `metadata-only`. Two values for one stream, and the spec defines only one notion
+of integrity mode. Found by the second implementation, which reported `metadata-only` for a relay statement and
+failed three vectors.
+
+**Choices considered.** (a) The per-statement value is the mode of the *statement* — by §22.2 any processor-signed
+reference to the original record is a `derivative-bound` artifact — and only the displayed mode follows the operation.
+(b) The per-statement value follows the operation: `derivative-bound` for `transcode`, the record's mode otherwise;
+the vectors change. (c) Drop the per-statement field: it carries nothing the operation does not.
+
+**Draft choice.** (a) stays pinned, stated in the vectors README; flagged because (c) is probably what a reader of
+§22 expects — a field that is constant tells a client nothing, and showing "derivative-bound" next to a relay would
+mislead.
+
+**Suggested fix.** §22.3: say whether a statement has an integrity mode of its own; if not, the vectors drop the field.
+
 ## Already-flagged (schema README / plan §11)
 
 - §15.3 codec example uses bare strings; §16.2 defines objects (schemas follow §16.2).

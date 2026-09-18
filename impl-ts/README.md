@@ -40,7 +40,10 @@ python3 ../impl/tools/parity_ts.py       # Python harness vs this implementation
 | `payload` | 97 | pass |
 | `semantic` | 50 | pass |
 | `state` | 82 | pass — `endpoint` 59, `relay` 14, `authority` 7, `subscriber` 2 |
-| `broadcast`, `media-binding`, `gateway`, `trust`, `messaging` | 537 | not yet implemented |
+| `broadcast` | 21 | pass |
+| `media-binding` | 42 | pass |
+| `trust` | 13 | pass |
+| `gateway`, `messaging` | 462 | not yet implemented |
 
 ## Findings so far
 
@@ -52,7 +55,7 @@ What writing this from the contract alone turned up (stage 1: the verification p
 | 2 | §9.3 puts `session.expired` / `policy.terminated` on a terminal `notify`; §15.1 and the §15.4 "valid on" column never mention `notify`. First real three-way divergence. | spec-gap 73. |
 | 3 | `payload-shape` was documented as "missing or wrong primitive type"; the suite also expects it for an `id` that is not a ULID (`envelope/payload-prose-ulid`). | README verdict table. |
 | 4 | §11.2 does not say what a profile list with one mutual and one unknown profile means; no vector had one. All three implementations turned out to agree (accept). | New vector `semantic/version-known-profile-among-unknown`. |
-| 5 | The README has no section for kind `trust` (13 vectors). | Open — to be written when `trust` is implemented here. |
+| 5 | The README has no section for kind `trust` (13 vectors). | Written in stage 3. |
 
 Stage 2 (the state traces):
 
@@ -64,8 +67,20 @@ Stage 2 (the state traces):
 | 9 | §12.5 rule 2 read literally ends a just-answered call when `cancel session.answered-elsewhere` reaches the answering leg. | spec-gap 75. |
 | 10 | §12.7 rule 6 has nothing to forward when every leg expired; the suite pins `endpoint.unavailable` in the first leg's name. | spec-gap 76. |
 
+Stage 3 (`trust`, `broadcast`, `media-binding`):
+
+| # | Finding | Disposition |
+|---|---|---|
+| 11 | Kind `trust` compares exact display strings that exist nowhere but in the vectors — §18.1 gives "Domain verified by did:web", the suite expects `Domain verified (<did>)`. | README "Kind: `trust`" now carries every template. |
+| 12 | Every verified provenance statement is `integrity_mode: derivative-bound`, a plain `relay` too, while the displayed mode for the same stream is `metadata-only`. | spec-gap 77. |
+| 13 | §22.3's "any statement where [policy] forbids redistribution" had no vector, and the `policy_violation` tokens were undocumented. | New vector `broadcast/provenance-policy-redistribution-forbidden` (all three agree); README. |
+| 14 | The order of the 13 media-binding checks, and that binding traces keep expectations in `expect.steps` (unlike `state`), were unstated. | README. |
+| 15 | This implementation first also required a statement's `output_variant` to be advertised — the `state` authority traces pass either way. §22.3 requires only `input_variant`; followed the spec. | Noted as unpinned below. |
+
 Readings this implementation makes that no vector pins yet (found by mutating the code and seeing the suite stay green):
 
 - A delegation *presented* in the protected header that links a different device/identity pair is
   `delegation-invalid`; one merely held in the verifier's store is ignored (`src/envelope.ts`, `bind`).
 - Order of version failures when several hold at once: core → profile → critical extension.
+- A provenance statement whose `output_variant` the publication does not advertise is accepted (§22.3 constrains only `input_variant`).
+- The `trust` basis for a `tel` claim whose verifier is not a `did:web` shows the verifier DID as is.

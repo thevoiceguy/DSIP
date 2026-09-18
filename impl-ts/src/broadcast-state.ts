@@ -164,7 +164,8 @@ export class Authority {
         const [recordStream, p] = found;
         if (recordStream !== stream) return void this.emit.push({ drop: "provenance-stream-mismatch" });
         if (m["processor"] !== sender) return void this.emit.push({ drop: "provenance-processor-mismatch" });
-        for (const k of ["input_variant", "output_variant"]) {
+        // §22.3: `input_variant` MUST be one the publication advertises (the output is the processor's own)
+        for (const k of ["input_variant"]) {
           if (k in m && !p.variants.includes(m[k] as string)) return void this.emit.push({ drop: "provenance-variant-unknown" });
         }
         // §22.3: the statement is attached; the publisher stays the publisher

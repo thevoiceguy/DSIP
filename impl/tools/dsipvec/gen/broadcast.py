@@ -110,6 +110,12 @@ def vectors() -> list[dict]:
                   pub_accept("main-opus", provenance=[{"verdict": "accept", "processor": CAROL, "operation": "transcode", "integrity_mode": "derivative-bound",
                                                        "policy_violation": "transcoding"}], transcoded=[CAROL], integrity="derivative-bound"),
                   prov_envs=[signed(provenance(forb["id"]), "carol")]))
+    noredist = publication("pub-noredist", policy={"redistribution": "forbidden", "transcoding": "allowed"})
+    out.append(bv("provenance-policy-redistribution-forbidden", "Publisher policy forbids redistribution; any statement — here a plain relay — verifies but is flagged (§22.3: \"any statement where it forbids redistribution\").",
+                  ["§22.3", "§16.4"], signed(noredist, "bob"),
+                  pub_accept("main-opus", provenance=[{"verdict": "accept", "processor": CAROL, "operation": "relay", "integrity_mode": "derivative-bound",
+                                                       "policy_violation": "redistribution"}], delivered=[CAROL], integrity="metadata-only"),
+                  prov_envs=[signed(provenance(noredist["id"], operation="relay", output_variant="main-opus"), "carol")]))
     out.append(bv("provenance-chain-two-processors", "Relay then transcoder: both processors displayed in their roles.", ["§22.3"], pub_env,
                   pub_accept("main-opus", provenance=[{"verdict": "accept", "processor": CAROL, "operation": "relay", "integrity_mode": "derivative-bound"},
                                                       {"verdict": "accept", "processor": ALICE, "operation": "transcode", "integrity_mode": "derivative-bound"}],
