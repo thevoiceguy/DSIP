@@ -6,9 +6,10 @@
 These vectors are the language-neutral conformance contract for DSIP Core v1.0.
 They are *generated* by `impl/tools/generate_vectors.py` (deterministic keys,
 deterministic ULIDs, byte-reproducible signatures) and *verified* independently
-by the Python harness (`impl/tools/run_vectors.py`) and the Rust runner
-(`cargo run -p dsip-cli -- vectors run`). A vector is only trusted when both
-agree with its `expect` block.
+by the Python harness (`impl/tools/run_vectors.py`), the Rust runner
+(`cargo run -p dsip-cli -- vectors run`), and a second implementation written from this
+document and the spec alone (`impl-ts/`, TypeScript; `impl/tools/parity_ts.py`). A vector is
+only trusted when the runners agree with its `expect` block.
 
 Expected outcomes are authored by hand from the spec text in the generator
 modules — they are never derived from either implementation's output.
@@ -47,6 +48,19 @@ the `.json` suffix (e.g. `envelope/valid-ed25519`).
 ```
 
 `spec_ref` entries cite v0.8 section numbers (unchanged from v0.6 and v0.7 for every section the vectors cite); `B§n` cites a section of the WebRTC Media Binding 1.0 companion document. Every vector has at least one.
+
+## Runner results
+
+A runner compares what it computed (`actual`) with `expect` for **deep equality** — arrays in
+order, objects member by member, nothing extra. A member absent from `expect` is therefore a claim:
+no `warnings` means the implementation raised none, no `effective` means nothing registry-governed
+was read, no `reason` means the spec assigns no token. Trace kinds compare each step's `emit`
+exactly and, of the snapshot, the members (sessions, attempts, …) the step names.
+
+With `--json FILE` a runner writes `{ "<vector id>": {"ok": bool, "actual": …} }` (`"steps": […]`
+in place of `actual` for traces). Parity tools diff these files, so two implementations that both
+satisfy `expect` but disagree on something it leaves unsaid are still caught. A runner that does
+not implement a kind reports `{"ok": false, "skipped": true}`; a skipped vector never counts as agreeing.
 
 ## Fixed fixtures
 
@@ -91,7 +105,7 @@ implementation under test MUST emit that token when it signals the failure.
 | `payload-not-utf8` | decoded payload is not valid UTF-8 (§10.3) | |
 | `payload-not-json` | payload is not a JSON object (§10.3) | |
 | `payload-float` | any number in the payload is non-integer (§10.3) | |
-| `payload-shape` | core fields (`dsip`,`type`,`id`,`from`,`issued_at`,`expires_at`) missing or wrong primitive type | |
+| `payload-shape` | core fields (`dsip`,`type`,`id`,`from`,`issued_at`,`expires_at`) missing or wrong primitive type, or `id` not a ULID (§10.3; every later stage that reads the id depends on it) | |
 | `signer-mismatch` | `kid` DID ≠ `from` DID and no delegation presented linking them (§7.4, check 3) | `transport.hello-rejected` on `hello` |
 | `delegation-invalid` | presented delegation fails: bad signature, wrong subject/device, not signed by subject controller | `transport.hello-rejected` on `hello` |
 | `delegation-expired` | delegation not valid at `now` (`issued_at ≤ now < expires_at` required) | `transport.hello-rejected` on `hello` |
@@ -177,7 +191,9 @@ known category), `unknown-category` (→ `session.failed`). For `answered_by`,
 `effective.answered_by` is `service` for unknown values; for `progress`,
 `effective.status` is `trying` for unknown values. A registered token that the
 registry does not list as valid on the carrying message type is accepted with
-`warnings: ["reason-not-valid-on-type"]` (Impl decision; see spec-gap list).
+`warnings: ["reason-not-valid-on-type"]` (Impl decision; see spec-gap list). `effective.reason` is
+reported for `reject`, `cancel`, `bye`, `error` and a `notify` that carries a `reason`; the "valid on"
+column is not applied to `notify`, which §15.4 never lists (spec-gap 73).
 
 ## Kind: `envelope`
 
@@ -471,6 +487,7 @@ Each item has a matching `spec-gap` issue draft in `impl/docs/spec-gaps.md`.
 21. §22.3: provenance statements reach subscribers in `notify.body.provenance`; carriage is otherwise unspecified.
 22. §7.5: rotation has no wire record; vectors pin only what a verifier observes through the rotated DID document (`envelope/rotated-did-web-*`).
 31. §12.9 vs §19.4: held introductions — no 300 s age bound, 604,800 s validity cap enforced, id tracked until `expires_at` (`envelope/introduction-*`).
+73. §9.3 vs §15.4: a terminal `notify` carries `session.expired` / `policy.terminated`, tokens the registry lists as valid on other types only; no warning on `notify` (`semantic/notify-terminated-reason`, by the deep-equality rule above).
 34–43. Messaging Profile draft choices (hub ordering, archive first-wins, first-contact authorization, `mailbox` tokens, `MAX_MLS_BYTES`, ephemeral lifetime) pinned by `messaging/*`; see the v0.8 messaging worklist in `impl/docs/spec-gaps.md`.
 
 Emission ordering convention for state traces: timer stops → sends → media →

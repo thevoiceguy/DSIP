@@ -17,7 +17,7 @@ runners are green on this revision. No wire-format change: `dsip.core` stays `1.
 | `dsip-dht-hints-profile-v0.8-draft.md` | DHT Reachability Hints Profile (`dht-hints/0.1`), with `endpoints[].service` | draft | `dht/` (12) |
 
 The spec-gap dispositions are in `../impl/docs/spec-gaps.md` (worklists for gaps 23–30 and 31–57; profile errata
-58–72). Spec-gap 26 (DTMF carriage) is closed by spec-gap 70: `media:dtmf` in `dsip-info-about` (§12.12, G§9).
+58–72; 73 is a core finding of the second implementation). Spec-gap 26 (DTMF carriage) is closed by spec-gap 70: `media:dtmf` in `dsip-info-about` (§12.12, G§9).
 
 Rule 7 of `CLAUDE.md` applied: every v0.8 behavioural change landed as a vector change first, then code, and
 `poc-v0.8` is tagged only when both runners are green on the v0.8 suite (737 vectors).
