@@ -102,7 +102,7 @@ Stage 6 (`messaging`, the nine trace machines):
 
 | # | Finding | Disposition |
 |---|---|---|
-| 21 | Passing all 867 vectors was not agreement. Random traces run through all three implementations (180 for the device machines, 800 for the hub, 1,500 for the mailbox; Rust and Python never differed from each other) found: the order of a hub's refusals — notably that a re-deposit is answered `duplicate` *before* membership and epoch; that a handover wait holds off everything from the new hub and is judged before numbering; that grant deposits are rate-limited like introductions; push order; and that the §15.3 fallback's one retry is its own. | spec-gap 81; 9 new vectors (874). |
+| 21 | Passing all 867 vectors was not agreement. Random traces run through all three implementations (180 for the device machines, about 700 for the hub, about 2,400 for the mailbox; Rust and Python never differed from each other) found: the order of a hub's refusals — notably that a re-deposit is answered `duplicate` *before* membership and epoch; that a handover wait holds off everything from the new hub and is judged before numbering; that grant deposits are rate-limited like introductions; push order; and that the §15.3 fallback's one retry is its own. | spec-gap 81; 8 new vectors (874). |
 | 22 | The README's mailbox table left out three events (`first_contact`, `forward`, `forward_failed`), two emissions (`handover_expired`, `close`), the `key_packages.devices` map, and the hub's ack-the-head rule. | README. |
 
 Readings this implementation makes that no vector pins yet (found by mutating the code and seeing the suite stay green):
@@ -113,5 +113,5 @@ Readings this implementation makes that no vector pins yet (found by mutating th
 - A provenance statement whose `output_variant` the publication does not advertise is accepted (§22.3 constrains only `input_variant`).
 - Category-fallback causes for `identity`, `session`, `media`, `policy`, `transport`, `gateway` (only `user` and `endpoint` are pinned).
 - In a handover wait, the seqs reported `missing` are counted from the lowest seq the mailbox has stored (from 1 when it
-  has none); 1,500 random traces never told this apart from any other baseline.
+  has none); the random mailbox traces never told this apart from any other baseline.
 - The `trust` basis for a `tel` claim whose verifier is not a `did:web` shows the verifier DID as is.

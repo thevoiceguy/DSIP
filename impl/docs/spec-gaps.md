@@ -1727,7 +1727,7 @@ is class-independent.
 
 **Gap.** Three places where the profile gives a list of rules and the services must pick one answer. None had a vector
 with two rules in play, so the second implementation passed the whole suite (867 of 867) and still disagreed with Rust
-and Python once random traces were run through all three (2,000 generated hub and mailbox traces; Rust and Python never
+and Python once random traces were run through all three (about 3,000 generated hub and mailbox traces; Rust and Python never
 disagreed with each other):
 
 1. **A hub's refusals** (M§6.5 rules 1–3 are a list, not an order). The reference order: moved → unsupported class →
