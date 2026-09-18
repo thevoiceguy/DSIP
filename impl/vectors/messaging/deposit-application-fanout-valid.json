@@ -1,0 +1,39 @@
+{
+  "vector": "messaging/deposit-application-fanout-valid",
+  "format": 1,
+  "kind": "messaging",
+  "description": "A hub's fan-out to a member mailbox: `recipient` and `seq` belong to the addressing, not to a class.",
+  "spec_ref": [
+    "M§5.2",
+    "M§6.5"
+  ],
+  "context": {},
+  "input": {
+    "check": "message",
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "messaging/1.0"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "deposit",
+      "id": "01K742SG00RC3JYY84MJ9SHCDH",
+      "from": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+      "to": "did:web:mbx.alice.example",
+      "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+      "class": "application",
+      "mls": "AAFtbHMtbWVzc2FnZQ",
+      "recipient": "did:web:example.com:users:bob",
+      "seq": 7,
+      "issued_at": 1760000000,
+      "expires_at": 1760000030
+    }
+  },
+  "expect": {
+    "verdict": "accept"
+  }
+}

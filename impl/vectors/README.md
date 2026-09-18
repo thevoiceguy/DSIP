@@ -506,6 +506,38 @@ digest of the MLS bytes), just as relay traces abstract signatures. `input.check
 | `hub-trace` | `steps` of `{deposit: {id, device, identity, class, epoch?, digest, commit?: {adds, removes, valid?, external?}, expires_at?}}` / `{ack: {identity, seq, class?}}` (`class: welcome` acknowledges the welcome queue, spec-gap 66) / `{advance: s}` / `{restart: {}}` (spec-gap 59: full state survives; every unacknowledged queue head is re-sent); a commit with `moves_to` leaves the hub refusing the group (spec-gap 60); `context.epoch`, `roster`, `kind`, `owner?` | per step `emit` (`accepted {to, in_reply_to, seq, duplicate?}`, `error {to, in_reply_to, reason}`, `fanout {to, seq, class}` (a welcome carries the commit's seq, spec-gap 66), `forward {to, class: ephemeral}`) and `state {epoch, next_seq, roster, pending, welcomes}` |
 | `mailbox-trace` | `steps` of `welcome`, `hub_deposit`, `sync`, `unbind`, `config`, `archive`, `kp_upload`, `kp_fetch`, `advance`, `restart` (spec-gap 59: durable state survives, live bindings do not); a `hub_deposit` whose `seq` is at or below the group's highest stored is a redelivery (`accepted` with `duplicate`); a `config` group naming another `hub` with `handover_seq` moves the registration (spec-gap 60); a `kp_fetch` with `successor_of` naming a registered group needs no grant (spec-gap 61); `context.owner`, `serves`, `devices`, `mode`, `admit`, `groups`, `key_packages`, `pending_group_ttl`, `pending_group_max_items` | per step `emit` (`accepted {to, in_reply_to, cursor?, duplicate?}`, `error`, `items {to, in_reply_to, cursors, next}`, `push {to, cursor}` / `push {to, class: ephemeral}`, `key_packages {to, in_reply_to, devices}`) and `state {items: [cursor], groups: {group: pending\|joined}, key_packages}` |
 
+Checks the table above did not list (found by the second implementation; all are in the suite):
+
+| check | input | expect |
+|---|---|---|
+| `introduction` | a core `introduction` `payload` as the profile uses it | core stage 13 then 14 (`schema-invalid`, `introduction-purpose-and-sealed`), or `accept {effective: {sealed: bool}}` (M§14.1) |
+| `sealed-introduction-open` | `payload`, `recipient_ed25519_seed_hex` (the recipient's X25519 key is derived from it as in `x25519-key-agreement`) | `accept {purpose}` (a plain `purpose` passes through; `null` when there is neither), or in order `sealed-alg-unsupported` → `sealed-open-failed` → `sealed-plaintext-invalid` (not exactly `{"purpose": string}`) → `purpose-too-long` (> 280 characters). HPKE `info` = `dsip sealed introduction v1`, AAD = `id ‖ 0x00 ‖ from ‖ 0x00 ‖ to` (M§14.1) |
+| `hpke-open` | `enc_hex`, `sk_r_hex`, `info_hex`, `aad_hex`, `ct_hex` | `accept {plaintext_hex}` or `hpke-open-failed` — RFC 9180 base mode, DHKEM(X25519, HKDF-SHA256) / HKDF-SHA256 / AES-128-GCM, sequence 0 (M§6.9) |
+| `hpke-derive-key-pair` | `ikm_hex` | `{sk_hex, pk_hex}` (RFC 9180 §7.1.3) |
+| `x25519-key-agreement` | `ed25519_seed_hex` | `{x25519_pk_hex}` — secret = SHA-512(seed)[0..32] clamped, as `did:key` derives it (M§6.9, spec-gap 55) |
+| `blob-put` | `mailbox {did, serves, max_blob_bytes}`, `authorization` (`{identity, payload}` already verified, or `null`), `request {path_sha256, body_size, body_sha256}`, `stored` | `{status, reason}` in M§5.6 order — 401 `policy.blocked` → 403 `policy.blocked` (`to`) → 403 `transport.unknown-recipient` → 400 `policy.blocked` (path) → 413 `mailbox.object-too-large` → (a stored hash: `{status: 200, accepted: {in_reply_to, duplicate: true}}`) → 400 `mailbox.blob-mismatch` → `{status: 201, accepted: {in_reply_to}}` (spec-gap 48) |
+| `blob-get` | `path_sha256`, `stored` | `{status: 200\|404}` |
+| `registration-on-removal` | `me`, `remaining_identities` | `{left}` — true only when no leaf of the identity remains (M§5.7, spec-gap 53) |
+| `hub-outage-trace` | see spec-gap 72 | per step `emit` and `state` |
+
+**The deposit class table** behind `deposit-fields` (M§5.2 gives what each class "carries"; this is the whole rule, spec-gap 80).
+Every deposit may carry `recipient` — it is addressing, not class. Beyond the envelope fields, `class` and `recipient`:
+
+| class | MUST carry | MAY carry |
+|---|---|---|
+| `handshake` | `group`, `mls` | `welcome`, `group_info`, `ratchet_tree_blob`, `grants`, `seq` |
+| `application` | `group`, `mls` | `seq`, `blobs` |
+| `welcome` | `group`, `mls`, `hub` | `ratchet_tree_blob`, `grants`, `origin`, `successor_of` |
+| `group-info` | `group`, `mls` | `ratchet_tree_blob`, `handover_seq` |
+| `ephemeral` | `group`, `sealed` | — |
+| `archive` | `group`, `archive`, `akid`, `ref_group`, `ref_seq` | — |
+| `introduction`, `grant` | `recipient`, `envelope` (and no `group`: a schema rule) | — |
+
+Anything else is `deposit-fields`. After it: `object-too-large` for `mls`, `welcome`, `group_info`, `sealed`, `archive`; then
+`introduction-too-large` (`transport.envelope-too-large`) for a carried introduction `envelope` over 4,096 bytes.
+`external-join` checks run `external-join-adds` → `external-join-not-member` → `external-join-removes-other`;
+`blob-replicate` skips run `mode` → `stored` → `too-large` → `not-https`, and `attempt` defaults to 1 of `max_attempts` 5.
+
 Trace emission order: `accepted`/`error` first, then fan-out or pushes in identity/device order,
 then welcomes. Cursors are `c:` + 16 lowercase hex digits (Impl). Grants in mailbox traces are
 presented already verified; their signatures are the envelope pipeline's concern.
@@ -550,6 +582,7 @@ Each item has a matching `spec-gap` issue draft in `impl/docs/spec-gaps.md`.
 74. §19.4: a `grant` is addressed to the introducing identity, a `reject` of the same introduction to the introducing device (`state/first-contact-*`).
 75. §12.5 rule 2 vs §12.7 rule 3: `cancel session.answered-elsewhere` reaching the leg that answered is `session.invalid-state`, not a crossed cancel (`state/race-responder-answered-elsewhere-at-answering-leg`).
 78. G§4: which tokens are "attempt" tokens once ACTIVE — the profile's list omits `endpoint.unavailable` and `identity.not-in-service` (`gateway/inbound-active-*`).
+80. M§5.2: the deposit class table says what each class "carries", not which other fields it may or may not carry; the rule is in this README (`messaging/deposit-*`).
 79. G§4.2: the Q.850 cause of a category-fallback response, and of a BYE for a token the BYE rows do not name (`gateway/outbound-unknown-*`, `outbound-bye-policy-terminated`).
 77. §22.2/§22.3: every verified provenance statement is reported `integrity_mode: derivative-bound`, a `relay` included (`broadcast/provenance-relay-operation`).
 76. §12.7 rule 6: the attempt outcome when every leg expired and none rejected — `endpoint.unavailable` (`state/relay-all-legs-expired`).

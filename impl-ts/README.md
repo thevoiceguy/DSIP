@@ -44,7 +44,8 @@ python3 ../impl/tools/parity_ts.py       # Python harness vs this implementation
 | `media-binding` | 42 | pass |
 | `trust` | 13 | pass |
 | `gateway` | 64 | pass |
-| `messaging` | 403 | not yet implemented |
+| `messaging`, stateless checks | 226 | pass — messages, objects, client rules, blobs, MLS encoding and credentials, AES-GCM sealing, HPKE |
+| `messaging`, traces | 181 | not yet implemented — mailbox 71, hub 32, client 23, resume 12, commit-retry 11, history 11, successor 9, hub-outage 6, gap 6 |
 
 ## Findings so far
 
@@ -85,6 +86,18 @@ Stage 4 (`gateway`):
 | 16 | G§4's list of "attempt" tokens names six; Rust and Python use eight. A literal reading sent `bye endpoint.unavailable` mid-call. The second real divergence — found by adding a vector, and the existing set established with probe vectors, not by reading the code. | spec-gap 78; four new vectors. |
 | 17 | G§4.2 gives category fallbacks a status but no Q.850 cause, and BYE causes for two rows only; the suite pins both. | spec-gap 79; one new vector. |
 | 18 | The gateway's DID (`did:web:gw.example`) is fixed by the suite, not an input; the `downgrade-error` check, the trace states, the local-event vocabulary and the exact `ignore` strings were undocumented. | README, kind `gateway`. |
+
+Stage 5 (`messaging`, the stateless checks):
+
+| # | Finding | Disposition |
+|---|---|---|
+| 19 | The deposit class field table behind `deposit-fields` is written nowhere. This implementation's table, built from M§5.2's prose, passed every vector and still disagreed with Rust and Python on 7 of 87 class × field combinations — found by a differential probe with temporary vectors. | spec-gap 80; README table; 4 new vectors. |
+| 20 | Nine `messaging` checks were missing from the README table (`introduction`, `sealed-introduction-open`, `hpke-open`, `hpke-derive-key-pair`, `x25519-key-agreement`, `blob-put`, `blob-get`, `registration-on-removal`, `hub-outage-trace`), with their codes and check orders. | README. |
+
+**Differential probing.** When a rule is a table (class × field, token × phase), passing the vectors proves little: generate
+every combination as temporary vectors, run all three implementations, and compare `actual` with `actual`. It respects the
+independence rule — nothing is read, only observed — and it is how findings 16 and 19 were made. Probes are deleted
+afterwards; the disagreements become real vectors.
 
 Readings this implementation makes that no vector pins yet (found by mutating the code and seeing the suite stay green):
 

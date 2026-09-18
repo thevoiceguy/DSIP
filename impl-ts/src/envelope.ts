@@ -184,6 +184,7 @@ function checkDelegation(
   identity: string,
   documents: DidDocuments,
   ctx: ReceiverContext,
+  capability = "dsip.signaling",
 ): "bound" | "unrelated" | Reject {
   const env = asEnvelope(candidate);
   const bytes = env && b64urlDecode(env.payload);
@@ -198,10 +199,26 @@ function checkDelegation(
   if (!Array.isArray(capabilities) || typeof issued_at !== "number" || typeof expires_at !== "number") {
     return reject("delegation-invalid");
   }
-  if (!capabilities.includes("dsip.signaling")) return reject("delegation-capability");
+  if (!capabilities.includes(capability)) return reject("delegation-capability");
   if (!(issued_at <= ctx.now && ctx.now < expires_at)) return reject("delegation-expired");
   const revoked = revocationsFor(identity, ctx).some((r) => r.device === device && issued_at <= r.revoked_at);
   return revoked ? reject("delegation-revoked") : "bound";
+}
+
+/**
+ * Verify one presented delegation for `device` under `capability`, and say whose device it is.
+ *
+ * Spec: §7.4; M§6.2 uses it as the MLS authentication service — the identity a leaf belongs to is
+ * the delegation's `subject`. A delegation that does not name `device` is `delegation-invalid`.
+ */
+export function delegationSubject(candidate: Json, device: string, capability: string, ctx: ReceiverContext): { subject: string } | Reject {
+  const env = asEnvelope(candidate);
+  const bytes = env && b64urlDecode(env.payload);
+  const claimed = bytes ? decodePayload(bytes) : null;
+  if (!claimed || isReject(claimed) || typeof claimed["subject"] !== "string") return reject("delegation-invalid");
+  const verdict = checkDelegation(candidate, device, claimed["subject"], ctx.did_documents ?? {}, ctx, capability);
+  if (verdict === "bound") return { subject: claimed["subject"] };
+  return verdict === "unrelated" ? reject("delegation-invalid") : verdict;
 }
 
 /**

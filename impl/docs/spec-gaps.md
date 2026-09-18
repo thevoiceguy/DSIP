@@ -1700,6 +1700,29 @@ already carries the literal token.
 
 **Suggested fix.** G§4.2: add the cause to each category fallback, and a sentence for BYE causes.
 
+## 80. M§5.2 — the deposit class field table
+
+**Gap.** M§5.1 orders a deposit's refusals "… the class (unregistered → `mailbox.unsupported-class`), the class field
+table below, and the size constant", and M§5.2's table has a "carries" column: what a class is *for*. It does not say
+which of the other deposit fields a class may also carry, so `deposit-fields` — a refusal every mailbox and hub must
+agree on — had no complete definition outside the two existing implementations. The second implementation wrote the
+table from the prose and passed every vector; a differential probe (each class × each field, 87 temporary vectors run
+through all three implementations) then found **seven** disagreements no vector covered: `recipient` on `application`,
+`handshake`, `archive` and `group-info` (allowed — it is addressing, not class, and a hub's fan-out to a mailbox is an
+`application` deposit with `recipient` and `seq`); `ratchet_tree_blob` on `welcome` and `group-info` (allowed, M§6.4);
+`blobs` on `handshake` (refused — the manifest names what *content* references).
+
+**Choices considered.** (a) The existing implementations' table, which the prose supports on each of the seven
+points once read closely. (b) A looser rule — refuse only fields that contradict the class (an `ephemeral` with `mls`)
+and ignore the rest — simpler, but then two services disagree about the same deposit.
+
+**Draft choice.** (a). The table is now written out in the vectors README; vectors `deposit-application-fanout-valid`,
+`deposit-handshake-with-blobs-refused`, `deposit-welcome-ratchet-tree-blob-valid`,
+`deposit-group-info-ratchet-tree-blob-valid` pin the points that had none.
+
+**Suggested fix.** M§5.2: replace the "carries" column with MUST-carry / MAY-carry columns, and say that `recipient`
+is class-independent.
+
 ## Already-flagged (schema README / plan §11)
 
 - §15.3 codec example uses bare strings; §16.2 defines objects (schemas follow §16.2).

@@ -11,13 +11,13 @@ runners are green on this revision. No wire-format change: `dsip.core` stays `1.
 | `dsip-schemas-v0.8-draft/` | Core JSON Schema set v0.8 (adds `introduction.sealed`, `delegation-revocation`, hint `endpoints[].service`) | generated from `generate_schemas.py`; 47 samples | `payload/`, `semantic/` |
 | `dsip-webrtc-media-binding-v0.8.md` | WebRTC Media Binding 1.0 (`transport:webrtc`), unchanged from v0.7 | normative | `media-binding/` (42) |
 | `dsip-gateway-profile-v0.8.md` | Gateway Profile 1.0 — DSIP ↔ SIP/PSTN | normative | `gateway/` (64) |
-| `dsip-messaging-profile-v0.8.md` | Messaging Profile 1.0 and Mailbox 1.0 (`messaging/1.0`) — mailboxes, MLS end-to-end encryption with per-group hubs, groups, multi-device history, receipts, activity, voicemail, blobs, first contact | normative | `messaging/` (403) and the wire demos in `impl/demos/` |
+| `dsip-messaging-profile-v0.8.md` | Messaging Profile 1.0 and Mailbox 1.0 (`messaging/1.0`) — mailboxes, MLS end-to-end encryption with per-group hubs, groups, multi-device history, receipts, activity, voicemail, blobs, first contact | normative | `messaging/` (407) and the wire demos in `impl/demos/` |
 | `dsip-messaging-schemas-draft/` | The Messaging Profile's schema set (profile messages and content objects) | generated from `generate_schemas.py` | `messaging/` |
 | `dsip-rtp-srtp-media-binding-v0.8-draft.md` | RTP/SRTP Media Binding (`transport:rtp`) | draft (no binding implementation yet) | SDP mapping in `gateway/` |
 | `dsip-dht-hints-profile-v0.8-draft.md` | DHT Reachability Hints Profile (`dht-hints/0.1`), with `endpoints[].service` | draft | `dht/` (12) |
 
 The spec-gap dispositions are in `../impl/docs/spec-gaps.md` (worklists for gaps 23–30 and 31–57; profile errata
-58–72; 73–79 are findings of the second implementation). Spec-gap 26 (DTMF carriage) is closed by spec-gap 70: `media:dtmf` in `dsip-info-about` (§12.12, G§9).
+58–72; 73–80 are findings of the second implementation). Spec-gap 26 (DTMF carriage) is closed by spec-gap 70: `media:dtmf` in `dsip-info-about` (§12.12, G§9).
 
 Rule 7 of `CLAUDE.md` applied: every v0.8 behavioural change landed as a vector change first, then code, and
 `poc-v0.8` is tagged only when both runners are green on the v0.8 suite (737 vectors).
