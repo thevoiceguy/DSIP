@@ -331,6 +331,23 @@ Fields:
   (compact), so the new member's mailbox can verify who added it (M§14.2).
 - `successor_of` — on `welcome` for a successor group (M§7.5): the predecessor group id.
 
+**The class field table** (spec-gap 80). Which of these fields a class carries is a refusal every mailbox and hub
+must agree on (M§5.1 checks it after the class and before the size constant), so it is a table, not a reading. Beyond the envelope fields, `class`, and `recipient` — which any
+class MAY carry: it is addressing, not class, and a hub's fan-out is an `application` deposit with `recipient` and `seq`:
+
+| class | MUST carry | MAY carry |
+|---|---|---|
+| `handshake` | `group`, `mls` | `welcome`, `group_info`, `ratchet_tree_blob`, `grants`, `seq` |
+| `application` | `group`, `mls` | `seq`, `blobs` |
+| `welcome` | `group`, `mls`, `hub` | `ratchet_tree_blob`, `grants`, `origin`, `successor_of`, `seq` |
+| `group-info` | `group`, `mls` | `ratchet_tree_blob`, `handover_seq` |
+| `ephemeral` | `group`, `sealed` | — |
+| `archive` | `group`, `archive`, `akid`, `ref_group`, `ref_seq` | — |
+| `introduction`, `grant` | `recipient`, `envelope`, and no `group` | — |
+
+A deposit missing a MUST field, or carrying any other of these fields, is refused — `blobs` on a `handshake`, for one:
+the manifest names what *content* references.
+
 ### M§5.3 `accepted`
 
 The signed acknowledgement that a hub or mailbox has taken responsibility for a deposit (or blob).
@@ -680,6 +697,19 @@ The hub MUST:
    committer republishes it afterwards so the hub and the members' mailboxes hold a current one for
    external joins (M§6.8).
 
+**The order of a hub's refusals** (spec-gap 81). Rules 1–3 are what a hub checks, not the order it checks in; when
+several apply to one deposit every hub MUST give the same answer, so the order is fixed:
+
+1. a group this hub has handed over (M§7.4) — `mailbox.unknown-group`, whatever the deposit;
+2. a class a hub does not take — `mailbox.unsupported-class`;
+3. an `ephemeral` past its `expires_at` — dropped, with no answer;
+4. a `handshake` or `application` whose bytes this hub has already sequenced — `accepted` with that `seq` and
+   `duplicate` (M§9.3), **before** membership and epoch: a member removed since, or a retry arriving an epoch late,
+   still learns that its item was ordered. The answer tells a non-member holding those bytes nothing but a `seq`;
+5. the depositor: membership, or for an external commit the M§6.8 authorization — `policy.blocked`;
+6. the epoch — `mailbox.commit-conflict` for a commit one epoch late, otherwise `mailbox.stale-epoch`;
+7. the commit's validity and M§7.3 — `policy.blocked`.
+
 **Welcomes are queued too** (spec-gap 66). A `welcome` is fanned out to the added identity's mailbox with the same
 retry as a sequenced item, in that identity's own queue (a member adding its own device needs both the commit, for
 its other devices, and the welcome, for the new one — same `seq`, two deposits). Until that mailbox acknowledges the
@@ -895,9 +925,11 @@ hub, which initializes its state from the latest `group-info`.
   committer, on `accepted`) sends its mailbox `mailbox-config` with the group, the new `hub`, its
   `hub_uri` and `handover_seq`. From then on the mailbox admits fan-out from, and forwards to, the new
   hub; it still admits the old hub's deposits with `seq` up to `handover_seq` (a redelivery is a
-  duplicate, M§6.6). Until the old hub's items through `handover_seq` are stored it refuses the new hub
-  with `mailbox.unknown-group` (the hub retries, M§6.6), so items stay in `seq` order; a deposit from the
-  new hub with `seq` ≤ `handover_seq` is refused `policy.blocked`.
+  duplicate, M§6.6). Until the old hub's items through `handover_seq` are stored it refuses **every deposit**
+  from the new hub (spec-gap 81) — a `group-info` and a `welcome` as much as a sequenced item: a GroupInfo from a
+  hub the mailbox cannot yet place would replace the stored one — with `mailbox.unknown-group` (the hub retries,
+  M§6.6), so items stay in `seq` order. That "retry" is answered before the numbering is judged: only once the wait
+  is over is a deposit from the new hub with `seq` ≤ `handover_seq` refused `policy.blocked`.
 - **An old hub that never finishes** (spec-gap 71). The old hub may die after ordering the move and before
   every mailbox has its last items — the committer's own mailbox is the usual victim, since the committer
   names the new hub on `accepted` without waiting for the fan-out. A mailbox therefore holds the new hub

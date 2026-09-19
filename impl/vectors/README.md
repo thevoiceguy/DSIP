@@ -539,7 +539,7 @@ Checks the table above did not list (found by the second implementation; all are
 | `registration-on-removal` | `me`, `remaining_identities` | `{left}` — true only when no leaf of the identity remains (M§5.7, spec-gap 53) |
 | `hub-outage-trace` | see spec-gap 72 | per step `emit` and `state` |
 
-**The deposit class table** behind `deposit-fields` (M§5.2 gives what each class "carries"; this is the whole rule, spec-gap 80).
+**The deposit class table** behind `deposit-fields` (M§5.2 "The class field table" is the same table, spec-gap 80).
 Every deposit may carry `recipient` — it is addressing, not class. Beyond the envelope fields, `class` and `recipient`:
 
 | class | MUST carry | MAY carry |

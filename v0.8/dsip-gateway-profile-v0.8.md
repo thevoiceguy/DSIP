@@ -92,9 +92,14 @@ downstream element sees the unmapped DSIP reason (spec-gap 24 makes this normati
 A gateway MUST map foreign codes to DSIP reasons and MUST NOT tunnel numeric SIP/Q.850 codes to
 DSIP clients. A `Reason: Q.850;cause=<n>` present on an inbound message takes precedence over the
 SIP status when the cause is mapped (the cause is the more specific signal). Tokens describing a
-failed *attempt* (busy, declined, unknown, moved, cancelled, blocked) that arrive **after** the
-DSIP leg is ACTIVE are reported as `gateway.mapped` (the attempt already succeeded; the teardown
-is a mid-call event). A BYE with no `Reason` maps to `user.hangup`.
+failed *attempt* that arrive **after** the DSIP leg is ACTIVE are reported as `gateway.mapped`, with
+the mapped token kept in `detail` when the mapping gave none (the attempt already succeeded; the
+teardown is a mid-call event). The attempt tokens are exactly these eight (spec-gap 78) — every
+mapped token that says why a call could not be *set up*: `endpoint.busy`, `endpoint.unavailable`,
+`identity.unknown`, `identity.not-in-service`, `identity.moved`, `session.cancelled`,
+`user.declined`, `policy.blocked`. Every other mapped token is kept mid-call as it is
+(`gateway.unreachable`, `media.unsupported`, `session.timeout`, … say something useful about a
+call that was up). A BYE with no `Reason` maps to `user.hangup`.
 
 ### G§4.1 Inbound (SIP/Q.850 → DSIP)
 
@@ -127,6 +132,14 @@ A pre-answer refusal → SIP final response (with `Q.850;cause` and `Reason: DSI
 teardown → BYE with the cause. Registered tokens map as below; an **unregistered** token maps by
 its §15.1 category (`user`→603, `endpoint`→480, `identity`→404, `session`→500, `media`→488,
 `policy`→403, `transport`→503, `gateway`→503) and still carries its literal text in `Reason`.
+A category fallback carries the `Q.850;cause` of its category too (spec-gap 79): `user` 21,
+`endpoint` 18, `identity` 1, `session` 41, `media` 65, `policy` 21, `transport` 41, `gateway` 38.
+
+**BYE causes** (spec-gap 79). The two BYE rows below name the tokens whose cause differs on a BYE:
+`user.hangup` and the `session.*` tokens valid on `bye` (`session.already-answered`,
+`session.cancelled`) are 16, `media.failed` is 47. Any other registered token keeps the cause of
+its own row (`policy.terminated` → 31, `session.timeout` → 102: it says more than "normal
+clearing"). An unregistered token has no row and is 16 — category fallback is a pre-answer rule.
 
 | DSIP | SIP (cause) | DSIP | SIP (cause) |
 |---|---|---|---|

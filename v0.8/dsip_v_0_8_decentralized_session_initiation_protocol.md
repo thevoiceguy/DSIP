@@ -842,7 +842,8 @@ The initiator (caller) and responder (callee device) each maintain a per-session
 | ALERTING | Local ring timeout | Send `reject` (reason `user.no-answer`) | ENDED |
 | ALERTING | Invite `expires_at` passed before alerting began | Send `reject` (reason `session.expired`) | ENDED |
 | ACTIVE | Recv `bye` | Tear down media | ENDED |
-| ACTIVE | Recv `cancel` (crossed: no initiator message has arrived since our `answer`) | Treat as §12.5 rule 2: tear down, no error | ENDED |
+| ACTIVE | Recv `cancel` (crossed: no initiator message has arrived since our `answer`; any reason but `session.answered-elsewhere`) | Treat as §12.5 rule 2: tear down, no error | ENDED |
+| ACTIVE | Recv `cancel` (reason `session.answered-elsewhere`) | This leg is the one that answered (§12.5 rule 2; spec-gap 75): send `error` (`session.invalid-state`); session continues | ACTIVE |
 | ACTIVE | Recv `cancel` (late: the initiator has already spoken post-answer — `info`, `update`, an update reply, `bye`) | Send `error` (`session.invalid-state`); session continues | ACTIVE |
 | ACTIVE | Local: hang up | Send `bye` | ENDED |
 | any | Recv message invalid for state | Send `error` (`session.invalid-state`) | unchanged |
@@ -852,7 +853,7 @@ The initiator (caller) and responder (callee device) each maintain a per-session
 `cancel` and `answer` can cross in flight. Resolution:
 
 1. If the responder receives `cancel` **before** the user answers, the session ends (§12.4).
-2. If the responder has already sent `answer` when `cancel` arrives **and no message from the initiator has arrived since that answer**, the cancel crossed the answer: the responder MUST treat the session as ended and tear down any media setup in progress, and MUST NOT treat the crossed `cancel` as an error. Once the initiator has spoken post-answer (`info`, `update`, an answer or reject to an update, `bye`), a `cancel` is late, not crossed, and is `session.invalid-state` (§12.4). An initiator MUST NOT send `cancel` after accepting an answer, except `session.answered-elsewhere` addressed to the identity per §12.7 rule 3.
+2. If the responder has already sent `answer` when `cancel` arrives **and no message from the initiator has arrived since that answer**, the cancel crossed the answer: the responder MUST treat the session as ended and tear down any media setup in progress, and MUST NOT treat the crossed `cancel` as an error. One reason is never a crossed withdrawal (spec-gap 75): `session.answered-elsewhere` is what an initiator sends *because* it accepted an answer (§12.7 rule 3), so a responder that has answered and receives it — from a relay that does not track legs, or a direct fan-out — is the leg that answered. It MUST NOT end the session: it answers `error` (`session.invalid-state`) and the session continues. Once the initiator has spoken post-answer (`info`, `update`, an answer or reject to an update, `bye`), a `cancel` is late, not crossed, and is `session.invalid-state` (§12.4). An initiator MUST NOT send `cancel` after accepting an answer, except `session.answered-elsewhere` addressed to the identity per §12.7 rule 3.
 3. If the initiator receives an `answer` after having sent `cancel`, the initiator MUST send `bye` with reason `session.cancelled` to that leg. The initiator MUST NOT resurrect the session.
 
 The invariant: **`cancel` is authoritative for the initiator's intent.** A session only becomes ACTIVE at the initiator when the initiator has not cancelled.
@@ -1223,7 +1224,7 @@ This pattern requires no new states, no pre-answer media path, and no exception 
 
 ### 15.1 Design
 
-Several message types carry a `reason` communicating *why* something happened: `reject`, `cancel`, `bye`, and `error`. DSIP defines a single unified reason framework.
+Several message types carry a `reason` communicating *why* something happened: `reject`, `cancel`, `bye`, and `error`, and a terminal `notify` (§9.3; spec-gap 73). DSIP defines a single unified reason framework.
 
 **Reasons are namespaced string tokens, not bare numerics.**
 
@@ -1273,6 +1274,8 @@ category     = "user" / "endpoint" / "identity" / "session" /
 ### 15.4 Core Registry
 
 Registry: `dsip-reason`. Columns: token — meaning — valid on.
+
+The "valid on" column governs the four session message types, `reject`, `cancel`, `bye` and `error`. It does not govern a terminal `notify` (§9.3; spec-gap 73): there the `reason` says why a subscription ended, not why a session did, and any registered token is valid — `session.expired` for a lapsed subscription and `policy.terminated` for a revoked authorization are the usual two. An unregistered token on a `notify` falls back by category like any other (§15.3).
 
 **user.**
 
@@ -2302,7 +2305,7 @@ v0.8 is again written from an implementation. The reference implementation built
 
 Still open: spec-gap 26 (a DTMF carriage in `info`) is left for a later revision. *(Closed since by spec-gap 70, §12.12.)*
 
-Errata since the v0.8 snapshot, each marked in place with its spec-gap number: `media:dtmf` (§12.12; 70), the addressee of an introduction's outcome (§19.4; 74), the relay's `transport.no-response` (§12.4, §12.7, §15.4; 76), the single integrity mode (§22.3; 77), and relay routing by `to` with or without an attempt (§13.3; 82). Spec-gaps 73, 75, 78 and 79 are recorded in `impl/docs/spec-gaps.md` with suggested text and are not yet applied here.
+Errata since the v0.8 snapshot, each marked in place with its spec-gap number: `media:dtmf` (§12.12; 70), the addressee of an introduction's outcome (§19.4; 74), the relay's `transport.no-response` (§12.4, §12.7, §15.4; 76), the single integrity mode (§22.3; 77), reason tokens on a terminal `notify` (§15.1, §15.4; 73), `session.answered-elsewhere` at the leg that answered (§12.4, §12.5; 75), and relay routing by `to` with or without an attempt (§13.3; 82). Spec-gaps 73, 75, 78 and 79 are recorded in `impl/docs/spec-gaps.md` with suggested text and are not yet applied here.
 
 Every item above is pinned by vectors in the v0.8 conformance suite (737 vectors, Rust/Python parity).
 
