@@ -166,6 +166,9 @@ export class HubOutage implements Machine {
   private attempt = 0;
   private downSince: number | null = null;
   private retryAt: number | null = null;
+  /** Failed hand-overs to the successor since abandonment, and when the next one is due (spec-gap 72). */
+  private handoverAttempt = 0;
+  private handoverAt: number | null = null;
 
   constructor(ctx: { now: number; hub_timeout?: number }) {
     this.now = ctx.now;
@@ -176,7 +179,10 @@ export class HubOutage implements Machine {
     const emit: Json[] = [];
     if ("advance" in e) {
       this.now += e["advance"] as number;
-      if (this.state === "down" && this.now - this.downSince! >= this.timeout) {
+      if (this.state === "abandoned" && this.handoverAt !== null && this.now >= this.handoverAt) {
+        emit.push({ handover: "retry" }); // once: the next failure schedules the next
+        this.handoverAt = null;
+      } else if (this.state === "down" && this.now - this.downSince! >= this.timeout) {
         // the M§7.5 trigger: the successor takes the pending items; the dead group's outbox is abandoned
         emit.push({ successor: { pending: [...this.pending] } });
         this.pending = [];
@@ -185,6 +191,14 @@ export class HubOutage implements Machine {
       } else if (this.state === "down" && this.retryAt !== null && this.now >= this.retryAt && this.pending.length > 0) {
         emit.push({ forward: this.pending[0]! }); // the same bytes (M§9.3)
         this.retryAt = null;
+      }
+    } else if ("handover_failed" in e) {
+      // spec-gap 72: only an abandoned outbox has a hand-over; every failure counts, §13.2 started afresh
+      if (this.state === "abandoned") {
+        this.handoverAttempt += 1;
+        const wait = Math.min(2 ** (this.handoverAttempt - 1), BACKOFF_CEILING_S);
+        this.handoverAt = this.now + wait;
+        emit.push({ handover_retry_in: wait });
       }
     } else if ("deposit" in e) {
       const id = (e["deposit"] as JsonObject)["id"] as string;
@@ -220,6 +234,9 @@ export class HubOutage implements Machine {
       }
     }
     const downFor = this.downSince === null ? null : this.now - this.downSince;
-    return { emit, state: { state: this.state, pending: [...this.pending], attempt: this.attempt, down_for: downFor } };
+    return {
+      emit,
+      state: { state: this.state, pending: [...this.pending], attempt: this.attempt, down_for: downFor, handover_attempt: this.handoverAttempt },
+    };
   }
 }

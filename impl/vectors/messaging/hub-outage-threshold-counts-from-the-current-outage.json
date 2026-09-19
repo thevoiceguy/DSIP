@@ -93,7 +93,8 @@
             "01K742SG00D93265YJRNSDN4ZD"
           ],
           "attempt": 0,
-          "down_for": null
+          "down_for": null,
+          "handover_attempt": 0
         }
       },
       {
@@ -108,7 +109,8 @@
             "01K742SG00D93265YJRNSDN4ZD"
           ],
           "attempt": 1,
-          "down_for": 0
+          "down_for": 0,
+          "handover_attempt": 0
         }
       },
       {
@@ -123,7 +125,8 @@
             "01K742SG00D93265YJRNSDN4ZD"
           ],
           "attempt": 1,
-          "down_for": 3000
+          "down_for": 3000,
+          "handover_attempt": 0
         }
       },
       {
@@ -136,7 +139,8 @@
           "state": "up",
           "pending": [],
           "attempt": 0,
-          "down_for": null
+          "down_for": null,
+          "handover_attempt": 0
         }
       },
       {
@@ -151,7 +155,8 @@
             "01K742SG00JS05SXJN2KSK6DDV"
           ],
           "attempt": 0,
-          "down_for": null
+          "down_for": null,
+          "handover_attempt": 0
         }
       },
       {
@@ -166,7 +171,8 @@
             "01K742SG00JS05SXJN2KSK6DDV"
           ],
           "attempt": 1,
-          "down_for": 0
+          "down_for": 0,
+          "handover_attempt": 0
         }
       },
       {
@@ -181,7 +187,8 @@
             "01K742SG00JS05SXJN2KSK6DDV"
           ],
           "attempt": 1,
-          "down_for": 3599
+          "down_for": 3599,
+          "handover_attempt": 0
         }
       },
       {
@@ -196,7 +203,8 @@
             "01K742SG00JS05SXJN2KSK6DDV"
           ],
           "attempt": 2,
-          "down_for": 3599
+          "down_for": 3599,
+          "handover_attempt": 0
         }
       },
       {
@@ -213,7 +221,8 @@
           "state": "abandoned",
           "pending": [],
           "attempt": 2,
-          "down_for": 3600
+          "down_for": 3600,
+          "handover_attempt": 0
         }
       }
     ]

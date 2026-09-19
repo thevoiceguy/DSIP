@@ -59,7 +59,8 @@
             "01K742SG00D93265YJRNSDN4ZD"
           ],
           "attempt": 0,
-          "down_for": null
+          "down_for": null,
+          "handover_attempt": 0
         }
       },
       {
@@ -74,7 +75,8 @@
             "01K742SG00D93265YJRNSDN4ZD"
           ],
           "attempt": 1,
-          "down_for": 0
+          "down_for": 0,
+          "handover_attempt": 0
         }
       },
       {
@@ -90,7 +92,8 @@
           "state": "down",
           "pending": [],
           "attempt": 1,
-          "down_for": 0
+          "down_for": 0,
+          "handover_attempt": 0
         }
       },
       {
@@ -99,7 +102,8 @@
           "state": "down",
           "pending": [],
           "attempt": 1,
-          "down_for": 1
+          "down_for": 1,
+          "handover_attempt": 0
         }
       }
     ]
