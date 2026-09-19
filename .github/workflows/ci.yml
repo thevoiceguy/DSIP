@@ -53,15 +53,19 @@ jobs:
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
       - run: pip install jsonschema pynacl cryptography
-      - uses: dtolnay/rust-toolchain@1.98.0 # pinned: bump ci.yml (x2) and fuzz.yml together
-        with: { components: clippy }
+      - name: Rust, as pinned in impl/rust-toolchain.toml
+        # installs the channel, components and targets the file names, and makes it the default for steps that
+        # run cargo from outside impl/
+        run: rustup toolchain install && rustup default "$(rustup show active-toolchain | cut -d' ' -f1)" && rustc --version
+        working-directory: impl
       - uses: Swatinem/rust-cache@v2
         with: { workspaces: impl }
       - run: cargo build --workspace --all-targets
         working-directory: impl
       - name: clippy, warnings are errors
-        # Every feature, so the gateway host and both media backends are linted too. The toolchain is pinned so that
-        # a new Rust release cannot fail this step on an unrelated change: new lints arrive with the version bump.
+        # Every feature, so the gateway host and both media backends are linted too. The toolchain is pinned
+        # (impl/rust-toolchain.toml) so that a new Rust release cannot fail this step on an unrelated change: new lints
+        # arrive with the version bump.
         run: cargo clippy --workspace --all-targets --all-features -- -D warnings
         working-directory: impl
       - run: cargo test --workspace
@@ -209,8 +213,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@1.98.0 # pinned: bump ci.yml (x2) and fuzz.yml together
-        with: { targets: wasm32-unknown-unknown }
+      - name: Rust, as pinned in impl/rust-toolchain.toml
+        # installs the channel, components and targets the file names, and makes it the default for steps that
+        # run cargo from outside impl/
+        run: rustup toolchain install && rustup default "$(rustup show active-toolchain | cut -d' ' -f1)" && rustc --version
+        working-directory: impl
       - uses: Swatinem/rust-cache@v2
         with: { workspaces: impl }
       - uses: jetli/wasm-pack-action@v0.4.0
