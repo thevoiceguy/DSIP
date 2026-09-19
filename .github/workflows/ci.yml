@@ -54,9 +54,15 @@ jobs:
         with: { python-version: "3.12" }
       - run: pip install jsonschema pynacl cryptography
       - uses: dtolnay/rust-toolchain@stable
+        with: { components: clippy }
       - uses: Swatinem/rust-cache@v2
         with: { workspaces: impl }
       - run: cargo build --workspace --all-targets
+        working-directory: impl
+      - name: clippy, warnings are errors
+        # Every feature, so the gateway host and both media backends are linted too. The toolchain floats on stable:
+        # a new Rust release can bring new lints, and a failure here right after one is that, not the change under test.
+        run: cargo clippy --workspace --all-targets --all-features -- -D warnings
         working-directory: impl
       - run: cargo test --workspace
         working-directory: impl
