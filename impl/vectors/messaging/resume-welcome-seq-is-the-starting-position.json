@@ -1,0 +1,146 @@
+{
+  "vector": "messaging/resume-welcome-seq-is-the-starting-position",
+  "format": 1,
+  "kind": "messaging",
+  "description": "A welcome carries the seq of the commit that added the device (spec-gap 83): that is the device's position in the group at once. Everything at or below it is pre-join history — a duplicate, never a gap — and what follows is counted from there.",
+  "spec_ref": [
+    "M§5.4",
+    "M§8.5",
+    "M§6.5",
+    "M§12.3"
+  ],
+  "context": {
+    "component": "resume",
+    "cursor": null,
+    "groups": {},
+    "joined": []
+  },
+  "input": {
+    "check": "resume-trace",
+    "steps": [
+      {
+        "event": {
+          "items": {
+            "items": [
+              {
+                "cursor": "c:0000000000000001",
+                "class": "welcome",
+                "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+                "seq": 7
+              }
+            ]
+          }
+        }
+      },
+      {
+        "event": {
+          "items": {
+            "items": [
+              {
+                "cursor": "c:0000000000000002",
+                "class": "application",
+                "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+                "seq": 5
+              },
+              {
+                "cursor": "c:0000000000000003",
+                "class": "application",
+                "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+                "seq": 8
+              },
+              {
+                "cursor": "c:0000000000000004",
+                "class": "application",
+                "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+                "seq": 10
+              }
+            ]
+          }
+        }
+      },
+      {
+        "event": {
+          "items": {
+            "items": [
+              {
+                "cursor": "c:0000000000000005",
+                "class": "application",
+                "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+                "seq": 9
+              }
+            ]
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "process": "c:0000000000000001"
+          }
+        ],
+        "state": {
+          "cursor": "c:0000000000000001",
+          "groups": {
+            "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M": {
+              "contiguous": 7,
+              "seen": []
+            }
+          },
+          "joined": [
+            "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M"
+          ]
+        }
+      },
+      {
+        "emit": [
+          {
+            "duplicate": "c:0000000000000002"
+          },
+          {
+            "process": "c:0000000000000003"
+          },
+          {
+            "process": "c:0000000000000004"
+          }
+        ],
+        "state": {
+          "cursor": "c:0000000000000004",
+          "groups": {
+            "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M": {
+              "contiguous": 8,
+              "seen": [
+                10
+              ]
+            }
+          },
+          "joined": [
+            "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M"
+          ]
+        }
+      },
+      {
+        "emit": [
+          {
+            "process": "c:0000000000000005"
+          }
+        ],
+        "state": {
+          "cursor": "c:0000000000000005",
+          "groups": {
+            "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M": {
+              "contiguous": 10,
+              "seen": []
+            }
+          },
+          "joined": [
+            "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M"
+          ]
+        }
+      }
+    ]
+  }
+}

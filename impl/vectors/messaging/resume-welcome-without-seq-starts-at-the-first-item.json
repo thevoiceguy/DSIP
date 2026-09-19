@@ -1,0 +1,109 @@
+{
+  "vector": "messaging/resume-welcome-without-seq-starts-at-the-first-item",
+  "format": 1,
+  "kind": "messaging",
+  "description": "A welcome with no seq (a hub that does not send it yet; a group the device created) leaves the old rule: the first sequenced item the device processes is its position (spec-gap 69), and a lower one later is history.",
+  "spec_ref": [
+    "M§5.4",
+    "M§8.5",
+    "M§6.5"
+  ],
+  "context": {
+    "component": "resume",
+    "cursor": null,
+    "groups": {},
+    "joined": []
+  },
+  "input": {
+    "check": "resume-trace",
+    "steps": [
+      {
+        "event": {
+          "items": {
+            "items": [
+              {
+                "cursor": "c:0000000000000001",
+                "class": "welcome",
+                "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M"
+              },
+              {
+                "cursor": "c:0000000000000002",
+                "class": "application",
+                "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+                "seq": 4
+              }
+            ]
+          }
+        }
+      },
+      {
+        "event": {
+          "items": {
+            "items": [
+              {
+                "cursor": "c:0000000000000003",
+                "class": "application",
+                "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+                "seq": 2
+              },
+              {
+                "cursor": "c:0000000000000004",
+                "class": "application",
+                "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+                "seq": 5
+              }
+            ]
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "process": "c:0000000000000001"
+          },
+          {
+            "process": "c:0000000000000002"
+          }
+        ],
+        "state": {
+          "cursor": "c:0000000000000002",
+          "groups": {
+            "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M": {
+              "contiguous": 4,
+              "seen": []
+            }
+          },
+          "joined": [
+            "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M"
+          ]
+        }
+      },
+      {
+        "emit": [
+          {
+            "duplicate": "c:0000000000000003"
+          },
+          {
+            "process": "c:0000000000000004"
+          }
+        ],
+        "state": {
+          "cursor": "c:0000000000000004",
+          "groups": {
+            "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M": {
+              "contiguous": 5,
+              "seen": []
+            }
+          },
+          "joined": [
+            "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M"
+          ]
+        }
+      }
+    ]
+  }
+}

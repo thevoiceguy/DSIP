@@ -53,6 +53,7 @@ export class Resume implements Machine {
       const p = (this.groups[group] ??= { contiguous: 0, seen: [] });
       p.contiguous = Math.max(p.contiguous, seq, ...p.seen);
       p.seen = [];
+      if (!this.joined.includes(group)) this.joined = [...this.joined, group].sort(); // an external commit is a join
     } else {
       if ("cursor_invalid" in e) this.cursor = null; // mailbox.cursor-invalid: re-sync from null
       emit.push({ sync: this.cursor === null ? { since: null } : { since: this.cursor, ack_through: this.cursor } });
@@ -80,6 +81,9 @@ export class Resume implements Machine {
       if (this.joined.includes(group)) return { duplicate: cursor }; // its KeyPackage is consumed
       if (item["sibling"] === true) return { sibling: cursor }; // acknowledged, not a join (M§12.3 step 5)
       this.joined = [...this.joined, group].sort();
+      // spec-gap 83: the welcome carries the seq of the commit that added this device — its exact position. What is
+      // at or below it is pre-join history; without it the first item processed is taken as the position (`mark`).
+      if (typeof item["seq"] === "number") this.groups[group] = { contiguous: item["seq"], seen: [] };
       return { process: cursor };
     }
     // MLS cannot decrypt twice, so a redelivered sequenced item is recognised by its seq alone;

@@ -1,0 +1,104 @@
+{
+  "vector": "messaging/resume-late-item-after-the-join-is-processed",
+  "format": 1,
+  "kind": "messaging",
+  "description": "Why the position comes from the welcome and not from arrival order: after a hub handover wait (spec-gap 71) a mailbox stores the old hub's late items behind newer ones. The first item a new member meets is then not its first: the lower one that follows is real, and is processed.",
+  "spec_ref": [
+    "M§5.4",
+    "M§8.5",
+    "M§6.5",
+    "M§7.4"
+  ],
+  "context": {
+    "component": "resume",
+    "cursor": null,
+    "groups": {},
+    "joined": []
+  },
+  "input": {
+    "check": "resume-trace",
+    "steps": [
+      {
+        "event": {
+          "items": {
+            "items": [
+              {
+                "cursor": "c:0000000000000001",
+                "class": "welcome",
+                "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+                "seq": 7
+              },
+              {
+                "cursor": "c:0000000000000002",
+                "class": "application",
+                "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+                "seq": 9
+              }
+            ]
+          }
+        }
+      },
+      {
+        "event": {
+          "items": {
+            "items": [
+              {
+                "cursor": "c:0000000000000003",
+                "class": "application",
+                "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+                "seq": 8
+              }
+            ]
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "process": "c:0000000000000001"
+          },
+          {
+            "process": "c:0000000000000002"
+          }
+        ],
+        "state": {
+          "cursor": "c:0000000000000002",
+          "groups": {
+            "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M": {
+              "contiguous": 7,
+              "seen": [
+                9
+              ]
+            }
+          },
+          "joined": [
+            "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M"
+          ]
+        }
+      },
+      {
+        "emit": [
+          {
+            "process": "c:0000000000000003"
+          }
+        ],
+        "state": {
+          "cursor": "c:0000000000000003",
+          "groups": {
+            "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M": {
+              "contiguous": 9,
+              "seen": []
+            }
+          },
+          "joined": [
+            "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M"
+          ]
+        }
+      }
+    ]
+  }
+}

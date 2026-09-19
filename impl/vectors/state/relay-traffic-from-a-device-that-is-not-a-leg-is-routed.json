@@ -1,0 +1,94 @@
+{
+  "vector": "state/relay-traffic-from-a-device-that-is-not-a-leg-is-routed",
+  "format": 1,
+  "kind": "state",
+  "description": "A device the relay did not fork to answers for a session the relay knows: not a leg, so not the attempt's business — routed by `to` like any envelope, never dropped silently (spec-gap 82). The initiator decides what an answer from that device is worth (§12.7 rule 2).",
+  "spec_ref": [
+    "§13.2",
+    "§13.3",
+    "§12.7"
+  ],
+  "context": {
+    "component": "relay",
+    "start": 1760000000
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "relay": "bind",
+          "device": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+          "identity": "did:key:z6MkhzX9qTeXBWkucyMVric1E9JrqUD5LPAkD2BNavakAptf"
+        },
+        "expect": {
+          "emit": [],
+          "attempts": {},
+          "inbox": {}
+        }
+      },
+      {
+        "event": {
+          "relay": "invite",
+          "session": "01K742SG00YYNVBMYAQK1CB31F",
+          "from": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+          "to": "did:web:example.com:users:bob",
+          "legs": [
+            "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+          ]
+        },
+        "expect": {
+          "emit": [
+            {
+              "deliver": {
+                "leg": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+                "type": "invite"
+              }
+            }
+          ],
+          "attempts": {
+            "01K742SG00YYNVBMYAQK1CB31F": {
+              "legs": {
+                "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn": "delivered"
+              },
+              "outcome": null
+            }
+          },
+          "inbox": {}
+        }
+      },
+      {
+        "event": {
+          "recv": {
+            "type": "answer",
+            "id": "01K742SMW8539W6SNVS35ENCD8",
+            "from": "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ",
+            "session": "01K742SG00YYNVBMYAQK1CB31F",
+            "to": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+            "answered_by": "user"
+          }
+        },
+        "expect": {
+          "emit": [
+            {
+              "deliver": {
+                "leg": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+                "type": "answer",
+                "id": "01K742SMW8539W6SNVS35ENCD8"
+              }
+            }
+          ],
+          "attempts": {
+            "01K742SG00YYNVBMYAQK1CB31F": {
+              "legs": {
+                "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn": "delivered"
+              },
+              "outcome": null
+            }
+          },
+          "inbox": {}
+        }
+      }
+    ]
+  },
+  "expect": {}
+}

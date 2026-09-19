@@ -75,14 +75,15 @@ class Relay:
             for sid, a in self.attempts.items():
                 if a.identity == identity and a.outcome is None and device not in a.legs:
                     inv = self.invites.get(sid)
-                    if inv is not None and inv.get("expires_at", self.now + 1) > self.now:
+                    # unexpired as the envelope pipeline means it: `expired` is expires_at < now (§12.9)
+                    if inv is not None and inv.get("expires_at", self.now + 1) >= self.now:
                         a.legs[device] = "delivered"
                         self.emit({"deliver": {"leg": device, "type": "invite", "id": sid}})
         elif ev["relay"] == "unbind":
             self.bindings.get(ev["identity"], set()).discard(ev["device"])
         elif ev["relay"] == "leg_expired":
-            a = self.attempts[ev["session"]]
-            if a.legs.get(ev["leg"]) == "delivered":
+            a = self.attempts.get(ev["session"])  # an expiry for an attempt no longer held changes nothing
+            if a is not None and a.legs.get(ev["leg"]) == "delivered":
                 a.legs[ev["leg"]] = "expired"
                 self.check_complete(a)
         else:
@@ -172,18 +173,21 @@ class Relay:
             # plain routing by `to` (§13.2), queued for a known-offline device (§13.3).
             return self.route_plain(m)
         if t == "cancel" and m["from"] == a.initiator:
-            # §12.7 rule 3: per-leg cancel to every leg that has not terminated
+            # §12.7 rule 3: per-leg cancel to every leg that has not terminated — or, addressed to a device, to that
+            # leg alone (§12.11: "a specific device DID (targeted cancel of one leg)")
+            only = m.get("to") if m.get("to") in a.legs else None
+            if only is None and m.get("to") not in (None, a.identity):
+                return self.route_plain(m)  # addressed to a device that is no leg of this attempt: not the attempt's business
             for leg, st in a.legs.items():
-                if st == "delivered":
+                if st == "delivered" and only in (None, leg):
                     a.legs[leg] = "cancelled"
                     self.emit({"deliver": {"leg": leg, "type": "cancel", "reason": m["reason"]}})
-            if a.outcome is None:
+            if a.outcome is None and "delivered" not in a.legs.values():
                 a.outcome = "cancelled"
             return
         leg = m["from"]
         if a.legs.get(leg) is None:
-            self.emit({"drop": "unknown-leg"})
-            return
+            return self.route_plain(m)  # spec-gap 82: not a leg of this attempt — routed like any envelope, never dropped
         if a.legs[leg] in TERMINAL and not (t == "answer" and a.legs[leg] == "answered"):
             self.emit({"drop": "leg-terminated"})
             return
@@ -210,7 +214,9 @@ class Relay:
         elif self.known(m.get("to", "")):
             self.enqueue(m)
         else:
-            self.emit({"drop": "unknown-attempt"})
+            # spec-gap 82: §13.2 — a relay MUST NOT silently drop an envelope on a live connection. Traffic for a session
+            # it holds no attempt for is routed like any envelope; with no route, the sender is told so.
+            self.emit({"send": {"type": "error", "to": m["from"], "reason": "transport.unknown-recipient", "in_reply_to": m["id"]}})
 
     def check_complete(self, a: Attempt) -> None:
         """§12.7 rule 6: when the final outstanding leg terminates without an answer, forward the

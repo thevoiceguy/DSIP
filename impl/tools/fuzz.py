@@ -240,6 +240,8 @@ def gen_resume(r: random.Random):
                     it["seq"] = r.randint(1, 6)
                 if cls == "welcome" and r.random() < 0.3:
                     it["sibling"] = True
+                if cls == "welcome" and r.random() < 0.5:
+                    it["seq"] = r.randint(1, 5)  # the adding commit's seq: where the device starts counting (spec-gap 83)
                 items.append(it)
             body = {"items": items}
             if r.random() < 0.2:
@@ -533,10 +535,8 @@ TARGETS = {
 
 # Targets where the implementations are known to differ and the difference is a protocol decision, not a bug
 # (impl/docs/spec-gaps.md). `--target all` leaves them out so CI stays meaningful; name them to run them.
-OPEN = {
-    "relay": "session traffic for a session the relay never saw an invite for: dropped, or routed by `to` (spec-gap 82)",
-    "resume": "a group's first sequenced item: the position it starts counting from, or one seq seen beyond a gap (spec-gap 83)",
-}
+# Empty since spec-gaps 82 (relay) and 83 (resume) were decided: a new open question goes here with its gap number.
+OPEN: dict[str, str] = {}
 
 # ---------------------------------------------------------------- probes
 

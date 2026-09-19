@@ -32,16 +32,16 @@ python3 ../impl/tools/parity_ts.py       # Python harness vs this implementation
 
 ## Coverage
 
-**Every vector: 893 of 893**, no kind skipped. Python/TypeScript parity compares actual with actual on all of them.
+**Every vector: 909 of 909**, no kind skipped. Python/TypeScript parity compares actual with actual on all of them.
 
 | Kind | Vectors | Modules |
 |---|---|---|
 | `envelope`, `transport`, `dht` | 65, 13, 12 | `envelope.ts`, `did.ts`, `encoding.ts`, `dht.ts` |
 | `payload`, `semantic` | 97, 50 | `schema.ts`, `semantic.ts`, `registry.ts` |
-| `state` | 90 | `endpoint.ts`, `relay.ts`, `broadcast-state.ts`, `timers.ts` |
+| `state` | 100 | `endpoint.ts`, `relay.ts`, `broadcast-state.ts`, `timers.ts` |
 | `broadcast`, `trust`, `media-binding` | 21, 13, 42 | `broadcast.ts`, `trust.ts`, `binding.ts` |
 | `gateway` | 66 | `gateway.ts` |
-| `messaging` | 424 | `messaging/`: `message`, `object`, `rules`, `blobs`, `crypto` (stateless, 232); `device`, `sync`, `client`, `hub`, `mailbox` (the nine trace machines, 192) |
+| `messaging` | 430 | `messaging/`: `message`, `object`, `rules`, `blobs`, `crypto` (stateless, 233); `device`, `sync`, `client`, `hub`, `mailbox` (the nine trace machines, 197) |
 
 What this is not: a product. It has no transport, no MLS library and no storage — it is the protocol's *decisions*,
 which is what the vectors measure. The wire demos in `../impl/demos` remain the Rust implementation's.
@@ -108,6 +108,8 @@ Stage 6 (`messaging`, the nine trace machines):
 |---|---|---|
 | 21 | Passing all 867 vectors was not agreement. Random traces run through all three implementations (180 for the device machines, about 700 for the hub, about 2,400 for the mailbox; Rust and Python never differed from each other) found: the order of a hub's refusals — notably that a re-deposit is answered `duplicate` *before* membership and epoch; that a handover wait holds off everything from the new hub and is judged before numbering; that grant deposits are rate-limited like introductions; push order; and that the §15.3 fallback's one retry is its own. | spec-gap 81; 8 new vectors (874). |
 | 22 | The README's mailbox table left out three events (`first_contact`, `forward`, `forward_failed`), two emissions (`handover_expired`, `close`), the `key_packages.devices` map, and the hub's ack-the-head rule. | README. |
+| 23 | Deciding spec-gap 82 (a relay routes by `to`) took the relay fuzz target out of quarantine, and its first clean-rules runs split the implementations four more ways: traffic from a device that is not a leg, a `cancel` addressed to one leg's device (this implementation cancelled every leg; §12.11 says one), a leg added in the invite's last second, and the order of simultaneous expiries. | Spec §13.3; ten `state/relay-*` vectors; all three implementations. |
+| 24 | Spec-gap 83 (a device starts counting at its welcome's `seq`) reversed a vector: `deposit-welcome-with-seq-refused` pinned the reading the decision rejects, and became `deposit-welcome-with-seq-valid`. This implementation also did not treat an external-commit re-join as a join, so a late welcome for the group was processed twice. | M§5.2, M§6.5; `resume-*` vectors incl. `resume-rejoin-is-a-join`. |
 
 Readings this implementation makes that no vector pins yet (found by mutating the code and seeing the suite stay green):
 

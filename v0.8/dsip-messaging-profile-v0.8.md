@@ -318,7 +318,9 @@ Fields:
   | `introduction` | a signed core `introduction` (§19.4, M§14.1) in `envelope`, with `recipient` and no `group` (spec-gap 54) | until its `expires_at` |
   | `grant` | a signed core `grant` answering one, in `envelope`, with `recipient` and no `group` (spec-gap 54) | until its `expires_at` |
 
-- `seq` — present on hub fan-out deposits: the hub's order for this group (M§6.5).
+- `seq` — present on hub fan-out deposits: the hub's order for this group (M§6.5). On a hub-forwarded `welcome`
+  (spec-gap 83) it is the `seq` of the commit that added the device: not a place in the sequence — the commit holds it —
+  but where the new member starts counting the group.
 - `blobs` — the ciphertext manifest of blobs the content references (M§8.4): URI, SHA-256 of the
   ciphertext (lowercase hex), ciphertext size. Keys are **never** here.
 - `hub` — on `welcome`: `{ "did": …, "uri": … }` of the group's hub, so the new member's mailbox
@@ -682,7 +684,8 @@ The hub MUST:
 retry as a sequenced item, in that identity's own queue (a member adding its own device needs both the commit, for
 its other devices, and the welcome, for the new one — same `seq`, two deposits). Until that mailbox acknowledges the
 welcome, the hub sends it nothing else for the group: it has no registration yet and would refuse the items (M§6.6).
-A welcome carries no `seq` on the wire, so a hub matches its acknowledgement by the deposit it answers. A member
+A welcome's `seq` is its commit's (M§5.2; spec-gap 83), not a place of its own: a mailbox never sequences a welcome
+by it or echoes it in the acknowledgement, so a hub matches a welcome's acknowledgement by the deposit it answers. A member
 mailbox answers a welcome whose MLS bytes it already holds `accepted` with `duplicate` and that welcome's cursor
 (M§9.3's rule, applied to welcomes): a redelivery is the same Welcome, while a second welcome for a group the owner
 is already in is a new invitation for another of its devices (M§6.7) and is stored.
@@ -729,9 +732,13 @@ arriving later is a duplicate.
   spec-gap 47), or a device would see its own deposits as a gap and re-join for nothing.
 - **After re-joining**, every `seq` up to the highest the device has seen is passed, so what the mailbox
   lost, and what the device held, never come back as gaps.
-- **A device counts gaps from where it starts**, not from `seq` 1: a device that has just joined takes the
-  first sequenced item it processes as its position (what came before its welcome is history, M§12.3 step 5),
-  and one that had processed items takes the position it committed.
+- **A device counts gaps from where it starts**, not from `seq` 1. (spec-gap 83) Where it starts is the `seq` its
+  `welcome` carries — the commit that added it: everything at or below it is history the device cannot read (M§12.3
+  step 5), a duplicate if it ever arrives, never a gap; everything above it is the device's to process, in whatever order
+  a mailbox delivers it (after a handover wait, M§7.4, that order is not `seq` order). A welcome with no `seq` leaves the
+  older rule: the first sequenced item the device processes is its position. A device that had processed items takes the
+  position it committed; one that joined by external commit takes the `seq` of its own `accepted`. The dedupe state
+  (M§8.5) and the gap rule share this one position.
 
 **What the hub cannot do** (MLS guarantees, not policy): read content, forge content, add or remove
 members, or change the hub without a member's signed commit. **What it can do:** withhold or delay

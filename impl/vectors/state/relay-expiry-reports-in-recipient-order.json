@@ -1,0 +1,96 @@
+{
+  "vector": "state/relay-expiry-reports-in-recipient-order",
+  "format": 1,
+  "kind": "state",
+  "description": "Held envelopes that expire together are dropped in recipient order, whatever order they were queued in.",
+  "spec_ref": [
+    "§13.3"
+  ],
+  "context": {
+    "component": "relay",
+    "start": 1760000000
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "recv": {
+            "type": "introduction",
+            "id": "01K742SG0015G0ZQF8HNF624QW",
+            "from": "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL",
+            "to": "did:web:zed.example",
+            "purpose": "hi",
+            "expires_at": 1760000600
+          }
+        },
+        "expect": {
+          "emit": [
+            {
+              "queue": {
+                "to": "did:web:zed.example",
+                "type": "introduction"
+              }
+            }
+          ],
+          "attempts": {},
+          "inbox": {
+            "did:web:zed.example": 1
+          }
+        }
+      },
+      {
+        "event": {
+          "recv": {
+            "type": "introduction",
+            "id": "01K742SG005D312BE76VPEM91X",
+            "from": "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL",
+            "to": "did:web:abe.example",
+            "purpose": "hi",
+            "expires_at": 1760000600
+          }
+        },
+        "expect": {
+          "emit": [
+            {
+              "queue": {
+                "to": "did:web:abe.example",
+                "type": "introduction"
+              }
+            }
+          ],
+          "attempts": {},
+          "inbox": {
+            "did:web:abe.example": 1,
+            "did:web:zed.example": 1
+          }
+        }
+      },
+      {
+        "event": {
+          "advance": 601
+        },
+        "expect": {
+          "emit": [
+            {
+              "dequeue": {
+                "to": "did:web:abe.example",
+                "type": "introduction",
+                "why": "expired"
+              }
+            },
+            {
+              "dequeue": {
+                "to": "did:web:zed.example",
+                "type": "introduction",
+                "why": "expired"
+              }
+            }
+          ],
+          "attempts": {},
+          "inbox": {}
+        }
+      }
+    ]
+  },
+  "expect": {}
+}

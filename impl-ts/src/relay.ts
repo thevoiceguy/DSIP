@@ -92,7 +92,7 @@ export class Relay {
   }
 
   private devicesOf(identity: string): string[] {
-    return [...this.bound.entries()].filter(([, id]) => id === identity).map(([device]) => device);
+    return [...this.bound.entries()].filter(([, id]) => id === identity).map(([device]) => device).sort();
   }
 
   private fork(session: string, from: string, to: string, legs: string[], expires: number | undefined, withId: boolean): void {
@@ -115,12 +115,13 @@ export class Relay {
   }
 
   private expireQueue(): void {
-    this.queue = this.queue.filter((q) => {
-      if (q.until > this.now) return true;
-      // §13.3: queued envelopes expire silently; the initiator's timers are the backstop
+    // §13.3: queued envelopes expire silently; the initiator's timers are the backstop.
+    // Reported in recipient order, then in the order they were queued (the suite's order wherever a relay fans out).
+    const expired = this.queue.filter((q) => q.until <= this.now);
+    this.queue = this.queue.filter((q) => q.until > this.now);
+    for (const q of [...expired].sort((a, b) => (a.to < b.to ? -1 : a.to > b.to ? 1 : 0))) {
       this.emit.push({ dequeue: { to: q.to, type: q.msg["type"]!, why: "expired" } });
-      return false;
-    });
+    }
   }
 
   private bind(device: string, identity: string): void {
@@ -166,11 +167,18 @@ export class Relay {
     const session = m["session"] as string;
     const a = this.attempts.get(session);
     const from = m["from"] as string;
-    if (a && type === "cancel" && from === a.from) return this.cancel(session, a, m);
-    if (type === "cancel" && this.queue.some((q) => q.msg["type"] === "invite" && q.msg["id"] === session)) {
-      // §13.3: a withdrawn invite that was never delivered is dropped from the queue, and so is its cancel
+    if (a && type === "cancel" && from === a.from) {
+      // §12.11: to the invited identity (every live leg) or to one leg's device; anything else is not this attempt's business
+      const to = m["to"] as string | undefined;
+      if (to === undefined || to === a.to || a.legs.has(to)) return this.cancel(session, a, m);
+      return this.route(m);
+    }
+    const queuedFor = (q: Queued): boolean => q.msg["type"] === "invite" && q.msg["id"] === session && q.to === m["to"];
+    if (type === "cancel" && this.queue.some(queuedFor)) {
+      // §13.3: a withdrawn invite that was never delivered is dropped from the queue, and so is its cancel — when the
+      // cancel is addressed as the invite was; one addressed to a single device withdraws nothing held for the identity
       this.queue = this.queue.filter((q) => {
-        if (q.msg["id"] !== session) return true;
+        if (!queuedFor(q)) return true;
         this.emit.push({ dequeue: { to: q.to, type: "invite", why: "cancelled" } });
         return false;
       });
@@ -179,10 +187,24 @@ export class Relay {
     if (a && a.legs.has(from) && !("in_reply_to" in m) && ["progress", "answer", "reject"].includes(type)) {
       return this.fromLeg(session, a, m);
     }
-    if (to === undefined) return void this.emit.push({ drop: "unroutable" });
-    // Post-answer traffic is not attempt-scoped: routed by `to`.
-    if (this.bound.has(to)) return void this.emit.push({ deliver: { leg: to, type, id: m["id"]! } });
-    this.hold(to, m);
+    this.route(m);
+  }
+
+  /**
+   * Plain routing by `to`, for everything that is not an attempt's own leg traffic — including the traffic of a
+   * session this relay holds no attempt for (it restarted mid-call).
+   * Spec: §13.2 (never a silent drop: no route is said so), §13.3 (held for a known, offline recipient); spec-gap 82.
+   */
+  private route(m: JsonObject): void {
+    const to = (m["to"] ?? "") as string;
+    const targets = this.bound.has(to) ? [to] : this.devicesOf(to);
+    if (targets.length > 0) {
+      for (const leg of targets) this.emit.push({ deliver: { leg, type: m["type"]!, id: m["id"]! } });
+    } else if (this.known.has(to)) {
+      this.hold(to, m);
+    } else {
+      this.emit.push({ send: { type: "error", to: m["from"]!, reason: "transport.unknown-recipient", in_reply_to: m["id"]! } });
+    }
   }
 
   private fromLeg(session: string, a: Attempt, m: JsonObject): void {
@@ -190,7 +212,8 @@ export class Relay {
     const leg = m["from"] as string;
     const state = a.legs.get(leg)!;
     if (type === "answer") {
-      if (state !== "delivered") return void this.emit.push({ drop: "leg-terminated" });
+      // a leg that has answered may be heard again; any other terminated leg is done
+      if (state !== "delivered" && state !== "answered") return void this.emit.push({ drop: "leg-terminated" });
       a.legs.set(leg, "answered");
       a.outcome ??= "answered";
       // A late answer is still forwarded: only the initiator can end that leg (§12.7 rule 4).
