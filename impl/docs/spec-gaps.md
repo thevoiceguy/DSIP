@@ -1560,6 +1560,13 @@ one another member creates. If nobody has anything to say, the group just stays 
 what M§7.5 says. Whether receipts and typing (which also go through the hub) should count as content that keeps
 the outbox alive is a host choice; the reference device queues application content only.
 
+A re-send into the successor can itself fail. The items have left the dead group's outbox by then, so the reference
+device must not lose them: an item whose deposit failed after it was encrypted for the successor is treated as a
+deposit with no answer (it stays pending in the successor's outbox and is retried with the backoff, the later items
+queueing behind it — `RESEND-PENDING`), and the successor's hub being unreachable too is the same state reached
+through the ordinary answer. This is host behaviour built from the pinned `no_answer` event, not a new machine rule.
+Still open: a failure to create the successor at all (no group to keep the items pending in) loses them.
+
 **Suggested fix.** Carry the M§9.4 text into the next profile revision; register `mailbox.hub-unreachable`.
 
 ## 73. §9.3 / §15.1 / §15.4 — reason tokens on `notify`
