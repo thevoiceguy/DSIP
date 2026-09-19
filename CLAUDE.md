@@ -125,6 +125,7 @@ python3 impl/tools/run_vectors.py            # Python side of parity
 # Rust: build, test, vector runner (Rust side of parity), docs
 cargo build --workspace                       # run from impl/
 cargo test --workspace
+cargo clippy --workspace --all-targets --all-features -- -D warnings   # CI-enforced
 cargo run -p dsip-cli -- vectors run
 cargo doc --workspace --no-deps
 python3 impl/tools/parity.py                  # Rust/Python, actual against actual
