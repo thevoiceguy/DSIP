@@ -1587,6 +1587,10 @@ vector needed no change. Reference: all three implementations agree; `impl-ts/sr
 cells of `session.expired` and `policy.terminated` (and whichever others §9.3 means), or state that the column
 governs only `reject`/`cancel`/`bye`/`error`.
 
+**Applied to the spec (2026-09-18).** The second form, which is what the vectors pin: §15.1 names a terminal `notify`
+among the reason-carrying types, and §15.4 says the "valid on" column governs the four session types and not `notify`,
+where any registered token is valid. A.5 errata. No vector or code change.
+
 ## 74. §19.4 — who an introduction's outcome is addressed to
 
 **Gap.** §19.4 gives two signed outcomes for an introduction, `grant` and `reject`, and says nothing about their `to`.
@@ -1622,6 +1626,10 @@ text does not. Found by the second implementation, which followed §12.5 to the 
 
 **Suggested fix.** §12.5 rule 2 and the §12.4 responder table: except reason `session.answered-elsewhere` from the
 crossed-cancel rule.
+
+**Applied to the spec (2026-09-18).** §12.5 rule 2 carries the exception and its reason (the token is sent *because*
+an answer was accepted, so the answered leg receiving it is the one that answered); the §12.4 responder table has the
+row. A.5 errata. No vector or code change.
 
 ## 76. §12.7 rule 6 — the attempt outcome when no leg rejected
 
@@ -1678,6 +1686,10 @@ are useful mid-call and which `gateway/inbound-bye-q850-41-unreachable` already 
 **Draft choice.** (a). Vectors `inbound-active-declined-becomes-mapped`, `-unavailable-becomes-mapped`,
 `-not-in-service-becomes-mapped`, `inbound-active-media-token-stays`; all three implementations agree.
 
+**Applied to the spec (2026-09-18).** G§4 lists the eight tokens and says every other mapped token is kept mid-call.
+The §15.4 point below is **not** applied: it changes which `bye` reasons warn `reason-not-valid-on-type`, so it is a
+registry decision with vector changes, not wording.
+
 **Suggested fix.** G§4: replace the parenthetical with the eight tokens. Separately, §15.4's "valid on" for
 `gateway.unreachable`, `media.unsupported` and `session.timeout` should admit `bye` if a gateway may send them there.
 
@@ -1703,6 +1715,8 @@ already carries the literal token.
 
 **Suggested fix.** G§4.2: add the cause to each category fallback, and a sentence for BYE causes.
 
+**Applied to the spec (2026-09-18).** G§4.2 gives each category fallback its cause and has a "BYE causes" paragraph.
+
 ## 80. M§5.2 — the deposit class field table
 
 **Gap.** M§5.1 orders a deposit's refusals "… the class (unregistered → `mailbox.unsupported-class`), the class field
@@ -1725,6 +1739,10 @@ and ignore the rest — simpler, but then two services disagree about the same d
 
 **Suggested fix.** M§5.2: replace the "carries" column with MUST-carry / MAY-carry columns, and say that `recipient`
 is class-independent.
+
+**Applied to the spec (2026-09-18).** M§5.2 keeps its descriptive table and gains "The class field table" beneath the
+field list — MUST-carry / MAY-carry per class, `recipient` class-independent, `welcome` with `seq` per spec-gap 83 — the
+same table the vectors README carries.
 
 ## 81. M§6.5 / M§7.4 / M§14.1 — orders and scopes the traces never exercised
 
@@ -1768,7 +1786,11 @@ limit`, `-bypass-is-single-use`, `mailbox-introductions-sent-survives-restart` a
 message vectors; all three mailbox machines; the mailbox service passes a grant's `session` through and `dsip-msg`
 announces an introduction to its mailbox before sending it.
 
-**Suggested fix (still open).** M§6.5: state the order. M§7.4: "refuses every deposit from the new hub".
+**Suggested fix.** M§6.5: state the order. M§7.4: "refuses every deposit from the new hub".
+
+**Applied to the spec (2026-09-18).** M§6.5 has "The order of a hub's refusals" (seven steps, the duplicate answer
+before membership and epoch, with why); M§7.4 says the wait covers every deposit from the new hub and that the retry
+answer comes before the numbering is judged.
 
 ## 82. §12.7 / §13.3 — session traffic for a session the relay never saw
 
