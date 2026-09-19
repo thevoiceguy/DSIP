@@ -1560,6 +1560,18 @@ one another member creates. If nobody has anything to say, the group just stays 
 what M§7.5 says. Whether receipts and typing (which also go through the hub) should count as content that keeps
 the outbox alive is a host choice; the reference device queues application content only.
 
+The hand-over to the successor can itself fail, and the reference device must not lose content to that. An item
+leaves the dead group's durable outbox only once the successor's outbox has it. An item whose deposit failed after it
+was encrypted for the successor is treated as a deposit with no answer (it stays pending in the successor's outbox
+and is retried with the backoff, the later items queueing behind it — `RESEND-PENDING`); the successor's hub being
+unreachable too is the same state reached through the ordinary answer. If the successor cannot be created at all, or
+an item cannot be encrypted for it, the items stay in the dead group's outbox in order and the hand-over is tried
+again with the §13.2 backoff (`SUCCESSOR-RETRY`); the dead group's outage stays abandoned with its start kept, so
+nothing goes to the dead hub meanwhile and a restart resumes the hand-over. Delivery into the successor is therefore
+at-least-once: a crash between the successor's `accepted` and the local save re-sends that item (same content `id`).
+This is host behaviour built from the pinned `no_answer` event and the restart rule above; the retry cadence of the
+hand-over is the one thing here no vector pins — it borrows the §13.2 numbers the outbox already uses.
+
 **Suggested fix.** Carry the M§9.4 text into the next profile revision; register `mailbox.hub-unreachable`.
 
 ## 73. §9.3 / §15.1 / §15.4 — reason tokens on `notify`
