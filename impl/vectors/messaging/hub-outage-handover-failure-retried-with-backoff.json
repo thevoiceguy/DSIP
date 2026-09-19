@@ -1,0 +1,447 @@
+{
+  "vector": "messaging/hub-outage-handover-failure-retried-with-backoff",
+  "format": 1,
+  "kind": "messaging",
+  "description": "The hand-over to the successor can fail (no successor could be created, or an item could not be moved): the abandoned outbox retries it with the §13.2 backoff started afresh — 1 s, doubling, 60 s ceiling — one retry per schedule, and still takes no deposits.",
+  "spec_ref": [
+    "M§9.4",
+    "M§9.3",
+    "§13.2",
+    "M§7.5"
+  ],
+  "context": {
+    "component": "hub-outage",
+    "now": 1760000000,
+    "hub_timeout": 10
+  },
+  "input": {
+    "check": "hub-outage-trace",
+    "steps": [
+      {
+        "event": {
+          "deposit": {
+            "id": "01K742SG00D93265YJRNSDN4ZD"
+          }
+        }
+      },
+      {
+        "event": {
+          "answer": {
+            "id": "01K742SG00D93265YJRNSDN4ZD",
+            "reason": "mailbox.hub-unreachable"
+          }
+        }
+      },
+      {
+        "event": {
+          "advance": 10
+        }
+      },
+      {
+        "event": {
+          "handover_failed": {}
+        }
+      },
+      {
+        "event": {
+          "advance": 1
+        }
+      },
+      {
+        "event": {
+          "advance": 5
+        }
+      },
+      {
+        "event": {
+          "handover_failed": {}
+        }
+      },
+      {
+        "event": {
+          "advance": 1
+        }
+      },
+      {
+        "event": {
+          "deposit": {
+            "id": "01K742SG00JS05SXJN2KSK6DDV"
+          }
+        }
+      },
+      {
+        "event": {
+          "advance": 1
+        }
+      },
+      {
+        "event": {
+          "handover_failed": {}
+        }
+      },
+      {
+        "event": {
+          "advance": 4
+        }
+      },
+      {
+        "event": {
+          "handover_failed": {}
+        }
+      },
+      {
+        "event": {
+          "advance": 8
+        }
+      },
+      {
+        "event": {
+          "handover_failed": {}
+        }
+      },
+      {
+        "event": {
+          "advance": 16
+        }
+      },
+      {
+        "event": {
+          "handover_failed": {}
+        }
+      },
+      {
+        "event": {
+          "advance": 32
+        }
+      },
+      {
+        "event": {
+          "handover_failed": {}
+        }
+      },
+      {
+        "event": {
+          "advance": 59
+        }
+      },
+      {
+        "event": {
+          "advance": 1
+        }
+      },
+      {
+        "event": {
+          "handover_failed": {}
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "forward": "01K742SG00D93265YJRNSDN4ZD"
+          }
+        ],
+        "state": {
+          "state": "up",
+          "pending": [
+            "01K742SG00D93265YJRNSDN4ZD"
+          ],
+          "attempt": 0,
+          "down_for": null,
+          "handover_attempt": 0
+        }
+      },
+      {
+        "emit": [
+          {
+            "retry_in": 1
+          }
+        ],
+        "state": {
+          "state": "down",
+          "pending": [
+            "01K742SG00D93265YJRNSDN4ZD"
+          ],
+          "attempt": 1,
+          "down_for": 0,
+          "handover_attempt": 0
+        }
+      },
+      {
+        "emit": [
+          {
+            "successor": {
+              "pending": [
+                "01K742SG00D93265YJRNSDN4ZD"
+              ]
+            }
+          }
+        ],
+        "state": {
+          "state": "abandoned",
+          "pending": [],
+          "attempt": 1,
+          "down_for": 10,
+          "handover_attempt": 0
+        }
+      },
+      {
+        "emit": [
+          {
+            "handover_retry_in": 1
+          }
+        ],
+        "state": {
+          "state": "abandoned",
+          "pending": [],
+          "attempt": 1,
+          "down_for": 10,
+          "handover_attempt": 1
+        }
+      },
+      {
+        "emit": [
+          {
+            "handover": "retry"
+          }
+        ],
+        "state": {
+          "state": "abandoned",
+          "pending": [],
+          "attempt": 1,
+          "down_for": 11,
+          "handover_attempt": 1
+        }
+      },
+      {
+        "emit": [],
+        "state": {
+          "state": "abandoned",
+          "pending": [],
+          "attempt": 1,
+          "down_for": 16,
+          "handover_attempt": 1
+        }
+      },
+      {
+        "emit": [
+          {
+            "handover_retry_in": 2
+          }
+        ],
+        "state": {
+          "state": "abandoned",
+          "pending": [],
+          "attempt": 1,
+          "down_for": 16,
+          "handover_attempt": 2
+        }
+      },
+      {
+        "emit": [],
+        "state": {
+          "state": "abandoned",
+          "pending": [],
+          "attempt": 1,
+          "down_for": 17,
+          "handover_attempt": 2
+        }
+      },
+      {
+        "emit": [
+          {
+            "refuse": "group-abandoned"
+          }
+        ],
+        "state": {
+          "state": "abandoned",
+          "pending": [],
+          "attempt": 1,
+          "down_for": 17,
+          "handover_attempt": 2
+        }
+      },
+      {
+        "emit": [
+          {
+            "handover": "retry"
+          }
+        ],
+        "state": {
+          "state": "abandoned",
+          "pending": [],
+          "attempt": 1,
+          "down_for": 18,
+          "handover_attempt": 2
+        }
+      },
+      {
+        "emit": [
+          {
+            "handover_retry_in": 4
+          }
+        ],
+        "state": {
+          "state": "abandoned",
+          "pending": [],
+          "attempt": 1,
+          "down_for": 18,
+          "handover_attempt": 3
+        }
+      },
+      {
+        "emit": [
+          {
+            "handover": "retry"
+          }
+        ],
+        "state": {
+          "state": "abandoned",
+          "pending": [],
+          "attempt": 1,
+          "down_for": 22,
+          "handover_attempt": 3
+        }
+      },
+      {
+        "emit": [
+          {
+            "handover_retry_in": 8
+          }
+        ],
+        "state": {
+          "state": "abandoned",
+          "pending": [],
+          "attempt": 1,
+          "down_for": 22,
+          "handover_attempt": 4
+        }
+      },
+      {
+        "emit": [
+          {
+            "handover": "retry"
+          }
+        ],
+        "state": {
+          "state": "abandoned",
+          "pending": [],
+          "attempt": 1,
+          "down_for": 30,
+          "handover_attempt": 4
+        }
+      },
+      {
+        "emit": [
+          {
+            "handover_retry_in": 16
+          }
+        ],
+        "state": {
+          "state": "abandoned",
+          "pending": [],
+          "attempt": 1,
+          "down_for": 30,
+          "handover_attempt": 5
+        }
+      },
+      {
+        "emit": [
+          {
+            "handover": "retry"
+          }
+        ],
+        "state": {
+          "state": "abandoned",
+          "pending": [],
+          "attempt": 1,
+          "down_for": 46,
+          "handover_attempt": 5
+        }
+      },
+      {
+        "emit": [
+          {
+            "handover_retry_in": 32
+          }
+        ],
+        "state": {
+          "state": "abandoned",
+          "pending": [],
+          "attempt": 1,
+          "down_for": 46,
+          "handover_attempt": 6
+        }
+      },
+      {
+        "emit": [
+          {
+            "handover": "retry"
+          }
+        ],
+        "state": {
+          "state": "abandoned",
+          "pending": [],
+          "attempt": 1,
+          "down_for": 78,
+          "handover_attempt": 6
+        }
+      },
+      {
+        "emit": [
+          {
+            "handover_retry_in": 60
+          }
+        ],
+        "state": {
+          "state": "abandoned",
+          "pending": [],
+          "attempt": 1,
+          "down_for": 78,
+          "handover_attempt": 7
+        }
+      },
+      {
+        "emit": [],
+        "state": {
+          "state": "abandoned",
+          "pending": [],
+          "attempt": 1,
+          "down_for": 137,
+          "handover_attempt": 7
+        }
+      },
+      {
+        "emit": [
+          {
+            "handover": "retry"
+          }
+        ],
+        "state": {
+          "state": "abandoned",
+          "pending": [],
+          "attempt": 1,
+          "down_for": 138,
+          "handover_attempt": 7
+        }
+      },
+      {
+        "emit": [
+          {
+            "handover_retry_in": 60
+          }
+        ],
+        "state": {
+          "state": "abandoned",
+          "pending": [],
+          "attempt": 1,
+          "down_for": 138,
+          "handover_attempt": 8
+        }
+      }
+    ]
+  }
+}

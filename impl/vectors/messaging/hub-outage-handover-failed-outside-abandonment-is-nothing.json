@@ -1,8 +1,8 @@
 {
-  "vector": "messaging/hub-outage-successor-after-threshold",
+  "vector": "messaging/hub-outage-handover-failed-outside-abandonment-is-nothing",
   "format": 1,
   "kind": "messaging",
-  "description": "A hub down for hub_timeout is the M§7.5 trigger: the device creates the successor group and hands it the pending items to re-encrypt; the dead group's outbox is abandoned and takes no more deposits.",
+  "description": "handover_failed means something only once the outbox is abandoned: with the hub up or down it emits nothing and changes nothing, and the ordinary retry goes on; two failures before the retry both count, and the later schedule replaces the earlier.",
   "spec_ref": [
     "M§9.4",
     "M§9.3",
@@ -12,11 +12,16 @@
   "context": {
     "component": "hub-outage",
     "now": 1760000000,
-    "hub_timeout": 3600
+    "hub_timeout": 10
   },
   "input": {
     "check": "hub-outage-trace",
     "steps": [
+      {
+        "event": {
+          "handover_failed": {}
+        }
+      },
       {
         "event": {
           "deposit": {
@@ -34,9 +39,7 @@
       },
       {
         "event": {
-          "deposit": {
-            "id": "01K742SG00JS05SXJN2KSK6DDV"
-          }
+          "handover_failed": {}
         }
       },
       {
@@ -46,23 +49,17 @@
       },
       {
         "event": {
-          "answer": {
-            "id": "01K742SG00D93265YJRNSDN4ZD",
-            "reason": "mailbox.hub-unreachable"
-          }
+          "advance": 9
         }
       },
       {
         "event": {
-          "advance": 3598
+          "handover_failed": {}
         }
       },
       {
         "event": {
-          "answer": {
-            "id": "01K742SG00D93265YJRNSDN4ZD",
-            "reason": "mailbox.hub-unreachable"
-          }
+          "handover_failed": {}
         }
       },
       {
@@ -72,20 +69,23 @@
       },
       {
         "event": {
-          "advance": 100
-        }
-      },
-      {
-        "event": {
-          "deposit": {
-            "id": "01K742SG00STHKDBTG5HX7QP40"
-          }
+          "advance": 1
         }
       }
     ]
   },
   "expect": {
     "steps": [
+      {
+        "emit": [],
+        "state": {
+          "state": "up",
+          "pending": [],
+          "attempt": 0,
+          "down_for": null,
+          "handover_attempt": 0
+        }
+      },
       {
         "emit": [
           {
@@ -119,16 +119,11 @@
         }
       },
       {
-        "emit": [
-          {
-            "queued": "01K742SG00JS05SXJN2KSK6DDV"
-          }
-        ],
+        "emit": [],
         "state": {
           "state": "down",
           "pending": [
-            "01K742SG00D93265YJRNSDN4ZD",
-            "01K742SG00JS05SXJN2KSK6DDV"
+            "01K742SG00D93265YJRNSDN4ZD"
           ],
           "attempt": 1,
           "down_for": 0,
@@ -144,8 +139,7 @@
         "state": {
           "state": "down",
           "pending": [
-            "01K742SG00D93265YJRNSDN4ZD",
-            "01K742SG00JS05SXJN2KSK6DDV"
+            "01K742SG00D93265YJRNSDN4ZD"
           ],
           "attempt": 1,
           "down_for": 1,
@@ -155,61 +149,9 @@
       {
         "emit": [
           {
-            "retry_in": 2
-          }
-        ],
-        "state": {
-          "state": "down",
-          "pending": [
-            "01K742SG00D93265YJRNSDN4ZD",
-            "01K742SG00JS05SXJN2KSK6DDV"
-          ],
-          "attempt": 2,
-          "down_for": 1,
-          "handover_attempt": 0
-        }
-      },
-      {
-        "emit": [
-          {
-            "forward": "01K742SG00D93265YJRNSDN4ZD"
-          }
-        ],
-        "state": {
-          "state": "down",
-          "pending": [
-            "01K742SG00D93265YJRNSDN4ZD",
-            "01K742SG00JS05SXJN2KSK6DDV"
-          ],
-          "attempt": 2,
-          "down_for": 3599,
-          "handover_attempt": 0
-        }
-      },
-      {
-        "emit": [
-          {
-            "retry_in": 4
-          }
-        ],
-        "state": {
-          "state": "down",
-          "pending": [
-            "01K742SG00D93265YJRNSDN4ZD",
-            "01K742SG00JS05SXJN2KSK6DDV"
-          ],
-          "attempt": 3,
-          "down_for": 3599,
-          "handover_attempt": 0
-        }
-      },
-      {
-        "emit": [
-          {
             "successor": {
               "pending": [
-                "01K742SG00D93265YJRNSDN4ZD",
-                "01K742SG00JS05SXJN2KSK6DDV"
+                "01K742SG00D93265YJRNSDN4ZD"
               ]
             }
           }
@@ -217,9 +159,37 @@
         "state": {
           "state": "abandoned",
           "pending": [],
-          "attempt": 3,
-          "down_for": 3600,
+          "attempt": 1,
+          "down_for": 10,
           "handover_attempt": 0
+        }
+      },
+      {
+        "emit": [
+          {
+            "handover_retry_in": 1
+          }
+        ],
+        "state": {
+          "state": "abandoned",
+          "pending": [],
+          "attempt": 1,
+          "down_for": 10,
+          "handover_attempt": 1
+        }
+      },
+      {
+        "emit": [
+          {
+            "handover_retry_in": 2
+          }
+        ],
+        "state": {
+          "state": "abandoned",
+          "pending": [],
+          "attempt": 1,
+          "down_for": 10,
+          "handover_attempt": 2
         }
       },
       {
@@ -227,23 +197,23 @@
         "state": {
           "state": "abandoned",
           "pending": [],
-          "attempt": 3,
-          "down_for": 3700,
-          "handover_attempt": 0
+          "attempt": 1,
+          "down_for": 11,
+          "handover_attempt": 2
         }
       },
       {
         "emit": [
           {
-            "refuse": "group-abandoned"
+            "handover": "retry"
           }
         ],
         "state": {
           "state": "abandoned",
           "pending": [],
-          "attempt": 3,
-          "down_for": 3700,
-          "handover_attempt": 0
+          "attempt": 1,
+          "down_for": 12,
+          "handover_attempt": 2
         }
       }
     ]

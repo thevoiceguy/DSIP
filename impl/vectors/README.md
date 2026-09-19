@@ -537,7 +537,7 @@ Checks the table above did not list (found by the second implementation; all are
 | `blob-put` | `mailbox {did, serves, max_blob_bytes}`, `authorization` (`{identity, payload}` already verified, or `null`), `request {path_sha256, body_size, body_sha256}`, `stored` | `{status, reason}` in M§5.6 order — 401 `policy.blocked` → 403 `policy.blocked` (`to`) → 403 `transport.unknown-recipient` → 400 `policy.blocked` (path) → 413 `mailbox.object-too-large` → (a stored hash: `{status: 200, accepted: {in_reply_to, duplicate: true}}`) → 400 `mailbox.blob-mismatch` → `{status: 201, accepted: {in_reply_to}}` (spec-gap 48) |
 | `blob-get` | `path_sha256`, `stored` | `{status: 200\|404}` |
 | `registration-on-removal` | `me`, `remaining_identities` | `{left}` — true only when no leaf of the identity remains (M§5.7, spec-gap 53) |
-| `hub-outage-trace` | see spec-gap 72 | per step `emit` and `state` |
+| `hub-outage-trace` | see spec-gap 72 (events `deposit`, `answer`, `no_answer`, `advance`, `handover_failed`) | per step `emit` and `state` `{state, pending, attempt, down_for, handover_attempt}` |
 
 **The deposit class table** behind `deposit-fields` (M§5.2 "The class field table" is the same table, spec-gap 80).
 Every deposit may carry `recipient` — it is addressing, not class. Beyond the envelope fields, `class` and `recipient`:

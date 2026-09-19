@@ -142,7 +142,8 @@
             "01K742SG00D93265YJRNSDN4ZD"
           ],
           "attempt": 0,
-          "down_for": null
+          "down_for": null,
+          "handover_attempt": 0
         }
       },
       {
@@ -157,7 +158,8 @@
             "01K742SG00D93265YJRNSDN4ZD"
           ],
           "attempt": 1,
-          "down_for": 0
+          "down_for": 0,
+          "handover_attempt": 0
         }
       },
       {
@@ -172,7 +174,8 @@
             "01K742SG00D93265YJRNSDN4ZD"
           ],
           "attempt": 1,
-          "down_for": 1
+          "down_for": 1,
+          "handover_attempt": 0
         }
       },
       {
@@ -187,7 +190,8 @@
             "01K742SG00D93265YJRNSDN4ZD"
           ],
           "attempt": 2,
-          "down_for": 1
+          "down_for": 1,
+          "handover_attempt": 0
         }
       },
       {
@@ -198,7 +202,8 @@
             "01K742SG00D93265YJRNSDN4ZD"
           ],
           "attempt": 2,
-          "down_for": 2
+          "down_for": 2,
+          "handover_attempt": 0
         }
       },
       {
@@ -213,7 +218,8 @@
             "01K742SG00D93265YJRNSDN4ZD"
           ],
           "attempt": 2,
-          "down_for": 3
+          "down_for": 3,
+          "handover_attempt": 0
         }
       },
       {
@@ -228,7 +234,8 @@
             "01K742SG00D93265YJRNSDN4ZD"
           ],
           "attempt": 3,
-          "down_for": 3
+          "down_for": 3,
+          "handover_attempt": 0
         }
       },
       {
@@ -243,7 +250,8 @@
             "01K742SG00D93265YJRNSDN4ZD"
           ],
           "attempt": 3,
-          "down_for": 7
+          "down_for": 7,
+          "handover_attempt": 0
         }
       },
       {
@@ -258,7 +266,8 @@
             "01K742SG00D93265YJRNSDN4ZD"
           ],
           "attempt": 4,
-          "down_for": 7
+          "down_for": 7,
+          "handover_attempt": 0
         }
       },
       {
@@ -273,7 +282,8 @@
             "01K742SG00D93265YJRNSDN4ZD"
           ],
           "attempt": 4,
-          "down_for": 15
+          "down_for": 15,
+          "handover_attempt": 0
         }
       },
       {
@@ -288,7 +298,8 @@
             "01K742SG00D93265YJRNSDN4ZD"
           ],
           "attempt": 5,
-          "down_for": 15
+          "down_for": 15,
+          "handover_attempt": 0
         }
       },
       {
@@ -303,7 +314,8 @@
             "01K742SG00D93265YJRNSDN4ZD"
           ],
           "attempt": 5,
-          "down_for": 31
+          "down_for": 31,
+          "handover_attempt": 0
         }
       },
       {
@@ -318,7 +330,8 @@
             "01K742SG00D93265YJRNSDN4ZD"
           ],
           "attempt": 6,
-          "down_for": 31
+          "down_for": 31,
+          "handover_attempt": 0
         }
       },
       {
@@ -333,7 +346,8 @@
             "01K742SG00D93265YJRNSDN4ZD"
           ],
           "attempt": 6,
-          "down_for": 63
+          "down_for": 63,
+          "handover_attempt": 0
         }
       },
       {
@@ -348,7 +362,8 @@
             "01K742SG00D93265YJRNSDN4ZD"
           ],
           "attempt": 7,
-          "down_for": 63
+          "down_for": 63,
+          "handover_attempt": 0
         }
       },
       {
@@ -363,7 +378,8 @@
             "01K742SG00D93265YJRNSDN4ZD"
           ],
           "attempt": 7,
-          "down_for": 123
+          "down_for": 123,
+          "handover_attempt": 0
         }
       },
       {
@@ -378,7 +394,8 @@
             "01K742SG00D93265YJRNSDN4ZD"
           ],
           "attempt": 8,
-          "down_for": 123
+          "down_for": 123,
+          "handover_attempt": 0
         }
       }
     ]

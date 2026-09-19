@@ -1081,6 +1081,9 @@ class HubOutage:
     creates the successor group (M§7.5) and hands it the pending items to re-encrypt; the dead group's outbox is then
     abandoned. Nothing is ever deposited into members' mailboxes directly. Any other refusal is not an outage: the item
     leaves the outbox and the refusal is the caller's (M§6.5 handles a commit's).
+
+    The hand-over to the successor can fail: once abandoned, `handover_failed` is answered with the §13.2 backoff started
+    afresh, and the `advance` that reaches it emits one `{"handover": "retry"}`; in any other state it is nothing.
     """
 
     def __init__(self, ctx: dict):
@@ -1092,6 +1095,8 @@ class HubOutage:
         self.attempt = 0
         self.retry_at: int | None = self.now if self.down_since is not None else None
         self.state = "down" if self.down_since is not None else "up"
+        self.handover_attempt = 0
+        self.handover_at: int | None = None
 
     def step(self, ev: dict) -> list:
         (name, e), = ev.items()
@@ -1132,8 +1137,19 @@ class HubOutage:
             out += [{"forward": p} for p in self.pending]  # the hub is back: flush in order
         return out
 
+    def _handover_failed(self, _e: dict) -> list:
+        if self.state != "abandoned":
+            return []
+        self.handover_attempt += 1
+        delay = min(RETRY_INITIAL_S * 2 ** (self.handover_attempt - 1), RETRY_MAX_S)
+        self.handover_at = self.now + delay
+        return [{"handover_retry_in": delay}]
+
     def _advance(self, n: int) -> list:
         self.now += n
+        if self.state == "abandoned" and self.handover_at is not None and self.now >= self.handover_at:
+            self.handover_at = None  # the next failure schedules the next attempt
+            return [{"handover": "retry"}]
         if self.state != "down":
             return []
         if self.now - self.down_since >= self.hub_timeout:
@@ -1148,7 +1164,8 @@ class HubOutage:
 
     def snapshot(self) -> dict:
         return {"state": self.state, "pending": list(self.pending), "attempt": self.attempt,
-                "down_for": None if self.down_since is None else self.now - self.down_since}
+                "down_for": None if self.down_since is None else self.now - self.down_since,
+                "handover_attempt": self.handover_attempt}
 
 
 class GapTracker:

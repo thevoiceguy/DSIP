@@ -100,6 +100,14 @@ def gen_commit_retry(r: random.Random):
 
 def gen_hub_outage(r: random.Random):
     ids, ev, dep = [ulid(1), ulid(2), ulid(3)], [], []
+    if r.random() < 0.3:
+        # straight to an abandoned outbox, where the hand-over retries live (spec-gap 72)
+        ev = [{"deposit": {"id": ids[0]}}, {"no_answer": {"id": ids[0]}}, {"advance": 60}]
+        for _ in range(r.randint(2, 9)):
+            x = r.random()
+            ev.append({"handover_failed": {}} if x < 0.45 else {"advance": r.choice([1, 1, 2, 3, 4, 8, 30, 60])} if x < 0.9
+                      else {"deposit": {"id": ids[1]}})
+        return "messaging", "hub-outage-trace", {"component": "hub-outage", "now": NOW, "hub_timeout": 50}, ev
     for _ in range(r.randint(3, 10)):
         x = r.random()
         if x < 0.3 and len(dep) < 3:
@@ -107,6 +115,8 @@ def gen_hub_outage(r: random.Random):
             ev.append({"deposit": {"id": dep[-1]}})
         elif x < 0.55 or not dep:
             ev.append({"advance": r.choice([1, 2, 4, 30, 60, 100])})
+        elif x < 0.67:
+            ev.append({"handover_failed": {}})  # spec-gap 72: means something only once abandoned
         else:
             i, c = r.choice(dep), r.random()
             if c < 0.2:

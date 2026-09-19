@@ -1569,8 +1569,15 @@ an item cannot be encrypted for it, the items stay in the dead group's outbox in
 again with the §13.2 backoff (`SUCCESSOR-RETRY`); the dead group's outage stays abandoned with its start kept, so
 nothing goes to the dead hub meanwhile and a restart resumes the hand-over. Delivery into the successor is therefore
 at-least-once: a crash between the successor's `accepted` and the local save re-sends that item (same content `id`).
-This is host behaviour built from the pinned `no_answer` event and the restart rule above; the retry cadence of the
-hand-over is the one thing here no vector pins — it borrows the §13.2 numbers the outbox already uses.
+The item-level part is host behaviour built from the pinned `no_answer` event and the restart rule above. The retry
+of the hand-over itself is the outbox's, and pinned: once `abandoned`, the event `{"handover_failed": {}}` (the host
+could not create or find the successor, or could not move every item into it) is counted in `handover_attempt` — a
+snapshot member, 0 until the first failure — and answered `{"handover_retry_in": d}`, where d is the §13.2 series
+started afresh (1 s, doubling, 60 s ceiling), independent of `attempt`; the `advance` that reaches that time emits
+`{"handover": "retry"}` once, and the next failure schedules the next. Every `handover_failed` counts, whether or not
+a retry is already scheduled (the later schedule replaces the earlier). In any other state `handover_failed` emits
+nothing and changes nothing; deposits stay refused (`group-abandoned`) throughout. Vectors: `hub-outage-handover-*`
+(2). A host that completes the hand-over simply drops the dead group's outbox.
 
 **Suggested fix.** Carry the M§9.4 text into the next profile revision; register `mailbox.hub-unreachable`.
 

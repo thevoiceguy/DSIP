@@ -2272,8 +2272,9 @@ def hub_outage_vectors():
     refs = ["M§9.4", "M§9.3", "§13.2"]
     ctx = {"component": "hub-outage", "now": NOW}
 
-    def snap(state, pending=(), attempt=0, down_for=None):
-        return {"state": state, "pending": list(pending), "attempt": attempt, "down_for": down_for}
+    def snap(state, pending=(), attempt=0, down_for=None, handover_attempt=0):
+        return {"state": state, "pending": list(pending), "attempt": attempt, "down_for": down_for,
+                "handover_attempt": handover_attempt}
 
     def dep(i):
         return {"deposit": {"id": uid(i)}}
@@ -2373,6 +2374,51 @@ def hub_outage_vectors():
                          ({"advance": 3599}, [{"forward": b}], snap("down", [b], 1, 3599)),
                          (unreachable("o-b"), [{"retry_in": 2}], snap("down", [b], 2, 3599)),
                          ({"advance": 1}, [{"successor": {"pending": [b]}}], snap("abandoned", [], 2, 3600)),
+                     ]))
+    failed, retry = {"handover_failed": {}}, [{"handover": "retry"}]
+    out.append(trace("hub-outage-handover-failure-retried-with-backoff",
+                     "The hand-over to the successor can fail (no successor could be created, or an item could not be moved): "
+                     "the abandoned outbox retries it with the §13.2 backoff started afresh — 1 s, doubling, 60 s ceiling — "
+                     "one retry per schedule, and still takes no deposits.",
+                     refs + ["M§7.5"], T, {**ctx, "hub_timeout": 10}, [
+                         (dep("o-a"), [{"forward": a}], snap("up", [a])),
+                         (unreachable("o-a"), [{"retry_in": 1}], snap("down", [a], 1, 0)),
+                         ({"advance": 10}, [{"successor": {"pending": [a]}}], snap("abandoned", [], 1, 10)),
+                         (failed, [{"handover_retry_in": 1}], snap("abandoned", [], 1, 10, 1)),
+                         ({"advance": 1}, retry, snap("abandoned", [], 1, 11, 1)),
+                         ({"advance": 5}, [], snap("abandoned", [], 1, 16, 1)),
+                         (failed, [{"handover_retry_in": 2}], snap("abandoned", [], 1, 16, 2)),
+                         ({"advance": 1}, [], snap("abandoned", [], 1, 17, 2)),
+                         (dep("o-b"), [{"refuse": "group-abandoned"}], snap("abandoned", [], 1, 17, 2)),
+                         ({"advance": 1}, retry, snap("abandoned", [], 1, 18, 2)),
+                         (failed, [{"handover_retry_in": 4}], snap("abandoned", [], 1, 18, 3)),
+                         ({"advance": 4}, retry, snap("abandoned", [], 1, 22, 3)),
+                         (failed, [{"handover_retry_in": 8}], snap("abandoned", [], 1, 22, 4)),
+                         ({"advance": 8}, retry, snap("abandoned", [], 1, 30, 4)),
+                         (failed, [{"handover_retry_in": 16}], snap("abandoned", [], 1, 30, 5)),
+                         ({"advance": 16}, retry, snap("abandoned", [], 1, 46, 5)),
+                         (failed, [{"handover_retry_in": 32}], snap("abandoned", [], 1, 46, 6)),
+                         ({"advance": 32}, retry, snap("abandoned", [], 1, 78, 6)),
+                         (failed, [{"handover_retry_in": 60}], snap("abandoned", [], 1, 78, 7)),
+                         ({"advance": 59}, [], snap("abandoned", [], 1, 137, 7)),
+                         ({"advance": 1}, retry, snap("abandoned", [], 1, 138, 7)),
+                         (failed, [{"handover_retry_in": 60}], snap("abandoned", [], 1, 138, 8)),
+                     ]))
+    out.append(trace("hub-outage-handover-failed-outside-abandonment-is-nothing",
+                     "handover_failed means something only once the outbox is abandoned: with the hub up or down it emits "
+                     "nothing and changes nothing, and the ordinary retry goes on; two failures before the retry both count, "
+                     "and the later schedule replaces the earlier.",
+                     refs + ["M§7.5"], T, {**ctx, "hub_timeout": 10}, [
+                         (failed, [], snap("up")),
+                         (dep("o-a"), [{"forward": a}], snap("up", [a])),
+                         (unreachable("o-a"), [{"retry_in": 1}], snap("down", [a], 1, 0)),
+                         (failed, [], snap("down", [a], 1, 0)),
+                         ({"advance": 1}, [{"forward": a}], snap("down", [a], 1, 1)),
+                         ({"advance": 9}, [{"successor": {"pending": [a]}}], snap("abandoned", [], 1, 10)),
+                         (failed, [{"handover_retry_in": 1}], snap("abandoned", [], 1, 10, 1)),
+                         (failed, [{"handover_retry_in": 2}], snap("abandoned", [], 1, 10, 2)),
+                         ({"advance": 1}, [], snap("abandoned", [], 1, 11, 2)),
+                         ({"advance": 1}, retry, snap("abandoned", [], 1, 12, 2)),
                      ]))
     # the mailbox's side of it
     out.append(trace("mailbox-forward-hub-unreachable-answered",
