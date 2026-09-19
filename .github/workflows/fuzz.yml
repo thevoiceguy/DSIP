@@ -29,7 +29,11 @@ jobs:
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
       - run: pip install jsonschema pynacl cryptography
-      - uses: dtolnay/rust-toolchain@1.98.0 # pinned: bump ci.yml (x2) and fuzz.yml together
+      - name: Rust, as pinned in impl/rust-toolchain.toml
+        # installs the channel, components and targets the file names, and makes it the default for steps that
+        # run cargo from outside impl/
+        run: rustup toolchain install && rustup default "$(rustup show active-toolchain | cut -d' ' -f1)" && rustc --version
+        working-directory: impl
       - uses: Swatinem/rust-cache@v2
         with: { workspaces: impl }
       - uses: actions/setup-node@v4
