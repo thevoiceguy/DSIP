@@ -559,8 +559,10 @@ class Mailbox:
         if e.get("digest") is not None:
             # spec-gap 66: the hub retries a welcome it saw no acknowledgement for. A redelivery is the same MLS bytes
             # (M§9.3), not merely another welcome for the group: adding a sibling device sends a new one (M§6.7).
+            # Among the welcomes still held for that group: one dropped with an expired pending registration is held no
+            # more, and the same bytes for another group are not this group's welcome (spec-gap 94).
             for it in self.items:
-                if it["class"] == "welcome" and it.get("digest") == e["digest"]:
+                if it["class"] == "welcome" and it["group"] == e["group"] and it.get("digest") == e["digest"]:
                     return [{"accepted": {"to": e["from"], "in_reply_to": e["id"], "cursor": it["cursor"], "duplicate": True}}]
         if e["group"] not in self.groups:
             self.groups[e["group"]] = {"hub": e["hub"], "state": "pending", "since": self.now, "items": 0}

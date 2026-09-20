@@ -2045,6 +2045,36 @@ makes the old hub's later items below the highest stored fills; a move with noth
 redelivery. Applied to the README and the second implementation; vector
 `messaging/mailbox-hub-move-old-hub-item-below-the-highest-stored-is-a-redelivery`.
 
+## 94. M§6.6 / spec-gap 66 — how long a welcome is "already held"
+
+**Gap.** Found by `fuzz.py` (seeds 9, 11 and 12, the `mailbox` target, three probes of one shape). Spec-gap 66: a
+mailbox answers a welcome "whose MLS bytes it already holds" as a duplicate with the first one's cursor. The second
+implementation remembered every welcome's bytes for ever, so a welcome arriving after its pending registration had
+expired — and taken the stored welcome with it (M§6.6) — was still a duplicate, answered with a cursor that no longer
+existed, and the group was never registered again; and it matched the bytes across groups. Rust and Python looked
+among the welcomes still held, but not by group either.
+
+**Decision (2026-09-20).** "Already holds" is literal: among the welcomes the mailbox still holds, for that group. After
+an expiry the same welcome is a new invitation — stored, registered pending again, its own cursor; the same bytes for
+another group are that group's welcome. Applied to M§6.5, the README and all three implementations; vectors
+`messaging/mailbox-welcome-after-pending-group-expiry-is-stored-anew`,
+`messaging/mailbox-welcome-same-bytes-for-another-group-is-its-own`.
+
+## 95. M§7.4 / spec-gap 71 — what "missing" means during a hub move
+
+**Gap.** Found by `fuzz.py` (seed 9, the `mailbox` target). During a move the new hub is held off "while the old hub's
+items through `handover_seq` are missing". Rust and Python judged that by the highest `seq` stored (nothing is missing
+once it reaches `handover_seq`); the second implementation kept a map of the seqs it had seen since the registration and
+called every unseen one missing, so with seqs 1 and 3 stored and `handover_seq` 3 it held the new hub's GroupInfo off
+while the other two admitted it. Spec-gaps 59 and 93 already reason from the high-water mark: the hub delivers in order
+and retries before sending later items (M§6.5 rule 5), so a stored `seq` says every lower one was delivered before it.
+
+**Decision (2026-09-20).** By the highest `seq` stored, as everything else about redelivery is. Applied to M§7.4, the
+README and the second implementation; vector
+`messaging/mailbox-hub-move-nothing-missing-once-the-highest-stored-reaches-handover-seq`. The relay probe of seed 10
+was a generator artefact — the same invite id introduced twice, which the replay stage never lets through — and the
+generator now introduces an id once.
+
 ## Already-flagged (schema README / plan §11)
 
 - §15.3 codec example uses bare strings; §16.2 defines objects (schemas follow §16.2).

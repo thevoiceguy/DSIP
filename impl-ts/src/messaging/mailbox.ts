@@ -28,6 +28,8 @@ interface Item {
   seq?: number;
   until?: number;
   depositor?: string;
+  /** A welcome's MLS bytes, for recognising the hub's retry of it (spec-gap 66). */
+  digest?: string;
 }
 
 interface Registration {
@@ -79,7 +81,6 @@ export class Mailbox implements Machine {
   private live = new Set<string>();
   private readonly acks = new Map<string, string>();
   private readonly archive = new Map<string, string>();
-  private readonly welcomes = new Map<string, string>();
   private readonly revokedGrants = new Set<string>();
   /** Introductions the owner sent and has not yet been answered for (mailbox-config `introductions_sent`). */
   private readonly introductionsSent = new Set<string>();
@@ -220,11 +221,13 @@ export class Mailbox implements Machine {
   }
 
   /** The seqs through `handover` the old hub has not delivered, counted from where this mailbox started. */
+  /**
+   * What the old hub still owes through `handover_seq`, judged by the highest seq stored: the hub delivers in
+   * order (M§6.5 rule 5), so a stored seq says every lower one was delivered before it (spec-gap 95).
+   */
   private missing(r: Registration, handover: number): number[] {
-    const stored = [...r.seen.keys()];
-    const start = stored.length ? Math.min(...stored) : 1;
     const out: number[] = [];
-    for (let s = start; s <= handover; s++) if (!r.seen.has(s)) out.push(s);
+    for (let s = r.high + 1; s <= handover; s++) out.push(s);
     return out;
   }
 
@@ -254,12 +257,13 @@ export class Mailbox implements Machine {
     if (!this.authorized(adder!, w["grant"] as Grant | null, w["successor_of"] as string | undefined)) {
       return this.error(from, id, "policy.first-contact-required");
     }
-    // spec-gap 66: the same Welcome bytes again are a redelivery; another welcome for the group is a new invitation
+    // spec-gap 66: the same Welcome bytes again are a redelivery; another welcome for the group is a new invitation.
+    // Judged among the welcomes still held for that group: one dropped with an expired pending registration is held
+    // no more, and the same bytes for another group are not this group's welcome (spec-gap 94).
     const digest = w["digest"] as string | undefined;
-    const known = digest !== undefined ? this.welcomes.get(digest) : undefined;
-    if (known !== undefined) return this.accepted(from, id, { cursor: known, duplicate: true });
-    const cursor = this.store({ class: "welcome", group });
-    if (digest !== undefined) this.welcomes.set(digest, cursor);
+    const known = digest !== undefined ? this.items.find((i) => i.class === "welcome" && i.group === group && i.digest === digest) : undefined;
+    if (known !== undefined) return this.accepted(from, id, { cursor: known.cursor, duplicate: true });
+    const cursor = this.store({ class: "welcome", group, ...(digest !== undefined ? { digest } : {}) });
     if (!this.groups.has(group)) {
       this.groups.set(group, { hub: w["hub"] as string, state: "pending", since: this.now, count: 0, high: 0, seen: new Map() });
     }

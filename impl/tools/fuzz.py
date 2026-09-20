@@ -453,7 +453,7 @@ def gen_endpoint(r: random.Random):
 def gen_relay(r: random.Random):
     """Every message carries `to`, as every real envelope does (the schemas require it)."""
     sids = [ulid(10), ulid(11)]
-    ev, counter = [], [1000]
+    ev, counter, introduced = [], [1000], set()  # an invite id arrives once: the replay stage drops a repeated id (§12.9)
 
     def mid() -> str:
         counter[0] += 1
@@ -464,10 +464,14 @@ def gen_relay(r: random.Random):
         if x < 0.2:
             ev.append({"relay": r.choice(["bind", "bind", "unbind"]), "device": r.choice([B1, B2, A1]), "identity": None})
             ev[-1]["identity"] = IDENTITY[ev[-1]["device"]]
+        elif x < 0.42 and sid in introduced:
+            ev.append({"advance": r.choice([1, 5])})
         elif x < 0.35:
+            introduced.add(sid)
             ev.append({"recv": {"type": "invite", "id": sid, "from": A1, "to": r.choice([BOB, BOB, "did:web:nobody.example"]),
                                 "expires_at": NOW + r.choice([30, 30, 2])}})
         elif x < 0.42:
+            introduced.add(sid)
             ev.append({"relay": "invite", "session": sid, "from": A1, "to": BOB, "legs": [B1, B2]})
         elif x < 0.52:
             ev.append({"recv": {"type": "progress", "id": mid(), "from": r.choice([B1, B2]), "session": sid, "to": A1, "status": "ringing"}})
