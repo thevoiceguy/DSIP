@@ -205,6 +205,10 @@ class Endpoint:
         kind = ev["local"]
         if kind == "place_call":
             sid = ev["session"]
+            if sid in self.sessions:
+                # spec-gap 90: a session id is used once (§12.9); a held session, live or ended, is never overwritten
+                self.emit({"refused": "invalid-state"})
+                return
             s = Session(sid, "initiator", "INVITING", peer=ev["to"], invite_to=ev["to"])
             self.sessions[sid] = s
             # §19.4: the grantee MAY reference a held grant in a future invite to aid stateless relays

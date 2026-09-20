@@ -152,10 +152,12 @@ export class Mailbox implements Machine {
     // held introductions and grants are kept only until their envelope expires
     this.items = this.items.filter((i) => i.until === undefined || this.now <= i.until);
     for (const [g, r] of this.groups) {
-      // M§6.6: an unconfirmed pending group is dropped, with its items, after pending_group_ttl
+      // M§6.6: an unconfirmed pending group is dropped, with its items, after pending_group_ttl — the hub deposits it
+      // admitted; an archive record that references the group is the owner's history (M§12.2), kept whatever the
+      // group's registration, so it stays
       if (r.state === "pending" && this.now - r.since > this.ctx.pending_group_ttl) {
         this.groups.delete(g);
-        this.items = this.items.filter((i) => i.group !== g);
+        this.items = this.items.filter((i) => i.group !== g || i.class === "archive");
       }
     }
   }
@@ -178,8 +180,10 @@ export class Mailbox implements Machine {
           // held off until the old hub's items are stored, for at most handover_wait (spec-gap 71)
           if (this.now - prev.since < (this.ctx.handover_wait ?? HANDOVER_WAIT_S)) return this.error(from, id, "mailbox.unknown-group");
           this.emit.push({ handover_expired: { group, hub: prev.hub, missing } });
+          // only an expired wait makes the old hub's later items below the highest stored fills rather than
+          // redeliveries; a move with nothing missing leaves the redelivery rule as it is (spec-gap 93)
+          prev.released = true;
         }
-        prev.released = true;
       }
       // the new hub's numbering continues past handover_seq, or it is a wrong handover
       if (seq !== null && seq <= prev.handover_seq) return this.error(from, id, "policy.blocked");
@@ -196,8 +200,10 @@ export class Mailbox implements Machine {
       const known = r.seen.get(seq);
       const late = prev?.released === true && from === prev.hub;
       if (known !== undefined || (seq <= r.high && !late)) {
-        const held = known !== undefined && this.items.some((i) => i.cursor === known);
-        return this.accepted(from, id, { ...(held ? { cursor: known! } : {}), duplicate: true });
+        // the original cursor while the item is still retained — by group and seq, so also across a registration the
+        // owner left and made again (spec-gap 92)
+        const retained = this.items.find((i) => i.group === group && i.seq === seq && i.class !== "archive")?.cursor;
+        return this.accepted(from, id, { ...(retained !== undefined ? { cursor: retained } : {}), duplicate: true });
       }
     }
     if (r.state === "pending" && r.count >= this.ctx.pending_group_max_items) return this.error(from, id, "mailbox.quota-exceeded");

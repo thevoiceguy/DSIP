@@ -1,0 +1,343 @@
+{
+  "vector": "messaging/hub-acknowledgement-does-not-lift-the-welcome-hold",
+  "format": 1,
+  "kind": "messaging",
+  "description": "An acknowledgement from an identity still waiting for its welcome moves its queue but sends nothing: the hold lasts until the welcome itself is acknowledged (spec-gap 87).",
+  "spec_ref": [
+    "M§6.5"
+  ],
+  "context": {
+    "component": "hub",
+    "hub": "did:web:mbx.alice.example",
+    "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+    "kind": "group",
+    "now": 1760000000,
+    "epoch": 1,
+    "roster": {
+      "did:web:alice.example": [
+        "did:key:z6MkfhenvjQ7awdpVWzPaeBuPkXCBLwzJKyosCrTL3huMb66",
+        "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu"
+      ],
+      "did:web:example.com:users:bob": [
+        "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+      ]
+    }
+  },
+  "input": {
+    "check": "hub-trace",
+    "steps": [
+      {
+        "event": {
+          "deposit": {
+            "id": "01K742SG0055H7EBCXQMQF26CW",
+            "device": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+            "identity": "did:web:alice.example",
+            "class": "handshake",
+            "epoch": 1,
+            "digest": "add-carol",
+            "commit": {
+              "adds": [
+                {
+                  "identity": "did:web:carol.example",
+                  "device": "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL"
+                }
+              ],
+              "removes": []
+            }
+          }
+        }
+      },
+      {
+        "event": {
+          "deposit": {
+            "id": "01K742SG00VD6RG3ANPVBWAGTY",
+            "device": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+            "identity": "did:web:alice.example",
+            "class": "application",
+            "epoch": 2,
+            "digest": "a1"
+          }
+        }
+      },
+      {
+        "event": {
+          "deposit": {
+            "id": "01K742SG00GARXDS2ZDEMM6AVD",
+            "device": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+            "identity": "did:web:alice.example",
+            "class": "application",
+            "epoch": 2,
+            "digest": "a2"
+          }
+        }
+      },
+      {
+        "event": {
+          "ack": {
+            "identity": "did:web:carol.example",
+            "seq": 2
+          }
+        }
+      },
+      {
+        "event": {
+          "ack": {
+            "identity": "did:web:carol.example",
+            "seq": 1,
+            "class": "welcome"
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "accepted": {
+              "to": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+              "in_reply_to": "01K742SG0055H7EBCXQMQF26CW",
+              "seq": 1
+            }
+          },
+          {
+            "fanout": {
+              "to": "did:web:alice.example",
+              "seq": 1,
+              "class": "handshake"
+            }
+          },
+          {
+            "fanout": {
+              "to": "did:web:example.com:users:bob",
+              "seq": 1,
+              "class": "handshake"
+            }
+          },
+          {
+            "fanout": {
+              "to": "did:web:carol.example",
+              "seq": 1,
+              "class": "welcome"
+            }
+          }
+        ],
+        "state": {
+          "epoch": 2,
+          "next_seq": 2,
+          "roster": {
+            "did:web:alice.example": [
+              "did:key:z6MkfhenvjQ7awdpVWzPaeBuPkXCBLwzJKyosCrTL3huMb66",
+              "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu"
+            ],
+            "did:web:example.com:users:bob": [
+              "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+            ],
+            "did:web:carol.example": [
+              "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL"
+            ]
+          },
+          "pending": {
+            "did:web:alice.example": [
+              1
+            ],
+            "did:web:example.com:users:bob": [
+              1
+            ]
+          },
+          "group_info": false,
+          "moved_to": null,
+          "welcomes": {
+            "did:web:carol.example": [
+              1
+            ]
+          }
+        }
+      },
+      {
+        "emit": [
+          {
+            "accepted": {
+              "to": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+              "in_reply_to": "01K742SG00VD6RG3ANPVBWAGTY",
+              "seq": 2
+            }
+          }
+        ],
+        "state": {
+          "epoch": 2,
+          "next_seq": 3,
+          "roster": {
+            "did:web:alice.example": [
+              "did:key:z6MkfhenvjQ7awdpVWzPaeBuPkXCBLwzJKyosCrTL3huMb66",
+              "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu"
+            ],
+            "did:web:example.com:users:bob": [
+              "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+            ],
+            "did:web:carol.example": [
+              "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL"
+            ]
+          },
+          "pending": {
+            "did:web:alice.example": [
+              1,
+              2
+            ],
+            "did:web:example.com:users:bob": [
+              1,
+              2
+            ],
+            "did:web:carol.example": [
+              2
+            ]
+          },
+          "group_info": false,
+          "moved_to": null,
+          "welcomes": {
+            "did:web:carol.example": [
+              1
+            ]
+          }
+        }
+      },
+      {
+        "emit": [
+          {
+            "accepted": {
+              "to": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+              "in_reply_to": "01K742SG00GARXDS2ZDEMM6AVD",
+              "seq": 3
+            }
+          }
+        ],
+        "state": {
+          "epoch": 2,
+          "next_seq": 4,
+          "roster": {
+            "did:web:alice.example": [
+              "did:key:z6MkfhenvjQ7awdpVWzPaeBuPkXCBLwzJKyosCrTL3huMb66",
+              "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu"
+            ],
+            "did:web:example.com:users:bob": [
+              "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+            ],
+            "did:web:carol.example": [
+              "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL"
+            ]
+          },
+          "pending": {
+            "did:web:alice.example": [
+              1,
+              2,
+              3
+            ],
+            "did:web:example.com:users:bob": [
+              1,
+              2,
+              3
+            ],
+            "did:web:carol.example": [
+              2,
+              3
+            ]
+          },
+          "group_info": false,
+          "moved_to": null,
+          "welcomes": {
+            "did:web:carol.example": [
+              1
+            ]
+          }
+        }
+      },
+      {
+        "emit": [],
+        "state": {
+          "epoch": 2,
+          "next_seq": 4,
+          "roster": {
+            "did:web:alice.example": [
+              "did:key:z6MkfhenvjQ7awdpVWzPaeBuPkXCBLwzJKyosCrTL3huMb66",
+              "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu"
+            ],
+            "did:web:example.com:users:bob": [
+              "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+            ],
+            "did:web:carol.example": [
+              "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL"
+            ]
+          },
+          "pending": {
+            "did:web:alice.example": [
+              1,
+              2,
+              3
+            ],
+            "did:web:example.com:users:bob": [
+              1,
+              2,
+              3
+            ],
+            "did:web:carol.example": [
+              3
+            ]
+          },
+          "group_info": false,
+          "moved_to": null,
+          "welcomes": {
+            "did:web:carol.example": [
+              1
+            ]
+          }
+        }
+      },
+      {
+        "emit": [
+          {
+            "fanout": {
+              "to": "did:web:carol.example",
+              "seq": 3,
+              "class": "application"
+            }
+          }
+        ],
+        "state": {
+          "epoch": 2,
+          "next_seq": 4,
+          "roster": {
+            "did:web:alice.example": [
+              "did:key:z6MkfhenvjQ7awdpVWzPaeBuPkXCBLwzJKyosCrTL3huMb66",
+              "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu"
+            ],
+            "did:web:example.com:users:bob": [
+              "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+            ],
+            "did:web:carol.example": [
+              "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL"
+            ]
+          },
+          "pending": {
+            "did:web:alice.example": [
+              1,
+              2,
+              3
+            ],
+            "did:web:example.com:users:bob": [
+              1,
+              2,
+              3
+            ],
+            "did:web:carol.example": [
+              3
+            ]
+          },
+          "group_info": false,
+          "moved_to": null,
+          "welcomes": {}
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,165 @@
+{
+  "vector": "messaging/mailbox-hub-move-handover-wait-expiry-announced-on-a-refused-deposit",
+  "format": 1,
+  "kind": "messaging",
+  "description": "The wait ran out and the first thing the new hub sends is a seq at or below handover_seq: the expiry is announced then, once, and that deposit is still refused policy.blocked; what follows above handover_seq is stored with no second announcement (spec-gap 88).",
+  "spec_ref": [
+    "M§7.4",
+    "M§6.6",
+    "M§6.5"
+  ],
+  "context": {
+    "component": "mailbox",
+    "mailbox": "did:web:mbx.bob.example",
+    "owner": "did:web:example.com:users:bob",
+    "serves": [
+      "did:web:example.com:users:bob"
+    ],
+    "devices": [
+      "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ",
+      "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+    ],
+    "now": 1760000000,
+    "mode": "sync",
+    "admit": "grant",
+    "pending_group_ttl": 604800,
+    "pending_group_max_items": 2,
+    "groups": {
+      "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M": {
+        "hub": "did:web:mbx.alice.example",
+        "state": "joined"
+      }
+    },
+    "key_packages": {}
+  },
+  "input": {
+    "check": "mailbox-trace",
+    "steps": [
+      {
+        "event": {
+          "config": {
+            "id": "01K742SG00CRGV1XBJ61930SY8",
+            "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "groups": [
+              {
+                "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+                "state": "joined",
+                "hub": "did:web:mbx.bob.example",
+                "handover_seq": 3
+              }
+            ]
+          }
+        }
+      },
+      {
+        "event": {
+          "advance": 300
+        }
+      },
+      {
+        "event": {
+          "hub_deposit": {
+            "id": "01K742SG00HS8CV38Q8SF5CW54",
+            "from": "did:web:mbx.bob.example",
+            "recipient": "did:web:example.com:users:bob",
+            "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+            "seq": 1,
+            "class": "application"
+          }
+        }
+      },
+      {
+        "event": {
+          "hub_deposit": {
+            "id": "01K742SG00FBEZG9QS6MB5BAE3",
+            "from": "did:web:mbx.bob.example",
+            "recipient": "did:web:example.com:users:bob",
+            "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+            "seq": 4,
+            "class": "application"
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "accepted": {
+              "to": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+              "in_reply_to": "01K742SG00CRGV1XBJ61930SY8"
+            }
+          }
+        ],
+        "state": {
+          "items": [],
+          "groups": {
+            "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M": "joined"
+          },
+          "key_packages": {}
+        }
+      },
+      {
+        "emit": [],
+        "state": {
+          "items": [],
+          "groups": {
+            "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M": "joined"
+          },
+          "key_packages": {}
+        }
+      },
+      {
+        "emit": [
+          {
+            "handover_expired": {
+              "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+              "hub": "did:web:mbx.alice.example",
+              "missing": [
+                1,
+                2,
+                3
+              ]
+            }
+          },
+          {
+            "error": {
+              "to": "did:web:mbx.bob.example",
+              "in_reply_to": "01K742SG00HS8CV38Q8SF5CW54",
+              "reason": "policy.blocked"
+            }
+          }
+        ],
+        "state": {
+          "items": [],
+          "groups": {
+            "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M": "joined"
+          },
+          "key_packages": {}
+        }
+      },
+      {
+        "emit": [
+          {
+            "accepted": {
+              "to": "did:web:mbx.bob.example",
+              "in_reply_to": "01K742SG00FBEZG9QS6MB5BAE3",
+              "cursor": "c:0000000000000001"
+            }
+          }
+        ],
+        "state": {
+          "items": [
+            "c:0000000000000001"
+          ],
+          "groups": {
+            "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M": "joined"
+          },
+          "key_packages": {}
+        }
+      }
+    ]
+  }
+}

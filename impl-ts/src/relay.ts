@@ -141,7 +141,8 @@ export class Relay {
       }
     }
     // §12.7 rule 3: a device that binds while an attempt is live becomes a leg, if the invite is unexpired
-    for (const [session, a] of this.attempts) {
+    // several live attempts: in id order
+    for (const [session, a] of [...this.attempts].sort(([x], [y]) => (x < y ? -1 : x > y ? 1 : 0))) {
       const live = a.outcome === null && (a.expires === undefined || a.expires >= this.now);
       if (live && a.to === identity && !a.legs.has(device) && !flushed.has(session)) this.addLeg(session, a, device, true);
     }
@@ -250,7 +251,9 @@ export class Relay {
   /** §12.7 rule 3: deliver the cancel per-leg to every leg that has not terminated. */
   private cancel(session: string, a: Attempt, m: JsonObject): void {
     const target = m["to"] as string | undefined;
-    for (const [leg, state] of a.legs) {
+    // device (DID) order: the suite's order wherever a relay fans out
+    for (const leg of [...a.legs.keys()].sort()) {
+      const state = a.legs.get(leg)!;
       if (state !== "delivered" || (target !== undefined && target !== a.to && target !== leg)) continue;
       a.legs.set(leg, "cancelled");
       this.emit.push({ deliver: { leg, type: "cancel", reason: m["reason"]! } });

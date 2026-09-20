@@ -420,6 +420,35 @@ def hub_vectors():
                          ({"restart": {}}, [fan(ALICE, 2), fan(BOB, 1, "handshake"), fan(CAROL, 1, "welcome")],
                           hs(2, 3, RC, {ALICE: [2], BOB: [1, 2], CAROL: [2]}, welcomes={CAROL: [1]})),
                      ]))
+    RB = {ALICE: [ALA, APH], BOB: [BLA, BPH]}
+    selfadd = dep("add-bob-laptop", BPH, BOB, "handshake", 1, commit={"adds": [{"identity": BOB, "device": BLA}], "removes": []})
+    out.append(trace("hub-member-adding-its-own-device-is-not-held-behind-the-welcome",
+                     "The hold behind an unacknowledged welcome is for an identity the commit brought in (no registration yet, M§6.6). "
+                     "A member adding its own device is registered: it gets the commit at once, again after a restart, and the "
+                     "welcome's acknowledgement re-sends nothing — its queue moves only on its own acknowledgements (spec-gap 87).",
+                     refs + ["M§6.7"], "hub-trace", hub_ctx(kind="group"), [
+                         (selfadd, [acc(BPH, "add-bob-laptop", 1), fan(ALICE, 1, "handshake"), fan(BOB, 1, "handshake"), fan(BOB, 1, "welcome")],
+                          hs(2, 2, RB, {ALICE: [1], BOB: [1]}, welcomes={BOB: [1]})),
+                         ({"restart": {}}, [fan(ALICE, 1, "handshake"), fan(BOB, 1, "handshake"), fan(BOB, 1, "welcome")],
+                          hs(2, 2, RB, {ALICE: [1], BOB: [1]}, welcomes={BOB: [1]})),
+                         ({"ack": {"identity": BOB, "seq": 1, "class": "welcome"}}, [], hs(2, 2, RB, {ALICE: [1], BOB: [1]})),
+                         (dep("a1", APH, ALICE, "application", 2), [acc(APH, "a1", 2)], hs(2, 3, RB, {ALICE: [1, 2], BOB: [1, 2]})),
+                         ({"ack": {"identity": BOB, "seq": 1}}, [fan(BOB, 2)], hs(2, 3, RB, {ALICE: [1, 2], BOB: [2]})),
+                     ]))
+    out.append(trace("hub-acknowledgement-does-not-lift-the-welcome-hold",
+                     "An acknowledgement from an identity still waiting for its welcome moves its queue but sends nothing: the hold "
+                     "lasts until the welcome itself is acknowledged (spec-gap 87).", refs, "hub-trace", hub_ctx(kind="group"), [
+                         (addc, [acc(APH, "add-carol", 1), fan(ALICE, 1, "handshake"), fan(BOB, 1, "handshake"), fan(CAROL, 1, "welcome")],
+                          hs(2, 2, RC, {ALICE: [1], BOB: [1]}, welcomes={CAROL: [1]})),
+                         (dep("a1", APH, ALICE, "application", 2), [acc(APH, "a1", 2)],
+                          hs(2, 3, RC, {ALICE: [1, 2], BOB: [1, 2], CAROL: [2]}, welcomes={CAROL: [1]})),
+                         (dep("a2", APH, ALICE, "application", 2), [acc(APH, "a2", 3)],
+                          hs(2, 4, RC, {ALICE: [1, 2, 3], BOB: [1, 2, 3], CAROL: [2, 3]}, welcomes={CAROL: [1]})),
+                         ({"ack": {"identity": CAROL, "seq": 2}}, [],
+                          hs(2, 4, RC, {ALICE: [1, 2, 3], BOB: [1, 2, 3], CAROL: [3]}, welcomes={CAROL: [1]})),
+                         ({"ack": {"identity": CAROL, "seq": 1, "class": "welcome"}}, [fan(CAROL, 3)],
+                          hs(2, 4, RC, {ALICE: [1, 2, 3], BOB: [1, 2, 3], CAROL: [3]})),
+                     ]))
     out.append(trace("hub-commit-readds-existing-device-no-welcome",
                      "A commit that adds no device new to its identity sends no welcome.",
                      refs + ["M§6.7"], "hub-trace", hub_ctx(kind="group"), [
@@ -776,6 +805,16 @@ def mailbox_vectors():
                          (hubdep("h1", 1), [macc(HUB_A, "h1", c(2))], ms([c(1), c(2)], P)),
                          ({"advance": 604800}, [], ms([c(1), c(2)], P)),
                          ({"advance": 1}, [], ms()),
+                     ]))
+    out.append(trace("mailbox-pending-group-expiry-keeps-archive-records",
+                     "What a pending group's expiry drops is the hub deposits it admitted. An archive record that references the group "
+                     "is the owner's history (M§12.2), stored whatever the group's registration, and stays (spec-gap 91).",
+                     ["M§6.6", "M§12.2"], T, mbx_ctx(), [
+                         (welcome(grant_=grant()), [macc(CPH, "w1", c(1))], ms([c(1)], P)),
+                         (hubdep("h1", 1), [macc(HUB_A, "h1", c(2))], ms([c(1), c(2)], P)),
+                         ({"archive": {"id": uid("ar1"), "device": BPH, "ref_group": GROUP, "ref_seq": 1}}, [macc(BPH, "ar1", c(3))],
+                          ms([c(1), c(2), c(3)], P)),
+                         ({"advance": 604801}, [], ms([c(3)])),
                      ]))
     out.append(trace("mailbox-sync-and-live-push",
                      "sync returns stored items; with live, new items are pushed to the bound device until it unbinds.",
@@ -2561,6 +2600,45 @@ def hub_change_vectors():
                          (hd("b3-r2", 3, HUB_B), [expired([2]), macc(HUB_B, "b3-r2", c(2))], ms([c(1), c(2)], J)),
                          (hd("b4", 4, HUB_B), [macc(HUB_B, "b4", c(3))], ms([c(1), c(2), c(3)], J)),
                          (hd("b2", 2, HUB_B), [err(HUB_B, "b2", "policy.blocked")], ms([c(1), c(2), c(3)], J)),
+                     ]))
+    out.append(trace("mailbox-hub-move-handover-wait-expiry-announced-on-a-refused-deposit",
+                     "The wait ran out and the first thing the new hub sends is a seq at or below handover_seq: the expiry is announced "
+                     "then, once, and that deposit is still refused policy.blocked; what follows above handover_seq is stored with no "
+                     "second announcement (spec-gap 88).", xrefs, T, mbx_ctx(groups=JA), [
+                         (cfg(handover=3), [macc(BPH, "cfg")], ms([], J)),
+                         ({"advance": 300}, [], ms([], J)),
+                         (hd("b1", 1, HUB_B), [expired([1, 2, 3]), err(HUB_B, "b1", "policy.blocked")], ms([], J)),
+                         (hd("b4", 4, HUB_B), [macc(HUB_B, "b4", c(1))], ms([c(1)], J)),
+                     ]))
+    out.append(trace("mailbox-hub-deposit-redelivered-after-re-registration-carries-the-retained-cursor",
+                     "A group left and registered again, at another hub, is the same group with the same numbering: a redelivery of "
+                     "a seq the mailbox still retains from before is a duplicate with that item's cursor (spec-gap 92).",
+                     mrefs + ["M§6.6", "M§5.4"], T, mbx_ctx(groups=JA), [
+                         (hd("h2", 2, HUB_A), [macc(HUB_A, "h2", c(1))], ms([c(1)], J)),
+                         ({"config": {"id": uid("left"), "device": BPH, "groups": [{"group": GROUP, "state": "left"}]}},
+                          [macc(BPH, "left")], ms([c(1)])),
+                         (cfg("rejoin", handover=None), [macc(BPH, "rejoin")], ms([c(1)], J)),
+                         (hd("b3", 3, HUB_B), [macc(HUB_B, "b3", c(2))], ms([c(1), c(2)], J)),
+                         (hd("b2", 2, HUB_B), [macc(HUB_B, "b2", c(1), dup=True)], ms([c(1), c(2)], J)),
+                     ]))
+    out.append(trace("mailbox-hub-deposit-redelivery-cursor-is-never-an-archive-records",
+                     "An archive record shares the group's seq space (its ref_seq) but is not the hub's item: a redelivery's cursor "
+                     "is the stored hub item's, whatever was stored first (spec-gap 92).", mrefs + ["M§6.6", "M§12.2"], T,
+                     mbx_ctx(groups=JA), [
+                         ({"archive": {"id": uid("ar2"), "device": BPH, "ref_group": GROUP, "ref_seq": 2}}, [macc(BPH, "ar2", c(1))],
+                          ms([c(1)], J)),
+                         (hd("h2", 2, HUB_A), [macc(HUB_A, "h2", c(2))], ms([c(1), c(2)], J)),
+                         (hd("h2-r", 2, HUB_A), [macc(HUB_A, "h2-r", c(2), dup=True)], ms([c(1), c(2)], J)),
+                     ]))
+    out.append(trace("mailbox-hub-move-old-hub-item-below-the-highest-stored-is-a-redelivery",
+                     "The move was named with nothing missing (the highest stored is past handover_seq), so the new hub is admitted "
+                     "at once and nothing was given up on: what the old hub then delivers at or below the highest stored is a "
+                     "redelivery like any other (spec-gap 59) — only an expired wait makes such an item a fill to store (spec-gap 71, "
+                     "spec-gap 93).", xrefs, T, mbx_ctx(groups=JA), [
+                         (hd("h5", 5, HUB_A), [macc(HUB_A, "h5", c(1))], ms([c(1)], J)),
+                         (cfg(handover=3), [macc(BPH, "cfg")], ms([c(1)], J)),
+                         (hd("b2", 2, HUB_B), [err(HUB_B, "b2", "policy.blocked")], ms([c(1)], J)),
+                         (hd("h3", 3, HUB_A), [macc(HUB_A, "h3", dup=True)], ms([c(1)], J)),
                      ]))
     out.append(trace("mailbox-hub-move-handover-wait-configurable",
                      "handover_wait is the mailbox's own choice (300 s RECOMMENDED); the wait starts at the config naming the new hub.",
