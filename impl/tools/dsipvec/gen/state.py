@@ -464,6 +464,24 @@ def vectors() -> list[dict]:
                               [S(type="error", to=BPH, session=sid, reason="session.invalid-state", in_reply_to=uid("a3", NOW + 7))],
                               **{sid: sess("initiator", "ACTIVE")}),
                      ]))
+    out.append(trace("fork-late-answer-after-the-call-ended",
+                     "Phone answered; the call ended with its bye; the laptop's answer arrives after that. The invite was answered, "
+                     "so the late leg gets bye session.already-answered (§12.7 rule 4 names the invite, not the state; spec-gap 85).",
+                     ["§12.7", "§12.4"], ALICE_SELF, initiator_to_active(sid) + [
+                         step({"recv": msg("bye", "b", BPH, sid, NOW + 60, reason="user.hangup")},
+                              [MEDIA("stop"), UI("ended", reason="user.hangup")], **{sid: sess("initiator", "ENDED")}),
+                         step({"recv": msg("answer", "late", BLA, sid, NOW + 61, answered_by="user")},
+                              [S(type="bye", to=BLA, session=sid, reason="session.already-answered")], **{sid: sess("initiator", "ENDED")}),
+                     ]))
+    out.append(trace("fork-late-answer-after-our-hangup",
+                     "As above, but we hung up: still session.already-answered — session.failed is only for an attempt that was never answered "
+                     "(§12.4), session.cancelled only for one we withdrew (§12.5 rule 3).",
+                     ["§12.7", "§12.4", "§12.5"], ALICE_SELF, initiator_to_active(sid) + [
+                         step({"local": "hangup", "session": sid},
+                              [S(type="bye", to=BPH, session=sid, reason="user.hangup"), MEDIA("stop")], **{sid: sess("initiator", "ENDED")}),
+                         step({"recv": msg("answer", "late", BLA, sid, NOW + 8, answered_by="user")},
+                              [S(type="bye", to=BLA, session=sid, reason="session.already-answered")], **{sid: sess("initiator", "ENDED")}),
+                     ]))
     out.append(trace("direct-device-call-no-fork-cancel", "Invite addressed to a device DID: its answer produces no answered-elsewhere cancel (Impl, spec-gap 5).",
                      ["§12.7"], ALICE_SELF, initiator_to_active(sid, to=BPH, answerer=BPH)))
     out.append(trace("fork-answer-before-progress", "Answer straight from INVITING (no progress) is valid.", ["§12.4"], ALICE_SELF, [
@@ -822,7 +840,9 @@ def vectors() -> list[dict]:
               [{"send": {"type": "error", "to": APH, "session": sid, "reason": "transport.no-response", "in_reply_to": sid}}],
               **{sid: {"legs": {BPH: "expired", BLA: "expired"}, "outcome": "no-response"}}),
     ], component="relay"))
-    out.append(trace("relay-user-cancel-all-legs", "Initiator abandons: cancel delivered per-leg to every live leg; later leg traffic dropped.", ["§12.7"], None, [
+    out.append(trace("relay-user-cancel-all-legs", "Initiator abandons: cancel delivered per-leg to every live leg. The phone's answer that crossed "
+                     "the cancel is still forwarded — only the initiator ends an answered leg (bye session.cancelled, §12.5 rule 3); the "
+                     "leg stays recorded as cancelled (spec-gap 86).", ["§12.7", "§12.5"], None, [
         rstep({"relay": "invite", "session": sid, "from": APH, "to": BOB_WEB, "legs": [BPH, BLA]},
               [{"deliver": {"leg": BPH, "type": "invite"}}, {"deliver": {"leg": BLA, "type": "invite"}}],
               **{sid: {"legs": {BPH: "delivered", BLA: "delivered"}, "outcome": None}}),
@@ -831,8 +851,40 @@ def vectors() -> list[dict]:
         rstep({"recv": msg("cancel", "c", APH, sid, NOW + 2, reason="user.cancelled")},
               [{"deliver": {"leg": BPH, "type": "cancel", "reason": "user.cancelled"}}],
               **{sid: {"legs": {BPH: "cancelled", BLA: "rejected"}, "outcome": "cancelled"}}),
-        rstep({"recv": msg("answer", "a", BPH, sid, NOW + 2, answered_by="user")}, [{"drop": "leg-terminated"}],
+        rstep({"recv": msg("answer", "a", BPH, sid, NOW + 2, answered_by="user")}, [{"forward": {"type": "answer", "from": BPH}}],
               **{sid: {"legs": {BPH: "cancelled", BLA: "rejected"}, "outcome": "cancelled"}}),
+    ], component="relay"))
+    out.append(trace("relay-answer-from-an-expired-leg-is-forwarded",
+                     "The relay expired the phone's leg; the phone (alerted before expiry) answers after it. The answer is forwarded — the "
+                     "initiator ends it (bye session.failed, §12.4) — and nothing else changes: the leg stays expired, its later progress "
+                     "is still dropped, and the attempt's outcome is still decided by the other leg (spec-gap 86).",
+                     ["§12.7", "§12.4"], None, [
+        rstep({"relay": "invite", "session": sid, "from": APH, "to": BOB_WEB, "legs": [BPH, BLA]},
+              [{"deliver": {"leg": BPH, "type": "invite"}}, {"deliver": {"leg": BLA, "type": "invite"}}],
+              **{sid: {"legs": {BPH: "delivered", BLA: "delivered"}, "outcome": None}}),
+        rstep({"relay": "leg_expired", "session": sid, "leg": BPH}, [],
+              **{sid: {"legs": {BPH: "expired", BLA: "delivered"}, "outcome": None}}),
+        rstep({"recv": msg("answer", "a", BPH, sid, NOW + 31, answered_by="user")}, [{"forward": {"type": "answer", "from": BPH}}],
+              **{sid: {"legs": {BPH: "expired", BLA: "delivered"}, "outcome": None}}),
+        rstep({"recv": msg("progress", "p", BPH, sid, NOW + 31, status="ringing")}, [{"drop": "leg-terminated"}],
+              **{sid: {"legs": {BPH: "expired", BLA: "delivered"}, "outcome": None}}),
+        rstep({"recv": msg("reject", "r", BLA, sid, NOW + 32, reason="user.declined")},
+              [{"forward": {"type": "reject", "reason": "user.declined", "from": BLA}}],
+              **{sid: {"legs": {BPH: "expired", BLA: "rejected"}, "outcome": "rejected"}}),
+    ], component="relay"))
+    out.append(trace("relay-answer-from-a-rejected-leg-is-forwarded",
+                     "A leg that rejected and then answers is not the relay's to judge: the answer is forwarded, the leg stays rejected, "
+                     "and a second reject from it is still dropped (spec-gap 86).",
+                     ["§12.7"], None, [
+        rstep({"relay": "invite", "session": sid, "from": APH, "to": BOB_WEB, "legs": [BPH, BLA]},
+              [{"deliver": {"leg": BPH, "type": "invite"}}, {"deliver": {"leg": BLA, "type": "invite"}}],
+              **{sid: {"legs": {BPH: "delivered", BLA: "delivered"}, "outcome": None}}),
+        rstep({"recv": msg("reject", "r1", BPH, sid, NOW + 1, reason="endpoint.busy")}, [],
+              **{sid: {"legs": {BPH: "rejected", BLA: "delivered"}, "outcome": None}}),
+        rstep({"recv": msg("answer", "a", BPH, sid, NOW + 2, answered_by="user")}, [{"forward": {"type": "answer", "from": BPH}}],
+              **{sid: {"legs": {BPH: "rejected", BLA: "delivered"}, "outcome": None}}),
+        rstep({"recv": msg("reject", "r2", BPH, sid, NOW + 3, reason="user.declined")}, [{"drop": "leg-terminated"}],
+              **{sid: {"legs": {BPH: "rejected", BLA: "delivered"}, "outcome": None}}),
     ], component="relay"))
     out.append(trace("relay-late-answer-forwarded", "A second leg's answer after the first is forwarded; the initiator decides (bye already-answered).", ["§12.7"], None, [
         rstep({"relay": "invite", "session": sid, "from": APH, "to": BOB_WEB, "legs": [BPH, BLA]},

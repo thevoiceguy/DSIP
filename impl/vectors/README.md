@@ -326,8 +326,12 @@ envelope queued for an identity or device, of any type; recipients with nothing 
 When every leg ends without any leg having rejected there is nothing to forward: the relay speaks for itself,
 `send error {to: the initiator, session, reason: transport.no-response, in_reply_to: the invite id}` (§12.7 rule 6, spec-gap 76).
 An endpoint in INVITING or PROCEEDING that receives it ends the attempt (`timer stop` → `ui ended transport.no-response`,
-no `cancel`); in any other state it is `ui error` like any other error. A forwarded `progress` carries its `status`. A message from a leg that has already terminated is
-`drop leg-terminated`.
+no `cancel`); in any other state it is `ui error` like any other error. A forwarded `progress` carries its `status`. An `answer` is **never withheld**, whatever the leg's state: only the
+initiator ends a leg that has answered (`bye session.already-answered` / `session.cancelled` / `session.failed`, below),
+and the leg record moves only for a leg that was still outstanding — a cancelled, expired or rejected leg that answers stays
+recorded as such, and the outcome is unchanged (spec-gap 86). A `progress` or `reject` from a leg that has already
+terminated is `drop leg-terminated`: at an initiator that cannot see legs it would read as the attempt's own, and nobody
+needs it.
 
 The attempt record is used only for a leg's pre-answer traffic, a `cancel`, and the outcome. **Everything else is routed
 by `to`** (§13.3, spec-gap 82) — post-answer traffic, traffic from a device that is not a leg, a `cancel` addressed to a
@@ -636,6 +640,14 @@ Each item has a matching `spec-gap` issue draft in `impl/docs/spec-gaps.md`.
 79. G§4.2: the Q.850 cause of a category-fallback response, and of a BYE for a token the BYE rows do not name (`gateway/outbound-unknown-*`, `outbound-bye-policy-terminated`).
 77. §22.2/§22.3: **decided** — a statement has no integrity mode of its own; the per-statement field is gone.
 76. §12.7 rule 6: **decided** — when every leg expired and none rejected the relay sends its own `error transport.no-response`, which ends the attempt at the initiator (`state/relay-all-legs-expired`, `initiator-relay-no-response-ends-attempt`).
+85. §12.4 / §12.7 rule 4: **decided** — the `bye` a late answer gets after the session has *ended* follows what the invite
+    was, not how the call finished: `session.cancelled` when we withdrew it (§12.5 rule 3), `session.already-answered`
+    when an answer was applied (however the call then ended), `session.failed` when the attempt was never answered
+    (`state/fork-late-answer-after-the-call-ended`, `fork-late-answer-after-our-hangup`).
+86. §12.7 rule 3/4 vs §13.2: **decided** — a forking relay never withholds an `answer`, even from a leg it has cancelled,
+    expired or seen reject; only the initiator ends an answered leg. Stale `progress` and second `reject`s are still
+    screened (`state/relay-user-cancel-all-legs`, `relay-answer-from-an-expired-leg-is-forwarded`,
+    `relay-answer-from-a-rejected-leg-is-forwarded`).
 73. §9.3 vs §15.4: a terminal `notify` carries `session.expired` / `policy.terminated`, tokens the registry lists as valid on other types only; no warning on `notify` (`semantic/notify-terminated-reason`, by the deep-equality rule above).
 34–43. Messaging Profile draft choices (hub ordering, archive first-wins, first-contact authorization, `mailbox` tokens, `MAX_MLS_BYTES`, ephemeral lifetime) pinned by `messaging/*`; see the v0.8 messaging worklist in `impl/docs/spec-gaps.md`.
 

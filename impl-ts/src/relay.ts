@@ -212,13 +212,17 @@ export class Relay {
     const leg = m["from"] as string;
     const state = a.legs.get(leg)!;
     if (type === "answer") {
-      // a leg that has answered may be heard again; any other terminated leg is done
-      if (state !== "delivered" && state !== "answered") return void this.emit.push({ drop: "leg-terminated" });
-      a.legs.set(leg, "answered");
-      a.outcome ??= "answered";
-      // A late answer is still forwarded: only the initiator can end that leg (§12.7 rule 4).
+      // An answer is never withheld, whatever the leg's state: only the initiator can end a leg that has
+      // answered (§12.7 rule 4; §12.5 rule 3 after a cancel; §12.4 after an ended attempt). The record moves
+      // only for a leg that was still outstanding: a cancelled, expired or rejected leg that answers stays so.
+      if (state === "delivered") {
+        a.legs.set(leg, "answered");
+        a.outcome ??= "answered";
+      }
       return void this.emit.push({ forward: { type, from: leg } });
     }
+    // a stale progress or a second reject from a leg that is done would read as the attempt's own at an
+    // initiator that cannot see legs; the relay screens it (§12.7 rule 3)
     if (state !== "delivered") return void this.emit.push({ drop: "leg-terminated" });
     if (type === "progress") return void this.emit.push({ forward: { type, status: m["status"]!, from: leg } });
     a.rejections.push({ leg, reason: m["reason"] as string });

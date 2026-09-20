@@ -188,17 +188,24 @@ class Relay:
         leg = m["from"]
         if a.legs.get(leg) is None:
             return self.route_plain(m)  # spec-gap 82: not a leg of this attempt — routed like any envelope, never dropped
-        if a.legs[leg] in TERMINAL and not (t == "answer" and a.legs[leg] == "answered"):
+        if t == "answer":
+            # Never withheld, whatever the leg's state (spec-gap 86): only the initiator ends a leg that has
+            # answered — bye already-answered / cancelled / failed (§12.7 rule 4, §12.5 rule 3, §12.4). The
+            # record changes only for a leg that was still outstanding: a cancelled, expired or rejected leg
+            # that answers stays recorded as such.
+            if a.legs[leg] == "delivered":
+                a.legs[leg] = "answered"
+                if a.outcome is None:
+                    a.outcome = "answered"
+            self.emit({"forward": {"type": "answer", "from": leg}})
+            return
+        if a.legs[leg] in TERMINAL:
+            # A stale progress or a second reject from a leg that is done would read, at an initiator that
+            # cannot see legs, as the attempt's own; nobody needs it, so the relay screens it (spec-gap 86).
             self.emit({"drop": "leg-terminated"})
             return
         if t == "progress":
             self.emit({"forward": {"type": "progress", "status": m.get("status"), "from": leg}})
-        elif t == "answer":
-            a.legs[leg] = "answered"
-            if a.outcome is None:
-                a.outcome = "answered"
-            # Always forwarded: the initiator decides (first-accept, late → bye already-answered).
-            self.emit({"forward": {"type": "answer", "from": leg}})
         elif t == "reject":
             a.legs[leg] = "rejected"
             a.reasons[leg] = m["reason"]

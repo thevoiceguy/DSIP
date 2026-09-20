@@ -41,6 +41,8 @@ interface Session {
   requeues: number;
   /** Initiator: why the attempt ended, which decides the `bye` a late answer gets (§12.4, §12.5). */
   endedBy?: "cancel" | "other";
+  /** Initiator: an answer was applied (the session reached ACTIVE), so any later one is `session.already-answered` (§12.7 rule 4). */
+  answered?: boolean;
   /** Responder: a message from the initiator has arrived since our answer (§12.5 rule 2). */
   initiatorSpoke: boolean;
 }
@@ -327,8 +329,9 @@ export class Endpoint {
     }
     if (s.state === "ENDED") {
       if (type === "answer" && s.role === "initiator" && !("in_reply_to" in m)) {
-        // §12.5 rule 3 (after our cancel) / §12.4 (after a reject): never resurrect
-        const reason = s.endedBy === "cancel" ? "session.cancelled" : "session.failed";
+        // §12.5 rule 3 (after our cancel) / §12.7 rule 4 (the invite was answered, however the call then ended) /
+        // §12.4 (an attempt that was never answered): never resurrect
+        const reason = s.endedBy === "cancel" ? "session.cancelled" : s.answered ? "session.already-answered" : "session.failed";
         return this.send("bye", m["from"] as string, { session: id, reason });
       }
       return void this.emit.push({ drop: "ended-session" });
@@ -364,6 +367,7 @@ export class Endpoint {
     if (type === "answer" && pre && !("in_reply_to" in m)) { // an answer naming an update is an update reply (§12.8), invalid before ACTIVE
       this.stopAll(id);
       s.state = "ACTIVE";
+      s.answered = true;
       s.peer = m["from"] as string;
       s.media = true;
       this.emit.push({ media: "start" });
