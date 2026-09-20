@@ -185,10 +185,17 @@ jobs:
         run: python3 impl/tools/parity.py
       - uses: actions/setup-node@v4
         with: { node-version: "20" }
-      - name: differential fuzz — Python, Rust and TypeScript on generated traces (fixed seed)
+      - name: differential fuzz — Python, Rust and TypeScript on generated traces (fixed seed, then this run's own)
+        # Seed 1 is the regression seed every checkout reproduces. The run number is a second seed no earlier run
+        # used, so every push probes new traces; it is printed and reproducible (`--seed N`). Seeds 3–6 at 1,500
+        # probes found seven divergences (spec-gaps 87–93) that seed 1 at 150 never could.
         run: |
           (cd impl-ts && npm ci && npm run build)
           python3 impl/tools/fuzz.py --seed 1 --count 150
+          python3 impl/tools/fuzz.py --seed "${{ github.run_number }}" --count 800 --out found
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with: { name: fuzz-reproducers, path: found, if-no-files-found: ignore }
       - name: DHT local testnet (5 nodes)
         run: python3 impl/tools/dht_testnet.py --nodes 5 --report /tmp/dht-report.json
 
