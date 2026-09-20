@@ -1,11 +1,10 @@
 {
-  "vector": "state/relay-user-cancel-all-legs",
+  "vector": "state/relay-answer-from-a-rejected-leg-is-forwarded",
   "format": 1,
   "kind": "state",
-  "description": "Initiator abandons: cancel delivered per-leg to every live leg. The phone's answer that crossed the cancel is still forwarded — only the initiator ends an answered leg (bye session.cancelled, §12.5 rule 3); the leg stays recorded as cancelled (spec-gap 86).",
+  "description": "A leg that rejected and then answers is not the relay's to judge: the answer is forwarded, the leg stays rejected, and a second reject from it is still dropped (spec-gap 86).",
   "spec_ref": [
-    "§12.7",
-    "§12.5"
+    "§12.7"
   ],
   "context": {
     "component": "relay",
@@ -55,7 +54,7 @@
           "recv": {
             "type": "reject",
             "id": "01K742SGZ8SCSR8GKE82YBXK8X",
-            "from": "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ",
+            "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
             "session": "01K742SG00YYNVBMYAQK1CB31F",
             "reason": "endpoint.busy"
           }
@@ -65,41 +64,10 @@
           "attempts": {
             "01K742SG00YYNVBMYAQK1CB31F": {
               "legs": {
-                "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn": "delivered",
-                "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ": "rejected"
+                "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn": "rejected",
+                "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ": "delivered"
               },
               "outcome": null
-            }
-          }
-        }
-      },
-      {
-        "event": {
-          "recv": {
-            "type": "cancel",
-            "id": "01K742SHYGVJD6J78ER00JEBFH",
-            "from": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
-            "session": "01K742SG00YYNVBMYAQK1CB31F",
-            "reason": "user.cancelled"
-          }
-        },
-        "expect": {
-          "emit": [
-            {
-              "deliver": {
-                "leg": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
-                "type": "cancel",
-                "reason": "user.cancelled"
-              }
-            }
-          ],
-          "attempts": {
-            "01K742SG00YYNVBMYAQK1CB31F": {
-              "legs": {
-                "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn": "cancelled",
-                "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ": "rejected"
-              },
-              "outcome": "cancelled"
             }
           }
         }
@@ -126,10 +94,37 @@
           "attempts": {
             "01K742SG00YYNVBMYAQK1CB31F": {
               "legs": {
-                "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn": "cancelled",
-                "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ": "rejected"
+                "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn": "rejected",
+                "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ": "delivered"
               },
-              "outcome": "cancelled"
+              "outcome": null
+            }
+          }
+        }
+      },
+      {
+        "event": {
+          "recv": {
+            "type": "reject",
+            "id": "01K742SJXRK99ARKE08V46Y2NR",
+            "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "session": "01K742SG00YYNVBMYAQK1CB31F",
+            "reason": "user.declined"
+          }
+        },
+        "expect": {
+          "emit": [
+            {
+              "drop": "leg-terminated"
+            }
+          ],
+          "attempts": {
+            "01K742SG00YYNVBMYAQK1CB31F": {
+              "legs": {
+                "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn": "rejected",
+                "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ": "delivered"
+              },
+              "outcome": null
             }
           }
         }

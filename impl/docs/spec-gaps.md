@@ -172,7 +172,8 @@ reject; the registry column reads as guidance for senders. Vector:
 `session.already-answered` covers late legs of an established session. No
 token covers an answer arriving after the attempt ended by `reject`.
 **PoC choice.** `bye session.failed`. Vector:
-`state/initiator-rejected-while-proceeding`.
+`state/initiator-rejected-while-proceeding`. The third case — an answer arriving after a session that *was* established
+has ended — is spec-gap 85.
 
 ## 13. §12.4 — ENDING
 
@@ -1884,6 +1885,51 @@ otherwise each of ours lost, and each is withdrawn, in id order. Applied in all 
 `state/glare-every-losing-attempt-is-withdrawn`, `state/glare-lowest-id-of-all-decides`.
 
 **Suggested fix.** §12.6: say "each outbound invite to that identity".
+
+## 85. §12.4 / §12.7 rule 4 — the `bye` a late answer gets once the call has ended
+
+**Gap.** The §12.4 initiator table gives a late answer's `bye` in two ended states: after our `cancel`
+(`session.cancelled`, §12.5 rule 3) and after an attempt "ended by `reject` or timeout" (`session.failed`, spec-gap 12).
+It says nothing about the third: the session reached ACTIVE, ended with a `bye` (ours or the peer's), and another leg's
+answer arrives after that — with forking that is an ordinary race, not an edge. Rust and Python send
+`session.already-answered`; the second implementation, reading the table's two rows as exhaustive, sent
+`session.failed`. Unpinned by any vector; noticed by reading, and confirmed by the vectors below before they were fixed.
+
+**Choices considered.** (a) `session.already-answered`: §12.7 rule 4 says "exactly one answer is ever applied per
+invite; any subsequent answer from another leg" gets it — a rule about the invite, not the state, and it is the truthful
+reason. (b) `session.failed`: the fallback the table names for an ended attempt. (c) `session.cancelled`: wrong — nothing
+was withdrawn.
+
+**Decision (2026-09-20).** (a). The `bye` follows what the invite was: `session.cancelled` when we withdrew it,
+`session.already-answered` when an answer was applied (however the call then ended), `session.failed` when the attempt
+was never answered. Applied to §12.4 (a third ENDED row) and §12.7 rule 4; vectors
+`state/fork-late-answer-after-the-call-ended`, `state/fork-late-answer-after-our-hangup`; the second implementation
+now tracks whether an answer was applied.
+
+## 86. §12.7 rules 3–4 / §13.2 — the relay must not withhold an `answer`
+
+**Gap.** A forking relay marks a leg terminated when it delivers a `cancel` to it, when the invite expires at the relay,
+or when the leg rejects. All three implementations then dropped *everything* the leg sent, `answer` included
+(`drop leg-terminated`, pinned by `state/relay-user-cancel-all-legs`). But an answer can cross the cancel (§12.5 rule 3
+exists for exactly that), and a device alerted just before `expires_at` can answer just after it: the device is then
+ACTIVE, waiting for media, and the `bye` that §12.5 rule 3 / §12.4 make the initiator send never comes, because the
+initiator never saw the answer. Silent on the wire, and at odds with spec-gap 82, under which a relay that has *lost* its
+attempt record forwards that same late answer (`state/relay-unknown-session-routed-by-to`): a relay that remembered
+more delivered less.
+
+**Choices considered.** (a) Forward every `answer`, whatever the leg's state; the initiator alone ends an answered leg
+(`already-answered`, `cancelled` or `failed` by §12.7 rule 4, §12.5 rule 3, §12.4). (b) Route it by `to` like unknown-
+session traffic: same wire effect, but it is an attempt's own leg traffic and the record should not pretend otherwise.
+(c) Keep dropping, and have the relay `bye` the leg itself: the relay speaking for the initiator (§15.2 forbids composing
+in another's name). (d) Forward `progress` and `reject` from terminated legs too: no — the initiator cannot see legs, so a
+stale `progress` or a second `reject` would read as the attempt's own, and nobody needs them.
+
+**Decision (2026-09-20).** (a), with the leg record moving only for a leg that was still outstanding: a cancelled,
+expired or rejected leg that answers is forwarded and stays recorded as cancelled, expired or rejected, and the attempt's
+outcome is unchanged. `progress` and `reject` from a terminated leg are still `drop leg-terminated` — the relay screens
+them because only it can. Applied to §12.7 rule 3 and §13.3; `state/relay-user-cancel-all-legs` reversed (the crossed
+answer is forwarded), `state/relay-answer-from-an-expired-leg-is-forwarded`,
+`state/relay-answer-from-a-rejected-leg-is-forwarded`; all three implementations.
 
 ## Already-flagged (schema README / plan §11)
 
