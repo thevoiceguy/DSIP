@@ -136,7 +136,7 @@ python3 impl/tools/spec_lint.py --check       # Spec: headers; regenerates docs/
 python3 impl/tools/parity_ts.py --require-all
 
 # Differential fuzz: random traces through all three implementations, actual against actual
-python3 impl/tools/fuzz.py                      # fixed seed 1, as CI runs it
+python3 impl/tools/fuzz.py                      # seed 1 (CI's regression seed); CI also runs its run number as a seed, 800/target
 python3 impl/tools/fuzz.py --seed random --target endpoint,hub --count 1000 --out /tmp/found
 
 # DHT local testnet (integration, not vectors)

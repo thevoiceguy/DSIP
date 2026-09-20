@@ -68,7 +68,8 @@ not implement a kind reports `{"ok": false, "skipped": true}`; a skipped vector 
 
 A vector exercises one rule; implementations can pass every vector and still disagree when two rules meet.
 `impl/tools/fuzz.py` generates random well-formed traces and table rows, runs them through all three runners
-(`--dir`, `--json`) and compares actual with actual. CI runs it with a fixed seed; a weekly workflow uses a fresh one.
+(`--dir`, `--json`) and compares actual with actual. CI runs it with a fixed seed and then with the run's own number as a second seed (printed, reproducible); a weekly
+workflow uses a fresh one at a larger count.
 A disagreement never becomes a recorded expectation: it becomes a hand-authored vector here, or a spec-gap.
 
 ## Fixed fixtures

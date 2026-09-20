@@ -94,7 +94,7 @@ Stage 5 (`messaging`, the stateless checks):
 | 20 | Nine `messaging` checks were missing from the README table (`introduction`, `sealed-introduction-open`, `hpke-open`, `hpke-derive-key-pair`, `x25519-key-agreement`, `blob-put`, `blob-get`, `registration-on-removal`, `hub-outage-trace`), with their codes and check orders. | README. |
 
 **Differential probing** is now a tool: `python3 ../impl/tools/fuzz.py` (random traces and table rows through all three
-implementations; CI runs it with a fixed seed, a weekly workflow with a fresh one). Its first run found a real bug in
+implementations; CI runs it with a fixed seed and the run's number as a second, a weekly workflow with a fresh one). Its first run found a real bug in
 Rust *and* Python (the commit-retry fallback escaped M§6.5's bound of three proposals), the first disagreement between
 Rust and Python themselves (glare with two attempts of ours, spec-gap 84), seven wrong readings in this implementation,
 and two open protocol questions (spec-gaps 82, 83). When a rule is a table (class × field, token × phase), passing the vectors proves little: generate
