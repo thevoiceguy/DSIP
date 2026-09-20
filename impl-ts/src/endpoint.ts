@@ -199,6 +199,8 @@ export class Endpoint {
     if (!s && SESSION_VERBS.includes(verb)) return void this.emit.push({ refused: "unknown-session" });
     switch (verb) {
       case "place_call": {
+        // a session id is used once (§12.9): a session this endpoint holds, live or ended, is never overwritten
+        if (s) return void this.emit.push({ refused: "invalid-state" });
         const to = e["to"] as string;
         this.sessions.set(id, { role: "initiator", state: "INVITING", to, outstanding: null, media: false, requeues: 0, initiatorSpoke: false });
         // §19.4: the grantee MAY reference a held grant in the invite's `grant` field

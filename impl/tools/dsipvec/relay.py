@@ -72,7 +72,7 @@ class Relay:
                 for m in self.inbox.pop(key, []):
                     self.flush_to(device, m)
             # §12.7 rule 3: a device that binds while an attempt for its identity is live becomes a new leg
-            for sid, a in self.attempts.items():
+            for sid, a in sorted(self.attempts.items()):  # id order when several attempts are live (spec-gap 89)
                 if a.identity == identity and a.outcome is None and device not in a.legs:
                     inv = self.invites.get(sid)
                     # unexpired as the envelope pipeline means it: `expired` is expires_at < now (§12.9)
@@ -178,7 +178,8 @@ class Relay:
             only = m.get("to") if m.get("to") in a.legs else None
             if only is None and m.get("to") not in (None, a.identity):
                 return self.route_plain(m)  # addressed to a device that is no leg of this attempt: not the attempt's business
-            for leg, st in a.legs.items():
+            for leg in sorted(a.legs):  # device (DID) order, the suite's order wherever a relay fans out (spec-gap 89)
+                st = a.legs[leg]
                 if st == "delivered" and only in (None, leg):
                     a.legs[leg] = "cancelled"
                     self.emit({"deliver": {"leg": leg, "type": "cancel", "reason": m["reason"]}})

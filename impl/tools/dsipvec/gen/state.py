@@ -165,6 +165,16 @@ def vectors() -> list[dict]:
         step({"recv": msg("reject", "r", BPH, sid, NOW + 1, reason="endpoint.busy")},
              [TP("T-Establish"), UI("ended", reason="endpoint.busy")], **{sid: sess("initiator", "ENDED")}),
     ]))
+    out.append(trace("place-call-on-a-held-session-is-refused",
+                     "A session id is used once (§12.9: ids are ULIDs the replay check remembers): a local place_call naming a session "
+                     "this endpoint already holds, live or ended, is refused invalid-state and changes nothing (spec-gap 90).",
+                     ["§12.4", "§12.9"], ALICE_SELF, [
+        initiator_to_active(sid)[0],
+        step({"local": "place_call", "session": sid, "to": BOB_WEB}, [{"refused": "invalid-state"}], **{sid: sess("initiator", "INVITING")}),
+        step({"recv": msg("reject", "r", BPH, sid, NOW + 1, reason="endpoint.busy")},
+             [TP("T-Establish"), UI("ended", reason="endpoint.busy")], **{sid: sess("initiator", "ENDED")}),
+        step({"local": "place_call", "session": sid, "to": BOB_WEB}, [{"refused": "invalid-state"}], **{sid: sess("initiator", "ENDED")}),
+    ]))
     out.append(trace("unknown-session-rejected", "Message for a session this endpoint does not know → error session.unknown-session.",
                      ["§12.2"], ALICE_SELF, [
                          step({"recv": msg("bye", "b", BPH, uid("nope"), NOW, reason="user.hangup")},
@@ -1062,6 +1072,31 @@ def vectors() -> list[dict]:
         sf({"advance": 1}, [], {}),
         sf({"relay": "bind", "device": "did:key:z6MkBobTablet111111111111111111111111111111", "identity": BOB}, [], {},
            **{sid: {"legs": {BPH: "delivered", BLA: "delivered"}, "outcome": None}}),
+    ], component="relay"))
+    out.append(trace("relay-cancel-reaches-live-legs-in-device-order",
+                     "A cancel to the identity goes to every live leg in device (DID) order, whatever order the legs were delivered in — "
+                     "the suite's order wherever a relay fans out (spec-gap 89).", ["§12.7", "§12.11"], None, [
+        rstep({"relay": "invite", "session": sid, "from": APH, "to": BOB_WEB, "legs": [BPH, BLA]},
+              [{"deliver": {"leg": BPH, "type": "invite"}}, {"deliver": {"leg": BLA, "type": "invite"}}],
+              **{sid: {"legs": {BPH: "delivered", BLA: "delivered"}, "outcome": None}}),
+        rstep({"recv": msg("cancel", "c", APH, sid, NOW + 2, reason="user.cancelled")},
+              [{"deliver": {"leg": BLA, "type": "cancel", "reason": "user.cancelled"}},
+               {"deliver": {"leg": BPH, "type": "cancel", "reason": "user.cancelled"}}],
+              **{sid: {"legs": {BPH: "cancelled", BLA: "cancelled"}, "outcome": "cancelled"}}),
+    ], component="relay"))
+    later, earlier = uid("later-invite", NOW + 1), uid("earlier-invite", NOW)
+    out.append(trace("relay-late-binder-gets-live-invites-in-id-order",
+                     "A device that binds while two attempts to its identity are live becomes a leg of both and receives their invites "
+                     "in id order, whatever order they arrived in (spec-gap 89).", ["§12.7"], None, [
+        sf({"relay": "bind", "device": BPH, "identity": BOB}, [], {}),
+        sf({"recv": INV("later-invite", at=NOW + 1)}, [{"deliver": {"leg": BPH, "type": "invite"}}], {},
+           **{later: {"legs": {BPH: "delivered"}, "outcome": None}}),
+        sf({"recv": INV("earlier-invite", at=NOW)}, [{"deliver": {"leg": BPH, "type": "invite"}}], {},
+           **{later: {"legs": {BPH: "delivered"}, "outcome": None}, earlier: {"legs": {BPH: "delivered"}, "outcome": None}}),
+        sf({"relay": "bind", "device": BLA, "identity": BOB},
+           [{"deliver": {"leg": BLA, "type": "invite", "id": earlier}}, {"deliver": {"leg": BLA, "type": "invite", "id": later}}], {},
+           **{later: {"legs": {BPH: "delivered", BLA: "delivered"}, "outcome": None},
+              earlier: {"legs": {BPH: "delivered", BLA: "delivered"}, "outcome": None}}),
     ], component="relay"))
     out.append(trace("relay-expiry-reports-in-recipient-order",
                      "Held envelopes that expire together are dropped in recipient order, whatever order they were queued in.",

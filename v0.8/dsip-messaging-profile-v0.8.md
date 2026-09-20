@@ -712,8 +712,10 @@ several apply to one deposit every hub MUST give the same answer, so the order i
 
 **Welcomes are queued too** (spec-gap 66). A `welcome` is fanned out to the added identity's mailbox with the same
 retry as a sequenced item, in that identity's own queue (a member adding its own device needs both the commit, for
-its other devices, and the welcome, for the new one — same `seq`, two deposits). Until that mailbox acknowledges the
-welcome, the hub sends it nothing else for the group: it has no registration yet and would refuse the items (M§6.6).
+its other devices, and the welcome, for the new one — same `seq`, two deposits). Until the mailbox of an identity the
+commit *brought in* acknowledges the welcome, the hub sends it nothing else for the group: it has no registration yet and
+would refuse the items (M§6.6); a member adding its own device is registered already, and its queue is not held
+(spec-gap 87).
 A welcome's `seq` is its commit's (M§5.2; spec-gap 83), not a place of its own: a mailbox never sequences a welcome
 by it or echoes it in the acknowledgement, so a hub matches a welcome's acknowledgement by the deposit it answers. A member
 mailbox answers a welcome whose MLS bytes it already holds `accepted` with `duplicate` and that welcome's cursor
@@ -784,13 +786,15 @@ A mailbox accepts hub fan-out only for groups registered for its owner:
   from the hub registered for the group.
 - An owner device confirms with `mailbox-config` `groups[].state: joined`, or ends it with `left`.
   An unconfirmed pending group is dropped, with its items, after `pending_group_ttl`
-  (RECOMMENDED 604,800 s).
+  (RECOMMENDED 604,800 s) — the hub deposits it admitted; an archive record (M§12.2) that references the
+  group is the owner's history, stored whatever the group's registration, and stays (spec-gap 91).
 - A hub deposit for an unregistered group is refused `mailbox.unknown-group`. The hub MAY retry that
   member later; it MUST NOT stall other members' fan-out because of it.
 - (spec-gap 59) **Redelivery.** A hub deposit whose `seq` is at or below the highest the mailbox has stored
   for that group is a redelivery (the hub delivers in `seq` order and retries unacknowledged items): the
   mailbox answers `accepted` with `duplicate: true` — and the item's original `cursor` while it still holds
-  the item — and neither stores nor pushes it again.
+  the item, found by group and `seq` whatever registration stored it, and never an archive record's (M§12.2;
+  spec-gap 92) — and neither stores nor pushes it again.
 - (spec-gap 59) **Restarts.** Everything a mailbox answers from is durable: items, the cursor counter,
   each device's `ack_through`, group registrations with their pending age and item count, KeyPackages,
   revoked grants, the archive index (M§12.2), the first-contact rate window (§19.4) and the ids tracked for
@@ -935,7 +939,8 @@ hub, which initializes its state from the latest `group-info`.
   names the new hub on `accepted` without waiting for the fan-out. A mailbox therefore holds the new hub
   off for at most `handover_wait` from the `mailbox-config` that named it (the mailbox's own choice; 300 s
   is RECOMMENDED; the wait is durable across a restart). When it expires with items still missing, the
-  mailbox admits the new hub and leaves the missing `seq`s to its owner's devices, which treat them as a
+  mailbox admits the new hub (announcing the expiry once, at the new hub's first deposit after it, whether that
+  deposit is admitted or refused — spec-gap 88) and leaves the missing `seq`s to its owner's devices, which treat them as a
   gap (M§6.5: hold, then re-join; the committer has the moving commit already, so it has a gap only if other
   items were lost with it). What the
   old hub still delivers after that, at or below `handover_seq`, is stored rather than taken for a

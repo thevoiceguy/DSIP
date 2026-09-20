@@ -273,6 +273,10 @@ class Hub:
         self.group_info = False
         self.moved_to: str | None = None
         self.welcomes: dict[str, list[int]] = {}
+        # Identities a commit brought in whose welcome is not yet acknowledged: their mailbox has no registration for
+        # the group and would refuse a sequenced item (M§6.6), so their queue is held (spec-gap 66). A member that
+        # gained a device is not among them (spec-gap 87).
+        self.unregistered: set[str] = set()
 
     def step(self, ev: dict) -> list:
         if "advance" in ev:
@@ -365,6 +369,8 @@ class Hub:
         if not external:  # an external joiner joined by its own commit; welcomes go only to identities others added
             # spec-gap 50: to every identity that gained a device, including a member adding its own new device
             gained = {a["identity"] for a in commit.get("adds", []) if a["device"] not in before.get(a["identity"], set())}
+            # spec-gap 87: only an identity the commit brought in has no registration to receive sequenced items with
+            self.unregistered |= gained - set(before)
             seq = self.digests[d["digest"]]
             for i in sorted(gained):
                 # spec-gap 66: a welcome is queued and retried like any other fan-out, so an identity whose mailbox is
@@ -383,13 +389,14 @@ class Hub:
             "now": self.now, "kind": self.kind, "owner": self.owner, "epoch": self.epoch, "next_seq": self.next_seq,
             "roster": {i: sorted(d) for i, d in self.roster.items()}, "digests": self.digests,
             "seq_class": {str(k): v for k, v in self.seq_class.items()}, "pending": self.pending, "group_info": self.group_info,
-            "moved_to": self.moved_to, "welcomes": self.welcomes}))
+            "moved_to": self.moved_to, "welcomes": self.welcomes, "unregistered": sorted(self.unregistered)}))
         for k in ("now", "kind", "owner", "epoch", "next_seq", "digests", "pending", "group_info", "moved_to", "welcomes"):
             setattr(self, k, state[k])
         self.roster = {i: set(d) for i, d in state["roster"].items()}
         self.seq_class = {int(k): v for k, v in state["seq_class"].items()}
+        self.unregistered = set(state["unregistered"])
         heads = [{"fanout": {"to": i, "seq": q[0], "class": self.seq_class[q[0]]}}
-                 for i, q in sorted(self.pending.items()) if q and not self.welcomes.get(i)]
+                 for i, q in sorted(self.pending.items()) if q and i not in self.unregistered]
         return heads + [{"fanout": {"to": i, "seq": q[0], "class": "welcome"}} for i, q in sorted(self.welcomes.items()) if q]
 
     def _sequence(self, d: dict, targets: list) -> list:
@@ -401,9 +408,10 @@ class Hub:
         for i in targets:  # M§6.5 rule 5: per-mailbox seq order, retry before later items
             q = self.pending.setdefault(i, [])
             q.append(seq)
-            # spec-gap 66: nothing goes to a mailbox before the welcome it has not acknowledged — until then it has no
-            # registration for the group and would refuse the item (M§6.6)
-            if len(q) == 1 and not self.welcomes.get(i):
+            # spec-gap 66: nothing goes to a mailbox the commit brought in before it acknowledges its welcome — until then
+            # it has no registration for the group and would refuse the item (M§6.6); a member that gained a device is
+            # registered and gets the commit at once (spec-gap 87)
+            if len(q) == 1 and i not in self.unregistered:
                 out.append({"fanout": {"to": i, "seq": seq, "class": d["class"]}})
         return out
 
@@ -412,10 +420,13 @@ class Hub:
         if not q or q[0] != seq:
             return []
         q.pop(0)
-        if q:
+        if q and (cls == "welcome" or ident not in self.unregistered):
+            # the hold behind an unacknowledged welcome applies here too: the queue moves, nothing is sent (spec-gap 87)
             return [{"fanout": {"to": ident, "seq": q[0], "class": cls or self.seq_class[q[0]]}}]
-        if cls == "welcome":
-            # the group is registered now: whatever waited behind the welcome goes
+        if cls == "welcome" and ident in self.unregistered:
+            # the group is registered now: whatever waited behind the welcome goes (a member that gained a device
+            # waited for nothing: its head went out with the commit, spec-gap 87)
+            self.unregistered.discard(ident)
             waiting = self.pending.get(ident, [])
             if waiting:
                 return [{"fanout": {"to": ident, "seq": waiting[0], "class": self.seq_class[waiting[0]]}}]
@@ -584,7 +595,9 @@ class Mailbox:
                 out.append({"handover_expired": {"group": e["group"], "hub": prev["hub"],
                                                  "missing": list(range(prev["released"] + 1, prev["through"] + 1))}})
             if e.get("seq") is not None and e["seq"] <= prev["through"]:
-                return self._error(e["from"], e["id"], "policy.blocked")  # spec-gap 60: the new hub continues the numbering
+                # spec-gap 60: the new hub continues the numbering — and the expiry just noticed is still announced
+                # (spec-gap 88)
+                return out + self._error(e["from"], e["id"], "policy.blocked")
         if e["class"] == "ephemeral":  # M§11.2: pushed to bound devices, never stored, never acknowledged
             if e.get("expires_at") is not None and e["expires_at"] < self.now:
                 return out  # M§11.2: dropped at expires_at (spec-gap 49: the originating deposit's)
@@ -595,7 +608,10 @@ class Mailbox:
             # or below the highest stored for the group is a redelivery: acknowledged, duplicate, not stored or pushed
             # again (with the original cursor while the item is still retained)
             acc = {"to": e["from"], "in_reply_to": e["id"], "duplicate": True}
-            c = next((it["cursor"] for it in self.items if it["group"] == e["group"] and it.get("seq") == seq), None)
+            # by group and seq, across a registration the owner left and made again; an archive record shares the seq
+            # space (its ref_seq) and is never the item (spec-gap 92)
+            c = next((it["cursor"] for it in self.items
+                      if it["group"] == e["group"] and it.get("seq") == seq and it["class"] != "archive"), None)
             if c is not None:
                 acc["cursor"] = c
             return [{"accepted": acc}]

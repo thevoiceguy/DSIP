@@ -1931,6 +1931,120 @@ them because only it can. Applied to §12.7 rule 3 and §13.3; `state/relay-user
 answer is forwarded), `state/relay-answer-from-an-expired-leg-is-forwarded`,
 `state/relay-answer-from-a-rejected-leg-is-forwarded`; all three implementations.
 
+## 87. M§6.5 rule 5 / spec-gap 66 — whose queue the welcome holds
+
+**Gap.** Found by `impl/tools/fuzz.py` (seed 3, the `hub` target). The M§6.5 erratum for spec-gap 66 says that until
+"that mailbox" — the added identity's — acknowledges its welcome, the hub sends it nothing else for the group, "it has no
+registration yet". Read literally, "the added identity" includes a member adding its own device, whose mailbox is
+registered and which the same paragraph says gets the commit *and* the welcome. Rust and Python used "has an
+unacknowledged welcome" as the test: at the commit they fanned it out to the member (the welcome was queued after), but
+on a restart they held that member's head back, and on the welcome's acknowledgement they sent it again. The second
+implementation tracked the identities with no registration and held only those. Three readings of one paragraph.
+
+**Choices considered.** (a) Hold the queue of an identity the commit brought in, and only that: the reason the text
+gives. (b) Hold any identity with an unacknowledged welcome, consistently — at the commit too: a member's other devices
+would then wait for its new device's mailbox acknowledgement for no reason. (c) Hold nothing and let the mailbox refuse
+and the hub retry: what spec-gap 66 rejected.
+
+**Decision (2026-09-20).** (a). The hold is by registration, not by welcome: an identity with no registration for the
+group (brought in by the commit; an external joiner joins by its own commit and has one) has its sequenced queue held
+until its welcome is acknowledged — at the commit, on retry and after a restart alike; a member that gained a device is
+registered and its queue moves only on its own acknowledgements. The hold covers every send: an acknowledgement from
+an identity still waiting for its welcome (seed 5 found Rust and Python answering it with the next item) moves its queue
+and sends nothing. Applied to M§6.5, the README, Rust and Python (a durable `unregistered` set); vectors
+`messaging/hub-member-adding-its-own-device-is-not-held-behind-the-welcome`,
+`messaging/hub-acknowledgement-does-not-lift-the-welcome-hold`.
+
+## 88. M§7.4 / spec-gap 71 — announcing the handover wait's expiry on a refused deposit
+
+**Gap.** Found by `fuzz.py` (seed 3, the `mailbox` target). The expiry of `handover_wait` is noticed lazily, at the new
+hub's first deposit after it (spec-gap 71's vectors). When that deposit is itself at or below `handover_seq`, it is
+refused `policy.blocked` — and Rust and Python returned the refusal alone, discarding the `handover_expired` they had
+just computed while keeping the released state, so the expiry was never announced at all. The second implementation
+emitted both. An implementation defect in the two, not a reading; recorded because the profile text never says the
+announcement is unconditional.
+
+**Decision (2026-09-20).** The expiry is announced once, at the first deposit from the new hub after the wait ran out,
+whether that deposit is then admitted or refused. Applied to M§7.4 and the README; vector
+`messaging/mailbox-hub-move-handover-wait-expiry-announced-on-a-refused-deposit`; Rust and Python fixed.
+
+## 89. §12.7 rule 3 / §12.11 — the order a relay reaches several legs in
+
+**Gap.** Found by `fuzz.py` (seed 3, the `relay` target): the first disagreement of Rust with Python *and* the second
+implementation. Nothing in the spec orders a fan-out, and the suite's rule ("device (DID) order wherever a relay or
+mailbox fans out", spec-gap 82) was applied by Python and the second implementation to routing, but not to the two
+fan-outs that walk the attempt record: a `cancel` to the identity reached the live legs in the order they were
+delivered, and a device binding into several live attempts got their invites in the order the attempts were made. Rust
+keeps both in ordered maps and so used DID order and id order. Only visible when delivery order differs from DID order,
+which the suite's fork event, listing legs in DID order, never did.
+
+**Decision (2026-09-20).** DID order and id order everywhere, as the suite already says: a real relay forks in DID
+order anyway (its binding table), so the record's insertion order is an artefact of the harness's explicit leg list.
+Applied to the README, Python and the second implementation; vectors `state/relay-cancel-reaches-live-legs-in-device-order`,
+`state/relay-late-binder-gets-live-invites-in-id-order`. No spec text: emission order is the suite's contract, not the
+protocol's.
+
+## 90. §12.4 / §12.9 — a local `place_call` on a session the endpoint already holds
+
+**Gap.** Found by `fuzz.py` (seed 3, the `endpoint` target). The harness's `place_call` names its session id. All three
+implementations accepted one for an id already held — a PROCEEDING session went back to INVITING with a second
+`invite` on the wire and a second T-Establish, while its T-Ring ran on; they then differed on what the timers did at
+expiry. §12.4 has no transition on a local call request from any session state, and §12.9 makes the id a ULID the
+replay check remembers: an id is used once.
+
+**Decision (2026-09-20).** A `place_call` naming a session this endpoint holds, live or ended, is `refused
+invalid-state` and changes nothing (the timers run on). A local-API rule, so README only; vector
+`state/place-call-on-a-held-session-is-refused`; all three implementations.
+
+## 91. M§6.6 / M§12.2 — what a pending group's expiry drops
+
+**Gap.** Found by `fuzz.py` (seed 4, the `mailbox` target). M§6.6: an unconfirmed pending group "is dropped, with its
+items". An archive deposit (M§12.2) names a group by reference and needs no registration for it — history outlives
+leaving, and a later welcome for the same group makes a new, pending registration. Rust and Python kept archive records
+through the drop (deliberately, unpinned); the second implementation dropped every item filed under the group, archive
+records included, which would erase the owner's history of a group they left and were re-invited to, if the invitation
+lapsed.
+
+**Choices considered.** (a) Drop the hub deposits the pending group admitted, keep archive records: the records are the
+owner's, stored by reference whatever the registration. (b) Drop everything filed under the group: the literal reading,
+and it destroys history for a registration the owner never confirmed. (c) Refuse archive deposits for a group with no
+confirmed registration: a device archives what it decrypted, and its `joined` config may arrive after its first archive.
+
+**Decision (2026-09-20).** (a). Applied to M§6.6 and the README; vector
+`messaging/mailbox-pending-group-expiry-keeps-archive-records`; the second implementation fixed.
+
+## 92. M§6.6 / spec-gap 59 — which cursor a redelivery carries
+
+**Gap.** Found by `fuzz.py` (seed 5, the `mailbox` target). Spec-gap 59: a redelivery is acknowledged as a duplicate
+"with the original cursor while the item is still retained". After the owner leaves a group and registers it again at
+another hub, a redelivered `seq` the mailbox still retains from the first registration got its cursor from Rust and
+Python (which look items up by group and seq) and no cursor from the second implementation (which kept the seen map per
+registration and had dropped it with the `left`). Reading all three showed a shared defect underneath: the lookup by
+group and seq also matches an archive record (M§12.2), whose `ref_seq` is in the same seq space, and returns its cursor
+if it was stored first.
+
+**Choices considered.** (a) By group and seq among retained hub items: the group is the same group and its numbering
+is the hub's; whether the owner's registration lapsed in between is no concern of the hub retrying. (b) Per
+registration: a redelivery after re-registration is a duplicate without a cursor — true but less useful, and a mailbox
+would have to remember which registration stored what. (c) Treat it as new and store it again: two items for one seq.
+
+**Decision (2026-09-20).** (a), and an archive record is never the item. Applied to M§6.6 and the README, all three
+implementations; vectors `messaging/mailbox-hub-deposit-redelivered-after-re-registration-carries-the-retained-cursor`,
+`messaging/mailbox-hub-deposit-redelivery-cursor-is-never-an-archive-records`.
+
+## 93. M§7.4 / spec-gap 71 — when an old hub's item is a fill and when a redelivery
+
+**Gap.** Found by `fuzz.py` (seed 6, the `mailbox` target). Spec-gap 71: after the handover wait expires with items
+missing, what the old hub still delivers at or below `handover_seq` "is stored rather than taken for a redelivery".
+The second implementation switched to that treatment as soon as the new hub was admitted — with nothing missing, no
+wait and no expiry — and then stored an old-hub item below the highest stored that Rust and Python, applying spec-gap
+59's redelivery rule, acknowledged as a duplicate.
+
+**Decision (2026-09-20, from the text).** "After that" is after an expiry: only a wait that ran out with items missing
+makes the old hub's later items below the highest stored fills; a move with nothing missing changes nothing about
+redelivery. Applied to the README and the second implementation; vector
+`messaging/mailbox-hub-move-old-hub-item-below-the-highest-stored-is-a-redelivery`.
+
 ## Already-flagged (schema README / plan §11)
 
 - §15.3 codec example uses bare strings; §16.2 defines objects (schemas follow §16.2).

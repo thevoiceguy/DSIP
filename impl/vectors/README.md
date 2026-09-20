@@ -270,7 +270,7 @@ attempt — through a scripted event sequence with a mock clock.
 
 | event | meaning |
 |---|---|
-| `{"local":"place_call","session":ID,"to":DID}` | send `invite` (id = session), start T-Establish; when the endpoint holds a grant issued by `to`'s identity, the `send` carries `grant` (its id, §19.4) |
+| `{"local":"place_call","session":ID,"to":DID}` | send `invite` (id = session), start T-Establish; when the endpoint holds a grant issued by `to`'s identity, the `send` carries `grant` (its id, §19.4); a session this endpoint already holds, live or ended, is `refused invalid-state` — an id is used once (§12.9; spec-gap 90) |
 | `{"local":"cancel","session":ID}` | user abandons → `cancel user.cancelled` |
 | `{"local":"hangup","session":ID,"reason":TOKEN?}` | `bye` with `reason` (default `user.hangup`; the media layer uses `media.failed`, B§8) |
 | `{"local":"alert","session":ID,"ring_timeout":N?}` | policy admits invite → `progress ringing`, start T-Ring-Local |
@@ -340,7 +340,10 @@ named, or to every device bound for the identity named, in device order; queued 
 offline; otherwise `send error transport.unknown-recipient` to the sender (`in_reply_to` the message's id). Nothing is
 dropped for naming a session the relay does not know. A `cancel` whose `to` is one leg's device cancels that leg alone
 (§12.11): the attempt goes on, and the identity's queued invite stays queued. A leg can be added while
-`expires_at >= now`. Queued envelopes that expire in the same step are reported in recipient order. An invite to an identity that has never bound here is answered `send error transport.unknown-recipient`.
+`expires_at >= now`. Queued envelopes that expire in the same step are reported in recipient order. Wherever one step
+reaches several legs or attempts, it goes in device (DID) order and id order — the suite's order wherever a relay or
+mailbox fans out: a `cancel` to the identity reaches its live legs in DID order, whatever order they were delivered
+in, and a device that binds into several live attempts gets their invites in id order (spec-gap 89). An invite to an identity that has never bound here is answered `send error transport.unknown-recipient`.
 For an endpoint, optionally `"contacts": {"allow": […], "grants_issued": […], "grants_held": […], "requests": […], "pending_sent": […]}` (sorted ids).
 
 Only the sessions / attempts named in `expect` are compared (`{}` names none); `contacts`, `inbox`,
@@ -527,7 +530,7 @@ digest of the MLS bytes), just as relay traces abstract signatures. `input.check
 | `successor-trace` | `steps` of `{welcome: {group, successor_of, creator, roster}}` / `{create: {predecessor}}` / `{created: {group, successor_of}}`; `context.groups` (group → roster by identity) | per step `emit` (`join`, `decline`, `leave`, `first_contact`, `create {successor_of, roster}`, `use`, `refuse`) and `state {predecessor: {successor, candidates}}` (M§7.5, spec-gap 61) |
 | `history-trace` | `steps` of `{archive: {cursor, akid, group, seq, id, object?}}` / `{archive_key: {akid, created_at}}` / `{mls: {group, seq, epoch, id}}` / `{sent: {group, seq, id, object?}}` / `{joined: {group, epoch}}`; `context.keys`, `joined` | per step `emit` (`hold`, `show`, `apply` (a receipt or call event, spec-gaps 63–64, 68), `duplicate`, `prejoin`, `archive {group, seq, akid}`) and `state {timeline, held, current_akid}` (M§12.2, M§12.3, M§8.5) |
 | `hub-trace` | `steps` of `{deposit: {id, device, identity, class, epoch?, digest, commit?: {adds, removes, valid?, external?}, expires_at?}}` / `{ack: {identity, seq, class?}}` (`class: welcome` acknowledges the welcome queue, spec-gap 66) / `{advance: s}` / `{restart: {}}` (spec-gap 59: full state survives; every unacknowledged queue head is re-sent); a commit with `moves_to` leaves the hub refusing the group (spec-gap 60); `context.epoch`, `roster`, `kind`, `owner?` | per step `emit` (`accepted {to, in_reply_to, seq, duplicate?}`, `error {to, in_reply_to, reason}`, `fanout {to, seq, class}` (a welcome carries the commit's seq, spec-gap 66), `forward {to, class: ephemeral}`) and `state {epoch, next_seq, roster, pending, welcomes}` |
-| `mailbox-trace` | `steps` of `welcome`, `hub_deposit`, `sync`, `unbind`, `config`, `archive`, `kp_upload`, `kp_fetch`, `advance`, `restart` (spec-gap 59: durable state survives, live bindings do not); a `hub_deposit` whose `seq` is at or below the group's highest stored is a redelivery (`accepted` with `duplicate`); a `config` group naming another `hub` with `handover_seq` moves the registration (spec-gap 60); a `kp_fetch` with `successor_of` naming a registered group needs no grant (spec-gap 61); `context.owner`, `serves`, `devices`, `mode`, `admit`, `groups`, `key_packages`, `pending_group_ttl`, `pending_group_max_items` | per step `emit` (`accepted {to, in_reply_to, cursor?, duplicate?}`, `error`, `items {to, in_reply_to, cursors, next}`, `push {to, cursor}` / `push {to, class: ephemeral}`, `key_packages {to, in_reply_to, devices}`) and `state {items: [cursor], groups: {group: pending\|joined}, key_packages}` |
+| `mailbox-trace` | `steps` of `welcome`, `hub_deposit`, `sync`, `unbind`, `config`, `archive`, `kp_upload`, `kp_fetch`, `advance`, `restart` (spec-gap 59: durable state survives, live bindings do not); a `hub_deposit` whose `seq` is at or below the group's highest stored is a redelivery (`accepted` with `duplicate`, and the retained item's cursor — found by group and seq, across a registration the owner left and made again, never an archive record's: spec-gap 92); a `config` group naming another `hub` with `handover_seq` moves the registration (spec-gap 60); a `kp_fetch` with `successor_of` naming a registered group needs no grant (spec-gap 61); `context.owner`, `serves`, `devices`, `mode`, `admit`, `groups`, `key_packages`, `pending_group_ttl`, `pending_group_max_items` | per step `emit` (`accepted {to, in_reply_to, cursor?, duplicate?}`, `error`, `items {to, in_reply_to, cursors, next}`, `push {to, cursor}` / `push {to, class: ephemeral}`, `key_packages {to, in_reply_to, devices}`) and `state {items: [cursor], groups: {group: pending\|joined}, key_packages}` |
 
 Checks the table above did not list (found by the second implementation; all are in the suite):
 
@@ -571,7 +574,10 @@ and epoch → membership, or for an external commit the M§6.8 check (`policy.bl
 for a commit one epoch late, else `mailbox.stale-epoch`; an application is good for the current or previous epoch) →
 the commit's validity and M§7.3 (`policy.blocked`). Device lists in `roster` are sorted. An `ack` is taken only for the
 head of that identity's queue (a welcome's with `class: welcome`); anything else changes nothing. Fan-out to an identity
-the commit brought in waits for its welcome's acknowledgement; a member gaining a device gets the commit *and* a welcome.
+the commit brought in waits for its welcome's acknowledgement; a member gaining a device gets the commit *and* a welcome —
+its queue is not held, on a retry or after a restart either, and its welcome's acknowledgement re-sends nothing: only an
+identity with no registration yet was waiting — and an acknowledgement from one still waiting moves its queue but sends
+nothing (spec-gap 87).
 An external joiner's identity is not sent its own commit unless it was already a member.
 
 **Mailbox events the table leaves out**: `first_contact {id, from, sender_identity, recipient, kind: introduction|grant,
@@ -584,10 +590,14 @@ identity, group, to}` (spec-gap 45) → `{"forward": {to, id}}`, or `policy.bloc
 mailbox.hub-unreachable` (spec-gap 72). Other emissions: `{"handover_expired": {group, hub: the OLD hub, missing}}`
 (spec-gap 71) and `{"close": {device, reason: "delegation-revoked"}}` after the `accepted` of a config with
 `revoked_devices` (spec-gap 57). `key_packages.devices` is a map `device → "one-time"|"last-resort"`; an upload is bounded
-at 100 one-time packages per device. A pending group is dropped when its age **exceeds** `pending_group_ttl`.
+at 100 one-time packages per device. A pending group is dropped when its age **exceeds** `pending_group_ttl`, with the hub deposits it admitted; an
+archive record that references it is the owner's history and stays (spec-gap 91).
 During a hub move the new hub is held off — whatever it sends, a GroupInfo included — while the old hub's items through
 `handover_seq` are missing and `handover_wait` has not run out; only then is a `seq` at or below `handover_seq` judged
-(`policy.blocked`). A `first_contact` of kind `grant` may carry `session`, the introduction it answers: when that id is
+(`policy.blocked`). The expiry is announced (`handover_expired`) once, at the new hub's first deposit after the wait ran
+out, whether that deposit is then admitted or refused (spec-gap 88). Only that expiry makes the old hub's later items at or
+below `handover_seq` fills to store; when nothing was missing, an old hub's item at or below the highest stored stays a
+redelivery (spec-gap 93). A `first_contact` of kind `grant` may carry `session`, the introduction it answers: when that id is
 one the owner's device listed in a `config` `introductions_sent`, the grant is solicited — not counted, not limited, and
 the entry is consumed (one introduction, one answer; the list survives a restart). Pushes go to the bound devices in device (DID) order, never to the device that made the deposit.
 
@@ -640,6 +650,25 @@ Each item has a matching `spec-gap` issue draft in `impl/docs/spec-gaps.md`.
 79. G§4.2: the Q.850 cause of a category-fallback response, and of a BYE for a token the BYE rows do not name (`gateway/outbound-unknown-*`, `outbound-bye-policy-terminated`).
 77. §22.2/§22.3: **decided** — a statement has no integrity mode of its own; the per-statement field is gone.
 76. §12.7 rule 6: **decided** — when every leg expired and none rejected the relay sends its own `error transport.no-response`, which ends the attempt at the initiator (`state/relay-all-legs-expired`, `initiator-relay-no-response-ends-attempt`).
+87. M§6.5 / spec-gap 66: **decided** — the hold behind an unacknowledged welcome is for an identity the commit brought in;
+    a member adding its own device gets the commit at once, again after a restart, and its welcome's acknowledgement
+    re-sends nothing (`messaging/hub-member-adding-its-own-device-is-not-held-behind-the-welcome`).
+88. M§7.4 / spec-gap 71: **decided** — the handover wait's expiry is announced at the new hub's first deposit after it,
+    even when that deposit is itself refused `policy.blocked`
+    (`messaging/mailbox-hub-move-handover-wait-expiry-announced-on-a-refused-deposit`).
+89. §12.7 rule 3 / §12.11: **decided** — per-leg cancels go in device (DID) order and a late binder's invites in id order
+    (`state/relay-cancel-reaches-live-legs-in-device-order`, `state/relay-late-binder-gets-live-invites-in-id-order`).
+93. M§7.4 / spec-gap 71: **decided** — an old hub's item at or below the highest stored is a fill only after the wait
+    expired with items missing; otherwise it is a redelivery
+    (`messaging/mailbox-hub-move-old-hub-item-below-the-highest-stored-is-a-redelivery`).
+92. M§6.6 / spec-gap 59: **decided** — a redelivery's cursor is the retained hub item's, by group and seq, across a
+    registration the owner left and made again, and never an archive record's
+    (`messaging/mailbox-hub-deposit-redelivered-after-re-registration-carries-the-retained-cursor`,
+    `mailbox-hub-deposit-redelivery-cursor-is-never-an-archive-records`).
+91. M§6.6 / M§12.2: **decided** — a pending group's expiry drops the hub deposits it admitted, not archive records
+    that reference the group (`messaging/mailbox-pending-group-expiry-keeps-archive-records`).
+90. §12.4 / §12.9: **decided** — a local `place_call` naming a session the endpoint already holds is `refused invalid-state`
+    (`state/place-call-on-a-held-session-is-refused`).
 85. §12.4 / §12.7 rule 4: **decided** — the `bye` a late answer gets after the session has *ended* follows what the invite
     was, not how the call finished: `session.cancelled` when we withdrew it (§12.5 rule 3), `session.already-answered`
     when an answer was applied (however the call then ended), `session.failed` when the attempt was never answered
