@@ -1,0 +1,119 @@
+{
+  "vector": "messaging/mailbox-welcome-after-pending-group-expiry-is-stored-anew",
+  "format": 1,
+  "kind": "messaging",
+  "description": "A welcome is a redelivery only while the mailbox still holds one with those MLS bytes for the group: after the pending registration expired and took the first welcome with it, the same welcome again is a new invitation — stored, registered pending again, its own cursor (spec-gap 94).",
+  "spec_ref": [
+    "M§6.6",
+    "M§14.2"
+  ],
+  "context": {
+    "component": "mailbox",
+    "mailbox": "did:web:mbx.bob.example",
+    "owner": "did:web:example.com:users:bob",
+    "serves": [
+      "did:web:example.com:users:bob"
+    ],
+    "devices": [
+      "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ",
+      "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+    ],
+    "now": 1760000000,
+    "mode": "sync",
+    "admit": "open",
+    "pending_group_ttl": 604800,
+    "pending_group_max_items": 2,
+    "groups": {},
+    "key_packages": {}
+  },
+  "input": {
+    "check": "mailbox-trace",
+    "steps": [
+      {
+        "event": {
+          "welcome": {
+            "id": "01K742SG0041EXMEJSTFY0873E",
+            "from": "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL",
+            "adder_identity": "did:web:carol.example",
+            "recipient": "did:web:example.com:users:bob",
+            "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+            "hub": "did:web:mbx.alice.example",
+            "grant": null,
+            "digest": "d-welcome-1"
+          }
+        }
+      },
+      {
+        "event": {
+          "advance": 604801
+        }
+      },
+      {
+        "event": {
+          "welcome": {
+            "id": "01K742SG00EHP7TPWJERTFD6PP",
+            "from": "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL",
+            "adder_identity": "did:web:carol.example",
+            "recipient": "did:web:example.com:users:bob",
+            "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+            "hub": "did:web:mbx.alice.example",
+            "grant": null,
+            "digest": "d-welcome-1"
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "accepted": {
+              "to": "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL",
+              "in_reply_to": "01K742SG0041EXMEJSTFY0873E",
+              "cursor": "c:0000000000000001"
+            }
+          }
+        ],
+        "state": {
+          "items": [
+            "c:0000000000000001"
+          ],
+          "groups": {
+            "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M": "pending"
+          },
+          "key_packages": {}
+        }
+      },
+      {
+        "emit": [],
+        "state": {
+          "items": [],
+          "groups": {},
+          "key_packages": {}
+        }
+      },
+      {
+        "emit": [
+          {
+            "accepted": {
+              "to": "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL",
+              "in_reply_to": "01K742SG00EHP7TPWJERTFD6PP",
+              "cursor": "c:0000000000000002"
+            }
+          }
+        ],
+        "state": {
+          "items": [
+            "c:0000000000000002"
+          ],
+          "groups": {
+            "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M": "pending"
+          },
+          "key_packages": {}
+        }
+      }
+    ]
+  }
+}

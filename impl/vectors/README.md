@@ -592,9 +592,12 @@ mailbox.hub-unreachable` (spec-gap 72). Other emissions: `{"handover_expired": {
 (spec-gap 71) and `{"close": {device, reason: "delegation-revoked"}}` after the `accepted` of a config with
 `revoked_devices` (spec-gap 57). `key_packages.devices` is a map `device → "one-time"|"last-resort"`; an upload is bounded
 at 100 one-time packages per device. A pending group is dropped when its age **exceeds** `pending_group_ttl`, with the hub deposits it admitted; an
-archive record that references it is the owner's history and stays (spec-gap 91).
+archive record that references it is the owner's history and stays (spec-gap 91). A `welcome` is a redelivery
+(`duplicate`, the first one's cursor) only while the mailbox still holds a welcome with those MLS bytes (`digest`) for
+that group — not after the pending registration expired and took it, and not for another group (spec-gap 94).
 During a hub move the new hub is held off — whatever it sends, a GroupInfo included — while the old hub's items through
-`handover_seq` are missing and `handover_wait` has not run out; only then is a `seq` at or below `handover_seq` judged
+`handover_seq` are missing (judged by the highest `seq` stored: the hub delivers in order, so a stored `seq` says every
+lower one came before it, spec-gap 95) and `handover_wait` has not run out; only then is a `seq` at or below `handover_seq` judged
 (`policy.blocked`). The expiry is announced (`handover_expired`) once, at the new hub's first deposit after the wait ran
 out, whether that deposit is then admitted or refused (spec-gap 88). Only that expiry makes the old hub's later items at or
 below `handover_seq` fills to store; when nothing was missing, an old hub's item at or below the highest stored stays a
@@ -659,6 +662,11 @@ Each item has a matching `spec-gap` issue draft in `impl/docs/spec-gaps.md`.
     (`messaging/mailbox-hub-move-handover-wait-expiry-announced-on-a-refused-deposit`).
 89. §12.7 rule 3 / §12.11: **decided** — per-leg cancels go in device (DID) order and a late binder's invites in id order
     (`state/relay-cancel-reaches-live-legs-in-device-order`, `state/relay-late-binder-gets-live-invites-in-id-order`).
+94. M§6.6 / spec-gap 66: **decided** — a welcome is a redelivery only while one with those bytes is still held for that
+    group (`messaging/mailbox-welcome-after-pending-group-expiry-is-stored-anew`,
+    `mailbox-welcome-same-bytes-for-another-group-is-its-own`).
+95. M§7.4 / spec-gap 71: **decided** — what the old hub still owes is judged by the highest `seq` stored
+    (`messaging/mailbox-hub-move-nothing-missing-once-the-highest-stored-reaches-handover-seq`).
 93. M§7.4 / spec-gap 71: **decided** — an old hub's item at or below the highest stored is a fill only after the wait
     expired with items missing; otherwise it is a redelivery
     (`messaging/mailbox-hub-move-old-hub-item-below-the-highest-stored-is-a-redelivery`).

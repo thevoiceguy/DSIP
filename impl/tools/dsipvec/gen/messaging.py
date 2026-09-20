@@ -816,6 +816,21 @@ def mailbox_vectors():
                           ms([c(1), c(2), c(3)], P)),
                          ({"advance": 604801}, [], ms([c(3)])),
                      ]))
+    out.append(trace("mailbox-welcome-after-pending-group-expiry-is-stored-anew",
+                     "A welcome is a redelivery only while the mailbox still holds one with those MLS bytes for the group: after the "
+                     "pending registration expired and took the first welcome with it, the same welcome again is a new invitation "
+                     "— stored, registered pending again, its own cursor (spec-gap 94).", ["M§6.6", "M§14.2"], T,
+                     mbx_ctx(admit="open"), [
+                         (welcome(), [macc(CPH, "w1", c(1))], ms([c(1)], P)),
+                         ({"advance": 604801}, [], ms()),
+                         (welcome(label="w1-again"), [macc(CPH, "w1-again", c(2))], ms([c(2)], P)),
+                     ]))
+    out.append(trace("mailbox-welcome-same-bytes-for-another-group-is-its-own",
+                     "The redelivery check is per group: a welcome for another group is stored on its own, whatever its bytes "
+                     "(spec-gap 94).", ["M§6.6", "M§14.2"], T, mbx_ctx(admit="open"), [
+                         (welcome(), [macc(CPH, "w1", c(1))], ms([c(1)], P)),
+                         (welcome(label="w2", group=GROUP2), [macc(CPH, "w2", c(2))], ms([c(1), c(2)], {GROUP: "pending", GROUP2: "pending"})),
+                     ]))
     out.append(trace("mailbox-sync-and-live-push",
                      "sync returns stored items; with live, new items are pushed to the bound device until it unbinds.",
                      ["M§5.4", "M§9.1"], T, mbx_ctx(groups={GROUP: {"hub": HUB_A, "state": "joined"}}), [
@@ -2639,6 +2654,16 @@ def hub_change_vectors():
                          (cfg(handover=3), [macc(BPH, "cfg")], ms([c(1)], J)),
                          (hd("b2", 2, HUB_B), [err(HUB_B, "b2", "policy.blocked")], ms([c(1)], J)),
                          (hd("h3", 3, HUB_A), [macc(HUB_A, "h3", dup=True)], ms([c(1)], J)),
+                     ]))
+    out.append(trace("mailbox-hub-move-nothing-missing-once-the-highest-stored-reaches-handover-seq",
+                     "What the old hub still owes is judged by the highest seq stored — it delivers in order (M§6.5 rule 5), so a "
+                     "stored seq says every lower one came before it. Once the highest stored reaches handover_seq the new hub is "
+                     "admitted at once, its GroupInfo included (spec-gap 95).", xrefs, T, mbx_ctx(groups=JA), [
+                         (hd("h1", 1, HUB_A), [macc(HUB_A, "h1", c(1))], ms([c(1)], J)),
+                         (cfg(handover=3), [macc(BPH, "cfg")], ms([c(1)], J)),
+                         (hd("h3", 3, HUB_A), [macc(HUB_A, "h3", c(2))], ms([c(1), c(2)], J)),
+                         (hd("gi", None, HUB_B, cls="group-info"), [macc(HUB_B, "gi", c(3))], ms([c(1), c(2), c(3)], J)),
+                         (hd("b4", 4, HUB_B), [macc(HUB_B, "b4", c(4))], ms([c(1), c(2), c(3), c(4)], J)),
                      ]))
     out.append(trace("mailbox-hub-move-handover-wait-configurable",
                      "handover_wait is the mailbox's own choice (300 s RECOMMENDED); the wait starts at the config naming the new hub.",

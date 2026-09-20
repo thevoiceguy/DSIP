@@ -718,7 +718,8 @@ would refuse the items (M§6.6); a member adding its own device is registered al
 (spec-gap 87).
 A welcome's `seq` is its commit's (M§5.2; spec-gap 83), not a place of its own: a mailbox never sequences a welcome
 by it or echoes it in the acknowledgement, so a hub matches a welcome's acknowledgement by the deposit it answers. A member
-mailbox answers a welcome whose MLS bytes it already holds `accepted` with `duplicate` and that welcome's cursor
+mailbox answers a welcome whose MLS bytes it already holds — among the welcomes it still holds for that group; one
+dropped with an expired pending registration is held no more (spec-gap 94) — `accepted` with `duplicate` and that welcome's cursor
 (M§9.3's rule, applied to welcomes): a redelivery is the same Welcome, while a second welcome for a group the owner
 is already in is a new invitation for another of its devices (M§6.7) and is stored.
 
@@ -938,7 +939,8 @@ hub, which initializes its state from the latest `group-info`.
   every mailbox has its last items — the committer's own mailbox is the usual victim, since the committer
   names the new hub on `accepted` without waiting for the fan-out. A mailbox therefore holds the new hub
   off for at most `handover_wait` from the `mailbox-config` that named it (the mailbox's own choice; 300 s
-  is RECOMMENDED; the wait is durable across a restart). When it expires with items still missing, the
+  is RECOMMENDED; the wait is durable across a restart). When it expires with items still missing (judged by the highest `seq` stored: the hub delivers in order,
+  M§6.5 rule 5, so a stored `seq` says every lower one came before it — spec-gap 95), the
   mailbox admits the new hub (announcing the expiry once, at the new hub's first deposit after it, whether that
   deposit is admitted or refused — spec-gap 88) and leaves the missing `seq`s to its owner's devices, which treat them as a
   gap (M§6.5: hold, then re-join; the committer has the moving commit already, so it has a gap only if other
