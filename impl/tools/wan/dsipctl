@@ -2,14 +2,17 @@
 # Validation helpers for the DSIP WAN testbed. Run on any node.
 #   dsipctl stats [host]        DHT counters from the control port (local by default)
 #   dsipctl addrs               addresses the local DHT node is advertising
-#   dsipctl get <did>           raw DHT GET for a DID (every copy, ranked by the node)
+#   dsipctl get <did>           raw DHT GET for a DID (every copy, with the node's verdict on each)
 #   dsipctl resolve <did>       what an endpoint sees (dsip resolve via this node's bootstrap)
 #   dsipctl peers               routing-table size over time (5 samples)
-#   dsipctl relay-tail          follow the relay log (hello/bind/fork lines)
-#   dsipctl cap-sig             tcpdump: libp2p + wss control traffic
-#   dsipctl cap-rtp             tcpdump: UDP (ICE/STUN/SRTP) — run on an endpoint
+#   dsipctl relay-tail          follow the relay log (bound device / invite → leg / attempt outcome)
+#   dsipctl mailbox-tail        follow the mailbox + hub log
+#   dsipctl turn-tail           follow coturn's log (allocations show a TURN relay in use)
+#   dsipctl cap-sig             tcpdump: libp2p + wss control traffic (DHT, relay, mailbox)
+#   dsipctl cap-rtp             tcpdump: UDP (ICE/STUN/TURN/SRTP) — run on an endpoint
 #   dsipctl ports               what is listening
 #   dsipctl drift               clock offset (replay window sanity)
+#   dsipctl commit              the commit this host's binaries were built from
 set -euo pipefail
 CTRL=${CTRL:-127.0.0.1:4101}
 ctl(){ printf '%s\n' "$1" | nc -q1 -w3 ${CTRL/:/ } ; }
@@ -19,10 +22,13 @@ case "${1:-}" in
   get)     ctl "{\"op\":\"get\",\"did\":\"$2\"}" | jq . ;;
   resolve) dsip resolve "$2" --dht "$(cat /var/lib/dsip/bootstrap 2>/dev/null || cat /var/lib/dsip/my-multiaddr)" ;;
   peers)   for i in 1 2 3 4 5; do ctl '{"op":"stats"}' | jq -c '{t:now|floor,routing_peers:.stats.routing_peers,stored:.stats.stored}'; sleep 2; done ;;
-  relay-tail) tail -f /var/log/dsip/relay.log ;;
-  cap-sig) tcpdump -ni any -l 'tcp port 4001 or tcp port 8443' ;;
+  relay-tail)   tail -f /var/log/dsip/relay.log ;;
+  mailbox-tail) tail -f /var/log/dsip/mailbox.log ;;
+  turn-tail)    tail -f /var/log/turnserver.log ;;
+  cap-sig) tcpdump -ni any -l 'tcp port 4001 or tcp port 8443 or tcp port 9443' ;;
   cap-rtp) tcpdump -ni any -l 'udp and not port 53 and not port 123' ;;
-  ports)   ss -tulpn | grep -E 'dsip|turn|4001|8443|3478' ;;
+  ports)   ss -tulpn | grep -E 'dsip|turn|4001|8443|9443|3478' ;;
   drift)   chronyc tracking | grep -E 'System time|Last offset' ;;
-  *) sed -n 2,13p "$0" ;;
+  commit)  cat /var/lib/dsip/commit ;;
+  *) sed -n 2,16p "$0" ;;
 esac
