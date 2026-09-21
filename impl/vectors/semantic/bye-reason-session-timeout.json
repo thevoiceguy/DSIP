@@ -1,0 +1,48 @@
+{
+  "vector": "semantic/bye-reason-session-timeout",
+  "format": 1,
+  "kind": "semantic",
+  "description": "session.timeout is valid on bye: a gateway reports the far network's timer expiry mid-call (G§4.2: cause 102). No warning.",
+  "spec_ref": [
+    "§15.4"
+  ],
+  "context": {
+    "now": 1760000000,
+    "supported": {
+      "core": "1.0",
+      "profiles": [
+        "interactive-media/1.0",
+        "verified-broadcast/1.0"
+      ],
+      "extensions": []
+    }
+  },
+  "input": {
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "interactive-media/1.0"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "bye",
+      "id": "01K7432MZ0NDX2K8DPSH3CEX4B",
+      "from": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+      "to": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+      "session": "01K742SG001QG79X9HH56TS8SW",
+      "reason": "session.timeout",
+      "issued_at": 1760000300,
+      "expires_at": 1760000330
+    }
+  },
+  "expect": {
+    "verdict": "accept",
+    "effective": {
+      "reason": "session.timeout",
+      "fallback": "none"
+    }
+  }
+}

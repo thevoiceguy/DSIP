@@ -1,0 +1,48 @@
+{
+  "vector": "semantic/bye-reason-media-unsupported",
+  "format": 1,
+  "kind": "semantic",
+  "description": "media.unsupported is valid on bye: a renegotiation leaves nothing mutually acceptable and the call ends. No warning.",
+  "spec_ref": [
+    "§15.4"
+  ],
+  "context": {
+    "now": 1760000000,
+    "supported": {
+      "core": "1.0",
+      "profiles": [
+        "interactive-media/1.0",
+        "verified-broadcast/1.0"
+      ],
+      "extensions": []
+    }
+  },
+  "input": {
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "interactive-media/1.0"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "bye",
+      "id": "01K7432MZ0NDX2K8DPSH3CEX4B",
+      "from": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+      "to": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+      "session": "01K742SG001QG79X9HH56TS8SW",
+      "reason": "media.unsupported",
+      "issued_at": 1760000300,
+      "expires_at": 1760000330
+    }
+  },
+  "expect": {
+    "verdict": "accept",
+    "effective": {
+      "reason": "media.unsupported",
+      "fallback": "none"
+    }
+  }
+}

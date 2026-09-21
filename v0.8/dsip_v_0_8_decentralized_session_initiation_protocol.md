@@ -1310,7 +1310,7 @@ The "valid on" column governs the four session message types, `reject`, `cancel`
 | Token | Meaning | Valid on |
 |---|---|---|
 | `session.expired` | Invite received or processed after `expires_at` | reject |
-| `session.timeout` | T-Establish, T-Ring, or T-Queue expired | cancel |
+| `session.timeout` | T-Establish, T-Ring, or T-Queue expired; on `bye`, a timer of the far network reported by a gateway mid-call (spec-gap 78) | cancel, bye |
 | `session.glare` | Deterministic glare resolution (§12.6, §12.8) | reject, cancel |
 | `session.answered-elsewhere` | Another leg answered — MUST NOT surface as missed call | cancel |
 | `session.already-answered` | Late answer to an established session | bye |
@@ -1329,7 +1329,7 @@ The "valid on" column governs the four session message types, `reject`, `cancel`
 
 | Token | Meaning | Valid on |
 |---|---|---|
-| `media.unsupported` | No mutually acceptable codec/transport in the offer | reject |
+| `media.unsupported` | No mutually acceptable codec/transport in the offer; on `bye`, the call ends because none is left (spec-gap 78) | reject, bye |
 | `media.offer-required` | Invite or update carried no media offer (§14.2) | reject |
 | `media.encryption-required` | Offer did not satisfy the receiver's encryption floor | reject |
 | `media.failed` | Established media path failed and could not be recovered | bye |
@@ -1361,7 +1361,7 @@ The "valid on" column governs the four session message types, `reject`, `cancel`
 
 | Token | Meaning | Valid on |
 |---|---|---|
-| `gateway.unreachable` | The far side beyond the gateway could not be reached | reject, error |
+| `gateway.unreachable` | The far side beyond the gateway could not be reached, or was lost mid-call (`bye`; spec-gap 78) | reject, bye, error |
 | `gateway.downgraded` | Session proceeded but trust semantics were downgraded crossing the gateway (informational) | error |
 | `gateway.mapped` | Condition mapped from a foreign protocol; original code SHOULD appear in `detail` | reject, bye, error |
 
@@ -2306,7 +2306,7 @@ v0.8 is again written from an implementation. The reference implementation built
 
 Still open: spec-gap 26 (a DTMF carriage in `info`) is left for a later revision. *(Closed since by spec-gap 70, §12.12.)*
 
-Errata since the v0.8 snapshot, each marked in place with its spec-gap number: `media:dtmf` (§12.12; 70), the addressee of an introduction's outcome (§19.4; 74), the relay's `transport.no-response` (§12.4, §12.7, §15.4; 76), the single integrity mode (§22.3; 77), reason tokens on a terminal `notify` (§15.1, §15.4; 73), `session.answered-elsewhere` at the leg that answered (§12.4, §12.5; 75), relay routing by `to` with or without an attempt (§13.3; 82), the `bye` a late answer gets once the call has ended (§12.4, §12.7; 85), and the relay never withholding an `answer` (§12.7, §13.3; 86).
+Errata since the v0.8 snapshot, each marked in place with its spec-gap number: `media:dtmf` (§12.12; 70), the addressee of an introduction's outcome (§19.4; 74), the relay's `transport.no-response` (§12.4, §12.7, §15.4; 76), `bye` admitted for `gateway.unreachable`, `media.unsupported` and `session.timeout` (§15.4; 78), the single integrity mode (§22.3; 77), reason tokens on a terminal `notify` (§15.1, §15.4; 73), `session.answered-elsewhere` at the leg that answered (§12.4, §12.5; 75), relay routing by `to` with or without an attempt (§13.3; 82), the `bye` a late answer gets once the call has ended (§12.4, §12.7; 85), and the relay never withholding an `answer` (§12.7, §13.3; 86).
 
 Every item above is pinned by vectors in the v0.8 conformance suite (737 vectors, Rust/Python parity).
 

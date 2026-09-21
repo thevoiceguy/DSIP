@@ -1713,6 +1713,13 @@ registry decision with vector changes, not wording.
 **Suggested fix.** G§4: replace the parenthetical with the eight tokens. Separately, §15.4's "valid on" for
 `gateway.unreachable`, `media.unsupported` and `session.timeout` should admit `bye` if a gateway may send them there.
 
+**Decision on the §15.4 point (2026-09-20).** All three admit `bye`. Applied: the §15.4 "valid on" column
+(`session.timeout`: cancel, bye; `media.unsupported`: reject, bye; `gateway.unreachable`: reject, bye, error) and the
+A.5 errata list; the three registries; vectors `semantic/bye-reason-gateway-unreachable`, `-media-unsupported`,
+`-session-timeout` (accepted, no `reason-not-valid-on-type`). G§4.2's BYE-cause sentence used to say "the `session.*`
+tokens valid on `bye`" for the cause-16 set; it now names `session.already-answered` and `session.cancelled`, because
+`session.timeout` is valid on `bye` and keeps 102 (`gateway/outbound-bye-session-timeout-keeps-its-cause`).
+
 ## 79. G§4.2 — Q.850 causes the table does not give
 
 **Gap.** G§4.2 maps an unregistered token "by its §15.1 category (`user`→603, `endpoint`→480, …)" — statuses only — yet
@@ -1724,7 +1731,8 @@ pins 31, taken from the token's pre-answer row.
 **Choices considered.** (a) A category fallback takes the cause of the category's representative row (`user` 21,
 `endpoint` 18, `identity` 1, `session` 41, `media` 65, `policy` 21, `transport` 41, `gateway` 38); a BYE takes the
 token's table cause when the BYE rows do not name it, else 16. (Settled by fuzz.py, 2026-09-18: "`session.*` → 16" in the
-BYE rows means the `session.*` tokens that are *valid on* `bye` — `session.already-answered`, `session.cancelled`. Any
+BYE rows means `session.already-answered` and `session.cancelled` — the `session.*` tokens valid on `bye` at the time;
+spec-gap 78's later decision admits `session.timeout` on `bye` without moving it into this set. Any
 other registered token keeps the cause of its own row, so a BYE for `session.timeout` is cause 102, which says more than
 "normal clearing"; an unregistered token has no row and is 16, category fallback being a pre-answer rule. Vectors
 `outbound-bye-session-timeout-keeps-its-cause`, `outbound-bye-unregistered-token-is-cause-16`.) (b) No cause on a fallback — the `Reason: DSIP` header
