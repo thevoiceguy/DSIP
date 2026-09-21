@@ -136,8 +136,9 @@ A category fallback carries the `Q.850;cause` of its category too (spec-gap 79):
 `endpoint` 18, `identity` 1, `session` 41, `media` 65, `policy` 21, `transport` 41, `gateway` 38.
 
 **BYE causes** (spec-gap 79). The two BYE rows below name the tokens whose cause differs on a BYE:
-`user.hangup` and the `session.*` tokens valid on `bye` (`session.already-answered`,
-`session.cancelled`) are 16, `media.failed` is 47. Any other registered token keeps the cause of
+`user.hangup`, `session.already-answered` and `session.cancelled` are 16, `media.failed` is 47
+(the list is these tokens, not "whatever §15.4 admits on `bye`": `session.timeout` is valid there
+too since spec-gap 78 and keeps 102). Any other registered token keeps the cause of
 its own row (`policy.terminated` → 31, `session.timeout` → 102: it says more than "normal
 clearing"). An unregistered token has no row and is 16 — category fallback is a pre-answer rule.
 

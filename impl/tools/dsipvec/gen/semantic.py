@@ -70,6 +70,13 @@ def vectors() -> list[dict]:
                   accept(effective={"reason": "mailbox.archive-full", "fallback": "category"})))
     bye = session_msg("bye", "bye", sid, APH, BPH, NOW + 300, reason="user.hangup")
     out.append(sv("bye-reason-registered", "user.hangup on bye.", ["§15.4"], bye, accept(effective={"reason": "user.hangup", "fallback": "none"})))
+    # spec-gap 78 side note (decided 2026-09-20): three tokens a call can also end with once it is ACTIVE.
+    for slug, token, why in (
+            ("gateway-unreachable", "gateway.unreachable", "the far side beyond a gateway is lost mid-call (G§4: the token is kept)"),
+            ("media-unsupported", "media.unsupported", "a renegotiation leaves nothing mutually acceptable and the call ends"),
+            ("session-timeout", "session.timeout", "a gateway reports the far network's timer expiry mid-call (G§4.2: cause 102)")):
+        out.append(sv(f"bye-reason-{slug}", f"{token} is valid on bye: {why}. No warning.", ["§15.4"],
+                      {**bye, "reason": token}, accept(effective={"reason": token, "fallback": "none"})))
     ans = session_msg("answer", "ans", sid, BPH, APH, NOW + 5, answered_by="butler", media=AUDIO_SELECTION, transports=ONE_TRANSPORT)
     out.append(sv("answered-by-unknown-renders-service", "Unknown answered_by MUST be treated as service.", ["§14.3"],
                   ans, accept(effective={"answered_by": "service"})))
