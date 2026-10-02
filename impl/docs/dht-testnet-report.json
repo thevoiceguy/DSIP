@@ -1,6 +1,6 @@
 {
   "nodes": 5,
-  "elapsed_s": 15.5,
+  "elapsed_s": 25.9,
   "results": {
     "round_trip": {
       "ok": true,
@@ -15,8 +15,8 @@
       "conflicts": [
         "none",
         "none",
-        "none",
         "older-seq",
+        "none",
         "none"
       ]
     },
@@ -67,21 +67,28 @@
       "after_kill_returned": 4,
       "late_joiner_returned": 5
     },
+    "restart_from_peers_file": {
+      "ok": true,
+      "peers_saved": 5,
+      "routing_peers_after_restart": 5
+    },
     "routing": {
       "ok": true,
       "routing_peers": {
-        "0": 5,
-        "1": 5,
-        "3": 5,
-        "4": 5,
-        "5": 4
+        "0": 7,
+        "1": 7,
+        "3": 7,
+        "4": 7,
+        "5": 6,
+        "6": 5
       },
       "stored": {
         "0": 2,
         "1": 2,
         "3": 2,
         "4": 2,
-        "5": 1
+        "5": 1,
+        "6": 1
       },
       "note": "every node bootstrapped via node 0 (and node 1): a static, configured entry point (plan \u00a710.2)"
     }
