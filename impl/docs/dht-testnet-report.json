@@ -1,22 +1,23 @@
 {
   "nodes": 5,
-  "elapsed_s": 14.1,
+  "elapsed_s": 15.6,
   "results": {
     "round_trip": {
       "ok": true,
-      "acknowledged": 1,
+      "acknowledged": 4,
       "returned": 5,
       "publish_error": null
     },
     "seq_conflict": {
       "ok": true,
       "winner_seq": 2,
+      "stale_publish_refused": true,
       "conflicts": [
         "none",
         "none",
         "none",
-        "none",
-        "older-seq"
+        "older-seq",
+        "none"
       ]
     },
     "poisoning_rejected": {
@@ -27,6 +28,27 @@
       "rejection_codes": [
         "signer-mismatch"
       ]
+    },
+    "flood_rate_limited": {
+      "ok": true,
+      "per_node": {
+        "0": {
+          "signer-mismatch": 20,
+          "rate-limited": 20
+        },
+        "1": {
+          "signer-mismatch": 20,
+          "rate-limited": 20
+        },
+        "2": {
+          "signer-mismatch": 20,
+          "rate-limited": 20
+        },
+        "4": {
+          "signer-mismatch": 20,
+          "rate-limited": 20
+        }
+      }
     },
     "expiry_lapse": {
       "ok": true,
@@ -43,7 +65,7 @@
     "churn_survival": {
       "ok": true,
       "after_kill_returned": 4,
-      "late_joiner_returned": 4
+      "late_joiner_returned": 5
     },
     "routing": {
       "ok": true,
@@ -59,7 +81,7 @@
         "1": 2,
         "3": 2,
         "4": 2,
-        "5": 0
+        "5": 1
       },
       "note": "every node bootstrapped via node 0 (and node 1): a static, configured entry point (plan \u00a710.2)"
     }
