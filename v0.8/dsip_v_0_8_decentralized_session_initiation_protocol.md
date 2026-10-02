@@ -679,6 +679,35 @@ DSIP JSON payloads:
 
 Message `id` values are **ULIDs** (26-character Crockford base32). ULIDs are time-ordered, which the glare resolution rules (§12.6) depend on. JSON Schema files for every message type accompany this specification and are normative for payload shape; prose examples defer to the schemas where they conflict.
 
+### 10.4 Sealed Bodies (extension `sealed-body/1.0`)
+
+*Errata since the v0.8 snapshot (spec-gap 97).* Envelopes are signed, not encrypted (§20.7): every relay that routes a session reads its SDP and trickled ICE candidates (the participants' IP addresses), display names, DTMF digits and policy, although no routing rule reads any of them. The extension `sealed-body/1.0` moves those fields into a ciphertext only the addressee can open, and leaves in clear everything a relay routes and tracks by. It protects bodies, not metadata: a relay still learns who talks to whom and when, because `hello` binds every connection to a device (§13.2).
+
+**Sealable fields.** Only these, per type; every other field stays in clear.
+
+| Type | Sealable fields |
+|---|---|
+| `invite` | `identity`, `intent`, `policy`, `media`, `transports` |
+| `answer`, `update` | `answered_by`, `media`, `policy`, `transports` |
+| `info` | `about`, `data` |
+| `reject`, `cancel`, `bye` | `detail` |
+
+`type`, `id`, `from`, `to`, `session`, `in_reply_to`, `issued_at`, `expires_at`, `dsip`, `reason`, `retry_after`, `status` and `grant` are never sealed: relays route by `to` (§13.3), track attempts and choose among leg rejects by `reason` (§12.7), and enforce the replay window (§12.9).
+
+**Construction.** A sender seals one or more sealable fields (it SHOULD seal all of a message's sealable fields) as `sealed: {alg, enc, ct}`, base64url-encoded:
+
+1. The plaintext is a UTF-8 JSON object holding only sealed fields of that type, obeying §10.3, followed by ASCII spaces (0x20) so that its length is a positive multiple of 256 bytes. JSON permits trailing whitespace, so the padded text parses unchanged; the padding hides how many candidates or codecs an SDP carries.
+2. `alg` is `hpke-base-x25519-sha256-aes128gcm`: HPKE (RFC 9180) base mode, DHKEM(X25519, HKDF-SHA256), HKDF-SHA256, AES-128-GCM — the suite of sealed introductions (§19.4; M§14.1).
+3. The recipient key is the X25519 key agreement key of the DID in `to`: its DID document's `keyAgreement` method (§7.2), or for `did:key` the X25519 key the method derives from its Ed25519 key (M§6.9). `to` names an identity on an `invite` (every device acting for it holds the identity's key agreement key) and may name a device on a response (a device `did:key`, whose key only that device holds). It is resolved under the authority order of §8.1 and is never taken from a hint.
+4. HPKE `info` is `dsip sealed body v1`; the AAD is `type ‖ 0x00 ‖ id ‖ 0x00 ‖ from ‖ 0x00 ‖ to` (UTF-8), so a ciphertext cannot be moved into another message.
+5. The payload lists `sealed-body/1.0` in both `dsip.extensions` and `dsip.critical`. The envelope is then signed as usual (§10.2): the signature covers the ciphertext, so relays still verify every envelope and apply the replay window.
+
+**Routing.** A relay, mailbox or other service that routes an envelope not addressed to it MUST route a sealed payload whether or not it implements `sealed-body/1.0`: the critical-extension rule of §11.2 binds the addressee. It validates the clear part against the schemas, which admit `sealed` in place of the sealable fields.
+
+**Receiving.** An addressee that implements the extension opens the seal after the version check (§11.2) and before schema validation, rejecting the message on the first failing condition (a payload whose `sealed` is not an object of three strings `alg`, `enc`, `ct`, or whose clear `type`, `id`, `from` or `to` is not a string, is not opened — schema validation rejects it): `sealed` present without `sealed-body/1.0` in `dsip.critical` (a `critical` that is not an array lists nothing); an unknown `alg`; a ciphertext that does not open; a plaintext that is not a §10.3 JSON object with at least one key, or whose length is not a positive multiple of 256; a key outside the type's sealable fields (a type with no sealable fields admits none); a key present both sealed and in clear. The opened fields then join the clear ones, `sealed` is removed, and schema and semantic validation run on the result. An addressee that does not implement the extension rejects the message with `session.unsupported-critical-extension` (§11.3); the sender MAY send a new message in clear if its policy allows.
+
+**Limits.** HPKE base mode to a static key gives no forward secrecy: whoever later obtains the addressee's key agreement key can open captured sealed bodies, so key agreement keys SHOULD be rotated (§7.5). Every device acting for an identity holds that identity's key agreement private key, as for sealed introductions; a message addressed to one device opens only on that device. Relays can no longer screen sealed content; rate limits still apply.
+
 ---
 
 ## 11. Version and Extension Negotiation
@@ -1867,7 +1896,7 @@ Glare resolution compares ULIDs, whose leading component is a timestamp under th
 
 Even if signaling payloads are encrypted in transit, metadata can leak: who contacted whom, when, session duration, which relay, which profile, presence patterns. DSIP supports relay privacy and encrypted transport, but is honest that metadata privacy is difficult.
 
-Envelope payloads are signed but not end-to-end encrypted in Core v1.0: a relay that routes an invite can read it, including display names and the calling relationship. This is a stated v1.0 limitation, not an oversight. Payload encryption to the recipient's key-agreement key (sealed-sender-style delivery) is a named candidate for a v1.x extension; deployments requiring signaling confidentiality from relays today should run their own relays. Two things are encrypted end to end as of v0.8: the Messaging Profile's conversation content (MLS), and a sealed introduction's purpose (§19.4). The envelopes that carry them remain readable to the services that route them.
+Envelope payloads are signed but not end-to-end encrypted in Core v1.0: a relay that routes an invite can read it, including display names and the calling relationship. This is a stated v1.0 limitation, not an oversight. Payload encryption to the recipient's key-agreement key is the extension `sealed-body/1.0` (§10.4, spec-gap 97): it seals SDP, identity claims, DTMF and policy, and leaves routing metadata in clear; it does not hide the sender from the relay it binds to. Deployments that need metadata confidentiality from relays should run their own relays. Three things are encrypted end to end as of v0.8: the Messaging Profile's conversation content (MLS), a sealed introduction's purpose (§19.4), and a sealed body (§10.4). The envelopes that carry them remain readable to the services that route them.
 
 ### 20.8 Resolver DoS
 
@@ -2306,7 +2335,7 @@ v0.8 is again written from an implementation. The reference implementation built
 
 Still open: spec-gap 26 (a DTMF carriage in `info`) is left for a later revision. *(Closed since by spec-gap 70, §12.12.)*
 
-Errata since the v0.8 snapshot, each marked in place with its spec-gap number: `media:dtmf` (§12.12; 70), the addressee of an introduction's outcome (§19.4; 74), the relay's `transport.no-response` (§12.4, §12.7, §15.4; 76), `bye` admitted for `gateway.unreachable`, `media.unsupported` and `session.timeout` (§15.4; 78), the single integrity mode (§22.3; 77), reason tokens on a terminal `notify` (§15.1, §15.4; 73), `session.answered-elsewhere` at the leg that answered (§12.4, §12.5; 75), relay routing by `to` with or without an attempt (§13.3; 82), the `bye` a late answer gets once the call has ended (§12.4, §12.7; 85), the relay never withholding an `answer` (§12.7, §13.3; 86), and a reachability hint's age bounded by its own `expires_at` under a 3,600 s cap (§12.9, §8.5; 96).
+Errata since the v0.8 snapshot, each marked in place with its spec-gap number: `media:dtmf` (§12.12; 70), the addressee of an introduction's outcome (§19.4; 74), the relay's `transport.no-response` (§12.4, §12.7, §15.4; 76), `bye` admitted for `gateway.unreachable`, `media.unsupported` and `session.timeout` (§15.4; 78), the single integrity mode (§22.3; 77), reason tokens on a terminal `notify` (§15.1, §15.4; 73), `session.answered-elsewhere` at the leg that answered (§12.4, §12.5; 75), relay routing by `to` with or without an attempt (§13.3; 82), the `bye` a late answer gets once the call has ended (§12.4, §12.7; 85), the relay never withholding an `answer` (§12.7, §13.3; 86), a reachability hint's age bounded by its own `expires_at` under a 3,600 s cap (§12.9, §8.5; 96), and sealed bodies, extension `sealed-body/1.0` (§10.4, §20.7; 97).
 
 Every item above is pinned by vectors in the v0.8 conformance suite (737 vectors, Rust/Python parity).
 

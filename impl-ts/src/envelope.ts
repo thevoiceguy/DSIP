@@ -106,19 +106,26 @@ function open(value: Json | undefined, documents: DidDocuments): Opened | Reject
   return { header, kid, bytes };
 }
 
+/**
+ * A decoded payload or the reason it failed, tagged so that no decoded object (whatever keys it
+ * holds) can be mistaken for a failure.
+ */
+export type Decoded = { ok: true; value: JsonObject } | { ok: false; error: Reject };
+
 /** Stage 6, first three steps: UTF-8, a JSON object, no floats. Spec: §10.3 */
-export function decodePayload(bytes: Uint8Array): JsonObject | Reject {
+export function decodePayload(bytes: Uint8Array): Decoded {
+  const fail = (code: string): Decoded => ({ ok: false, error: reject(code) });
   const text = utf8Decode(bytes);
-  if (text === null) return reject("payload-not-utf8");
+  if (text === null) return fail("payload-not-utf8");
   let value: Json;
   try {
     value = JSON.parse(text);
   } catch {
-    return reject("payload-not-json");
+    return fail("payload-not-json");
   }
-  if (!value || typeof value !== "object" || Array.isArray(value)) return reject("payload-not-json");
-  if (hasFloat(text)) return reject("payload-float");
-  return value;
+  if (!value || typeof value !== "object" || Array.isArray(value)) return fail("payload-not-json");
+  if (hasFloat(text)) return fail("payload-float");
+  return { ok: true, value };
 }
 
 function isReject(v: unknown): v is Reject {
@@ -145,8 +152,10 @@ function revocationsFor(subject: string, ctx: ReceiverContext): Revocation[] {
   for (const candidate of [...(ctx.revocations ?? []), ...(Array.isArray(published) ? published : [])]) {
     const opened = open(candidate, documents);
     if (isReject(opened)) continue;
-    const p = decodePayload(opened.bytes);
-    if (isReject(p) || p["type"] !== "delegation-revocation") continue;
+    const decoded = decodePayload(opened.bytes);
+    if (!decoded.ok) continue;
+    const p = decoded.value;
+    if (p["type"] !== "delegation-revocation") continue;
     if (p["subject"] !== subject || p["from"] !== subject || didOf(opened.kid) !== subject) continue;
     if (typeof p["device"] !== "string" || typeof p["revoked_at"] !== "number") continue;
     out.push({ subject, device: p["device"], revoked_at: p["revoked_at"] });
@@ -190,8 +199,9 @@ function checkDelegation(
 ): "bound" | "unrelated" | Reject {
   const env = asEnvelope(candidate);
   const bytes = env && b64urlDecode(env.payload);
-  const claimed = bytes ? decodePayload(bytes) : null;
-  if (!claimed || isReject(claimed)) return "unrelated";
+  const decoded = bytes ? decodePayload(bytes) : null;
+  if (!decoded || !decoded.ok) return "unrelated";
+  const claimed = decoded.value;
   if (claimed["device"] !== device || claimed["subject"] !== identity) return "unrelated";
 
   const opened = open(candidate, documents);
@@ -216,8 +226,9 @@ function checkDelegation(
 export function delegationSubject(candidate: Json, device: string, capability: string, ctx: ReceiverContext): { subject: string } | Reject {
   const env = asEnvelope(candidate);
   const bytes = env && b64urlDecode(env.payload);
-  const claimed = bytes ? decodePayload(bytes) : null;
-  if (!claimed || isReject(claimed) || typeof claimed["subject"] !== "string") return reject("delegation-invalid");
+  const decoded = bytes ? decodePayload(bytes) : null;
+  const claimed = decoded?.ok ? decoded.value : null;
+  if (!claimed || typeof claimed["subject"] !== "string") return reject("delegation-invalid");
   const verdict = checkDelegation(candidate, device, claimed["subject"], ctx.did_documents ?? {}, ctx, capability);
   if (verdict === "bound") return { subject: claimed["subject"] };
   return verdict === "unrelated" ? reject("delegation-invalid") : verdict;
@@ -234,8 +245,9 @@ export function verifyEnvelope(envelope: Json, ctx: ReceiverContext, schemas: Sc
   }
   const opened = open(envelope, ctx.did_documents ?? {});
   if (isReject(opened)) return opened;
-  const payload = decodePayload(opened.bytes);
-  if (isReject(payload)) return payload;
+  const decoded = decodePayload(opened.bytes);
+  if (!decoded.ok) return decoded.error;
+  const payload = decoded.value;
 
   const { dsip, type, id, from, issued_at, expires_at } = payload;
   const shaped =

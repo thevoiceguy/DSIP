@@ -1,0 +1,64 @@
+{
+  "vector": "semantic/sealed-opens-then-schema-invalid",
+  "format": 1,
+  "kind": "semantic",
+  "description": "Opens cleanly, but the sealed media descriptor lacks direction and codecs.",
+  "spec_ref": [
+    "§10.4"
+  ],
+  "context": {
+    "now": 1760000000,
+    "supported": {
+      "core": "1.0",
+      "profiles": [
+        "interactive-media/1.0",
+        "verified-broadcast/1.0"
+      ],
+      "extensions": [
+        "sealed-body/1.0"
+      ]
+    },
+    "unseal_key_hex": "abb7604eca83c5e3d2c4885ef1c29d5c3d4bf06b05992225abef02d628524353"
+  },
+  "input": {
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "interactive-media/1.0"
+        ],
+        "extensions": [
+          "sealed-body/1.0"
+        ],
+        "critical": [
+          "sealed-body/1.0"
+        ]
+      },
+      "type": "invite",
+      "id": "01K742SG00TVW5ZPDS20WY3HBK",
+      "from": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+      "to": "did:web:example.com:users:bob",
+      "intent": "interactive",
+      "identity": {
+        "display_name": "Alice",
+        "claims": []
+      },
+      "policy": {
+        "recording": "consent-required",
+        "ai_processing": "denied"
+      },
+      "issued_at": 1760000000,
+      "expires_at": 1760000030,
+      "sealed": {
+        "alg": "hpke-base-x25519-sha256-aes128gcm",
+        "enc": "5hQJUD-cdnr4aJgTrOK6Vk4FZENe96AUH5W9nZpG0SU",
+        "ct": "nB4NP5VbvQjSNkCm9IoH2YVayURRF04g642opgdF3S3xL-eE-knAeMJed7TBO7GUHCqwJWYxJThRoDLqwySmaUjWXP9ht9fTltUN61VSES4iWfN4bXQIshQQQhKBefSvV2D1ZsuLkp-HwfUEg1iLiVojD7R3JuNQXhhZoIYSqRWLw0ZX9d4eFxW3qNLcTFHFWK7UxQTR0RNPpn3EWGD96illuCDRLySpZwqisBpj0-K1XM-YQYUCktrbkzqicw4sDUC2b0ZOoUPD_Wjo5wn9O1eO_DSAsvJKcFLTW4xPkPkJk6A8TjDZdEJHZhP7MIsGtGkN2DqR9Y0nLHcQp5-424A8V43wVtzQc_AX7zFs7IY"
+      }
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "schema-invalid"
+  }
+}

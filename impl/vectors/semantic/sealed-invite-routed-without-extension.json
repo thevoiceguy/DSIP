@@ -1,0 +1,52 @@
+{
+  "vector": "semantic/sealed-invite-routed-without-extension",
+  "format": 1,
+  "kind": "semantic",
+  "description": "A relay that does not implement sealed-body/1.0 still routes it: the critical rule binds the addressee (§10.4).",
+  "spec_ref": [
+    "§10.4"
+  ],
+  "context": {
+    "now": 1760000000,
+    "supported": {
+      "core": "1.0",
+      "profiles": [
+        "interactive-media/1.0",
+        "verified-broadcast/1.0"
+      ],
+      "extensions": []
+    },
+    "router": true
+  },
+  "input": {
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "interactive-media/1.0"
+        ],
+        "extensions": [
+          "sealed-body/1.0"
+        ],
+        "critical": [
+          "sealed-body/1.0"
+        ]
+      },
+      "type": "invite",
+      "id": "01K742SG00TVW5ZPDS20WY3HBK",
+      "from": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+      "to": "did:web:example.com:users:bob",
+      "issued_at": 1760000000,
+      "expires_at": 1760000030,
+      "sealed": {
+        "alg": "hpke-base-x25519-sha256-aes128gcm",
+        "enc": "T6FLLaqF0saPLQ49zKIYFDEJucPzLChwq8Tab-kCODY",
+        "ct": "WLyweoZIloI5iQngAZ-d_mPAZuE0u2gN4YsLWm0bVJMYflMMf9wbxaqo3W-Jg9Rx1mDkGDidTRtbkoHjICXeZfuqZoC76dx92-ad-C9Ed1VsGZrJYbg3dRoR6HobXPrYtgL_1BmXBe_oV7lh8cHgdKSzA0vT41P9MYH3WCyH_nEE9Z-r-wJKGhm3Zqvo9C0V18xq9LSNmDNH9Khe890rIhL7Iod4xh-GNutNSOrA9Vj4YzaHmfK35NGHqyMrYQDKi_KRKYA1AV-EHbapL9M1rw4jrj8_TH6KYALkaEFqCO7P9kfBxzeLOqACk-vkJze_jKXHCgmTxwB82K2mxWbwpvEiml1NtGFdnD3FgZ8eS1epu4kpLKDz1zS0pxdlaB2_Dj4V1ejkX30rwP7gcdFo3D8NhoNPAuifPQ2RNpX6RTZbR3L4UouSXDsDcckayU9Wf-CdqD-UvQIJGLyAGN_WQEqY2CWmPmn_Sndi-vIC2zX99M3aFwqwLbX3w3Ds0Kn9TVm9vTjqvyiNiYb3AZUH4QAxD0dAaeiTG119zP3f_ZDifg7KE-b3cUKM6YpVxdjgWgTjETgbv4suAMNQnkteBbk7z4a80q34NA1rrDUy5dJvZ0IRLPh0HrP76UpAfTVukRy1AixD8KPNCjt4fDdjtlRa06qIPT_wgHdmksmgu9PC4SpDo0KLGFGtizOwUSqW7umvsSl47EU8JY0SsE7NsOMCcdPy6dpodyfDNZZ-bZAxxMlKumbXHvOetaUohvnKHCaI8RIOYZPhDszbo5MVUYsJ32kuvGtnfJMp1O1PIxCE7bWEADPiUdvROPsyb71whPWrNp9KJK8qEG5g568snDYlQIEph-azRE6X9W-YSNJ4N6T93MUXEKT9XbcfC54V173rzW1fpU2emIcaBkwUvMFbOIZV2FrWbau_2e7AFlFShjjf8cMyrr-ScQjtbTg-8_iQPimR-S-VZMas_ATw1fSk7kNP4WIN08C3niXe815QcM-YHutHbehOWw4eIKZPb7rgBBhaxTTlTlZFFa3GHg"
+      }
+    }
+  },
+  "expect": {
+    "verdict": "accept"
+  }
+}

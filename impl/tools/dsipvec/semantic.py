@@ -1,6 +1,6 @@
 """Stages 12–14: version negotiation, schema dispatch, stateless semantic checks.
 
-Spec: §11, §10.3, §9.3, §13.2, §14.2, §15, §19.4; schema README checks 1, 2, 5, 7, 8, 9, 11.
+Spec: §11, §10.3, §10.4, §9.3, §13.2, §14.2, §15, §19.4; schema README checks 1, 2, 5, 7, 8, 9, 11.
 """
 from __future__ import annotations
 
@@ -50,6 +50,64 @@ def check_version(payload: dict, supported: dict) -> Verdict:
     if isinstance(profiles, list) and profiles and not any(p in known for p in profiles):
         return Verdict.reject("version-unsupported", "session.unsupported-profile-version")
     return Verdict.accept()
+
+
+# §10.4, extension sealed-body/1.0 (spec-gap 97): the fields no routing rule reads, per type
+SEALED_BODY_EXT = "sealed-body/1.0"
+SEALED_BODY_ALG = "hpke-base-x25519-sha256-aes128gcm"
+SEALED_BODY_INFO = b"dsip sealed body v1"
+SEALED_BODY_PAD = 256
+SEALABLE = {
+    "invite": {"identity", "intent", "policy", "media", "transports"},
+    "answer": {"answered_by", "media", "policy", "transports"},
+    "update": {"answered_by", "media", "policy", "transports"},
+    "info": {"about", "data"},
+    "reject": {"detail"},
+    "cancel": {"detail"},
+    "bye": {"detail"},
+}
+
+
+def sealed_body_aad(p: dict) -> bytes:
+    """§10.4: type ‖ 0x00 ‖ id ‖ 0x00 ‖ from ‖ 0x00 ‖ to, so a ciphertext cannot move into another message."""
+    return b"\0".join(str(p.get(k, "")).encode() for k in ("type", "id", "from", "to"))
+
+
+def open_sealed_body(payload: dict, sk: bytes) -> tuple[Verdict, dict | None]:
+    """Stage 12b (§10.4): open `sealed` and merge it into the clear fields; first failing condition wins.
+
+    A `sealed` that is not `{alg, enc, ct}` strings, or a payload whose `type`/`id`/`from`/`to` (the AAD inputs)
+    is not a string, is left for the schema stage to reject.
+    """
+    from .crypto import b64url_decode
+    from .messaging import hpke_open
+    from .wire import parse_payload
+    sealed = payload["sealed"]
+    if not isinstance(sealed, dict) or not all(isinstance(sealed.get(k), str) for k in ("alg", "enc", "ct")) \
+            or not all(isinstance(payload.get(k), str) for k in ("type", "id", "from", "to")):
+        return Verdict.accept(), payload  # §10.4: not opened; schema validation rejects the shape
+    crit = (payload.get("dsip") or {}).get("critical")
+    if not isinstance(crit, list) or SEALED_BODY_EXT not in crit:
+        return Verdict.reject("sealed-not-critical"), None
+    if sealed["alg"] != SEALED_BODY_ALG:
+        return Verdict.reject("sealed-alg-unsupported"), None
+    try:
+        enc, ct = b64url_decode(sealed["enc"]), b64url_decode(sealed["ct"])
+    except ValueError:
+        return Verdict.reject("body-unseal-failed"), None
+    pt = hpke_open(enc, sk, SEALED_BODY_INFO, sealed_body_aad(payload), ct)
+    if pt is None:
+        return Verdict.reject("body-unseal-failed"), None
+    v, body = parse_payload(pt, core_shape=False)
+    if not v.ok or not body or len(pt) % SEALED_BODY_PAD:
+        return Verdict.reject("sealed-plaintext-invalid"), None
+    if set(body) - SEALABLE.get(payload.get("type"), set()):
+        return Verdict.reject("sealed-field-not-sealable"), None
+    if set(body) & set(payload):
+        return Verdict.reject("sealed-field-in-clear"), None
+    merged = {k: v for k, v in payload.items() if k != "sealed"}
+    merged.update(body)
+    return Verdict.accept(sealed=sorted(body)), merged
 
 
 def check_schema(payload: dict) -> Verdict:
@@ -153,9 +211,28 @@ def registry_effects(payload: dict) -> dict:
 
 
 def check_payload(payload: dict, ctx: dict, encoded_size: int | None = None) -> Verdict:
-    """Stages 12–14 in order."""
-    for v in (check_version(payload, ctx.get("supported") or {"core": "1.0", "profiles": ["interactive-media/1.0"], "extensions": []}),
-              check_schema(payload)):
+    """Stages 12–14 in order, with 12b (§10.4) opening a sealed body when the context holds the addressee's key.
+
+    With `router: true` the receiver only routes: it never opens a seal, the critical-extension rule does not apply to
+    sealed-body/1.0 (§10.4), and the clear part is validated as it stands.
+    """
+    supported = ctx.get("supported") or {"core": "1.0", "profiles": ["interactive-media/1.0"], "extensions": []}
+    if ctx.get("router") and "sealed" in payload:
+        # §10.4: a router routes a sealed payload whether or not it implements sealed-body/1.0
+        supported = {**supported, "extensions": [*supported.get("extensions", []), SEALED_BODY_EXT]}
+    v = check_version(payload, supported)
+    if not v.ok:
+        return v
+    sealed_fields = None
+    if "sealed" in payload and ctx.get("unseal_key_hex") and not ctx.get("router"):
+        v, opened = open_sealed_body(payload, bytes.fromhex(ctx["unseal_key_hex"]))
         if not v.ok:
             return v
-    return check_semantic(payload, ctx, encoded_size)
+        sealed_fields, payload = v.extra.get("sealed"), opened
+    v = check_schema(payload)
+    if not v.ok:
+        return v
+    v = check_semantic(payload, ctx, encoded_size)
+    if v.ok and sealed_fields:
+        v.extra.setdefault("effective", {})["sealed"] = sealed_fields
+    return v

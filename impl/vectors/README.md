@@ -125,6 +125,12 @@ implementation under test MUST emit that token when it signals the failure.
 | `replay-window` | `issued_at` outside `[now − 300, now + 300]` (§12.9, check 1); for `introduction` (spec-gap 31) and `reachability-hint` (spec-gap 96) only the future bound applies — their age is bounded by `expires_at` (§12.9, v0.8) | |
 | `introduction-validity` | `introduction` with `expires_at − issued_at` > 604,800 s (§12.9, §19.4; spec-gap 31) | |
 | `hint-validity` | `reachability-hint` with `expires_at − issued_at` > 3,600 s (§12.9, DHT profile §2; spec-gap 96) | |
+| `sealed-not-critical` | a payload carries `sealed` but `dsip.critical` does not list `sealed-body/1.0` (§10.4; spec-gap 97) | |
+| `sealed-alg-unsupported` | `sealed.alg` is not `hpke-base-x25519-sha256-aes128gcm` (§10.4; also sealed introductions, kind `messaging`) | |
+| `body-unseal-failed` | `enc`/`ct` not base64url, or the HPKE open fails — wrong key, tampered, or AAD of another message (§10.4) | |
+| `sealed-plaintext-invalid` | the opened plaintext is not a §10.3 JSON object with at least one key, or its byte length is not a positive multiple of 256 (§10.4) | |
+| `sealed-field-not-sealable` | the plaintext holds a key outside the type's sealable fields (§10.4 table) | |
+| `sealed-field-in-clear` | a key is present both inside the seal and in clear (§10.4) | |
 | `introduction-purpose-and-sealed` | an `introduction` carries both `purpose` and `sealed` (§19.4, v0.8) | |
 | `revocation-subject-mismatch` / `revocation-signer-not-subject` | `delegation-revocation.from` ≠ `subject`; signed by a key other than the subject's (§7.4, v0.8; `context.signer_kid`) | |
 | `lifetime-exceeded` / `deposit-class-unsupported` / `deposit-fields` / `object-too-large` / `mailbox-mode-unsupported` / `key-packages-empty` | Messaging Profile message rules (M§5; kind `messaging`) | `mailbox.unsupported-class` / — / — / `mailbox.object-too-large` / `mailbox.unsupported-mode` / — |
@@ -180,6 +186,13 @@ runs 13 only; `kind: semantic` runs 12–14).
 11. `ulid-issued-at-mismatch`
 11b. `hello-required` (transport binding state: `context.hello_verified` is `false` and the type is not `hello`)
 12. `version-unsupported`
+12b. Sealed body (§10.4, only when the payload has `sealed` and `context.unseal_key_hex` is present):
+    `sealed-not-critical` → `sealed-alg-unsupported` → `body-unseal-failed` → `sealed-plaintext-invalid` →
+    `sealed-field-not-sealable` → `sealed-field-in-clear`. A `sealed` that is not an object of three strings
+    `alg`, `enc`, `ct`, or a payload whose `type`, `id`, `from` or `to` is not a string (the AAD inputs), is
+    left for stage 13. A `dsip.critical` that is not an array lists nothing (`sealed-not-critical`). A type with
+    no sealable fields admits none (`sealed-field-not-sealable` for any opened key). On success the opened fields replace `sealed` and stages 13–14
+    run on the merged payload.
 13. `unknown-type` → `schema-invalid`
 14. Stateless semantic checks (`selection-not-subset`, `subscription-lifetime-exceeded`, `introduction-too-large`, `grant-unknown-introduction`, `hello-in-reply-to-mismatch`, `rotation-*`)
 
@@ -236,6 +249,18 @@ Input is a decoded payload plus whatever receiver context the check needs:
 "input":   { "payload": { ... } },
 "expect":  { "verdict": "accept", "effective": {...}, "warnings": [...] } | { "verdict": "reject", "code": "…", "reason": "…" }
 ```
+
+**Sealed bodies (§10.4, spec-gap 97).** `context.unseal_key_hex` is the X25519 private key of the DID in `to`
+(32 bytes, hex; an identity's key agreement key, or a device `did:key`'s derived one): with it the receiver is the addressee and runs stage 12b. `context.router: true` makes the
+receiver a router instead: it never opens a seal, and for a payload carrying `sealed` the critical-extension
+rule of stage 12 does not apply to `sealed-body/1.0` (it binds the addressee); the clear part goes to stage 13
+as it stands. With neither, a sealed payload is validated as it stands (the schemas admit `sealed` in place of
+the type's sealable fields). Opening: HPKE (RFC 9180) base mode, DHKEM(X25519, HKDF-SHA256), HKDF-SHA256,
+AES-128-GCM; `info` = `dsip sealed body v1`; AAD = `type ‖ 0x00 ‖ id ‖ 0x00 ‖ from ‖ 0x00 ‖ to` (UTF-8,
+from the clear payload); `enc` and `ct` are base64url. Sealable fields: `invite` — `identity`, `intent`,
+`policy`, `media`, `transports`; `answer`, `update` — `answered_by`, `media`, `policy`, `transports`; `info` —
+`about`, `data`; `reject`, `cancel`, `bye` — `detail`. On accept, `effective.sealed` lists the opened keys,
+sorted, beside whatever stage 14 reports.
 
 Subset rule detail (check 9, Impl decision, spec-gap filed): each selected
 media descriptor must match an offered descriptor on `type` (+ `purpose` when
