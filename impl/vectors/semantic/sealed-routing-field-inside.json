@@ -1,0 +1,58 @@
+{
+  "vector": "semantic/sealed-routing-field-inside",
+  "format": 1,
+  "kind": "semantic",
+  "description": "A routing field (reason) sealed: only the type's sealable fields may travel inside.",
+  "spec_ref": [
+    "§10.4"
+  ],
+  "context": {
+    "now": 1760000000,
+    "supported": {
+      "core": "1.0",
+      "profiles": [
+        "interactive-media/1.0",
+        "verified-broadcast/1.0"
+      ],
+      "extensions": [
+        "sealed-body/1.0"
+      ]
+    },
+    "unseal_key_hex": "abb7604eca83c5e3d2c4885ef1c29d5c3d4bf06b05992225abef02d628524353"
+  },
+  "input": {
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "interactive-media/1.0"
+        ],
+        "extensions": [
+          "sealed-body/1.0"
+        ],
+        "critical": [
+          "sealed-body/1.0"
+        ]
+      },
+      "type": "bye",
+      "id": "01K742SRS81V4425R3D6BCM2E8",
+      "from": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+      "to": "did:web:example.com:users:bob",
+      "session": "01K742SG00TVW5ZPDS20WY3HBK",
+      "reason": "user.hangup",
+      "detail": "Talk tomorrow",
+      "issued_at": 1760000009,
+      "expires_at": 1760000039,
+      "sealed": {
+        "alg": "hpke-base-x25519-sha256-aes128gcm",
+        "enc": "mbGQEEBr_PqRIrXcS0MLGsmnjArtVOEGVvGigu8rKmw",
+        "ct": "_Yu95zpebVVtGuEl6w820j9wpyQl4Zcg7xwpl6dt_RTj27RBM3Pck33RuQqRSXwaPTA6c67NN0HxSA0GvlzQxyMAMOlhDrevQnWWTpQtqjg1wN0sv_YiStTtMgKnVwfdI6e4wHFpLCBrxrTX1cd-zuKhUPcDeD1frHun-SGKsbvNRWluzq7F3GL_7uv_818sZbtwZOY-0uzJ9qFXoxHrLOc6HiFgayPg5SZ7Ejo4Rt5WgkOmhp2AnTsJzzwfHsmJ2N1iUJq9ZJNZBd12aRjq9FJYCtSY43ETv6nugYSkaFpoDl5Mi4I3LVXQABn2925XVRlrhVI_NL6b0Y8NIp9y5xLJ7Y07WXbeZ2bxvcDAdyE"
+      }
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "sealed-field-not-sealable"
+  }
+}

@@ -1,0 +1,55 @@
+{
+  "vector": "semantic/sealed-wrong-key",
+  "format": 1,
+  "kind": "semantic",
+  "description": "Sealed to mallory's key, opened with bob's.",
+  "spec_ref": [
+    "§10.4"
+  ],
+  "context": {
+    "now": 1760000000,
+    "supported": {
+      "core": "1.0",
+      "profiles": [
+        "interactive-media/1.0",
+        "verified-broadcast/1.0"
+      ],
+      "extensions": [
+        "sealed-body/1.0"
+      ]
+    },
+    "unseal_key_hex": "abb7604eca83c5e3d2c4885ef1c29d5c3d4bf06b05992225abef02d628524353"
+  },
+  "input": {
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "interactive-media/1.0"
+        ],
+        "extensions": [
+          "sealed-body/1.0"
+        ],
+        "critical": [
+          "sealed-body/1.0"
+        ]
+      },
+      "type": "invite",
+      "id": "01K742SG00TVW5ZPDS20WY3HBK",
+      "from": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+      "to": "did:web:example.com:users:bob",
+      "issued_at": 1760000000,
+      "expires_at": 1760000030,
+      "sealed": {
+        "alg": "hpke-base-x25519-sha256-aes128gcm",
+        "enc": "b9noauwLoflB0fZIymP28Grb5Sxr0J7idR1vVUgTbSo",
+        "ct": "ga7jPa4jN7_zDuJKkDnnVfA4btXnYEtR4LQY4s5VgQz13DlaP4lLvCRVpDGEDTIIxm4xdwfa5e4zAt_lZasTriGOWCNeJ1E7GOvH2pftkomqVtrt9cbYUKiMqlaOBdwjd7M1wDMe92kfQe_6ADXtBS5hXwPIebYOzgocDLvLZQXLMeJfyjD0vyXWjHIRt0dPY0Yzla3A3vPEWOGG2wbhi0IK4nkUj-5ckHb18C0pw-5LV2_n8ASZnCk0ztxYDDroMQQ0MC5M4DQYQZHX6LOLYSTM121MJda7xeumLFl4hkXoBNbIfiBH6zvTJeM_duKkQLFpCN00q-d4bCdUjqREwqDfoCMJXYooza76dfK-ElvOuxR089gXYUOBc8_Lb-FP-iKj-5BSl2xNn96TTKWxpPS7i0IctpjzHgu99sAH2C2DPPsN4-xHVMkiDsHgPH8InWxImLwGFdkPHVrjnuswElg5FUYmpilcv3l-PG6PgwTMhrlAPvWu2rziE9cu1mOaYKyV_4-IoyAu_UAXbaCXQyq8x2r4pANchlyUq-81TsFJFlyUWnK_jQp0_O3PazT-pm4XtuVU0ByosPSDgZ80lLPfC4ptEysMWTsXcy1MqSDF2YxvqhCyLCEY3CpVEYy0ItwkWFHWP3ie-ikBprramoLOCmxJ_X2XfaSLJfAeSzqRCYT0xnbr-aIWXzBjEPA5FbvuXWDEnOmpW_BI-joa7NBpsJl2s6Ohv5S4m2hMRfXL97VXmqKLVvUZFX6uyYPiK9kEUg9NpeDOWwe_-9f1aLo7b5emAacoZEI-kyKgc6QkzwM9acnGoRYcBmw4nh6h2WIAMGdzfKER9pmBT8bVUctoZe165EePNXplVJB3t5Mxx5IUg9rFdeUi3FOt3fCRvRq0pNgPnwpAr4h_y3ZE3EFca38fL66NqAmqNcStxDJK0VsS6-UqmDRzOohuywF_hMEZ3oeLE9M_l950ZZLvfscfagWF5yq4VN9AiXtTzBT-tcRXRJhQyNih7jPp1eaFkwx34I6PJz_hDrcPhldxSw"
+      }
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "body-unseal-failed"
+  }
+}

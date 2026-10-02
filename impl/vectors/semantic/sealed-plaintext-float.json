@@ -1,0 +1,108 @@
+{
+  "vector": "semantic/sealed-plaintext-float",
+  "format": 1,
+  "kind": "semantic",
+  "description": "A float inside the seal breaks §10.3 like one in clear.",
+  "spec_ref": [
+    "§10.4"
+  ],
+  "context": {
+    "now": 1760000000,
+    "supported": {
+      "core": "1.0",
+      "profiles": [
+        "interactive-media/1.0",
+        "verified-broadcast/1.0"
+      ],
+      "extensions": [
+        "sealed-body/1.0"
+      ]
+    },
+    "unseal_key_hex": "abb7604eca83c5e3d2c4885ef1c29d5c3d4bf06b05992225abef02d628524353"
+  },
+  "input": {
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "interactive-media/1.0"
+        ],
+        "extensions": [
+          "sealed-body/1.0"
+        ],
+        "critical": [
+          "sealed-body/1.0"
+        ]
+      },
+      "type": "invite",
+      "id": "01K742SG00TVW5ZPDS20WY3HBK",
+      "from": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+      "to": "did:web:example.com:users:bob",
+      "intent": "interactive",
+      "media": [
+        {
+          "type": "audio",
+          "direction": "sendrecv",
+          "codecs": [
+            {
+              "id": "codec:audio/opus",
+              "sample_rates": [
+                48000
+              ],
+              "channels": [
+                1,
+                2
+              ]
+            },
+            {
+              "id": "codec:audio/pcmu",
+              "sample_rates": [
+                8000
+              ],
+              "channels": [
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "type": "video",
+          "direction": "sendrecv",
+          "codecs": [
+            {
+              "id": "codec:video/h264",
+              "profiles": [
+                "baseline"
+              ]
+            }
+          ]
+        }
+      ],
+      "transports": [
+        {
+          "id": "transport:webrtc",
+          "ice": "trickle"
+        },
+        {
+          "id": "transport:rtp-sdes"
+        }
+      ],
+      "policy": {
+        "recording": "consent-required",
+        "ai_processing": "denied"
+      },
+      "issued_at": 1760000000,
+      "expires_at": 1760000030,
+      "sealed": {
+        "alg": "hpke-base-x25519-sha256-aes128gcm",
+        "enc": "DOdmBO0AwFxFt4g7WA5rtbaEbUujYZfgY8EVSn7jKxw",
+        "ct": "Ywj41OAlp3QsOxCLTJfYKwonIZWqKSq6aRCJ348aZSAMtsvKFKouBlZqllZQKPcjSA_--cYBEfqPhjP0e_cW-Dd2FMLepfPONStCDjDvtlK9dnZZAcikKBHGGVXAhlGoRAbhGUgsNA1sGANGlpgRACanQ9PyP3dQGeTWvIeAD9z3DbjGxUbC4muqTX-soI4mmhfLmEM_yfYlP9ROuIzb8ezi7O44_vA0FXImBS8HwF6GB5lyAQ0lZ7Di4GRw2nXfM9ZCQJ5YVwHZQOOU6vHAYGoOAHmO8YTzfZCJ-8cPMc2619DLlBdwnC-72FXRjKNhiesN7InY8oF7mWrvrOI-FLlskxi23WObpSTcTVKwlhc"
+      }
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "sealed-plaintext-invalid"
+  }
+}

@@ -6,14 +6,15 @@
  * mode), M§8.4 / M§11.1 / M§12.2 (sealing and its AAD), M§14.1 (sealed introductions), M§17
  * (codepoints), RFC 9420 §2.1.2 (variable-length integers).
  */
-import {
-  createCipheriv, createDecipheriv, createHash, createHmac, createPrivateKey, createPublicKey, diffieHellman,
-} from "node:crypto";
+import { createCipheriv, createDecipheriv, createHash } from "node:crypto";
 import type { Json, JsonObject } from "../did.js";
 import { b64urlDecode, ed25519FromMultibase, utf8Decode } from "../encoding.js";
 import { decodePayload, delegationSubject, type ReceiverContext } from "../envelope.js";
 import { reject, type Verdict } from "../verdict.js";
 import { checkConversationExt } from "./message.js";
+import { HPKE_SEALED_ALG, hpkeOpen } from "../hpke.js";
+
+export { hpkeDeriveKeyPair, hpkeOpen, x25519FromEd25519Seed } from "../hpke.js";
 
 /** Spec: M§17 — private-use MLS extension type carrying the leaf's DeviceDelegation. */
 export const DSIP_DELEGATION = 0xf0d1;
@@ -50,9 +51,8 @@ export function decodeExtension(bytes: Buffer): Verdict {
 
 /** Spec: M§6.3 — the extension data is UTF-8 JSON obeying §10.3, then the `dsip-conversation` shape. */
 export function checkConversationBytes(data: Buffer): Verdict {
-  const value = decodePayload(data);
-  if (value["verdict"] === "reject" && typeof value["code"] === "string") return reject(value["code"]);
-  return checkConversationExt(value as JsonObject);
+  const decoded = decodePayload(data);
+  return decoded.ok ? checkConversationExt(decoded.value) : decoded.error;
 }
 
 // ---- M§6.2 the DSIP authentication service
@@ -127,89 +127,9 @@ export function open(u: SealUse & { size?: number; sha256?: string }, key: Buffe
   }
 }
 
-// ---- HPKE: DHKEM(X25519, HKDF-SHA256) / HKDF-SHA256 / AES-128-GCM, base mode (RFC 9180)
-
-const KEM_SUITE = Buffer.concat([Buffer.from("KEM"), Buffer.from([0x00, 0x20])]);
-const HPKE_SUITE = Buffer.concat([Buffer.from("HPKE"), Buffer.from([0x00, 0x20, 0x00, 0x01, 0x00, 0x01])]);
-const PKCS8_X25519 = Buffer.from("302e020100300506032b656e04220420", "hex");
-const SPKI_X25519 = Buffer.from("302a300506032b656e032100", "hex");
-
-function hmac(key: Buffer, data: Buffer): Buffer {
-  return createHmac("sha256", key).update(data).digest();
-}
-
-function labeledExtract(suite: Buffer, salt: Buffer, label: string, ikm: Buffer): Buffer {
-  return hmac(salt.length ? salt : Buffer.alloc(32), Buffer.concat([Buffer.from("HPKE-v1"), suite, Buffer.from(label), ikm]));
-}
-
-function labeledExpand(suite: Buffer, prk: Buffer, label: string, info: Buffer, length: number): Buffer {
-  const labeled = Buffer.concat([Buffer.from([length >> 8, length & 0xff]), Buffer.from("HPKE-v1"), suite, Buffer.from(label), info]);
-  let out: Buffer = Buffer.alloc(0);
-  let block: Buffer = Buffer.alloc(0);
-  for (let i = 1; out.length < length; i++) {
-    block = hmac(prk, Buffer.concat([block, labeled, Buffer.from([i])]));
-    out = Buffer.concat([out, block]);
-  }
-  return out.subarray(0, length);
-}
-
-function x25519Private(sk: Buffer) {
-  return createPrivateKey({ key: Buffer.concat([PKCS8_X25519, sk]), format: "der", type: "pkcs8" });
-}
-
-function x25519Public(sk: Buffer): Buffer {
-  return Buffer.from(createPublicKey(x25519Private(sk)).export({ format: "der", type: "spki" })).subarray(-32);
-}
-
-function x25519(sk: Buffer, pk: Buffer): Buffer {
-  return diffieHellman({
-    privateKey: x25519Private(sk),
-    publicKey: createPublicKey({ key: Buffer.concat([SPKI_X25519, pk]), format: "der", type: "spki" }),
-  });
-}
-
-/** RFC 9180 §7.1.3 DeriveKeyPair for X25519. */
-export function hpkeDeriveKeyPair(ikm: Buffer): { sk: Buffer; pk: Buffer } {
-  const sk = labeledExpand(KEM_SUITE, labeledExtract(KEM_SUITE, Buffer.alloc(0), "dkp_prk", ikm), "sk", Buffer.alloc(0), 32);
-  return { sk, pk: x25519Public(sk) };
-}
-
-/** Single-shot base-mode open (sequence 0); `null` when it does not open. Spec: M§6.9 */
-export function hpkeOpen(enc: Buffer, skR: Buffer, info: Buffer, aadBytes: Buffer, ct: Buffer): Buffer | null {
-  try {
-    const dh = x25519(skR, enc);
-    const kemContext = Buffer.concat([enc, x25519Public(skR)]);
-    const sharedSecret = labeledExpand(KEM_SUITE, labeledExtract(KEM_SUITE, Buffer.alloc(0), "eae_prk", dh), "shared_secret", kemContext, 32);
-    const empty = Buffer.alloc(0);
-    const context = Buffer.concat([
-      Buffer.from([0x00]), // mode_base
-      labeledExtract(HPKE_SUITE, empty, "psk_id_hash", empty),
-      labeledExtract(HPKE_SUITE, empty, "info_hash", info),
-    ]);
-    const secret = labeledExtract(HPKE_SUITE, sharedSecret, "secret", empty);
-    const key = labeledExpand(HPKE_SUITE, secret, "key", context, 16);
-    const nonce = labeledExpand(HPKE_SUITE, secret, "base_nonce", context, 12);
-    if (ct.length < 16) return null;
-    const d = createDecipheriv("aes-128-gcm", key, nonce);
-    d.setAAD(aadBytes);
-    d.setAuthTag(ct.subarray(ct.length - 16));
-    return Buffer.concat([d.update(ct.subarray(0, ct.length - 16)), d.final()]);
-  } catch {
-    return null;
-  }
-}
-
-/** Spec: M§6.9 — the X25519 key of an Ed25519 identity key, as `did:key` derives it: the clamped SHA-512 half of the seed. */
-export function x25519FromEd25519Seed(seed: Buffer): { sk: Buffer; pk: Buffer } {
-  const sk = Buffer.from(createHash("sha512").update(seed).digest().subarray(0, 32));
-  sk[0] = sk[0]! & 248;
-  sk[31] = (sk[31]! & 127) | 64;
-  return { sk, pk: x25519Public(sk) };
-}
-
 // ---- M§14.1 sealed introductions
 
-const SEALED_ALG = "hpke-base-x25519-sha256-aes128gcm";
+const SEALED_ALG = HPKE_SEALED_ALG;
 const SEALED_INFO = Buffer.from("dsip sealed introduction v1");
 /** Spec: §19.4 — `purpose` is at most 280 characters, sealed or not. */
 const MAX_PURPOSE_CHARS = 280;

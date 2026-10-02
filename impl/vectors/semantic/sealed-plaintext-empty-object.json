@@ -1,0 +1,112 @@
+{
+  "vector": "semantic/sealed-plaintext-empty-object",
+  "format": 1,
+  "kind": "semantic",
+  "description": "An empty object seals nothing.",
+  "spec_ref": [
+    "§10.4"
+  ],
+  "context": {
+    "now": 1760000000,
+    "supported": {
+      "core": "1.0",
+      "profiles": [
+        "interactive-media/1.0",
+        "verified-broadcast/1.0"
+      ],
+      "extensions": [
+        "sealed-body/1.0"
+      ]
+    },
+    "unseal_key_hex": "abb7604eca83c5e3d2c4885ef1c29d5c3d4bf06b05992225abef02d628524353"
+  },
+  "input": {
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "interactive-media/1.0"
+        ],
+        "extensions": [
+          "sealed-body/1.0"
+        ],
+        "critical": [
+          "sealed-body/1.0"
+        ]
+      },
+      "type": "invite",
+      "id": "01K742SG00TVW5ZPDS20WY3HBK",
+      "from": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+      "to": "did:web:example.com:users:bob",
+      "intent": "interactive",
+      "identity": {
+        "display_name": "Alice",
+        "claims": []
+      },
+      "media": [
+        {
+          "type": "audio",
+          "direction": "sendrecv",
+          "codecs": [
+            {
+              "id": "codec:audio/opus",
+              "sample_rates": [
+                48000
+              ],
+              "channels": [
+                1,
+                2
+              ]
+            },
+            {
+              "id": "codec:audio/pcmu",
+              "sample_rates": [
+                8000
+              ],
+              "channels": [
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "type": "video",
+          "direction": "sendrecv",
+          "codecs": [
+            {
+              "id": "codec:video/h264",
+              "profiles": [
+                "baseline"
+              ]
+            }
+          ]
+        }
+      ],
+      "transports": [
+        {
+          "id": "transport:webrtc",
+          "ice": "trickle"
+        },
+        {
+          "id": "transport:rtp-sdes"
+        }
+      ],
+      "policy": {
+        "recording": "consent-required",
+        "ai_processing": "denied"
+      },
+      "issued_at": 1760000000,
+      "expires_at": 1760000030,
+      "sealed": {
+        "alg": "hpke-base-x25519-sha256-aes128gcm",
+        "enc": "lxPWydvP019cRYs1SWQh5uuNmPuNGoi4JcUNHrmYOlU",
+        "ct": "rpMDRTkWS7r1R6silP8OfrbTJg1kqqKBgFr-X33nDA63OcOv0cQbumOmQdx0GQmA9EfYQfjU9ogr_vOPwpm854kbNUluJuBxPn5D7wdL23QGOGAzlxYFNhwq6EElQps3p16kcRsGPOSJTq-5Oxp1yEVdPgOiv_0sDiPh3JjkvtPNUtSgr2KozSaSrfirPMujo1ssatj2BKtWzsFpbz1gV1-AthSImuFa-qWWYgifJCT7jZh5gD0jlz3cLZok_ny53wWpnfCgTCv5_WoDQm8m-078pkX9BuyfvBqzInZUfcRiT4AtDMX0Z-MqsiMGjyAip-dH54iYO1BSqVUSGR9br8nqPYbu4SF-qhaDZjpPqdQ"
+      }
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "sealed-plaintext-invalid"
+  }
+}

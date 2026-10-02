@@ -1,0 +1,53 @@
+{
+  "vector": "semantic/sealed-not-critical",
+  "format": 1,
+  "kind": "semantic",
+  "description": "sealed present but sealed-body/1.0 is not listed in dsip.critical.",
+  "spec_ref": [
+    "§10.4"
+  ],
+  "context": {
+    "now": 1760000000,
+    "supported": {
+      "core": "1.0",
+      "profiles": [
+        "interactive-media/1.0",
+        "verified-broadcast/1.0"
+      ],
+      "extensions": [
+        "sealed-body/1.0"
+      ]
+    },
+    "unseal_key_hex": "abb7604eca83c5e3d2c4885ef1c29d5c3d4bf06b05992225abef02d628524353"
+  },
+  "input": {
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "interactive-media/1.0"
+        ],
+        "extensions": [
+          "sealed-body/1.0"
+        ],
+        "critical": []
+      },
+      "type": "invite",
+      "id": "01K742SG00TVW5ZPDS20WY3HBK",
+      "from": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+      "to": "did:web:example.com:users:bob",
+      "issued_at": 1760000000,
+      "expires_at": 1760000030,
+      "sealed": {
+        "alg": "hpke-base-x25519-sha256-aes128gcm",
+        "enc": "twyzLHRitPIM9fkQN-G-hDXcuVH0ZQWQXwJBsbk-NHE",
+        "ct": "CGNk2EYqesoHGV77XZ9-DCVzL5TTYkVP7maX2_8hoDyauT52oksfNG7IG7uZBMyrtkMGkhUvsdMty6VyaATz8j7m3BKG75sWTt0fJVLDS5BAYQfgSUAo-1Dup6qY-lH1NQo37078dYi_Zsk5QfrWlzTr6-Lu4a5p8LLhaxQddHE3TeIie-BLXZiGMqE4aTDivvBqU3LZvow0rz3roYpvwMEqcHkIDrQdE4nImbrBfY_1kdAYzIQx-6UmaOX3vZg1RKnYpEcsT6OpRZ6xN2cnZFC6naJVHJy3S2V15JUnO9L5vPyq6od1n63TZQMOW3_7uoHP_kRTGPqXBuF5Rogcdg4vqNDlyVttLxrCZ3txOGYOC9QdSBrrLENnygMUqKY-A2zXsEyo1iUsuVgL3H0LrBXx0zvS5Dp5LSDmda4UikuV8U6mgZ6isaJCDIyIqVR77i9nyXJVTrFpJkd8fJQgSgT6CbrYZlryaWLtSzUAWmEZGUVC4EnM2dKVXzCcSdzQM11jGyJV-WJq1c56CbXjVlTDDIGOQTKrNPp8gI1lfT-ycB7GPlCDcI5V9XC5NAxEdhRZyt-fpFrfGNVOjM5LbM8PwBIyZg5uBOx5G-khS92tXVN9JTWQ7MpxLhPksVdPt9xiVegNjU7yKDj1_pj8UrlwetXLrx8JK1Qjr2s9Kg516ymRMhe3gDuQ0qjaQadFM89TZ-SLRwiwTEP4K2zRDWhJnZe6JHHg5y57t98bnJHW_GlCMH_NL1JTqg63v7irmSyPDVFk9lgm6Tt7tWRAD46l2D1qNQdlHu7GOdHAj1_ldTGgw_fAv9ejkKL79Y2cIeBSuylozSK5OSdNk6ENsUwkbPhUG2N5-uZZNsFBn0KGTirXd9d89rju9Mfg3aHegGP7Y3LJdtv-INA6OBlHHsX5vFaN8EF_fBuN1oBfMpXqXVfLWmT5rwr7fsr3qXJMQqCbZzON18kOOoUwmbADmck_p48tyhXbVl5nA_OQQhhb3TP_5zSTOa2MgOthRgdnzV8Cj2PHJkUb-LTsonR3cg"
+      }
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "sealed-not-critical"
+  }
+}

@@ -1,0 +1,94 @@
+{
+  "vector": "semantic/sealed-field-also-in-clear",
+  "format": 1,
+  "kind": "semantic",
+  "description": "media sealed and also left in clear: which one counts would be ambiguous.",
+  "spec_ref": [
+    "§10.4"
+  ],
+  "context": {
+    "now": 1760000000,
+    "supported": {
+      "core": "1.0",
+      "profiles": [
+        "interactive-media/1.0",
+        "verified-broadcast/1.0"
+      ],
+      "extensions": [
+        "sealed-body/1.0"
+      ]
+    },
+    "unseal_key_hex": "abb7604eca83c5e3d2c4885ef1c29d5c3d4bf06b05992225abef02d628524353"
+  },
+  "input": {
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "interactive-media/1.0"
+        ],
+        "extensions": [
+          "sealed-body/1.0"
+        ],
+        "critical": [
+          "sealed-body/1.0"
+        ]
+      },
+      "type": "invite",
+      "id": "01K742SG00TVW5ZPDS20WY3HBK",
+      "from": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+      "to": "did:web:example.com:users:bob",
+      "issued_at": 1760000000,
+      "expires_at": 1760000030,
+      "sealed": {
+        "alg": "hpke-base-x25519-sha256-aes128gcm",
+        "enc": "m0ZzGws_2cWRl77jWisLNvZVKQONbD_Le1kM_d8O_hE",
+        "ct": "RM1_TKTTDK6h8mY_JczhUiuwLoUT3mAFR96LDw1IrZT4Y9aKzDJ3_pg6qTHsPTCU6yNYYswi2tPN1zhFrRY4ggD91v8MRZQPvxdcwFH68vto6Sc7AKvpa2Y2vz0xuHG7KO5e3-qdnhITMYGEfzXvxP-6G0VeteAe7WhPJz0sDyJGlbHE7TRamwrLzII6u-lCAYcuawHhTU93pKvi6JyizF510t9VAvdrxUTaRCN6oCstcqS20EDYZRTvEAY2YjwCRlOUZUXYpVX9w-PSjYRNtH4Lzcj91a7buT7WyI8aaMHuW7buu7YMD1y1UTaqh-DNdThvgk4EooVsfQ8GyVjjMG_xhqOxQKzZzXvZfZgMrcctPgPuvYRI5uKZX-QjP6yMqfkmk_L1VPSWV984sOLyGcA6pWxSBJYsWrImrPexwVLFOILF5C80HzDcVGGhfUAjTlqpFwikmlEFl8CLplwda0Tv4RYO0S6mUOd_8XbxVnA_h5sZT4AUVblJMS9-ze5z8rKJ7X7UVF0fRAqC3ZIYfKMN-XfWySI8T10dE--0O35n-ck4VKG0b2z5t2DylZut769LDqOGC7_gPd5P74wqAUaBcAgqvMvMsXGEIKhyvffxmzmpqVXeAaNRcyVODPEdk_igeaAj6e6m1anvS3Sq90owR3uSewXLG2kH99c4fD5JgRidADXtU5pYQ-BPq53ZHNaRlCR0eMKiXQR7mV9cSDISTk5RTV2nUP0tTZqWCCPX5XG6DRqgXTTgFYo_MulkSAaqXLX6qho0KLdPNc0VWploJZO0jOcSrT-4QKFuKg1xyA7ereTxX8l0vxpvr2uv_fAlOZyc9Ors8KDO_ctkdoWZzyodJYbf6nmPyGbt4lWEWfulbHsXpNSMy36jivh3aEmh9r4ppefXOvN9R_8GzwWKDkdpC6cN79jr5eacOu9zItabnOxKhYJ5x4K57rLY9c1XoZRnpuOhRJAgDWyl0D738oNp12hAO5UfihbDKaMT-N3GljMxrDtSuNfYVNTEapWzu6-JLZBU4skCO6UwmA"
+      },
+      "media": [
+        {
+          "type": "audio",
+          "direction": "sendrecv",
+          "codecs": [
+            {
+              "id": "codec:audio/opus",
+              "sample_rates": [
+                48000
+              ],
+              "channels": [
+                1,
+                2
+              ]
+            },
+            {
+              "id": "codec:audio/pcmu",
+              "sample_rates": [
+                8000
+              ],
+              "channels": [
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "type": "video",
+          "direction": "sendrecv",
+          "codecs": [
+            {
+              "id": "codec:video/h264",
+              "profiles": [
+                "baseline"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "sealed-field-in-clear"
+  }
+}
