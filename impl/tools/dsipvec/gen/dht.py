@@ -60,4 +60,24 @@ def vectors() -> list[dict]:
                   existing=stale_existing))
     out.append(dv("schema-missing-seq", "Hint without seq fails the hint schema.", ["§8.3"],
                   signed({k: v for k, v in hint("hq", ALICE, ALICE, 1).items() if k != "seq"}, "alice"), reject("schema-invalid")))
+
+    # Spec-gap 96 (§12.9 exception, DHT profile §2): a hint's age is bounded by its own expires_at,
+    # not the 300 s replay window, under a 3,600 s cap; the future bound stays. The cap edge
+    # (ttl exactly 3,600 s) is pinned by valid-self-signed-did-key.
+    held = signed(hint("hh", ALICE, ALICE, 3, at=NOW - 1000), "alice")
+    out.append(dv("hint-held-accepted", "Hint signed 1,000 s ago with an hour's validity: stored and read while now < expires_at.",
+                  ["§12.9", "§8.3", "§8.5"], held, accept(type="reachability-hint", signer=ALICE, identity=ALICE, winner="input", conflict="none")))
+    out.append(dv("hint-held-expired", "Hint signed 4,000 s ago with an hour's validity: expired, not a replay-window rejection.",
+                  ["§12.9", "§8.3"], signed(hint("hhx", ALICE, ALICE, 3, at=NOW - 4000), "alice"), reject("expired")))
+    out.append(dv("hint-future-rejected", "Hint issued 400 s in the future: the future bound of the replay window still applies.",
+                  ["§12.9"], signed(hint("hhf", ALICE, ALICE, 3, at=NOW + 400), "alice"), reject("replay-window")))
+    out.append(dv("hint-validity-over-cap", "Hint whose expires_at − issued_at is 3,601 s: over the 3,600 s cap.",
+                  ["§12.9", "§8.5"], signed(hint("hhc", ALICE, ALICE, 3, ttl=3601), "alice"), reject("hint-validity")))
+    held_old = signed(hint("hho", ALICE, ALICE, 2, at=NOW - 2000), "alice")
+    out.append(dv("hint-held-newer-wins", "Two held live hints (signed 2,000 s and 1,000 s ago): §8.3 still decides — the higher seq wins.",
+                  ["§12.9", "§8.3"], held, accept(type="reachability-hint", signer=ALICE, identity=ALICE, winner="input", conflict="newer-seq"),
+                  existing=held_old))
+    out.append(dv("hint-held-duplicate", "A held hint re-observed (replication re-puts it): a no-op under §8.3, not a duplicate-id rejection.",
+                  ["§12.9", "§8.3"], held, accept(type="reachability-hint", signer=ALICE, identity=ALICE, winner="existing", conflict="none"),
+                  existing=held))
     return out
