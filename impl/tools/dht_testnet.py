@@ -28,8 +28,8 @@ BIN = IMPL / "target" / "debug" / "dsip-dht-node"
 
 
 class Node:
-    def __init__(self, idx: int, bootstrap: list[str], republish: int = 5):
-        args = [str(BIN), "--listen", "/ip4/127.0.0.1/tcp/0", "--control", "127.0.0.1:0", "--republish", str(republish)]
+    def __init__(self, idx: int, bootstrap: list[str], republish: int = 5, extra: list[str] | None = None):
+        args = [str(BIN), "--listen", "/ip4/127.0.0.1/tcp/0", "--control", "127.0.0.1:0", "--republish", str(republish)] + (extra or [])
         for b in bootstrap:
             args += ["--bootstrap", b]
         self.idx = idx
@@ -185,6 +185,21 @@ def main() -> int:
         check("churn_survival", survived.get("winner") and survived["winner"]["seq"] == 2
               and found_late.get("winner") and found_late["winner"]["seq"] == 2,
               after_kill_returned=survived.get("returned"), late_joiner_returned=found_late.get("returned"))
+
+        # 5b. restart without bootstrap: a node that persisted its peers (DHT profile §3 SHOULD) rejoins
+        #     from its peers file alone — on the WAN a restarted bootstrap node sat with no peers for minutes.
+        pf = Path(args.report).with_suffix(".peers")
+        pf.unlink(missing_ok=True)
+        keeper = Node(len(nodes), [nodes[0].addrs[0]], extra=["--peers-file", str(pf)])
+        time.sleep(7)  # past one re-announce tick (5 s), when the file is written
+        saved = len(pf.read_text().split()) if pf.exists() else 0
+        keeper.kill()
+        reborn = Node(len(nodes), [], extra=["--peers-file", str(pf)])
+        nodes.append(reborn)
+        time.sleep(3)
+        peers_after = reborn.rpc(op="stats")["stats"]["routing_peers"]
+        check("restart_from_peers_file", saved > 0 and peers_after > 0, peers_saved=saved, routing_peers_after_restart=peers_after)
+        pf.unlink(missing_ok=True)
 
         # 6. bootstrap centralization + routing health (measurement, not a pass/fail)
         stats = {n.idx: n.rpc(op="stats")["stats"] for n in nodes if n.proc.poll() is None}

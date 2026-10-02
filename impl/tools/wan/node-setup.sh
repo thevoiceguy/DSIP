@@ -85,7 +85,7 @@ if has bootstrap || has dht; then
 Description=DSIP reachability-hints DHT node
 After=network-online.target chrony.service
 [Service]
-ExecStart=$BIN/dsip-dht-node --listen /ip4/0.0.0.0/tcp/$DHT_PORT --control 127.0.0.1:4101 --republish 60 $SEEDARG $BOOTARG
+ExecStart=$BIN/dsip-dht-node --listen /ip4/0.0.0.0/tcp/$DHT_PORT --control 127.0.0.1:4101 --republish 60 --peers-file $STATE/dht.peers $SEEDARG $BOOTARG
 Restart=always
 StandardOutput=append:$LOG/dht.log
 StandardError=append:$LOG/dht.log

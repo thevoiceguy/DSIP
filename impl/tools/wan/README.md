@@ -79,7 +79,10 @@ ROLE=bootstrap,relay,mailbox MAILBOX_OWNER=did:web:alice.example DHT_SEED=$(open
 cat /var/lib/dsip/my-multiaddr      # → /ip4/<L1>/tcp/4001/p2p/12D3Koo…   ← BOOT1
 ls /var/lib/dsip/prebuilt           # dsip dsip-relay dsip-dht-node dsip-mailbox dsip-msg COMMIT
 ```
-The seed pins the PeerId so `BOOT1` survives restarts (Run 2 restarts it cold). The build wants about
+The seed pins the PeerId so `BOOT1` survives restarts (Run 2 restarts it cold). Every DHT node keeps the
+peers it learned in `/var/lib/dsip/dht.peers` (rewritten each minute) and dials them on restart, so a
+restarted L1 rejoins without a `--bootstrap` of its own; to also cover a cold first start, re-run L1's setup
+with `BOOTSTRAP=<BOOT2>` once L4 is up. The build wants about
 3 GB of RAM and 6 GB of disk, and takes 15–25 min on a shared 4 GB Linode. Copy the result to the
 others (all Debian 13 x86-64): `scp -r root@L1:/var/lib/dsip/prebuilt /root/prebuilt` on each.
 
@@ -276,14 +279,14 @@ minimum claim: "a NAT'd endpoint found a public endpoint through the DHT and tal
 3. Repeat stages 4–5 from E-A **with `--dht $BOOT1` still pointed at the dead L1**. Expect: resolve
    fails / times out. Record the timeout. This is the censorship point, measured.
 4. Repeat with `--dht $BOOT2` (L4). Expect: succeeds. Record.
-5. Restart L1: `systemctl start dsip-dht`. On L1: `dsipctl stats` — it rejoins via… nothing (it has
-   no `--bootstrap`). `routing_peers` stays 0 until another node dials it. Record how long (if ever)
-   it takes L2–L4's re-announce to repopulate it; this is the "cached peer list across restarts" gap.
+5. Restart L1: `systemctl start dsip-dht`. On L1: `dsipctl stats` — it has no `--bootstrap`, so it
+   rejoins from `dht.peers` (the peers it saved before stopping): expect `routing_peers` = 3 within
+   seconds. Record the time. (Before the peers file, it stayed at 0 for minutes — campaign 2026-10-02.)
 6. Repeat step 3 with **both**: `--dht $BOOT1 --dht $BOOT2` (the flag repeats) while L1 is down.
    Expect: succeeds, `via 2 bootstrap node(s)` in the join line. Record the added latency of the dead
    first entry. This is what an endpoint should ship with.
-7. Follow-up work item: multi-`--bootstrap` on every node (the flag already takes a Vec) + persist
-   `addrs` on shutdown.
+7. Peers persist across restarts (`--peers-file`, done 2026-10-02); several `--bootstrap` entries per
+   node are supported (`BOOTSTRAP=a,b`).
 
 ### Run 2b — a callee that stops answering (spec-gap 76)
 The hint outlives the endpoint by up to its TTL, so a caller can discover a relay where nobody is
