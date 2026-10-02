@@ -80,11 +80,65 @@ are the 1.5–2.5 s routing warm-up after a node joins.
    rank, not take the first — libp2p's default "first record wins" GET would have been wrong
    here.
 
+## WAN results (2026-10-02, commit `5ff45ea`)
+
+Four Linodes on three continents and one endpoint behind a home NAT, per `tools/wan/README.md`:
+L1 Atlanta (bootstrap, relay A, Alice's mailbox + hub), L2 Seattle (DHT, relay B, Bob's mailbox),
+L3 Tokyo (DHT), L4 Milan (DHT, STUN/TURN). Alice on the NAT'd endpoint (port-preserving NAT per
+STUN). RTT from Alice: L1 55 ms, L2 87 ms, L3 208 ms, L4 119 ms. All DHT clocks within 1 ms
+(chrony). Bob ran on L2 (no second NAT'd host yet), so **Run 3 (NAT on both ends, TURN) is still
+open**. Raw records: `docs/dht-wan-results.jsonl`, one JSON object per run (`*-after` rows are the re-runs on `7d47ab0` = `4b83e55` + #58).
+
+| Run | What | Result | Key numbers |
+|---|---|---|---|
+| 1 | Baseline: NAT'd Alice finds public Bob through the DHT and calls | pass | resolve 1.9 s; ICE 521 ms after `hello`; first RTP +194 ms; rhythm 0.97 / 0.98; hint stored on 2 of 4 nodes |
+| 2 | Bootstrap death and rejoin | pass | via dead BOOT1: 1.6 s, 0 records, *no diagnostic*; via BOOT2: 1.95 s + call; both listed, dead first: +0 ms (RST); restarted L1: 0 peers for 95 s, then 2 of 3, 0 records recovered (replicated copies rejected `replay-window`) |
+| 2b | Callee frozen / killed inside the hint TTL | pass | T-Establish (10 s) → `cancel session.timeout`; killed: relay queues the invite (§13.3), dequeued on cancel; user sees `session.timeout` at 11.8 s — indistinguishable from no answer |
+| 4 | Partition, stale copies, freshness (TTL 120 s) | pass | precondition "stored on all 4" never met; one unreachable node makes every GET/publish ~10–11 s; partitioned node's copy had already expired (served as `expired`, never stale-valid); converged within 30 s of lifting; L3 accepted 0 puts all run |
+| 5 | Forged-PUT flood, 50/s from L3 | pass | 3,001 sent, every one rejected `signer-mismatch`, `stored` unchanged; resolve mid-flood 2.5 s (vs 1.9); 3–6 % of one core per honest node |
+| 1-after | Run 1 on the fixed build | pass | publish acknowledged by 4, stored on all 4 (Tokyo included); 4 records returned; resolve 2.0 s; ICE 547 ms, RTP +207 ms; the hint resolves 4/4 at 322 s and 380 s old (was 0/3 at 321 s) |
+| 2-after | Bootstrap restart on the fixed build | partial | restarted L1 re-acquired Bob's hint in 77 s with no rejections (was: rejected `replay-window`); its routing table stayed empty > 3 min — no persisted peers, no bootstrap of its own |
+| 5-after | Same flood, rate-limited nodes | pass | signature checks 3,001 → 40 per node (20 per 60 s window), 2,100–2,700 dropped unverified; resolve 2.0 s; **CPU unchanged** (3.3–5.2 %) |
+| 6 | Messaging Profile across hosts | pass | delivery median 76 ms (A→B), ~80 ms (B→A); offline sync 415 ms; `kill -9` restore without replay; federation backoff 4/8/16/32 s; hub restart → held message accepted 12 s; blob 16,486 B byte-identical, sealed at rest, replicated from the public `blob_endpoint`, fetched with L1 down |
+
+What the WAN showed that localhost could not, and what was done about it:
+
+1. **Hints were unusable 300 s after signing** — the 300 s replay window applied to a record meant
+   to live for its TTL. Spec-gap 96 (core §12.9 exception, DHT profile §2), PR #55.
+2. **Hints reached only some nodes — two causes.** `Quorum::One` + libp2p-kad ending a put at
+   quorum stopped at the first wave of closest peers (`Quorum::All`, PR #56). Separately, every node
+   advertised `127.0.0.1` among its listen addresses; a client on a host that runs its own node
+   dialed that, reached the local node, and libp2p dropped the peer (`WrongPeerId`) — which is why
+   Tokyo never stored Bob's hint from L2, not distance (PR #58). The "acknowledged by N" count was
+   a hard-coded 1; it now counts the nodes that stored the record.
+3. **Short-lived CLI clients polluted routing tables** (7–17 entries in a 4-node overlay); they now
+   join in client mode. PR #56.
+4. **A dead bootstrap was silent** (`joined … via 1 bootstrap node(s)`, then "no hint"); the CLI now
+   reports peers reached. PR #56.
+5. **Flood cost.** A per-peer rejection budget (20 verification failures / 60 s) now drops a
+   misbehaving peer's PUTs unverified (PR #56): signature checks fell from 3,001 to 40 per node. CPU
+   did not fall — at 50 PUTs/s the cost is the connection, stream and Kademlia handling, not
+   Ed25519. The next control is to disconnect or ban a peer once its budget is spent.
+6. Messaging clients did not reconnect after a mailbox restart (core §13.2 SHOULD); fixed in the
+   `dsip-msg` reconnect PR, which also stops a receipt queued behind a hub outage being reported as
+   refused.
+
+Against the §8.5 risk list above: **1** (poisoned records) — measured on WAN: 3–6 % of a core at
+50 forged PUTs/s; verification is now bounded per peer, transport cost is not. **3** (bootstrap centralization) — measured: a dead first
+bootstrap costs nothing when a second is listed, but a client with only the dead one is cut off and
+was not told; a restarted bootstrap node with no cached peers took 95 s to see 2 of its 3 peers on the first
+build and saw none for over 3 minutes on the second (it now re-acquires records regardless).
+**4** (availability) — on WAN the replication assumption failed (2 of 4 nodes) until puts waited for
+every closest peer and loopback addresses stopped reaching routing tables; now 4 of 4. **7** (stale reads) — with TTLs ≤ 3,600 s and re-signing at ⅔, a partitioned
+node's copy expired before the partition healed; the seq rule picked the newer relay throughout.
+Still not done: Run 3 (both ends behind NAT; TURN fallback), persisted peer lists and a bootstrap
+list on bootstrap nodes themselves, connection-level penalties for flooding peers.
+
 ## Things the PoC deliberately did not do
 
 - No relay participation yet: browsers and relays are expected to query/publish on behalf of
   endpoints (plan §10.2 browser asymmetry); the relay binary does not yet embed a node.
-- No NAT traversal, no QUIC transport, no WAN measurements.
+- No QUIC transport. WAN measurements: see "WAN results" above (Run 3, NAT on both ends, still open).
 - No Sybil or eclipse countermeasure, no reputation, no presence in the DHT (plan §10.5).
 - `did:web` subjects work (the resolver accepts document files) but were not exercised on the
   testnet; the flagship path is `did:key`, where verification needs no external resolution at all.
