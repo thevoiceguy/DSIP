@@ -149,6 +149,19 @@ def main() -> int:
               winner_uri=got["winner"]["endpoints"][0]["uri"] if got.get("winner") else None,
               rejection_codes=sorted({k for a in after.values() for k in a["puts_rejected"]}))
 
+        # 3b. flood: one peer pushing forged hints is throttled after REJECTION_BUDGET (20) verification
+        #     failures per minute (DHT profile §4; WAN Run 5). Every honest node verifies at most 20 of
+        #     node 3's PUTs and drops the rest unverified as rate-limited.
+        before = {n.idx: n.rpc(op="stats")["stats"]["puts_rejected"] for n in nodes}
+        for i in range(40):
+            nodes[3].rpc(op="put_raw", did=alice, frame=hint_frame("mallory", alice, 1000 + i, uri="wss://evil.example/dsip"))
+        time.sleep(1)
+        after = {n.idx: n.rpc(op="stats")["stats"]["puts_rejected"] for n in nodes}
+        delta = {i: {k: after[i].get(k, 0) - before[i].get(k, 0) for k in ("signer-mismatch", "rate-limited")}
+                 for i in after if i != 3}
+        check("flood_rate_limited", all(d["signer-mismatch"] <= 20 for d in delta.values())
+              and any(d["rate-limited"] > 0 for d in delta.values()), per_node=delta)
+
         # 4. expiry lapse: a short-lived hint for bob stops resolving
         bob = F.did("bob")
         bob_deleg = F.make_delegation(F.KEYS["bob"], bob, F.did("bob-phone"), issued_at=now - 60, expires_at=now + 86400)

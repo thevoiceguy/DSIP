@@ -141,12 +141,12 @@ BOB_DID=$(jq -r .identity $BOB/identity.json)
 | bootstrap reachable | L2, L3, L4 | `nc -zv <L1> 4001` | `succeeded` |
 | overlay formed | L1 | `dsipctl stats` | `routing_peers` = 3 (L2, L3, L4) within ~5 s of the last join |
 | overlay formed | L3 | `dsipctl stats` | `routing_peers` ≥ 1; `dsipctl addrs` shows its public ip, not 0.0.0.0 |
-| relay TLS | E-A | `openssl s_client -connect <L2>:8443 -CAfile $CA </dev/null 2>&1 \| grep 'Verify return'` | `Verify return code: 0` |
+| relay TLS | E-A | `openssl s_client -connect <L2>:8443 -CAfile <that host's cert.pem> </dev/null 2>&1 \| grep 'Verify return'` | `Verify return code: 0`. Check against the host's own certificate, not `ca-all.pem`: every self-signed certificate has the subject `CN=rcgen self signed cert`, and OpenSSL picks the first bundle entry with a matching subject, so the bundle fails for all but one server (rustls tries them all, so `dsip` is unaffected) |
 | mailbox TLS | E-A | same against `<L1>:9443` and `<L2>:9443` | `Verify return code: 0` — the certificate names the public IP (`--host`) |
 | relay hello | E-A | `dsip answer --identity $BOB --relay $RELAY_B --ca $CA --script "sleep 3; quit"` | log contains `relay … §13.2 hello bound` |
 | STUN | E-A | `stunclient <L4> 3478` (package `stun-client`) or `nc -u -zv <L4> 3478` | mapped address = your public IP |
 | TURN | E-A | `turnutils_uclient -u $TURN_USER -w $TURN_PASS -y <L4>` (package `coturn-utils`) | allocations succeed, packets echo; `dsipctl turn-tail` on L4 shows the session |
-| DHT from NAT | E-A | `dsip resolve $BOB_DID --dht $BOOT1` | `dht joined as … via 1 bootstrap node(s)` then `hint none verified` (nothing published yet) — proves the outbound dial and routing warm-up work through NAT |
+| DHT from NAT | E-A | `dsip resolve $BOB_DID --dht $BOOT1` | `dht joined as … via 1 configured bootstrap node(s); R peer(s) reached` with R ≥ 1, then `hint none verified` (nothing published yet) — proves the outbound dial and routing warm-up work through NAT |
 | RTT baseline | E-A | `for h in L1 L2 L3 L4; do ping -c5 $h \| tail -1; done` | record — goes in the results JSON |
 
 If `routing_peers` stays at 0 on L2–L4, first check `BOOT1` is reachable and correct: run
@@ -188,7 +188,7 @@ the results record come from these.
 
 | Where | Command | Expect |
 |---|---|---|
-| E-B log | `grep -E ' (dht\|hint) ' /tmp/bob.log` | `dht joined as …` then `hint published <BOB_DID> → wss://<L2>… seq N ttl 600 s acknowledged by K peer(s)` — K should be ≥ 3 |
+| E-B log | `grep -E ' (dht\|hint) ' /tmp/bob.log` | `dht joined as … via 1 configured bootstrap node(s); R peer(s) reached` (R ≥ 1; R = 0 prints `✗ no bootstrap node answered`) then `hint published <BOB_DID> → wss://<L2>… seq N ttl 600 s acknowledged by K peer(s)` — K is the number of nodes that stored it, so K = 4 with all of L1–L4 up |
 | L2 relay | `dsipctl relay-tail` | `<peer>: bound device <Bob's device> for identity <BOB_DID>` |
 | L1, L3, L4 | `dsipctl stats` | `stored: 1`, `puts_accepted: 1` on each; `puts_rejected: {}` |
 | any DHT host | `dsipctl get $BOB_DID` | one verified record, `endpoints[0].uri` = `RELAY_B`, `seq` = publish time, `expires_at` ≈ now+600 |

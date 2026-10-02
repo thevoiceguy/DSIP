@@ -15,11 +15,12 @@
 #   dsipctl commit              the commit this host's binaries were built from
 set -euo pipefail
 CTRL=${CTRL:-127.0.0.1:4101}
-ctl(){ printf '%s\n' "$1" | nc -q1 -w3 ${CTRL/:/ } ; }
+# GETs wait out the query timeout (10 s) when a peer near the key is unreachable: give them 30 s.
+ctl(){ printf '%s\n' "$1" | nc -q1 -w${2:-3} ${CTRL/:/ } ; }
 case "${1:-}" in
   stats)   ctl '{"op":"stats"}' | jq . ;;
   addrs)   ctl '{"op":"addrs"}' | jq . ;;
-  get)     ctl "{\"op\":\"get\",\"did\":\"$2\"}" | jq . ;;
+  get)     ctl "{\"op\":\"get\",\"did\":\"$2\"}" 30 | jq . ;;
   resolve) dsip resolve "$2" --dht "$(cat /var/lib/dsip/bootstrap 2>/dev/null || cat /var/lib/dsip/my-multiaddr)" ;;
   peers)   for i in 1 2 3 4 5; do ctl '{"op":"stats"}' | jq -c '{t:now|floor,routing_peers:.stats.routing_peers,stored:.stats.stored}'; sleep 2; done ;;
   relay-tail)   tail -f /var/log/dsip/relay.log ;;
