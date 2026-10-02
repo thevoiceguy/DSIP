@@ -122,8 +122,9 @@ implementation under test MUST emit that token when it signals the failure.
 | `delegation-capability` | delegation lacks `dsip.signaling` (every envelope binds under it; spec-gap 56) | `transport.hello-rejected` on `hello` |
 | `delegation-revoked` | a `delegation-revocation` signed by the subject covers the delegation (held, or in the subject's document) (§7.4, v0.8) | `transport.hello-rejected` on `hello` |
 | `expiry-order` | `expires_at ≤ issued_at` (check 1) | |
-| `replay-window` | `issued_at` outside `[now − 300, now + 300]` (§12.9, check 1); for `introduction` only the future bound applies (§12.9, v0.8; spec-gap 31) | |
+| `replay-window` | `issued_at` outside `[now − 300, now + 300]` (§12.9, check 1); for `introduction` (spec-gap 31) and `reachability-hint` (spec-gap 96) only the future bound applies — their age is bounded by `expires_at` (§12.9, v0.8) | |
 | `introduction-validity` | `introduction` with `expires_at − issued_at` > 604,800 s (§12.9, §19.4; spec-gap 31) | |
+| `hint-validity` | `reachability-hint` with `expires_at − issued_at` > 3,600 s (§12.9, DHT profile §2; spec-gap 96) | |
 | `introduction-purpose-and-sealed` | an `introduction` carries both `purpose` and `sealed` (§19.4, v0.8) | |
 | `revocation-subject-mismatch` / `revocation-signer-not-subject` | `delegation-revocation.from` ≠ `subject`; signed by a key other than the subject's (§7.4, v0.8; `context.signer_kid`) | |
 | `lifetime-exceeded` / `deposit-class-unsupported` / `deposit-fields` / `object-too-large` / `mailbox-mode-unsupported` / `key-packages-empty` | Messaging Profile message rules (M§5; kind `messaging`) | `mailbox.unsupported-class` / — / — / `mailbox.object-too-large` / `mailbox.unsupported-mode` / — |
@@ -174,7 +175,7 @@ runs 13 only; `kind: semantic` runs 12–14).
 6. `payload-not-utf8` → `payload-not-json` → `payload-float` → `payload-shape`
 7. `signer-mismatch` / `delegation-*` (binding `kid` to `from`; on `hello` with `on_behalf_of`, additionally binding `from` to `on_behalf_of`)
 8. `expiry-order`
-9. `introduction-validity` (introductions only) → `replay-window` → `expired`
+9. `introduction-validity` (introductions only) / `hint-validity` (reachability hints only) → `replay-window` → `expired`
 10. `duplicate-id`
 11. `ulid-issued-at-mismatch`
 11b. `hello-required` (transport binding state: `context.hello_verified` is `false` and the type is not `hello`)

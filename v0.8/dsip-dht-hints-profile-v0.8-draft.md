@@ -42,9 +42,16 @@ A hint is a DSIP-JOSE envelope (§10.2) whose payload is:
 - `seq` MUST be strictly increasing per subject across publications. Using `issued_at` as `seq`
   satisfies this for a single publisher clock; multi-device publishers SHOULD coordinate or
   accept that the latest clock wins.
-- `expires_at − issued_at` SHOULD be ≤ 3,600 s. Publishers SHOULD re-sign at ⅔ of the lifetime.
-- Envelope rules apply unchanged: 300 s replay window on `issued_at` relative to the verifier's
-  clock, ULID/`issued_at` consistency, 65,536-byte cap.
+- `expires_at − issued_at` MUST be ≤ 3,600 s (v0.8, spec-gap 96). Publishers SHOULD re-sign at ⅔ of
+  the lifetime.
+- Envelope rules apply, with the core §12.9 exception for hints: the age bound is the record's own
+  `expires_at`, not the 300 s replay window — a node stores, replicates and returns a hint, and a
+  reader accepts it, while `issued_at` is no more than 300 s in the future and `now < expires_at`.
+  The 300 s window would otherwise make every hint unusable 300 s after signing, whatever its TTL,
+  and no node that missed the first 300 s could ever store it (measured on the WAN testbed). Replay
+  of a hint is harmless: §8.3 discards a lower `seq` and treats identical content as a no-op, so
+  `id` deduplication does not apply. ULID/`issued_at` consistency and the 65,536-byte cap apply
+  unchanged.
 
 Schema: `reachability-hint.schema.json` in the v0.8 spec schema set.
 

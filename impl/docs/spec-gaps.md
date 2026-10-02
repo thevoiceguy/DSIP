@@ -2083,6 +2083,34 @@ README and the second implementation; vector
 was a generator artefact — the same invite id introduced twice, which the replay stage never lets through — and the
 generator now introduces an id once.
 
+## 96. §12.9 / DHT profile §2, §4 — the replay window kills reachability hints after 300 s
+
+**Gap.** Found on the WAN testbed (2026-10-02, `impl/tools/wan/README.md` Runs 1–2), invisible on localhost and
+to the suite. The DHT profile applied "envelope rules unchanged: 300 s replay window on `issued_at`", at every hop
+(§4: before a node stores, forwards or returns a record), while allowing `expires_at − issued_at` up to 3,600 s and
+re-signing at ⅔ of the lifetime. Read together: a hint becomes unusable 300 s after signing whatever its TTL. With
+the CLI's 600 s TTL, Bob re-signs every 400 s, so he is undiscoverable for 100 s of every cycle — measured: at
+`issued_at + 321 s` all three copies returned `replay-window` and `hint none verified`, ~280 s before `expires_at`,
+with Bob online and bound. Replication fails the same way: a node that joins or rejoins (Run 2's restarted
+bootstrap) received the record twice by Kademlia replication and rejected both copies `replay-window`, so a node
+that misses a hint's first 300 s can never hold it. This is spec-gap 31 again, for the other envelope type that is
+stored and forwarded by design.
+
+**Choices considered.** (a) As gap 31: for `reachability-hint`, the age bound is the record's own `expires_at`;
+the future bound stays; `expires_at − issued_at` is capped (3,600 s, the existing SHOULD made a MUST so the
+relaxation stays bounded). Replay is harmless — §8.3 already discards a lower `seq` and treats identical content
+as a no-op, and the record is the signer's own claim about itself — so `id` deduplication does not apply. (b) Keep
+the window and require re-signing every < 300 s: 3,600 s TTLs become meaningless, publish traffic rises ~8×, and
+replication to late joiners still fails. (c) Exempt hints at storage but not at read: readers would still reject
+what nodes serve.
+
+**Decision (2026-10-02, user: "option (a), gap-31 style").** (a). Written into core §12.9 (second exception and
+the errata line) and DHT profile §2. New reject code `hint-validity` (vectors README). Envelope stage 9 for
+`reachability-hint`: `expires_at − issued_at > 3,600` → `hint-validity`; `issued_at > now + 300` →
+`replay-window`; `expires_at < now` → `expired`. `dsip --hint-ttl` refuses values over 3,600. Vectors:
+`dht/hint-held-accepted`, `hint-held-expired`, `hint-future-rejected`, `hint-validity-over-cap`,
+`hint-held-newer-wins`, `hint-held-duplicate`; the cap edge is `dht/valid-self-signed-did-key` (TTL exactly 3,600).
+
 ## Already-flagged (schema README / plan §11)
 
 - §15.3 codec example uses bare strings; §16.2 defines objects (schemas follow §16.2).

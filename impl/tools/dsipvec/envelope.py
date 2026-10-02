@@ -18,6 +18,7 @@ from . import ulid as ulid_mod
 REPLAY_WINDOW_S = 300          # §12.9
 ULID_TOLERANCE_S = 300         # §20.6, Impl: tolerance = replay window (spec-gap 6)
 INTRODUCTION_MAX_VALIDITY_S = 604800  # §19.4; Impl: enforced at stage 9 (spec-gap 31)
+HINT_MAX_VALIDITY_S = 3600  # §12.9, DHT profile §2 (v0.8, spec-gap 96)
 WS_MAX_ENVELOPE_BYTES = 65536  # §13.2
 SIGNALING_CAPABILITY = "dsip.signaling"
 
@@ -288,6 +289,14 @@ def verify(envelope: Any, ctx: Context, frame_text: str | None = None) -> tuple[
         # future bound stays, and receivers track the id until expires_at.
         if ea - ia > INTRODUCTION_MAX_VALIDITY_S:
             return Verdict.reject("introduction-validity"), None
+        if ia > ctx.now + REPLAY_WINDOW_S:
+            return Verdict.reject("replay-window"), None
+    elif msg_type == "reachability-hint":
+        # §12.9 (v0.8, spec-gap 96): hints live in the DHT for their whole lifetime, so the age bound
+        # is expires_at (checked next) under a 3,600 s cap; the future bound stays. No id dedup: §8.3
+        # decides a re-observed hint.
+        if ea - ia > HINT_MAX_VALIDITY_S:
+            return Verdict.reject("hint-validity"), None
         if ia > ctx.now + REPLAY_WINDOW_S:
             return Verdict.reject("replay-window"), None
     elif ia < ctx.now - REPLAY_WINDOW_S or ia > ctx.now + REPLAY_WINDOW_S:

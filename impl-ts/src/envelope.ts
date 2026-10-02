@@ -20,6 +20,8 @@ export const REPLAY_WINDOW_S = 300;
 export const ULID_TOLERANCE_S = 300;
 /** Spec: §19.4 — longest introduction validity, seconds (7 days). */
 export const MAX_INTRODUCTION_VALIDITY_S = 604800;
+/** Spec: §12.9 (v0.8, spec-gap 96), DHT profile §2 — longest reachability-hint validity, seconds. */
+export const MAX_HINT_VALIDITY_S = 3600;
 
 /** A DSIP-JOSE envelope as transmitted. Spec: §10.2 */
 export interface Envelope {
@@ -258,6 +260,11 @@ export function verifyEnvelope(envelope: Json, ctx: ReceiverContext, schemas: Sc
   if (type === "introduction") {
     // §12.9 (v0.8): a held introduction has no age bound; its validity is capped instead.
     if (expires - issued > MAX_INTRODUCTION_VALIDITY_S) return reject("introduction-validity");
+    if (issued > ctx.now + REPLAY_WINDOW_S) return reject("replay-window");
+  } else if (type === "reachability-hint") {
+    // §12.9 (v0.8, spec-gap 96): a hint lives in the DHT for its whole lifetime, so its age is
+    // bounded by expires_at under a 3,600 s cap; the future bound stays.
+    if (expires - issued > MAX_HINT_VALIDITY_S) return reject("hint-validity");
     if (issued > ctx.now + REPLAY_WINDOW_S) return reject("replay-window");
   } else if (issued < ctx.now - REPLAY_WINDOW_S || issued > ctx.now + REPLAY_WINDOW_S) {
     return reject("replay-window");
