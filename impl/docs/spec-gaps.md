@@ -2111,6 +2111,102 @@ the errata line) and DHT profile §2. New reject code `hint-validity` (vectors R
 `dht/hint-held-accepted`, `hint-held-expired`, `hint-future-rejected`, `hint-validity-over-cap`,
 `hint-held-newer-wins`, `hint-held-duplicate`; the cap edge is `dht/valid-self-signed-did-key` (TTL exactly 3,600).
 
+## 97. §20.7 / §10.2 / §12.7 — signaling bodies are readable by every relay that routes them
+
+**Status: open — design proposal, no decision.** Raised 2026-10-02 after the WAN campaign ("what stops a bad
+actor's relay from stealing user data?"). §20.7 already names "payload encryption to the recipient's
+key-agreement key (sealed-sender-style delivery)" as a v1.x candidate and Appendix A lists "sealed-sender signaling
+confidentiality" as forward work; this entry turns that into a concrete choice.
+
+**Gap.** Core envelopes are signed, not encrypted (§10.2, §20.7). A relay cannot forge, alter, replay or splice
+them, and cannot touch media (DTLS fingerprints ride in the signed SDP) or Messaging Profile content (MLS). But
+it reads every field it routes. What a hostile relay learns today, per message (schemas, v0.8):
+
+| Field | Carried by | What it reveals | Relay needs it? |
+|---|---|---|---|
+| `type`, `id`, `from`, `to`, `session`, `in_reply_to`, `issued_at`, `expires_at`, `dsip` | all | who, whom, when, which call | **yes** — routing by `to` (§13.3, spec-gap 82), attempt tracking and forking (§12.7), replay window (§12.9), store-and-forward expiry |
+| `reason` (registry token), `retry_after` | reject, cancel, bye | coarse outcome (`user.busy`, `user.no-answer`) | **yes** — §12.7 rule 6 picks among leg rejects by reason; the relay itself emits `transport.no-response` (spec-gap 76) |
+| `status` (progress registry token) | progress | ringing / queued | no rule uses it — the relay forwards it (`dsip-session` fork tracker records it in its emissions); T-Ring/T-Queue are the endpoints' timers |
+| `transports[].sdp` | invite, answer, update | every ICE candidate (host, srflx, relay addresses: **the users' IP addresses**), codecs, DTLS fingerprint | no |
+| `identity` (identityInfo: display name, claims) | invite | the caller's presented name and claims | no |
+| `intent`, `policy` | invite, answer, update | why the call is placed, recording/screening policy | no |
+| `answered_by` | answer, update | user / screening / gateway / service | no |
+| `media` | invite, answer, update | what media is offered or selected | no |
+| `data`, `about` | info | DTMF digits (§12.12, spec-gap 70), WebRTC trickle candidates — **IP addresses again** | no |
+| `detail` | reject, cancel, bye | free text | no |
+| `grant` | invite | id of a first-contact grant (§19.4) | only a stateless relay checking first contact; otherwise no |
+
+The bottom half is the sensitive half: IP addresses (from SDP and trickled candidates), names, DTMF digits
+(PINs typed into an IVR), and policy. None of it is used by any relay rule in §12–§13.
+
+**Not in scope — sender anonymity.** A relay binds every connection to a device DID with `hello` (§13.2), and a
+caller binds to the *callee's* relay to reach them, so the relay always knows who is talking to whom. "Sealed
+sender" in the Signal sense needs anonymous binding plus a delivery token, which conflicts with per-device rate
+limits and with `hello` anti-splicing. This gap is about **body confidentiality**, and the name should say so
+("sealed signaling bodies"), not promise metadata privacy (§20.7 stays true).
+
+**Choices considered.**
+
+(a) **Seal the body to the peer identity's `keyAgreement` key; keep the routing header clear; encrypt then
+sign.** The payload keeps the "relay needs it" fields above in clear and replaces the rest with
+`sealed: {alg, enc, ct}` — the §19.4 / M§6.9 / M§14.1 HPKE construction (X25519 `keyAgreement` key from the
+recipient's DID document, §7.2), with the clear header (`type`, `id`, `from`, `to`, `session`) as HPKE `info`/AAD so
+a ciphertext cannot be cut from one message into another. The outer signature covers the payload bytes including
+`ct`, so §10.2 (signature over bytes, no re-serialization) is unchanged, relays still verify, and the replay
+window and dedup still apply to the clear `id`/`issued_at`. Encrypted to the **identity** key, not a device key:
+the caller does not know the callee's devices (the relay forks to them, §12.7), and every device acting for the
+identity can open it. Responses (`answer`, `update`, `info`) are sealed to the *caller's* identity key, which the
+callee already resolves to verify the invite. Schema validation of sealed fields moves after decryption at the
+recipient — a new pipeline stage between signature verification and payload schema (`impl/vectors/README.md`),
+with new verdicts (candidates, in the style of `introduction-purpose-and-sealed`: `body-unseal-failed`,
+`body-field-and-sealed` for a field present both in clear and in the seal, `routing-field-sealed`).
+
+(b) **Encrypt the whole payload, routing fields included.** The relay can then neither route by `to` nor run
+§12.7 forking, the §13.3 queue, or spec-gaps 75/76/86 — it would degrade to a blind byte pipe plus an outer
+routing envelope, i.e. a second envelope format. Rejected: it rebuilds what (a) keeps clear, at the cost of a new
+layer.
+
+(c) **Status quo: hop-by-hop TLS, "run your own relay" (§20.7).** Correct and already stated, but the callee's
+relay is the *callee's* choice: a caller cannot avoid exposing its IP addresses and name to whatever relay the
+callee picked.
+
+(d) **A two-member MLS group per call** (reusing the Messaging Profile). Gives forward secrecy, but needs key
+packages fetched before the first `invite` (an extra round trip and a mailbox dependency for plain calling) and
+does not fit forking to devices the caller cannot see. Better as the later upgrade for long-lived sessions than as
+the base mechanism.
+
+(e) **Per-device HPKE.** Needs the device list up front — conflicts with relay forking and leaks the device
+count. Rejected.
+
+**Draft choice.** (a), as an optional extension first (`dsip.extensions`, e.g. `sealed-body/1`), not a core MUST:
+- A sender MAY seal when the recipient's DID document carries a `keyAgreement` key; it SHOULD when the recipient
+  advertises the extension. Sealing is never inferred from a hint (DHT records are not authoritative, §8.1).
+- A recipient that advertises the extension MUST accept sealed and clear bodies; one that does not MUST reject a
+  sealed body with a registry token (candidate: `media.unsupported`-style new `signaling.sealed-unsupported`), so the
+  sender can retry in clear only if its policy allows.
+- `did:key` identities: the Ed25519 → X25519 conversion gives every `did:key` a key-agreement key with no document,
+  so the flagship path works unchanged.
+
+**Costs and open questions.**
+1. **No forward secrecy.** HPKE base mode to a static identity key: whoever later obtains that key reads every
+   captured sealed body. Mitigation: `keyAgreement` rotation (§7.5 already rotates keys) and (d) for long sessions.
+   Is a static-key mode acceptable for v1.x?
+2. **Relay content screening ends** for sealed bodies (as §19.4 already accepts for sealed introductions); rate
+   limits still apply. Gateways (G§) are endpoints and unseal as the identity they act for.
+3. **Size leakage.** SDP size varies with candidate count; RECOMMENDED padding of `ct` to 256-byte buckets, inside the
+   65,536-byte cap (§13.2).
+4. **Device key custody.** Every device of the identity must hold the identity's X25519 private key (as for sealed
+   introductions today). Is that acceptable, or should delegation (§7.4) carry a device-scoped key-agreement key
+   that the identity key wraps?
+5. **Which header fields can still move into the seal?** `reason` on `bye` and `cancel`, and `progress.status`, are
+   used by no relay rule (only `reject` reasons are, §12.7 rule 6) — candidates for sealing, at the cost of relay
+   vectors that record them.
+
+**Test plan if adopted.** Vectors first (envelope/: sealed body accepted, tampered `ct`, `ct` moved between
+messages, sealed field also in clear, wrong recipient key, unknown `alg`; state/: forking with sealed invites and a
+relay reject choice unaffected); Python harness, Rust and impl-ts to three-way parity; then a WAN check that the
+relay log and a packet capture on L2 show no SDP and no IP addresses.
+
 ## Already-flagged (schema README / plan §11)
 
 - §15.3 codec example uses bare strings; §16.2 defines objects (schemas follow §16.2).
