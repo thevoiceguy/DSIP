@@ -1,0 +1,112 @@
+{
+  "vector": "semantic/sealed-invite-partial",
+  "format": 1,
+  "kind": "semantic",
+  "description": "Only the identity claims sealed; media and transports stay in clear.",
+  "spec_ref": [
+    "§10.4"
+  ],
+  "context": {
+    "now": 1760000000,
+    "supported": {
+      "core": "1.0",
+      "profiles": [
+        "interactive-media/1.0",
+        "verified-broadcast/1.0"
+      ],
+      "extensions": [
+        "sealed-body/1.0"
+      ]
+    },
+    "unseal_key_hex": "abb7604eca83c5e3d2c4885ef1c29d5c3d4bf06b05992225abef02d628524353"
+  },
+  "input": {
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "interactive-media/1.0"
+        ],
+        "extensions": [
+          "sealed-body/1.0"
+        ],
+        "critical": [
+          "sealed-body/1.0"
+        ]
+      },
+      "type": "invite",
+      "id": "01K742SG00TVW5ZPDS20WY3HBK",
+      "from": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+      "to": "did:web:example.com:users:bob",
+      "intent": "interactive",
+      "media": [
+        {
+          "type": "audio",
+          "direction": "sendrecv",
+          "codecs": [
+            {
+              "id": "codec:audio/opus",
+              "sample_rates": [
+                48000
+              ],
+              "channels": [
+                1,
+                2
+              ]
+            },
+            {
+              "id": "codec:audio/pcmu",
+              "sample_rates": [
+                8000
+              ],
+              "channels": [
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "type": "video",
+          "direction": "sendrecv",
+          "codecs": [
+            {
+              "id": "codec:video/h264",
+              "profiles": [
+                "baseline"
+              ]
+            }
+          ]
+        }
+      ],
+      "transports": [
+        {
+          "id": "transport:webrtc",
+          "ice": "trickle"
+        },
+        {
+          "id": "transport:rtp-sdes"
+        }
+      ],
+      "policy": {
+        "recording": "consent-required",
+        "ai_processing": "denied"
+      },
+      "issued_at": 1760000000,
+      "expires_at": 1760000030,
+      "sealed": {
+        "alg": "hpke-base-x25519-sha256-aes128gcm",
+        "enc": "tH5D9lSfNHf0D9OseAHNHJl9tcHBDiB8Z5s-SF17XB8",
+        "ct": "btmcNXyojO37Ngr_W9f5r93Gtrntd8y7-Zi35WT4-0ZWTCE6ce4ekrXqpqFZM8TUnggj8cyfTR77N9aySItboovEe-8QlSUzNFriJ9NT2fBM1k2b_O1T6adBk7NdSA2V8E0mAYFl_8nzC43_wbDNt8PX8l14l7ixaDzAvlx2PU3UHRhkf65yZk2abuF6ZPDgFE_T0oa8tM_IaYNFx7FgYcX8bXLuC9qFIhmLIHVLqNu_-llGx4ZeX4u9jDtEVYEersgpe8QMCTuuDQoYj56bdAlm2dLXwi_XZGljwHvMux1jkbdzsT7Kw3OJE1ggZZFsqp5eKugOxT037cY2JKbKBUhlLKaf4sZ4uK6yRChz2yg"
+      }
+    }
+  },
+  "expect": {
+    "verdict": "accept",
+    "effective": {
+      "sealed": [
+        "identity"
+      ]
+    }
+  }
+}

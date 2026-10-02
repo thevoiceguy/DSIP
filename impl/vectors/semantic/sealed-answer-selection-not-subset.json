@@ -1,0 +1,130 @@
+{
+  "vector": "semantic/sealed-answer-selection-not-subset",
+  "format": 1,
+  "kind": "semantic",
+  "description": "A sealed answer selecting a codec the offer never carried: stage 14 rejects it once opened.",
+  "spec_ref": [
+    "§10.4"
+  ],
+  "context": {
+    "now": 1760000000,
+    "supported": {
+      "core": "1.0",
+      "profiles": [
+        "interactive-media/1.0",
+        "verified-broadcast/1.0"
+      ],
+      "extensions": [
+        "sealed-body/1.0"
+      ]
+    },
+    "unseal_key_hex": "731511f28e706eb330de747c0541e17297334e982c4a89f105e54edc43827e5b",
+    "offer": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "interactive-media/1.0"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "invite",
+      "id": "01K742SG00TVW5ZPDS20WY3HBK",
+      "from": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+      "to": "did:web:example.com:users:bob",
+      "intent": "interactive",
+      "identity": {
+        "display_name": "Alice",
+        "claims": []
+      },
+      "media": [
+        {
+          "type": "audio",
+          "direction": "sendrecv",
+          "codecs": [
+            {
+              "id": "codec:audio/opus",
+              "sample_rates": [
+                48000
+              ],
+              "channels": [
+                1,
+                2
+              ]
+            },
+            {
+              "id": "codec:audio/pcmu",
+              "sample_rates": [
+                8000
+              ],
+              "channels": [
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "type": "video",
+          "direction": "sendrecv",
+          "codecs": [
+            {
+              "id": "codec:video/h264",
+              "profiles": [
+                "baseline"
+              ]
+            }
+          ]
+        }
+      ],
+      "transports": [
+        {
+          "id": "transport:webrtc",
+          "ice": "trickle"
+        },
+        {
+          "id": "transport:rtp-sdes"
+        }
+      ],
+      "policy": {
+        "recording": "consent-required",
+        "ai_processing": "denied"
+      },
+      "issued_at": 1760000000,
+      "expires_at": 1760000030
+    }
+  },
+  "input": {
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "interactive-media/1.0"
+        ],
+        "extensions": [
+          "sealed-body/1.0"
+        ],
+        "critical": [
+          "sealed-body/1.0"
+        ]
+      },
+      "type": "answer",
+      "id": "01K742SHYGTGK413QHVB0Z8P5J",
+      "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+      "to": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+      "session": "01K742SG00TVW5ZPDS20WY3HBK",
+      "issued_at": 1760000002,
+      "expires_at": 1760000032,
+      "sealed": {
+        "alg": "hpke-base-x25519-sha256-aes128gcm",
+        "enc": "w9xNC1lLEuVE_o1ee53fsPKI22GbjtA6w_3FCtDOKSs",
+        "ct": "d7yQNUURgE7psdKnTkFive82LQMBMli2TgNWaAfNuhfjKPaH1LLeP-8aybExJOZz1ox6dTHNyajQwCyP64cpR2U_ENb38rDcpMixVLvLyuuWhMoljcA3b5cXxvpEho8sTs6oymyjUEHpUd_Q75QMyt_TgsWv93_Ng5v1nz493GuKTMIwcwE_dpTC7ntCs37u8GCeaO8xi-T4m1xvK0IUWrqa4xv5oVOsB0_u6oeNesanPg2M2Q9SI08XaJKS05Cs3uNi-uCKujNM179gvD-_VE7mtoQJIafw8acaRvruoZli8Ox9sN-jXhEwoUE34Ksb6RqxBmzGX9xim7JtHnYggiIVqsFB6lHv5HMDUHWbP4k"
+      }
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "selection-not-subset"
+  }
+}

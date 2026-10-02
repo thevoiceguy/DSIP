@@ -2113,7 +2113,7 @@ the errata line) and DHT profile §2. New reject code `hint-validity` (vectors R
 
 ## 97. §20.7 / §10.2 / §12.7 — signaling bodies are readable by every relay that routes them
 
-**Status: open — design proposal, no decision.** Raised 2026-10-02 after the WAN campaign ("what stops a bad
+**Status: decided 2026-10-02 — (a), static key accepted, padding 256 (user).** Raised 2026-10-02 after the WAN campaign ("what stops a bad
 actor's relay from stealing user data?"). §20.7 already names "payload encryption to the recipient's
 key-agreement key (sealed-sender-style delivery)" as a v1.x candidate and Appendix A lists "sealed-sender signaling
 confidentiality" as forward work; this entry turns that into a concrete choice.
@@ -2178,7 +2178,7 @@ the base mechanism.
 (e) **Per-device HPKE.** Needs the device list up front — conflicts with relay forking and leaks the device
 count. Rejected.
 
-**Draft choice.** (a), as an optional extension first (`dsip.extensions`, e.g. `sealed-body/1`), not a core MUST:
+**Draft choice.** (a), as an optional extension first (`dsip.extensions`, e.g. `sealed-body/1.0`), not a core MUST:
 - A sender MAY seal when the recipient's DID document carries a `keyAgreement` key; it SHOULD when the recipient
   advertises the extension. Sealing is never inferred from a hint (DHT records are not authoritative, §8.1).
 - A recipient that advertises the extension MUST accept sealed and clear bodies; one that does not MUST reject a
@@ -2202,7 +2202,35 @@ count. Rejected.
    used by no relay rule (only `reject` reasons are, §12.7 rule 6) — candidates for sealing, at the cost of relay
    vectors that record them.
 
-**Test plan if adopted.** Vectors first (envelope/: sealed body accepted, tampered `ct`, `ct` moved between
+**Decision (2026-10-02).** (a), with: static-key HPKE base mode accepted (no forward secrecy; rotation is the
+mitigation); plaintext padded with spaces to a multiple of 256 bytes, enforced by receivers; key custody as for
+sealed introductions (identity key on every device); `bye`/`cancel` reasons and `progress.status` stay clear.
+Settled while implementing:
+- **Extension id `sealed-body/1.0`** — identifiers are `name/major.minor` (the schema rejected `sealed-body/1`).
+  Marked in `dsip.extensions` *and* `dsip.critical`, so an addressee without it rejects with the existing
+  `session.unsupported-critical-extension`; no new reason token.
+- **Routers route regardless** (§10.4 "Routing"): §11.2's critical rule binds the addressee. Vector context
+  `router: true`.
+- **Recipient key = the DID in `to`**, which on a response is the caller's *device* (`to` = the invite's `from`);
+  a device `did:key` opens with its own derived key. Found wiring the CLI: sealing to the caller's identity would
+  have made every sealed `answer` unopenable on the device.
+- **Pipeline stage 12b** after the version check, before schema: `sealed-not-critical` → `sealed-alg-unsupported`
+  → `body-unseal-failed` → `sealed-plaintext-invalid` → `sealed-field-not-sealable` → `sealed-field-in-clear`;
+  stages 13–14 run on the merged payload (`effective.sealed` on accept). Schemas admit `sealed` in place of a type's
+  required sealable fields (`anyOf`).
+- **Three edges the second implementation found** (its author could not decide them from §10.4 and the README):
+  a payload whose AAD inputs (`type`/`id`/`from`/`to`) are not strings is not opened (Python and Rust had answered
+  `body-unseal-failed`, impl-ts `schema-invalid` — a real divergence no vector covered; impl-ts's reading adopted);
+  a non-array `critical` lists nothing; a type with no sealable fields admits none. Each pinned by a vector.
+
+Written into core §10.4 (new), §20.7, the errata line; schemas (`SEALABLE` in `generate_schemas.py`); vectors README
+(stage 12b, six codes, `unseal_key_hex` / `router`). Python harness, Rust (`dsip-core::hpke` — moved down from
+`dsip-messaging` — and `dsip-schema::sealed`), impl-ts (written from the spec and README only). 26 vectors (25 `semantic/sealed-*`, `semantic/clear-invite-without-media-rejected`) → 963, three-way parity. CLI: `dsip call|answer --seal`;
+inbound sealed bodies always open. Local check through a tracing relay (`RUST_LOG=dsip_relay=trace`): a clear call
+exposed 2 SDPs, 10 ICE candidates and a display name; the sealed call exposed none (invite, answer and 8 trickle
+`info`s sealed) and carried media both ways.
+
+**Test plan (as adopted).** Vectors first (envelope/: sealed body accepted, tampered `ct`, `ct` moved between
 messages, sealed field also in clear, wrong recipient key, unknown `alg`; state/: forking with sealed invites and a
 relay reject choice unaffected); Python harness, Rust and impl-ts to three-way parity; then a WAN check that the
 relay log and a packet capture on L2 show no SDP and no IP addresses.

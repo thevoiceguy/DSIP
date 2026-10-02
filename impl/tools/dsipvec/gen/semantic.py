@@ -17,7 +17,8 @@ def sv(vid, desc, refs, payload, expect, ctx=None):
 
 
 def vectors() -> list[dict]:
-    out = []
+    from .sealed_body import vectors as sealed_body_vectors
+    out = sealed_body_vectors()
     inv = invite()
     sid = inv["id"]
 

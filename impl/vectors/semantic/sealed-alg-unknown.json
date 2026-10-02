@@ -1,0 +1,55 @@
+{
+  "vector": "semantic/sealed-alg-unknown",
+  "format": 1,
+  "kind": "semantic",
+  "description": "An alg other than hpke-base-x25519-sha256-aes128gcm.",
+  "spec_ref": [
+    "§10.4"
+  ],
+  "context": {
+    "now": 1760000000,
+    "supported": {
+      "core": "1.0",
+      "profiles": [
+        "interactive-media/1.0",
+        "verified-broadcast/1.0"
+      ],
+      "extensions": [
+        "sealed-body/1.0"
+      ]
+    },
+    "unseal_key_hex": "abb7604eca83c5e3d2c4885ef1c29d5c3d4bf06b05992225abef02d628524353"
+  },
+  "input": {
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "interactive-media/1.0"
+        ],
+        "extensions": [
+          "sealed-body/1.0"
+        ],
+        "critical": [
+          "sealed-body/1.0"
+        ]
+      },
+      "type": "invite",
+      "id": "01K742SG00TVW5ZPDS20WY3HBK",
+      "from": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+      "to": "did:web:example.com:users:bob",
+      "issued_at": 1760000000,
+      "expires_at": 1760000030,
+      "sealed": {
+        "alg": "hpke-base-x448-sha512-aes256gcm",
+        "enc": "AkG3gsZQ5_jW2CPMp9Km_AIq4hrtGAd2ez7wswTk1nM",
+        "ct": "h-nqMTRKPOpcPW5hptbHGZD9sAzGt2Zc7h5OlVntlU5ooWbRa2dgNdFGHTEsKT7ZT82CmRjhEqLK3rhpGq02mtPVj3HZdRPFWrDX3bMfIv_3ufBHiOadRqsEA5DzXhdmeaVRjxQgrqABbFroEvzgo9Jj6BAB4KBAw-q2VzTRc8-l-5HPxO76aYOi8qWzafbF8i36DecIAXx5uztc6qkCR2eMVtiustmDl2ymXSC3fr4Y5gCM7Ga3Nlz8rfNqJmQtzN7H5JhL3eTZB7X6O-Ogc9ulMUtzNeWAeLUjtEs3lZY1FZNUMtXMAZfeKs37FShLeeTFPzK8TI-vUTz7OB8x38J5ozPPpQgzWiZQxlvhdZQ2XC05GDObXE3Bz_rpQGmQRbqifL4Z3sTGgRXwyrgrA_Yr6wA_ju2EDgU_bBNZSKtM0yIxIq9ZMcMpAnhQxbm7nJpdJTI5tBCuHwPTDA9OjqiWTMe2QTfxpza0yiZxIsFvAUg9pK9i_IzH_1D1MJOqUC6r8jZN_jhxUlIYeY-Yyjsm4pYaK_lArgpSJJFsfxWRdbopdqkcF9fOPGmRP5Oe4eI3u1L_TovtGk8boaBv-cM4K5q5LdjYDykOgsP95SNJW_VISmQdlOsstCZrsTrORKv-Ylo6iwTvXKy8jYJiA3NH-EAyYye3dudDPn9jfr3dHKnbzZN-4ZvGfqgu1oWT30DmcYSRvR-EYvXAEWIkxQHXxvSO_GXm6HdKC3lTOawhcoWuO5wQ0-S8R4pgIHl537CGIJsRaoJ6Tdqpg_xR5BkuNquOscHGF9yA46cMGtOTuWsH0FRpRAa-m5uKdeXupbtw0A3HMTIYozECmaB-AvisfshOHoDPXshzZjjlCiOU4Uyo3Hia-3RdpdqJlfHMOfQTetGo9PXi7kPCxgw1UIdWhMnHVZizq1FK_jbec_qvzSaXyU-f6N7xtLPhZ17RTqbJzY58tT2OOXi-Dwi4gvDRWE4GFxh5kNNZRtc5sBwi_ELPrIF8BdXm1jHW8UGVyBLJUeiWdk5-YXBvuy6A4w"
+      }
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "sealed-alg-unsupported"
+  }
+}

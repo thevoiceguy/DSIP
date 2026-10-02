@@ -1,0 +1,63 @@
+{
+  "vector": "semantic/sealed-bye-detail-opens",
+  "format": 1,
+  "kind": "semantic",
+  "description": "A bye's free-text detail sealed; its reason token stays in clear for the relay.",
+  "spec_ref": [
+    "§10.4"
+  ],
+  "context": {
+    "now": 1760000000,
+    "supported": {
+      "core": "1.0",
+      "profiles": [
+        "interactive-media/1.0",
+        "verified-broadcast/1.0"
+      ],
+      "extensions": [
+        "sealed-body/1.0"
+      ]
+    },
+    "unseal_key_hex": "abb7604eca83c5e3d2c4885ef1c29d5c3d4bf06b05992225abef02d628524353"
+  },
+  "input": {
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "interactive-media/1.0"
+        ],
+        "extensions": [
+          "sealed-body/1.0"
+        ],
+        "critical": [
+          "sealed-body/1.0"
+        ]
+      },
+      "type": "bye",
+      "id": "01K742SRS81V4425R3D6BCM2E8",
+      "from": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+      "to": "did:web:example.com:users:bob",
+      "session": "01K742SG00TVW5ZPDS20WY3HBK",
+      "reason": "user.hangup",
+      "issued_at": 1760000009,
+      "expires_at": 1760000039,
+      "sealed": {
+        "alg": "hpke-base-x25519-sha256-aes128gcm",
+        "enc": "ZsQ4tAAT8TbhYcpV46oUys01grn6rVFNJ7hjBr7WXB8",
+        "ct": "5d_bLrCi5LUbgbpZpKKlw6oRfKsEFL_-8sHpKoLM8Uisj7nMhDPqk7B0VvMbFxoKX8PWM7wF8XWgl0xjDX3sfLK7cBxDE588dPXLLDenxVKieqYiIep98bAFEskYpDsAJXAAuFDpIe6oe7fO7FCOBuc5mqgUuOkz2zI-TgayhcqzmuCKSRb2Lym3tJfCOlAf5XOLZvmWrA6PYpLOEiiwdgb4FX4MOtQQKbYdbc5Xu4Jax0zcvdUehhxCJkvwzVC7RW-6EiYWQPQUD9wctn1AT7ISXgQEpFDaTv-30U7eFP5A_mFQUPZTgds_ZIFNbhCSOb4b-jtF5-R_a1rTYVUT1pIGbmR7AVMHEbf48KDTjp4"
+      }
+    }
+  },
+  "expect": {
+    "verdict": "accept",
+    "effective": {
+      "reason": "user.hangup",
+      "fallback": "none",
+      "sealed": [
+        "detail"
+      ]
+    }
+  }
+}

@@ -1,0 +1,57 @@
+{
+  "vector": "semantic/sealed-on-unsealable-type",
+  "format": 1,
+  "kind": "semantic",
+  "description": "A sealed notify: a type with no sealable fields admits none.",
+  "spec_ref": [
+    "§10.4"
+  ],
+  "context": {
+    "now": 1760000000,
+    "supported": {
+      "core": "1.0",
+      "profiles": [
+        "interactive-media/1.0",
+        "verified-broadcast/1.0"
+      ],
+      "extensions": [
+        "sealed-body/1.0"
+      ]
+    },
+    "unseal_key_hex": "abb7604eca83c5e3d2c4885ef1c29d5c3d4bf06b05992225abef02d628524353"
+  },
+  "input": {
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "interactive-media/1.0"
+        ],
+        "extensions": [
+          "sealed-body/1.0"
+        ],
+        "critical": [
+          "sealed-body/1.0"
+        ]
+      },
+      "type": "notify",
+      "id": "01K742SJXR89263K8QP4YP40QG",
+      "from": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+      "to": "did:web:example.com:users:bob",
+      "session": "01K742SG00TVW5ZPDS20WY3HBK",
+      "event": "presence",
+      "issued_at": 1760000003,
+      "expires_at": 1760000033,
+      "sealed": {
+        "alg": "hpke-base-x25519-sha256-aes128gcm",
+        "enc": "jcVRMCY7vb_VufpM1I3TSWLTfhKy8qKn4CNM66TXwyk",
+        "ct": "NOn21Lopt-sAekd01WGHOMcYki0KP4-YwRGQEjy3xdEj5uyQM-nzJU2TCjhL8t6adHiQmOXnYY9nhxOwqcbMSuuvh5Lu0L00xJa99PvxoUMqKwbxnPDBbIKc0JHCe5TYGWpAptFZMXc-uvJiOYUQxvi-1K1QTXz9zRnWEGST3tmA4JBBKjbg88YPye5dl4BjbGPrNz5fABG3zEXcUsnXt5fz7vyCaszbkCYLUS8-7OBrBQK-EdFHPKETUmKAgYDEChMMpznIWyR-SNsv6y1IBu-6w6oqRqauS9VjaCBC26axPMEUHawYggXlwVgvSMXkLI-obkBgK6IB8gkK-8bYTKi4oF8QJ5_N7YysOfzaM8M"
+      }
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "sealed-field-not-sealable"
+  }
+}

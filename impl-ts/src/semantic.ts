@@ -1,10 +1,13 @@
 /**
  * Checks on a decoded payload: version negotiation, shape, and the stateless semantic checks.
  *
- * Spec: §11 (versions), §10.3 (schemas), §15.1 (reason fallback), and the schema README's semantic checks
+ * Spec: §11 (versions), §10.3 (schemas), §10.4 (sealed bodies), §15.1 (reason fallback), and the schema README's semantic checks
  * 5, 7, 9, 11, 12.
  */
 import { didOf, type Json, type JsonObject } from "./did.js";
+import { b64urlDecode } from "./encoding.js";
+import { decodePayload } from "./envelope.js";
+import { HPKE_SEALED_ALG, hpkeOpen } from "./hpke.js";
 import { effectiveAnsweredBy, effectiveReason, effectiveStatus } from "./registry.js";
 import type { SchemaSet } from "./schema.js";
 import { reject, type Verdict } from "./verdict.js";
@@ -32,6 +35,10 @@ export interface SemanticContext {
   encoded_size?: number;
   /** The `kid` that signed the envelope (check 12). */
   signer_kid?: string;
+  /** The addressee's X25519 key agreement private key, hex: the receiver opens seals (stage 12b). Spec: §10.4 */
+  unseal_key_hex?: string;
+  /** The receiver routes rather than receives: it never opens a seal. Spec: §10.4 */
+  router?: boolean;
 }
 
 /** Spec: §19.4 — an introduction envelope is at most 4,096 encoded bytes. */
@@ -50,7 +57,7 @@ function version(text: Json | undefined): [number, number] | null {
  * Impl: a profile list is acceptable when at least one entry matches a supported profile's name and
  * major version; the spec says only "no mutually supported profile version".
  */
-export function checkVersion(payload: JsonObject, supported: Supported): Verdict | null {
+export function checkVersion(payload: JsonObject, supported: Supported, router = false): Verdict | null {
   const block = payload["dsip"] as JsonObject;
   const ours = version(supported.core);
   const core = version(block["core"]);
@@ -71,11 +78,79 @@ export function checkVersion(payload: JsonObject, supported: Supported): Verdict
     });
     if (!mutual) return reject("version-unsupported", "session.unsupported-profile-version");
   }
-  const critical = Array.isArray(block["critical"]) ? block["critical"] : [];
+  let critical = Array.isArray(block["critical"]) ? block["critical"] : [];
+  // §10.4: a router routes a sealed payload whether or not it implements `sealed-body/1.0`;
+  // the critical-extension rule binds the addressee.
+  if (router && "sealed" in payload) critical = critical.filter((c) => c !== SEALED_BODY_EXTENSION);
   if (critical.some((c) => typeof c !== "string" || !supported.extensions.includes(c))) {
     return reject("version-unsupported", "session.unsupported-critical-extension");
   }
   return null;
+}
+
+/** Spec: §10.4 — the extension token that announces a sealed body. */
+export const SEALED_BODY_EXTENSION = "sealed-body/1.0";
+/** Spec: §10.4 — HPKE `info` for sealed bodies. */
+export const SEALED_BODY_INFO = "dsip sealed body v1";
+/** Spec: §10.4 — the plaintext is padded to a positive multiple of this many bytes. */
+const SEALED_BODY_BLOCK = 256;
+/** Spec: §10.4 table — the fields each message type may seal; every other field stays in clear. */
+export const SEALABLE_FIELDS: Record<string, readonly string[]> = {
+  invite: ["identity", "intent", "policy", "media", "transports"],
+  answer: ["answered_by", "media", "policy", "transports"],
+  update: ["answered_by", "media", "policy", "transports"],
+  info: ["about", "data"],
+  reject: ["detail"],
+  cancel: ["detail"],
+  bye: ["detail"],
+};
+
+/**
+ * Stage 12b: open a sealed body with the addressee's key agreement key and merge it into the clear
+ * fields. Returns the merged payload and the opened keys (sorted), a rejection, or `null` when there
+ * is nothing for this stage to do (no `sealed`, or a `sealed` whose shape stage 13 will judge).
+ *
+ * Spec: §10.4 — conditions in order: not critical, unknown `alg`, does not open, plaintext not a
+ * §10.3 JSON object with at least one key or not padded to a positive multiple of 256 bytes, a key
+ * outside the type's sealable fields, a key both sealed and in clear. AAD = `type ‖ 0x00 ‖ id ‖ 0x00 ‖
+ * from ‖ 0x00 ‖ to`.
+ * Impl: a payload whose `type`, `id`, `from` or `to` is not a string (no AAD can be formed) is left
+ * for stage 13, as a malformed `sealed` is; a `dsip.critical` that is not an array lists nothing.
+ */
+export function openSealedBody(
+  payload: JsonObject,
+  recipientSk: Buffer,
+): { payload: JsonObject; opened: string[] } | Verdict | null {
+  const sealed = payload["sealed"];
+  if (sealed === undefined) return null;
+  if (!sealed || typeof sealed !== "object" || Array.isArray(sealed)) return null;
+  const { alg, enc, ct } = sealed as JsonObject;
+  if (typeof alg !== "string" || typeof enc !== "string" || typeof ct !== "string") return null;
+  const aadParts = [payload["type"], payload["id"], payload["from"], payload["to"]];
+  if (aadParts.some((x) => typeof x !== "string")) return null;
+  const block = payload["dsip"];
+  const critical = block && typeof block === "object" && !Array.isArray(block) && Array.isArray(block["critical"])
+    ? block["critical"] : [];
+  if (!critical.includes(SEALED_BODY_EXTENSION)) return reject("sealed-not-critical");
+  if (alg !== HPKE_SEALED_ALG) return reject("sealed-alg-unsupported");
+  const aad = Buffer.from((aadParts as string[]).join("\u0000"), "utf8");
+  const encBytes = b64urlDecode(enc);
+  const ctBytes = b64urlDecode(ct);
+  const plaintext = encBytes && ctBytes ? hpkeOpen(encBytes, recipientSk, Buffer.from(SEALED_BODY_INFO), aad, ctBytes) : null;
+  if (!plaintext) return reject("body-unseal-failed");
+  const decoded = decodePayload(plaintext); // §10.3: UTF-8, JSON object, no floats
+  if (!decoded.ok) return reject("sealed-plaintext-invalid");
+  const fields = decoded.value;
+  const keys = Object.keys(fields);
+  if (keys.length === 0 || plaintext.length === 0 || plaintext.length % SEALED_BODY_BLOCK !== 0) {
+    return reject("sealed-plaintext-invalid");
+  }
+  const sealable = SEALABLE_FIELDS[payload["type"] as string] ?? [];
+  if (keys.some((k) => !sealable.includes(k))) return reject("sealed-field-not-sealable");
+  if (keys.some((k) => k in payload)) return reject("sealed-field-in-clear");
+  const merged: JsonObject = { ...payload, ...fields };
+  delete merged["sealed"];
+  return { payload: merged, opened: keys.sort() };
 }
 
 /** Stage 13. Spec: §10.3 */
@@ -174,11 +249,24 @@ export function interpret(payload: JsonObject): { effective?: JsonObject; warnin
   };
 }
 
-/** Stages 12–14 over a decoded payload. */
+/** Stages 12–14 over a decoded payload. Spec: §11.2, §10.4, §10.3 */
 export function checkPayload(payload: JsonObject, ctx: SemanticContext, schemas: SchemaSet): Verdict {
-  const failed =
-    (ctx.supported ? checkVersion(payload, ctx.supported) : null) ??
-    checkShape(payload, schemas) ??
-    checkSemantics(payload, ctx);
-  return failed ?? { verdict: "accept", ...interpret(payload) };
+  const router = ctx.router === true;
+  const versionFailed = ctx.supported ? checkVersion(payload, ctx.supported, router) : null;
+  if (versionFailed) return versionFailed;
+  let opened: string[] | null = null;
+  if (!router && ctx.unseal_key_hex !== undefined) {
+    const result = openSealedBody(payload, Buffer.from(ctx.unseal_key_hex, "hex"));
+    if (result && "verdict" in result) return result as Verdict;
+    if (result) ({ payload, opened } = result as { payload: JsonObject; opened: string[] });
+  }
+  const failed = checkShape(payload, schemas) ?? checkSemantics(payload, ctx);
+  if (failed) return failed;
+  const { effective, warnings } = interpret(payload);
+  const eff: JsonObject = { ...(effective ?? {}), ...(opened ? { sealed: opened } : {}) };
+  return {
+    verdict: "accept",
+    ...(Object.keys(eff).length ? { effective: eff } : {}),
+    ...(warnings ? { warnings } : {}),
+  };
 }

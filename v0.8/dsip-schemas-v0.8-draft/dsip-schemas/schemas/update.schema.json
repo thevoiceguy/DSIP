@@ -50,6 +50,35 @@
     },
     "policy": {
       "$ref": "#/$defs/policy"
+    },
+    "sealed": {
+      "type": "object",
+      "description": "Extension sealed-body/1.0 (spec 10.4): the type's sealable fields, sealed with HPKE to the addressee identity's X25519 key agreement key. The plaintext is a JSON object of sealable fields only, padded with spaces to a multiple of 256 bytes. A payload with sealed lists sealed-body/1.0 in dsip.extensions and dsip.critical. A sealed field never also appears in clear (receiver check after opening).",
+      "properties": {
+        "alg": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Sealing algorithm; hpke-base-x25519-sha256-aes128gcm in 1.0."
+        },
+        "enc": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_-]+$",
+          "description": "HPKE encapsulated key, base64url."
+        },
+        "ct": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_-]+$",
+          "description": "HPKE ciphertext, base64url."
+        }
+      },
+      "required": [
+        "alg",
+        "enc",
+        "ct"
+      ],
+      "additionalProperties": false
     }
   },
   "required": [
@@ -60,8 +89,7 @@
     "issued_at",
     "expires_at",
     "to",
-    "session",
-    "media"
+    "session"
   ],
   "additionalProperties": false,
   "$defs": {
@@ -231,5 +259,17 @@
       "additionalProperties": false,
       "description": "Unverified-by-default identity presentation; claims carry VC presentations (spec 17). Display fields are claims, not truth."
     }
-  }
+  },
+  "anyOf": [
+    {
+      "required": [
+        "sealed"
+      ]
+    },
+    {
+      "required": [
+        "media"
+      ]
+    }
+  ]
 }

@@ -1,0 +1,108 @@
+{
+  "vector": "semantic/sealed-plaintext-looks-like-a-verdict",
+  "format": 1,
+  "kind": "semantic",
+  "description": "A plaintext that happens to read like a verdict object is still just an object with unsealable keys.",
+  "spec_ref": [
+    "§10.4"
+  ],
+  "context": {
+    "now": 1760000000,
+    "supported": {
+      "core": "1.0",
+      "profiles": [
+        "interactive-media/1.0",
+        "verified-broadcast/1.0"
+      ],
+      "extensions": [
+        "sealed-body/1.0"
+      ]
+    },
+    "unseal_key_hex": "abb7604eca83c5e3d2c4885ef1c29d5c3d4bf06b05992225abef02d628524353"
+  },
+  "input": {
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "interactive-media/1.0"
+        ],
+        "extensions": [
+          "sealed-body/1.0"
+        ],
+        "critical": [
+          "sealed-body/1.0"
+        ]
+      },
+      "type": "invite",
+      "id": "01K742SG00TVW5ZPDS20WY3HBK",
+      "from": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+      "to": "did:web:example.com:users:bob",
+      "intent": "interactive",
+      "media": [
+        {
+          "type": "audio",
+          "direction": "sendrecv",
+          "codecs": [
+            {
+              "id": "codec:audio/opus",
+              "sample_rates": [
+                48000
+              ],
+              "channels": [
+                1,
+                2
+              ]
+            },
+            {
+              "id": "codec:audio/pcmu",
+              "sample_rates": [
+                8000
+              ],
+              "channels": [
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "type": "video",
+          "direction": "sendrecv",
+          "codecs": [
+            {
+              "id": "codec:video/h264",
+              "profiles": [
+                "baseline"
+              ]
+            }
+          ]
+        }
+      ],
+      "transports": [
+        {
+          "id": "transport:webrtc",
+          "ice": "trickle"
+        },
+        {
+          "id": "transport:rtp-sdes"
+        }
+      ],
+      "policy": {
+        "recording": "consent-required",
+        "ai_processing": "denied"
+      },
+      "issued_at": 1760000000,
+      "expires_at": 1760000030,
+      "sealed": {
+        "alg": "hpke-base-x25519-sha256-aes128gcm",
+        "enc": "bjXEHGNHx4XQYqnHICFIsQ41MCeKTK8C2EYPOU727k0",
+        "ct": "VMoTaPkJP65MePLrbzKe_fkf2Rw1Kbcl-MdZ-mKsrS7hpWhA9fKWZeZDA_UOWawJLhI6GEiTHczed_RkLDrGQCYXHRS7HXaSOVfsge-jrkd-kT_J1dlAVTCSVFxf2SPC15XcXi49HqZE5hYUovHiw9tqx3-rDxFB55xZh5dJOUjSD0Frpp2_rggw2sPw2xpf7fEqNriPiEvlJxIsJxn6W5YU4q9Tj0zlL87suojlIglNyZi5pEES6YokYF3pBskokmh9EDdQYQFSwfyzkvlEhmTU_GOmWGcRDQhf2qhZBel2FDEOBEna6Dvi-XR6K0iECKgyPttGbJucKdCIPRkg8et__7Dm8faa0LzSV4hW3us"
+      }
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "sealed-field-not-sealable"
+  }
+}

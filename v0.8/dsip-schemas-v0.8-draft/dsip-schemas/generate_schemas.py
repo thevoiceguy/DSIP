@@ -3,7 +3,8 @@
 DSIP JSON Schema generator.
 
 Generates the DSIP Core v1.0 message schema set (draft 2020-12) from one
-source of truth. Spec revision v0.8 (Appendix A.5) adds the optional `sealed` introduction body
+source of truth. Errata since the v0.8 snapshot: the `sealed-body/1.0` extension (10.4, spec-gap 97) adds an optional
+`sealed` body to invite, answer, update, info, reject, cancel and bye. Spec revision v0.8 (Appendix A.5) adds the optional `sealed` introduction body
 (19.4, Messaging Profile M§14.1), the `delegation-revocation` message (7.4) and the `dsip.message`
 grant scope. Spec revision v0.7 added `provenance` (22.3), `key-rotation`
 (7.5), `reachability-hint` (DHT Hints Profile), the record-level `integrity`
@@ -558,6 +559,39 @@ bindings = {
         "additionalProperties": False,
     },
 }
+
+# ---------------------------------------------------------------- sealed bodies (10.4, extension sealed-body/1.0; spec-gap 97)
+
+# The fields no routing rule reads, per type: they may travel inside `sealed` instead of in clear. Everything
+# else — type, id, from, to, session, in_reply_to, timestamps, reason, retry_after, status, grant — stays clear.
+SEALABLE = {
+    "invite": ["identity", "intent", "policy", "media", "transports"],
+    "answer": ["answered_by", "media", "policy", "transports"],
+    "update": ["answered_by", "media", "policy", "transports"],
+    "info": ["about", "data"],
+    "reject": ["detail"],
+    "cancel": ["detail"],
+    "bye": ["detail"],
+}
+SEALED_BODY = {
+    "type": "object",
+    "description": "Extension sealed-body/1.0 (spec 10.4): the type's sealable fields, sealed with HPKE to the addressee identity's X25519 key agreement key. The plaintext is a JSON object of sealable fields only, padded with spaces to a multiple of 256 bytes. A payload with sealed lists sealed-body/1.0 in dsip.extensions and dsip.critical. A sealed field never also appears in clear (receiver check after opening).",
+    "properties": {
+        "alg": {"type": "string", "minLength": 1, "description": "Sealing algorithm; hpke-base-x25519-sha256-aes128gcm in 1.0."},
+        "enc": {"type": "string", "minLength": 1, "pattern": "^[A-Za-z0-9_-]+$", "description": "HPKE encapsulated key, base64url."},
+        "ct": {"type": "string", "minLength": 1, "pattern": "^[A-Za-z0-9_-]+$", "description": "HPKE ciphertext, base64url."},
+    },
+    "required": ["alg", "enc", "ct"],
+    "additionalProperties": False,
+}
+for _t, _fields in SEALABLE.items():
+    _s = schemas[_t]
+    _s["properties"]["sealed"] = copy.deepcopy(SEALED_BODY)
+    _req = [f for f in _s["required"] if f in _fields]
+    _s["required"] = [f for f in _s["required"] if f not in _fields]
+    if _req:
+        # in clear, the type's required fields are required; sealed, they travel inside the seal
+        _s["anyOf"] = [{"required": ["sealed"]}, {"required": _req}]
 
 dispatcher = {
     "$schema": SCHEMA_DIALECT,

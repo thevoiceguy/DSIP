@@ -1,0 +1,61 @@
+{
+  "vector": "semantic/sealed-info-dtmf-opens",
+  "format": 1,
+  "kind": "semantic",
+  "description": "DTMF digits (an IVR PIN) sealed: the binding and the digits travel inside the seal.",
+  "spec_ref": [
+    "§10.4"
+  ],
+  "context": {
+    "now": 1760000000,
+    "supported": {
+      "core": "1.0",
+      "profiles": [
+        "interactive-media/1.0",
+        "verified-broadcast/1.0"
+      ],
+      "extensions": [
+        "sealed-body/1.0"
+      ]
+    },
+    "unseal_key_hex": "abb7604eca83c5e3d2c4885ef1c29d5c3d4bf06b05992225abef02d628524353"
+  },
+  "input": {
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "interactive-media/1.0"
+        ],
+        "extensions": [
+          "sealed-body/1.0"
+        ],
+        "critical": [
+          "sealed-body/1.0"
+        ]
+      },
+      "type": "info",
+      "id": "01K742SMW82V0YXVWTYKHWZNV1",
+      "from": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+      "to": "did:web:example.com:users:bob",
+      "session": "01K742SG00TVW5ZPDS20WY3HBK",
+      "issued_at": 1760000005,
+      "expires_at": 1760000035,
+      "sealed": {
+        "alg": "hpke-base-x25519-sha256-aes128gcm",
+        "enc": "EsSE5onR3cdBQct7rLojTI2AJHaTQn__HeMNGdT4Dkk",
+        "ct": "24x7vOjZ3oM8y7OLQplRBcz9ZUQL6t8jnDtYiW88fvZh0HGTUipMapmFyt9Qlx7HDYAo28q9tDxfwKBc3AqfWaOiHmRgjROqkaOHgKUUb2CpuD5l1afbMn-H-e0-UAwqTRaiwRvkxwtlN8atzq_q8gHC-Am8qQClVxpQeY5DSZ4OpAgw_xrOR9_6XMCfuoMFAwz-j9zWvyOx2fKCpUVWdPx-e5mhI7IhKFmWak4Z5pehvatyiQ13p6u0iYTgQdGWD9Rndfh0BIh_4U7cn7XFesQ2E0aVrtk-2U5WJGdzxLrMrbtXSwf4gXqKFCaiunLqcW0eVkIe7YULj3ngwFRNS51SwnubHCT44oDVdrf4b7E"
+      }
+    }
+  },
+  "expect": {
+    "verdict": "accept",
+    "effective": {
+      "sealed": [
+        "about",
+        "data"
+      ]
+    }
+  }
+}
