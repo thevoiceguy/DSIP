@@ -37,6 +37,7 @@ class Relay:
         self.bindings: dict[str, set[str]] = {}        # identity → bound devices (§13.2); a key = "known" identity
         self.devices: dict[str, str] = {}              # device → identity, for every device ever bound
         self.inbox: dict[str, list[dict]] = {}         # identity/device → queued envelopes (§13.3 store-and-forward)
+        self.arrivals = 0                              # arrival counter: a flush delivers in arrival order (spec-gap 98)
         self.retention: int = ctx.get("offline_retention_s", 86400)
         self.invites: dict[str, dict] = {}             # session → invite message (for legs added mid-attempt)
 
@@ -67,10 +68,11 @@ class Relay:
             device, identity = ev["device"], ev["identity"]
             self.bindings.setdefault(identity, set()).add(device)
             self.devices[device] = identity
-            # §13.3: flush the store-and-forward queues for the identity and the device, in order
-            for key in (identity, device):
-                for m in self.inbox.pop(key, []):
-                    self.flush_to(device, m)
+            # §13.3: flush the store-and-forward queues for the identity and the device together, in the order the
+            # envelopes arrived (spec-gap 98) — not the identity's queue first
+            queued = self.inbox.pop(identity, []) + self.inbox.pop(device, [])
+            for m in sorted(queued, key=lambda q: q["_arrival"]):
+                self.flush_to(device, m)
             # §12.7 rule 3: a device that binds while an attempt for its identity is live becomes a new leg
             for sid, a in sorted(self.attempts.items()):  # id order when several attempts are live (spec-gap 89)
                 if a.identity == identity and a.outcome is None and device not in a.legs:
@@ -99,7 +101,8 @@ class Relay:
         return to in self.bindings or to in self.devices
 
     def enqueue(self, m: dict) -> None:
-        self.inbox.setdefault(m["to"], []).append(dict(m, _deadline=min(m.get("expires_at", self.now + self.retention), self.now + self.retention)))
+        self.arrivals += 1
+        self.inbox.setdefault(m["to"], []).append(dict(m, _arrival=self.arrivals, _deadline=min(m.get("expires_at", self.now + self.retention), self.now + self.retention)))
         self.emit({"queue": {"to": m["to"], "type": m["type"]}})
 
     def flush_to(self, device: str, m: dict) -> None:

@@ -1084,6 +1084,26 @@ def vectors() -> list[dict]:
                {"deliver": {"leg": BPH, "type": "cancel", "reason": "user.cancelled"}}],
               **{sid: {"legs": {BPH: "cancelled", BLA: "cancelled"}, "outcome": "cancelled"}}),
     ], component="relay"))
+    # spec-gap 98 (fuzz seed 274): one device's store-and-forward flush is in arrival order, whether each envelope
+    # was addressed to the device or to its identity — not the identity's queue first.
+    s_a, s_b, s_c = uid("flush-a"), uid("flush-b"), uid("flush-c")
+    c_dev1 = msg("cancel", "flush-dev-1", APH, s_a, NOW + 2, to=BPH, reason="user.cancelled")
+    c_ident = msg("cancel", "flush-ident", APH, s_b, NOW + 3, to=BOB, reason="user.cancelled")
+    c_dev2 = msg("cancel", "flush-dev-2", APH, s_c, NOW + 4, to=BPH, reason="user.cancelled")
+    out.append(trace("relay-bind-flushes-device-and-identity-queues-in-arrival-order",
+                     "Bob's phone is offline. A cancel for the phone, one for Bob's identity, then another for the phone are queued; "
+                     "when the phone binds they are delivered in the order they arrived, device- and identity-addressed alike "
+                     "(spec-gap 98).", ["§13.3"], None, [
+        sf({"relay": "bind", "device": BPH, "identity": BOB}, [], {}),
+        sf({"relay": "unbind", "device": BPH, "identity": BOB}, [], {}),
+        sf({"recv": c_dev1}, [{"queue": {"to": BPH, "type": "cancel"}}], {BPH: 1}),
+        sf({"recv": c_ident}, [{"queue": {"to": BOB, "type": "cancel"}}], {BPH: 1, BOB: 1}),
+        sf({"recv": c_dev2}, [{"queue": {"to": BPH, "type": "cancel"}}], {BPH: 2, BOB: 1}),
+        sf({"relay": "bind", "device": BPH, "identity": BOB},
+           [{"deliver": {"leg": BPH, "type": "cancel", "id": c_dev1["id"]}},
+            {"deliver": {"leg": BPH, "type": "cancel", "id": c_ident["id"]}},
+            {"deliver": {"leg": BPH, "type": "cancel", "id": c_dev2["id"]}}], {}),
+    ], component="relay"))
     later, earlier = uid("later-invite", NOW + 1), uid("earlier-invite", NOW)
     out.append(trace("relay-late-binder-gets-live-invites-in-id-order",
                      "A device that binds while two attempts to its identity are live becomes a leg of both and receives their invites "
