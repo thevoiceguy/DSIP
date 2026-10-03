@@ -2235,6 +2235,26 @@ messages, sealed field also in clear, wrong recipient key, unknown `alg`; state/
 relay reject choice unaffected); Python harness, Rust and impl-ts to three-way parity; then a WAN check that the
 relay log and a packet capture on L2 show no SDP and no IP addresses.
 
+## 98. §13.3 — the order a binding device receives what was queued for it
+
+**Gap.** Found by CI's differential fuzz (seed 274, the `relay` target; first seen on PR #65's run, which changed only
+a comment). A relay keeps store-and-forward queues per recipient, and a recipient is either a device or its identity
+(§13.3, spec-gap 82). When the device binds, both queues are flushed to it. The README said only "`bind` flushes them
+in order". Python and Rust flushed the identity's queue first, then the device's (two maps, walked in turn); the
+second implementation, reading the README, flushed in arrival order. They differ when a device-addressed envelope
+arrived before an identity-addressed one: the probe queued a `cancel` to the device, then one to the identity.
+
+**Choices considered.** (a) Arrival order across both queues — what a relay that keeps one log per device does, and the
+plain reading of "in order". (b) Identity queue first — an artefact of keeping two maps; no rule asks for it. (c) Id
+order — would reorder envelopes from different senders by their own ULID clocks.
+
+**Decision (2026-10-03).** (a), as spec-gap 89 did for fan-outs: the suite's own wording is the contract and the
+implementations that diverged from it are fixed. README states it; Python and Rust record an arrival number when
+queuing; the second implementation already complied. Vector
+`state/relay-bind-flushes-device-and-identity-queues-in-arrival-order` (device, identity, device queued; delivered in
+that order). No spec text: emission order is the suite's contract, not the protocol's — two `cancel`s for different
+sessions mean the same in either order.
+
 ## Already-flagged (schema README / plan §11)
 
 - §15.3 codec example uses bare strings; §16.2 defines objects (schemas follow §16.2).
