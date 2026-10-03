@@ -306,7 +306,10 @@ listening any more. On a real network that is a routine case, not a fault.
 
 ### Run 3a — NAT on both ends, STUN only
 Bob moves to E-B behind a *different* NAT (laptop on phone hotspot is the easiest second NAT, and
-carrier NAT is usually symmetric — the hard case, which is the point). Stage 3 with
+carrier NAT is usually symmetric — the hard case, which is the point). Without a second NAT'd machine,
+emulate one on a DHT host: `natlab.sh up cone` (or `mode symmetric`) puts Bob in a network namespace
+behind nftables masquerade, `natlab.sh stun` classifies the mapping from inside, `natlab.sh run <cmd>`
+runs Bob there, `natlab.sh down` removes it. The 2026-10-03 run did this on L3. Stage 3 with
 `--relay $RELAY_B` from E-B, stages 4–6 from E-A.
 - **Validate the NAT types first:** from each endpoint, `stunclient <L4> 3478 --mode full` (or
   pystun3). Record: full-cone / restricted / port-restricted / symmetric → the record's `nat`.

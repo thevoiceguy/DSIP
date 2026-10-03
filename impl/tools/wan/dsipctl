@@ -25,7 +25,7 @@ case "${1:-}" in
   peers)   for i in 1 2 3 4 5; do ctl '{"op":"stats"}' | jq -c '{t:now|floor,routing_peers:.stats.routing_peers,stored:.stats.stored}'; sleep 2; done ;;
   relay-tail)   tail -f /var/log/dsip/relay.log ;;
   mailbox-tail) tail -f /var/log/dsip/mailbox.log ;;
-  turn-tail)    tail -f /var/log/turnserver.log ;;
+  turn-tail)    tail -f /var/log/turnserver/turn.log ;;
   cap-sig) tcpdump -ni any -l 'tcp port 4001 or tcp port 8443 or tcp port 9443' ;;
   cap-rtp) tcpdump -ni any -l 'udp and not port 53 and not port 123' ;;
   ports)   ss -tulpn | grep -E 'dsip|turn|4001|8443|9443|3478' ;;
