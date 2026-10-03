@@ -154,9 +154,16 @@ fi
 # ---- STUN / TURN (coturn) ------------------------------------------------------
 if has stun || has turn; then
   {
-    echo "listening-port=3478"; echo "listening-ip=0.0.0.0"; echo "external-ip=$PUBLIC_IP"
+    # Bind to the public address itself, not 0.0.0.0: with a wildcard, coturn maps its own external address back
+    # to the wildcard and refuses it as a peer (403 Forbidden IP), so two relay-only clients of this server could
+    # never reach each other. (Assumes PUBLIC_IP is on an interface, as on a Linode; behind 1:1 NAT keep 0.0.0.0.)
+    echo "listening-port=3478"; echo "listening-ip=$PUBLIC_IP"; echo "relay-ip=$PUBLIC_IP"; echo "external-ip=$PUBLIC_IP"
     echo "fingerprint"; echo "no-cli"; echo "no-tls"; echo "no-dtls"
-    echo "log-file=/var/log/turnserver.log"; echo "simple-log"
+    # coturn runs as user turnserver, which cannot create files in /var/log itself
+    mkdir -p /var/log/turnserver; chown turnserver:turnserver /var/log/turnserver 2>/dev/null || true
+    echo "log-file=/var/log/turnserver/turn.log"; echo "simple-log"
+    # Two relay-only clients on this server are each other's peer at this server's own address
+    echo "allowed-peer-ip=$PUBLIC_IP"
     if has turn; then
       TURN_USER=${TURN_USER:-dsip}
       TURN_PASS=${TURN_PASS:-$(cat $STATE/turn.pass 2>/dev/null || openssl rand -hex 12)}

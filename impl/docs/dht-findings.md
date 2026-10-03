@@ -86,8 +86,8 @@ Four Linodes on three continents and one endpoint behind a home NAT, per `tools/
 L1 Atlanta (bootstrap, relay A, Alice's mailbox + hub), L2 Seattle (DHT, relay B, Bob's mailbox),
 L3 Tokyo (DHT), L4 Milan (DHT, STUN/TURN). Alice on the NAT'd endpoint (port-preserving NAT per
 STUN). RTT from Alice: L1 55 ms, L2 87 ms, L3 208 ms, L4 119 ms. All DHT clocks within 1 ms
-(chrony). Bob ran on L2 (no second NAT'd host yet), so **Run 3 (NAT on both ends, TURN) is still
-open**. Raw records: `docs/dht-wan-results.jsonl`, one JSON object per run (`*-after` rows are the re-runs on `7d47ab0` = `4b83e55` + #58).
+(chrony). Bob ran on L2 for Runs 1–6; for Run 3 he ran on L3 behind an emulated NAT
+(`tools/wan/natlab.sh`: a network namespace behind nftables masquerade, cone or symmetric). Raw records: `docs/dht-wan-results.jsonl`, one JSON object per run (`*-after` rows are the re-runs on `7d47ab0` = `4b83e55` + #58).
 
 | Run | What | Result | Key numbers |
 |---|---|---|---|
@@ -99,6 +99,9 @@ open**. Raw records: `docs/dht-wan-results.jsonl`, one JSON object per run (`*-a
 | 1-after | Run 1 on the fixed build | pass | publish acknowledged by 4, stored on all 4 (Tokyo included); 4 records returned; resolve 2.0 s; ICE 547 ms, RTP +207 ms; the hint resolves 4/4 at 322 s and 380 s old (was 0/3 at 321 s) |
 | 2-after | Bootstrap restart on the fixed build | partial | restarted L1 re-acquired Bob's hint in 77 s with no rejections (was: rejected `replay-window`); its routing table stayed empty > 3 min — no persisted peers, no bootstrap of its own |
 | 5-after | Same flood, rate-limited nodes | pass | signature checks 3,001 → 40 per node (20 per 60 s window), 2,100–2,700 dropped unverified; resolve 2.0 s; **CPU unchanged** (3.3–5.2 %) |
+| 3a | Both ends behind NAT, STUN only | cone: pass; symmetric: fail (expected) | cone: srflx↔srflx hole punch, ICE 1.5 s, RTP +0.44 s, rhythm 0.97/0.98; symmetric: no pair — STUN alone cannot traverse a symmetric NAT |
+| 3b | Same NATs, TURN offered | pass | cone: still direct (TURN unused), ICE 2.2 s; symmetric: **relay↔relay through Milan**, ICE 1.8 s, RTP +0.70 s, rhythm 0.97/0.98 |
+| 3c | Relay-only, forced | pass | cone and symmetric: relay↔relay, ICE 1.7–1.8 s, RTP +0.94–0.95 s, rhythm 0.97/0.98 |
 | 6 | Messaging Profile across hosts | pass | delivery median 76 ms (A→B), ~80 ms (B→A); offline sync 415 ms; `kill -9` restore without replay; federation backoff 4/8/16/32 s; hub restart → held message accepted 12 s; blob 16,486 B byte-identical, sealed at rest, replicated from the public `blob_endpoint`, fetched with L1 down |
 
 What the WAN showed that localhost could not, and what was done about it:
@@ -131,14 +134,19 @@ build and saw none for over 3 minutes on the second (it now re-acquires records 
 **4** (availability) — on WAN the replication assumption failed (2 of 4 nodes) until puts waited for
 every closest peer and loopback addresses stopped reaching routing tables; now 4 of 4. **7** (stale reads) — with TTLs ≤ 3,600 s and re-signing at ⅔, a partitioned
 node's copy expired before the partition healed; the seq rule picked the newer relay throughout.
-Still not done: Run 3 (both ends behind NAT; TURN fallback), persisted peer lists and a bootstrap
-list on bootstrap nodes themselves, connection-level penalties for flooding peers.
+Run 3 also found two deployment traps outside DSIP: Linux masquerade stops being endpoint-independent
+when a peer's ICE checks arrive before the local side's first packet (an unreplied conntrack entry takes
+the mapped port — drop unsolicited inbound UDP before conntrack confirms it, as routers do), and coturn
+4.6.1 bound to `0.0.0.0` refuses its own address as a peer (403 Forbidden IP), so two relay-only clients
+of one TURN server never connected until it was bound to its public address (`tools/wan/node-setup.sh`).
+Persisted peers landed in #60. Still not done: a real carrier NAT (laptop on a hotspot) for Run 3, and
+connection-level penalties for flooding peers.
 
 ## Things the PoC deliberately did not do
 
 - No relay participation yet: browsers and relays are expected to query/publish on behalf of
   endpoints (plan §10.2 browser asymmetry); the relay binary does not yet embed a node.
-- No QUIC transport. WAN measurements: see "WAN results" above (Run 3, NAT on both ends, still open).
+- No QUIC transport. WAN measurements: see "WAN results" above (Run 3 used an emulated NAT, not a carrier's).
 - No Sybil or eclipse countermeasure, no reputation, no presence in the DHT (plan §10.5).
 - `did:web` subjects work (the resolver accepts document files) but were not exercised on the
   testnet; the flagship path is `did:key`, where verification needs no external resolution at all.
