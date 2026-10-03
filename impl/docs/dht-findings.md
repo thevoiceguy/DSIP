@@ -102,6 +102,7 @@ STUN). RTT from Alice: L1 55 ms, L2 87 ms, L3 208 ms, L4 119 ms. All DHT clocks 
 | 3a | Both ends behind NAT, STUN only | cone: pass; symmetric: fail (expected) | cone: srflx↔srflx hole punch, ICE 1.5 s, RTP +0.44 s, rhythm 0.97/0.98; symmetric: no pair — STUN alone cannot traverse a symmetric NAT |
 | 3b | Same NATs, TURN offered | pass | cone: still direct (TURN unused), ICE 2.2 s; symmetric: **relay↔relay through Milan**, ICE 1.8 s, RTP +0.70 s, rhythm 0.97/0.98 |
 | 3c | Relay-only, forced | pass | cone and symmetric: relay↔relay, ICE 1.7–1.8 s, RTP +0.94–0.95 s, rhythm 0.97/0.98 |
+| 3 (carrier) | Bob on a laptop behind a mobile carrier's NAT (phone hotspot) | pass | carrier NAT: endpoint-independent mapping, sequential port allocation; 3a srflx↔srflx, ICE 1.4 s, RTP +0.2 s; 3b relay↔relay (TURN chosen although direct works — see below); 3c relay↔relay, ICE 2.0 s; rhythm 0.97/0.98 throughout |
 | 6 | Messaging Profile across hosts | pass | delivery median 76 ms (A→B), ~80 ms (B→A); offline sync 415 ms; `kill -9` restore without replay; federation backoff 4/8/16/32 s; hub restart → held message accepted 12 s; blob 16,486 B byte-identical, sealed at rest, replicated from the public `blob_endpoint`, fetched with L1 down |
 
 What the WAN showed that localhost could not, and what was done about it:
@@ -139,8 +140,14 @@ when a peer's ICE checks arrive before the local side's first packet (an unrepli
 the mapped port — drop unsolicited inbound UDP before conntrack confirms it, as routers do), and coturn
 4.6.1 bound to `0.0.0.0` refuses its own address as a peer (403 Forbidden IP), so two relay-only clients
 of one TURN server never connected until it was bound to its public address (`tools/wan/node-setup.sh`).
-Persisted peers landed in #60. Still not done: a real carrier NAT (laptop on a hotspot) for Run 3, and
-connection-level penalties for flooding peers.
+Persisted peers landed in #60. The carrier run (a laptop on a Debian live USB, tethered to a phone) added two
+more: a dual-boot laptop's clock was 4 h behind (Windows keeps the hardware clock in local time), and the relay
+refused Bob's `hello` with `ReplayWindow` before any call was attempted — the 300 s window doing its job; and with
+TURN offered, ICE nominated the relay pair although a direct pair works on the same networks. The cause is the media
+stack's nomination policy, not DSIP: forge-webrtc's controlling agent nominates the *first* pair that succeeds, and
+a relay↔relay pair needs no hole punch, so it can win before the direct pair's checks complete — or before the peer
+has trickled its server-reflexive candidate at all. RFC 8445 §8.1.1 lets checks continue and nominates the best
+valid pair. Still not done: that fix in forge, and connection-level penalties for flooding peers.
 
 ## Things the PoC deliberately did not do
 
