@@ -2298,6 +2298,36 @@ sequenced item before answering and fanning out, refusing `mailbox.quota-exceede
 storage refusal should be normative. (c) Relay store-and-forward is in memory, so a relay restart loses queued
 envelopes; §13.3 does not say whether that is acceptable.
 
+## 100. core §13 — relay service scope: may a relay serve only some identities?
+
+**Status: decided 2026-10-04 (user: "do both, the allowlist and the spec text") — written into core §13.6.** Raised by
+the user: "can someone hosting their own relay keep it private, or do we make all relays participate to grow the
+network?"
+
+**Gap.** The spec says what a relay does for the identities bound to it, but never whether a relay may choose which
+identities those are. Because a sender connects to the *recipient's* relay (the one its DID document names), a relay
+that simply refuses outside devices also makes its own users unreachable, and one that binds anyone becomes a free
+relay between strangers. Neither is stated.
+
+**Choice made.** §13.6 names three deployments.
+- *Open*: serves every identity that binds (the PoC default).
+- *Private*: serves an operator-chosen set. It still binds any verified device. It routes only to or from a served
+  identity, holds envelopes only for served identities, and is authority only for them. Everything else gets a signed
+  `transport.routing-refused`. Introductions are dropped silently (§19.4).
+- *Closed*: also refuses `hello` from outsiders. Conformant, but unreachable from outside.
+
+No relay is obliged to serve or forward for anyone. Participation stays voluntary: the network grows with identities,
+each bringing its own relay via its DID document, not with shared relays. Rejected: mandatory participation (cost and
+abuse liability on hosts, and Sybil exposure that is out of scope per §3.2).
+
+**PoC.** `dsip-relay --serve <DID>` (repeatable) / `--serve-file`; unset = open. `demos/private-relay-demo.sh`
+covers an outsider reaching a served identity live and queued, outsider-to-outsider refused, nothing held for an
+outsider, and an introduction between outsiders dropped silently. No vectors: this is routing policy outside the
+relay state machine (`dsip_session::Relay`), checked before it.
+
+**Open.** A relay cannot yet *advertise* its scope; a `hello` capability (`serves: "open" | "private"`) would let a
+client know before it tries. Not needed for correctness, since refusals are explicit.
+
 ## Already-flagged (schema README / plan §11)
 
 - §15.3 codec example uses bare strings; §16.2 defines objects (schemas follow §16.2).
