@@ -1,0 +1,46 @@
+{
+  "vector": "did-webvh/versiontime-within-tolerance",
+  "format": 1,
+  "kind": "did-webvh",
+  "description": "An entry 4 minutes ahead of the resolver's clock is within the 5-minute tolerance.",
+  "spec_ref": [
+    "§7.2",
+    "§8.1",
+    "§8.4"
+  ],
+  "context": {},
+  "input": {
+    "did": "did:webvh:Qmboc6bBZPz2tvYrcwdjZi1aBGpWrdP5vxPUoCXRgEHjiX:example.com",
+    "log": "{\"versionId\":\"1-QmWmFB8KVGwXSYN7s5qqYHs9rJ5Vng5A1uxGe93riARZok\",\"versionTime\":\"2026-06-01T00:04:00Z\",\"parameters\":{\"method\":\"did:webvh:1.0\",\"scid\":\"Qmboc6bBZPz2tvYrcwdjZi1aBGpWrdP5vxPUoCXRgEHjiX\",\"updateKeys\":[\"z6Mko9phBKc1B4rXcZuVrDQsbJ27V6N3KXH7ZPzAydAD8RHD\"]},\"state\":{\"@context\":[\"https://www.w3.org/ns/did/v1\"],\"id\":\"did:webvh:Qmboc6bBZPz2tvYrcwdjZi1aBGpWrdP5vxPUoCXRgEHjiX:example.com\",\"verificationMethod\":[{\"id\":\"did:webvh:Qmboc6bBZPz2tvYrcwdjZi1aBGpWrdP5vxPUoCXRgEHjiX:example.com#key-1\",\"type\":\"Multikey\",\"controller\":\"did:webvh:Qmboc6bBZPz2tvYrcwdjZi1aBGpWrdP5vxPUoCXRgEHjiX:example.com\",\"publicKeyMultibase\":\"z6Mko9phBKc1B4rXcZuVrDQsbJ27V6N3KXH7ZPzAydAD8RHD\"}],\"authentication\":[\"did:webvh:Qmboc6bBZPz2tvYrcwdjZi1aBGpWrdP5vxPUoCXRgEHjiX:example.com#key-1\"],\"assertionMethod\":[\"did:webvh:Qmboc6bBZPz2tvYrcwdjZi1aBGpWrdP5vxPUoCXRgEHjiX:example.com#key-1\"]},\"proof\":[{\"type\":\"DataIntegrityProof\",\"cryptosuite\":\"eddsa-jcs-2022\",\"verificationMethod\":\"did:key:z6Mko9phBKc1B4rXcZuVrDQsbJ27V6N3KXH7ZPzAydAD8RHD#z6Mko9phBKc1B4rXcZuVrDQsbJ27V6N3KXH7ZPzAydAD8RHD\",\"created\":\"2026-06-01T00:04:00Z\",\"proofPurpose\":\"assertionMethod\",\"proofValue\":\"z2S7gp5Y7yRH4jvWSm6gnAHxGLKikyFEEUUn815suqndaJkcFa7FBTsiFtj83azMtBjcbJaPXgSyFFMdbSyADBsaL\"}]}\n",
+    "witness": null,
+    "cache": null,
+    "now": 1780272000
+  },
+  "expect": {
+    "outcome": "resolved",
+    "versionId": "1-QmWmFB8KVGwXSYN7s5qqYHs9rJ5Vng5A1uxGe93riARZok",
+    "versionTime": "2026-06-01T00:04:00Z",
+    "document": {
+      "@context": [
+        "https://www.w3.org/ns/did/v1"
+      ],
+      "id": "did:webvh:Qmboc6bBZPz2tvYrcwdjZi1aBGpWrdP5vxPUoCXRgEHjiX:example.com",
+      "verificationMethod": [
+        {
+          "id": "did:webvh:Qmboc6bBZPz2tvYrcwdjZi1aBGpWrdP5vxPUoCXRgEHjiX:example.com#key-1",
+          "type": "Multikey",
+          "controller": "did:webvh:Qmboc6bBZPz2tvYrcwdjZi1aBGpWrdP5vxPUoCXRgEHjiX:example.com",
+          "publicKeyMultibase": "z6Mko9phBKc1B4rXcZuVrDQsbJ27V6N3KXH7ZPzAydAD8RHD"
+        }
+      ],
+      "authentication": [
+        "did:webvh:Qmboc6bBZPz2tvYrcwdjZi1aBGpWrdP5vxPUoCXRgEHjiX:example.com#key-1"
+      ],
+      "assertionMethod": [
+        "did:webvh:Qmboc6bBZPz2tvYrcwdjZi1aBGpWrdP5vxPUoCXRgEHjiX:example.com#key-1"
+      ]
+    },
+    "ttl": 3600,
+    "cache": "1-QmWmFB8KVGwXSYN7s5qqYHs9rJ5Vng5A1uxGe93riARZok"
+  }
+}

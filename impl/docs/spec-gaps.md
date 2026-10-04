@@ -2334,6 +2334,77 @@ relay state machine (`dsip_session::Relay`), checked before it.
 **Open.** A relay cannot yet *advertise* its scope; a `hello` capability (`serves: "open" | "private"`) would let a
 client know before it tries. Not needed for correctness, since refusals are explicit.
 
+## 101. §7.2 / §8.1 / §8.4 — `did:webvh` in DSIP: what a resolver must check, and rollback
+
+**Status: decided 2026-10-04 (user: "yes to all 4"; rollback: "cache required, watchers optional") — written into
+v0.9 §7.2, §8.4, A.6; pinned by `impl/vectors/did-webvh/` (66 vectors).**
+
+**Gap.** `did:webvh` (DIF Ratified v1.0) makes a domain-hosted DID document unforgeable by its host, but a resolver
+that only verifies the log as served still accepts an *older* valid log. A host can roll an identity back to a key it
+rotated away from. The method leaves rollback detection to resolver caches, watchers and witnesses. DSIP must also say
+which versions it supports and how strictly it reads the log, so that three implementations agree.
+
+**Choices made.**
+1. **Rollback:** a resolver MUST cache the highest verified `versionId` per DID, and reject a log that ends before it
+   (`rollback`) or differs at it (`fork`). Watchers MAY be consulted. Rejected alternatives: requiring watchers (an
+   extra fetch per lookup, and they must exist) and requiring witnesses (a heavy deployment burden).
+2. **Fail closed:** any invalid entry rejects the whole log. The method allows a versioned query to succeed below a
+   later invalid entry; DSIP resolves only the latest version.
+3. **Versions:** `did:webvh:1.0` only.
+4. **I-JSON:** every line, and the witness file, must be I-JSON (RFC 7493): no duplicate names, no lone surrogates,
+   integers within ±(2^53−1). This was found by probing the three implementations (a third finding of the second
+   implementation's notes): an integer above 2^53 hashed differently in JavaScript, a duplicate key is a
+   signature-confusion risk, and a lone surrogate crashed one runner. JCS assumes I-JSON anyway.
+5. **Extra entry keys** are refused (`log-malformed`). The method lists the five entry properties without saying
+   "only". See spec-gap 102 for why accepting them is unsafe in practice.
+6. **DID syntax:** ASCII LDH domain labels (an IDN in its `xn--` form), the port separator `%3A` in upper case only,
+   percent-decoded path bytes valid UTF-8, and Unicode White_Space at either edge of a segment refused.
+7. **A deactivated DID** returns no document and has no keys (the method's MUST, which its implementations diverge on).
+8. **The check order and reason tokens** are the suite's contract (`impl/vectors/README.md`, kind `did-webvh`).
+9. **Boundary with CLAUDE.md rule 3:** JCS is used inside the method's own hashes and proofs. No DSIP envelope is
+   ever canonicalized.
+
+**Evidence.**
+- The Python reference resolves all 76 positive logs of the DIF conformance suite
+  (`didwebvh-test-suite` @ `703f97f`) and rejects all its log-level negatives.
+- The vector logs were also run through `didwebvh-rs` 0.8.0 (41 of 43 applicable agree) and `didwebvh-ts` 2.8.0 (37
+  of 43). Every disagreement is a case where the library is laxer than the spec text (spec-gap 102).
+
+## 102. did:webvh v1.0 (upstream) — findings to report to the DIF working group
+
+**Status: draft, for the user to send upstream.** Found while implementing spec-gap 101. These are not DSIP spec
+issues; DSIP's resolution is pinned either way.
+
+1. **Unknown entry properties are dropped before hashing by both reference libraries.** An entry with an extra key
+   added *after* it was hashed and signed resolves as VALID in `didwebvh-rs` 0.8.0 and `didwebvh-ts` 2.8.0, so the
+   extra content is covered by no signature. The spec lists the five entry properties but never says "only these".
+   Suggest: "a log entry MUST NOT contain other properties; a resolver MUST reject one that does".
+2. **`didwebvh-rs` 0.8.0 accepts `method: "did:webvh:9.9"`,** contrary to §Parameters ("MUST reject any `method`
+   value that is not exactly one of the acceptable values") and to the spec's own negative example `did:webvh:99.0`.
+3. **`didwebvh-ts` 2.8.0 (latest on npm) predates the 2026-06-06 hardening.** It accepts:
+   - an entry after deactivation;
+   - a portable move without `alsoKnownAs`;
+   - an empty `proof` array;
+   - an omitted `nextKeyHashes` under pre-rotation;
+   - unknown parameters;
+   - extra entry keys.
+
+   The repository is at 3.0.0, unpublished.
+4. **I-JSON is not stated.** JCS (RFC 8785) assumes I-JSON, but the method never requires it. Large integers,
+   duplicate names and lone surrogates make implementations disagree (spec-gap 101 item 4).
+5. **Schema versus prose** (`schemas/v1.0/log_entry.json`):
+   - `minItems: 1` on `updateKeys`, `nextKeyHashes` and `watchers`, while the prose uses `[]` to deactivate and to
+     end pre-rotation;
+   - `proof` may be a single object;
+   - `"type": "date-time"` is not valid JSON Schema.
+6. **Smaller points:**
+   - "one second" monotonicity in the security section versus "strictly greater" in the normative text;
+   - a legacy base32 `nextKeyHashes` example;
+   - metadata `ttl` and `witness.threshold` specified as strings while implementations emit integers;
+   - `portable: false` together with a move in the same entry;
+   - leading zeros in the `versionId` number;
+   - fractional seconds in `versionTime`.
+
 ## Already-flagged (schema README / plan §11)
 
 - §15.3 codec example uses bare strings; §16.2 defines objects (schemas follow §16.2).

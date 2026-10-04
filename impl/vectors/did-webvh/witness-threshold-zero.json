@@ -1,0 +1,23 @@
+{
+  "vector": "did-webvh/witness-threshold-zero",
+  "format": 1,
+  "kind": "did-webvh",
+  "description": "A witness threshold of 0.",
+  "spec_ref": [
+    "§7.2",
+    "§8.1",
+    "§8.4"
+  ],
+  "context": {},
+  "input": {
+    "did": "did:webvh:QmZqyy2kBt2XU3eoRWf3tSStG8D1aoS3yC8kdDpqhWx4GE:example.com",
+    "log": "{\"versionId\":\"1-QmXDE85UqUYr9kahXMM7N2tebGMCNJ5PvGA7zS6EjhbaZG\",\"versionTime\":\"2026-01-01T00:01:00Z\",\"parameters\":{\"method\":\"did:webvh:1.0\",\"scid\":\"QmZqyy2kBt2XU3eoRWf3tSStG8D1aoS3yC8kdDpqhWx4GE\",\"updateKeys\":[\"z6Mko9phBKc1B4rXcZuVrDQsbJ27V6N3KXH7ZPzAydAD8RHD\"],\"witness\":{\"threshold\":0,\"witnesses\":[{\"id\":\"did:key:z6MkrKTfKBuS5QxTaXqzNbPk4vyCUu35HUgZwdVQteT6k5oK\"}]}},\"state\":{\"@context\":[\"https://www.w3.org/ns/did/v1\"],\"id\":\"did:webvh:QmZqyy2kBt2XU3eoRWf3tSStG8D1aoS3yC8kdDpqhWx4GE:example.com\",\"verificationMethod\":[{\"id\":\"did:webvh:QmZqyy2kBt2XU3eoRWf3tSStG8D1aoS3yC8kdDpqhWx4GE:example.com#key-1\",\"type\":\"Multikey\",\"controller\":\"did:webvh:QmZqyy2kBt2XU3eoRWf3tSStG8D1aoS3yC8kdDpqhWx4GE:example.com\",\"publicKeyMultibase\":\"z6Mko9phBKc1B4rXcZuVrDQsbJ27V6N3KXH7ZPzAydAD8RHD\"}],\"authentication\":[\"did:webvh:QmZqyy2kBt2XU3eoRWf3tSStG8D1aoS3yC8kdDpqhWx4GE:example.com#key-1\"],\"assertionMethod\":[\"did:webvh:QmZqyy2kBt2XU3eoRWf3tSStG8D1aoS3yC8kdDpqhWx4GE:example.com#key-1\"]},\"proof\":[{\"type\":\"DataIntegrityProof\",\"cryptosuite\":\"eddsa-jcs-2022\",\"verificationMethod\":\"did:key:z6Mko9phBKc1B4rXcZuVrDQsbJ27V6N3KXH7ZPzAydAD8RHD#z6Mko9phBKc1B4rXcZuVrDQsbJ27V6N3KXH7ZPzAydAD8RHD\",\"created\":\"2026-01-01T00:01:00Z\",\"proofPurpose\":\"assertionMethod\",\"proofValue\":\"z2cDsgEztB196AjLrbj1pKLix5mtDtw7b2m9vCfpBB463fcahTyzv8SsrXQVFGVdVyh9WfXjKhQh6fHta64H5h499\"}]}\n",
+    "witness": null,
+    "cache": null,
+    "now": 1780272000
+  },
+  "expect": {
+    "outcome": "rejected",
+    "reason": "parameters"
+  }
+}

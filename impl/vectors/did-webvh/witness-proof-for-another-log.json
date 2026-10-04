@@ -1,0 +1,23 @@
+{
+  "vector": "did-webvh/witness-proof-for-another-log",
+  "format": 1,
+  "kind": "did-webvh",
+  "description": "Approvals for a versionId that is not in this log are no evidence.",
+  "spec_ref": [
+    "§7.2",
+    "§8.1",
+    "§8.4"
+  ],
+  "context": {},
+  "input": {
+    "did": "did:webvh:QmVNN7wkghKnAujA5E5JB35N8GeDJfhBPC89Noij2FemHm:example.com",
+    "log": "{\"versionId\":\"1-QmafzkKpL9JDYzG9Pop8oZfSpq3xScEPZtshkUcEmwq85F\",\"versionTime\":\"2026-01-01T00:01:00Z\",\"parameters\":{\"method\":\"did:webvh:1.0\",\"scid\":\"QmVNN7wkghKnAujA5E5JB35N8GeDJfhBPC89Noij2FemHm\",\"updateKeys\":[\"z6Mko9phBKc1B4rXcZuVrDQsbJ27V6N3KXH7ZPzAydAD8RHD\"],\"witness\":{\"threshold\":2,\"witnesses\":[{\"id\":\"did:key:z6MkrKTfKBuS5QxTaXqzNbPk4vyCUu35HUgZwdVQteT6k5oK\"},{\"id\":\"did:key:z6MkfVMZF2F41K5ifyPj25KbQETv5CMhZpU6GsViE2w1VJjd\"}]}},\"state\":{\"@context\":[\"https://www.w3.org/ns/did/v1\"],\"id\":\"did:webvh:QmVNN7wkghKnAujA5E5JB35N8GeDJfhBPC89Noij2FemHm:example.com\",\"verificationMethod\":[{\"id\":\"did:webvh:QmVNN7wkghKnAujA5E5JB35N8GeDJfhBPC89Noij2FemHm:example.com#key-1\",\"type\":\"Multikey\",\"controller\":\"did:webvh:QmVNN7wkghKnAujA5E5JB35N8GeDJfhBPC89Noij2FemHm:example.com\",\"publicKeyMultibase\":\"z6Mko9phBKc1B4rXcZuVrDQsbJ27V6N3KXH7ZPzAydAD8RHD\"}],\"authentication\":[\"did:webvh:QmVNN7wkghKnAujA5E5JB35N8GeDJfhBPC89Noij2FemHm:example.com#key-1\"],\"assertionMethod\":[\"did:webvh:QmVNN7wkghKnAujA5E5JB35N8GeDJfhBPC89Noij2FemHm:example.com#key-1\"]},\"proof\":[{\"type\":\"DataIntegrityProof\",\"cryptosuite\":\"eddsa-jcs-2022\",\"verificationMethod\":\"did:key:z6Mko9phBKc1B4rXcZuVrDQsbJ27V6N3KXH7ZPzAydAD8RHD#z6Mko9phBKc1B4rXcZuVrDQsbJ27V6N3KXH7ZPzAydAD8RHD\",\"created\":\"2026-01-01T00:01:00Z\",\"proofPurpose\":\"assertionMethod\",\"proofValue\":\"z5peE2HLQ3P6SdFkpUGNh2SC9aQKVWkM7XN6uX9qowodamX3TfGdiUCZwJHtT3QkRBDAdg1yrh5C8UFdjrcMVdEAG\"}]}\n",
+    "witness": "[{\"versionId\":\"1-QmZuhyGYKPwthZMpKPUNCEnnw5PHpUpXm3KthWb6BffSZT\",\"proof\":[{\"type\":\"DataIntegrityProof\",\"cryptosuite\":\"eddsa-jcs-2022\",\"verificationMethod\":\"did:key:z6MkrKTfKBuS5QxTaXqzNbPk4vyCUu35HUgZwdVQteT6k5oK#z6MkrKTfKBuS5QxTaXqzNbPk4vyCUu35HUgZwdVQteT6k5oK\",\"created\":\"2026-01-02T00:00:00Z\",\"proofPurpose\":\"assertionMethod\",\"proofValue\":\"z2hGFRugQsbgzFJnYSA8ieU2RaJg2DKacvNZPkGTToWa7d5zkvpDA4FC1dphCfM97nHPYgPP9tj3HmfJRB9NEWCJg\"},{\"type\":\"DataIntegrityProof\",\"cryptosuite\":\"eddsa-jcs-2022\",\"verificationMethod\":\"did:key:z6MkfVMZF2F41K5ifyPj25KbQETv5CMhZpU6GsViE2w1VJjd#z6MkfVMZF2F41K5ifyPj25KbQETv5CMhZpU6GsViE2w1VJjd\",\"created\":\"2026-01-02T00:00:00Z\",\"proofPurpose\":\"assertionMethod\",\"proofValue\":\"z4wPSXVgsBfx9eciRnrewquwEaeNr2hYK8zHXtL4H24Y7ELHThcc2iiWhgb6yXe51Hnf6jEL8Qxm4JQnedFN7NodS\"}]}]",
+    "cache": null,
+    "now": 1780272000
+  },
+  "expect": {
+    "outcome": "rejected",
+    "reason": "witness"
+  }
+}

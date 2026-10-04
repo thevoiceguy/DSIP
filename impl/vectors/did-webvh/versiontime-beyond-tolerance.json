@@ -1,0 +1,23 @@
+{
+  "vector": "did-webvh/versiontime-beyond-tolerance",
+  "format": 1,
+  "kind": "did-webvh",
+  "description": "An entry 6 minutes ahead of the resolver's clock.",
+  "spec_ref": [
+    "§7.2",
+    "§8.1",
+    "§8.4"
+  ],
+  "context": {},
+  "input": {
+    "did": "did:webvh:QmTazQyYKFWgeaCumH3th5oaHPm9E9H2SzpEc7HN5XK5dG:example.com",
+    "log": "{\"versionId\":\"1-QmaeqTC1DyCqBHQND4vtDt74JXUwgsjk4EqTNV2x1D5kGW\",\"versionTime\":\"2026-06-01T00:06:00Z\",\"parameters\":{\"method\":\"did:webvh:1.0\",\"scid\":\"QmTazQyYKFWgeaCumH3th5oaHPm9E9H2SzpEc7HN5XK5dG\",\"updateKeys\":[\"z6Mko9phBKc1B4rXcZuVrDQsbJ27V6N3KXH7ZPzAydAD8RHD\"]},\"state\":{\"@context\":[\"https://www.w3.org/ns/did/v1\"],\"id\":\"did:webvh:QmTazQyYKFWgeaCumH3th5oaHPm9E9H2SzpEc7HN5XK5dG:example.com\",\"verificationMethod\":[{\"id\":\"did:webvh:QmTazQyYKFWgeaCumH3th5oaHPm9E9H2SzpEc7HN5XK5dG:example.com#key-1\",\"type\":\"Multikey\",\"controller\":\"did:webvh:QmTazQyYKFWgeaCumH3th5oaHPm9E9H2SzpEc7HN5XK5dG:example.com\",\"publicKeyMultibase\":\"z6Mko9phBKc1B4rXcZuVrDQsbJ27V6N3KXH7ZPzAydAD8RHD\"}],\"authentication\":[\"did:webvh:QmTazQyYKFWgeaCumH3th5oaHPm9E9H2SzpEc7HN5XK5dG:example.com#key-1\"],\"assertionMethod\":[\"did:webvh:QmTazQyYKFWgeaCumH3th5oaHPm9E9H2SzpEc7HN5XK5dG:example.com#key-1\"]},\"proof\":[{\"type\":\"DataIntegrityProof\",\"cryptosuite\":\"eddsa-jcs-2022\",\"verificationMethod\":\"did:key:z6Mko9phBKc1B4rXcZuVrDQsbJ27V6N3KXH7ZPzAydAD8RHD#z6Mko9phBKc1B4rXcZuVrDQsbJ27V6N3KXH7ZPzAydAD8RHD\",\"created\":\"2026-06-01T00:06:00Z\",\"proofPurpose\":\"assertionMethod\",\"proofValue\":\"z4GR7cCGiKUxpmyQDRcrqkzBfCZR3NxXFh5p7iNCLqxb9rfcZ6TaRZhPoDpaHjr8kqZLar86dNXyy3UYR3KqVCSGk\"}]}\n",
+    "witness": null,
+    "cache": null,
+    "now": 1780272000
+  },
+  "expect": {
+    "outcome": "rejected",
+    "reason": "version-time"
+  }
+}

@@ -1,0 +1,69 @@
+{
+  "vector": "did-webvh/carries-dsip-document-properties",
+  "format": 1,
+  "kind": "did-webvh",
+  "description": "The document DSIP reads — DSIPSignaling, DSIPMailbox, keyAgreement, dsipDelegationRevocations (§7.2) — is returned unchanged.",
+  "spec_ref": [
+    "§7.2",
+    "§8.1",
+    "§8.4"
+  ],
+  "context": {},
+  "input": {
+    "did": "did:webvh:Qmct1Dg6Mn7QP7zvyZQyJTMXb2CRBdL6UdBDCoudg47s5r:example.com",
+    "log": "{\"versionId\":\"1-QmUm9m39ahU4ThufDM3AsAwAoVmXyMxa9Nx7NYHnNjNM6Y\",\"versionTime\":\"2026-01-01T00:01:00Z\",\"parameters\":{\"method\":\"did:webvh:1.0\",\"scid\":\"Qmct1Dg6Mn7QP7zvyZQyJTMXb2CRBdL6UdBDCoudg47s5r\",\"updateKeys\":[\"z6Mko9phBKc1B4rXcZuVrDQsbJ27V6N3KXH7ZPzAydAD8RHD\"]},\"state\":{\"@context\":[\"https://www.w3.org/ns/did/v1\"],\"id\":\"did:webvh:Qmct1Dg6Mn7QP7zvyZQyJTMXb2CRBdL6UdBDCoudg47s5r:example.com\",\"verificationMethod\":[{\"id\":\"did:webvh:Qmct1Dg6Mn7QP7zvyZQyJTMXb2CRBdL6UdBDCoudg47s5r:example.com#key-1\",\"type\":\"Multikey\",\"controller\":\"did:webvh:Qmct1Dg6Mn7QP7zvyZQyJTMXb2CRBdL6UdBDCoudg47s5r:example.com\",\"publicKeyMultibase\":\"z6Mko9phBKc1B4rXcZuVrDQsbJ27V6N3KXH7ZPzAydAD8RHD\"}],\"authentication\":[\"did:webvh:Qmct1Dg6Mn7QP7zvyZQyJTMXb2CRBdL6UdBDCoudg47s5r:example.com#key-1\"],\"assertionMethod\":[\"did:webvh:Qmct1Dg6Mn7QP7zvyZQyJTMXb2CRBdL6UdBDCoudg47s5r:example.com#key-1\"],\"service\":[{\"id\":\"#dsip\",\"type\":\"DSIPSignaling\",\"serviceEndpoint\":\"wss://relay.example/dsip\"},{\"id\":\"#mbx\",\"type\":\"DSIPMailbox\",\"serviceEndpoint\":{\"did\":\"did:key:z6MkMailbox\",\"uri\":\"wss://mbx.example/dsip\"}}],\"keyAgreement\":[{\"id\":\"#ka\",\"type\":\"Multikey\",\"publicKeyMultibase\":\"z6LSbysY2xFMRpGMhb7tFTLMpeuPRaqaWM1yECx2AtzE3KCc\"}],\"dsipDelegationRevocations\":[]},\"proof\":[{\"type\":\"DataIntegrityProof\",\"cryptosuite\":\"eddsa-jcs-2022\",\"verificationMethod\":\"did:key:z6Mko9phBKc1B4rXcZuVrDQsbJ27V6N3KXH7ZPzAydAD8RHD#z6Mko9phBKc1B4rXcZuVrDQsbJ27V6N3KXH7ZPzAydAD8RHD\",\"created\":\"2026-01-01T00:01:00Z\",\"proofPurpose\":\"assertionMethod\",\"proofValue\":\"z3dn4j9ApWTseE8BfKgsU3e9ZmyWMS3CCyfrK31fzbhuy1H8X5RaysQn247ibKmQrpm9SzNbsdPPKKhWQ2DVLteWM\"}]}\n",
+    "witness": null,
+    "cache": null,
+    "now": 1780272000
+  },
+  "expect": {
+    "outcome": "resolved",
+    "versionId": "1-QmUm9m39ahU4ThufDM3AsAwAoVmXyMxa9Nx7NYHnNjNM6Y",
+    "versionTime": "2026-01-01T00:01:00Z",
+    "document": {
+      "@context": [
+        "https://www.w3.org/ns/did/v1"
+      ],
+      "id": "did:webvh:Qmct1Dg6Mn7QP7zvyZQyJTMXb2CRBdL6UdBDCoudg47s5r:example.com",
+      "verificationMethod": [
+        {
+          "id": "did:webvh:Qmct1Dg6Mn7QP7zvyZQyJTMXb2CRBdL6UdBDCoudg47s5r:example.com#key-1",
+          "type": "Multikey",
+          "controller": "did:webvh:Qmct1Dg6Mn7QP7zvyZQyJTMXb2CRBdL6UdBDCoudg47s5r:example.com",
+          "publicKeyMultibase": "z6Mko9phBKc1B4rXcZuVrDQsbJ27V6N3KXH7ZPzAydAD8RHD"
+        }
+      ],
+      "authentication": [
+        "did:webvh:Qmct1Dg6Mn7QP7zvyZQyJTMXb2CRBdL6UdBDCoudg47s5r:example.com#key-1"
+      ],
+      "assertionMethod": [
+        "did:webvh:Qmct1Dg6Mn7QP7zvyZQyJTMXb2CRBdL6UdBDCoudg47s5r:example.com#key-1"
+      ],
+      "service": [
+        {
+          "id": "#dsip",
+          "type": "DSIPSignaling",
+          "serviceEndpoint": "wss://relay.example/dsip"
+        },
+        {
+          "id": "#mbx",
+          "type": "DSIPMailbox",
+          "serviceEndpoint": {
+            "did": "did:key:z6MkMailbox",
+            "uri": "wss://mbx.example/dsip"
+          }
+        }
+      ],
+      "keyAgreement": [
+        {
+          "id": "#ka",
+          "type": "Multikey",
+          "publicKeyMultibase": "z6LSbysY2xFMRpGMhb7tFTLMpeuPRaqaWM1yECx2AtzE3KCc"
+        }
+      ],
+      "dsipDelegationRevocations": []
+    },
+    "ttl": 3600,
+    "cache": "1-QmUm9m39ahU4ThufDM3AsAwAoVmXyMxa9Nx7NYHnNjNM6Y"
+  }
+}

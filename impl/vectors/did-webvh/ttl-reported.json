@@ -1,0 +1,46 @@
+{
+  "vector": "did-webvh/ttl-reported",
+  "format": 1,
+  "kind": "did-webvh",
+  "description": "The ttl parameter is reported for DSIP's cache tier (§8.1).",
+  "spec_ref": [
+    "§7.2",
+    "§8.1",
+    "§8.4"
+  ],
+  "context": {},
+  "input": {
+    "did": "did:webvh:Qmed1e1z3rUF697EekeY4GWwUaJqT5jY27usQQUy5vugdP:example.com",
+    "log": "{\"versionId\":\"1-QmZcfU4Mh5KwApgjiyr9F1M4zwTiajLWW44m9V3yMvnGRZ\",\"versionTime\":\"2026-01-01T00:01:00Z\",\"parameters\":{\"method\":\"did:webvh:1.0\",\"scid\":\"Qmed1e1z3rUF697EekeY4GWwUaJqT5jY27usQQUy5vugdP\",\"updateKeys\":[\"z6Mko9phBKc1B4rXcZuVrDQsbJ27V6N3KXH7ZPzAydAD8RHD\"],\"ttl\":600},\"state\":{\"@context\":[\"https://www.w3.org/ns/did/v1\"],\"id\":\"did:webvh:Qmed1e1z3rUF697EekeY4GWwUaJqT5jY27usQQUy5vugdP:example.com\",\"verificationMethod\":[{\"id\":\"did:webvh:Qmed1e1z3rUF697EekeY4GWwUaJqT5jY27usQQUy5vugdP:example.com#key-1\",\"type\":\"Multikey\",\"controller\":\"did:webvh:Qmed1e1z3rUF697EekeY4GWwUaJqT5jY27usQQUy5vugdP:example.com\",\"publicKeyMultibase\":\"z6Mko9phBKc1B4rXcZuVrDQsbJ27V6N3KXH7ZPzAydAD8RHD\"}],\"authentication\":[\"did:webvh:Qmed1e1z3rUF697EekeY4GWwUaJqT5jY27usQQUy5vugdP:example.com#key-1\"],\"assertionMethod\":[\"did:webvh:Qmed1e1z3rUF697EekeY4GWwUaJqT5jY27usQQUy5vugdP:example.com#key-1\"]},\"proof\":[{\"type\":\"DataIntegrityProof\",\"cryptosuite\":\"eddsa-jcs-2022\",\"verificationMethod\":\"did:key:z6Mko9phBKc1B4rXcZuVrDQsbJ27V6N3KXH7ZPzAydAD8RHD#z6Mko9phBKc1B4rXcZuVrDQsbJ27V6N3KXH7ZPzAydAD8RHD\",\"created\":\"2026-01-01T00:01:00Z\",\"proofPurpose\":\"assertionMethod\",\"proofValue\":\"z4yWudR6tAixzMqePYvXcSonEzSSvYzjDufhyaGV13w6W4bTzCpHrTGk2wHf7gJ2BAZrbpQ1M7KjfKdhidbjih9BD\"}]}\n",
+    "witness": null,
+    "cache": null,
+    "now": 1780272000
+  },
+  "expect": {
+    "outcome": "resolved",
+    "versionId": "1-QmZcfU4Mh5KwApgjiyr9F1M4zwTiajLWW44m9V3yMvnGRZ",
+    "versionTime": "2026-01-01T00:01:00Z",
+    "document": {
+      "@context": [
+        "https://www.w3.org/ns/did/v1"
+      ],
+      "id": "did:webvh:Qmed1e1z3rUF697EekeY4GWwUaJqT5jY27usQQUy5vugdP:example.com",
+      "verificationMethod": [
+        {
+          "id": "did:webvh:Qmed1e1z3rUF697EekeY4GWwUaJqT5jY27usQQUy5vugdP:example.com#key-1",
+          "type": "Multikey",
+          "controller": "did:webvh:Qmed1e1z3rUF697EekeY4GWwUaJqT5jY27usQQUy5vugdP:example.com",
+          "publicKeyMultibase": "z6Mko9phBKc1B4rXcZuVrDQsbJ27V6N3KXH7ZPzAydAD8RHD"
+        }
+      ],
+      "authentication": [
+        "did:webvh:Qmed1e1z3rUF697EekeY4GWwUaJqT5jY27usQQUy5vugdP:example.com#key-1"
+      ],
+      "assertionMethod": [
+        "did:webvh:Qmed1e1z3rUF697EekeY4GWwUaJqT5jY27usQQUy5vugdP:example.com#key-1"
+      ]
+    },
+    "ttl": 600,
+    "cache": "1-QmZcfU4Mh5KwApgjiyr9F1M4zwTiajLWW44m9V3yMvnGRZ"
+  }
+}

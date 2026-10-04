@@ -1,0 +1,23 @@
+{
+  "vector": "did-webvh/method-older-version",
+  "format": 1,
+  "kind": "did-webvh",
+  "description": "method did:webvh:0.5: an earlier version, which DSIP resolvers do not support (v1.0 only, spec-gap 101; did:webvh §Parameters: reject values outside the supported versions).",
+  "spec_ref": [
+    "§7.2",
+    "§8.1",
+    "§8.4"
+  ],
+  "context": {},
+  "input": {
+    "did": "did:webvh:QmRQRQ6rt7hdHTm88Gsw73drf1ue3N2GVM61GJs8KGxEsj:example.com",
+    "log": "{\"versionId\":\"1-QmPU3j6bh5azRcCDMctbTyJK664pSEMxb8a9mKxtYFoMGM\",\"versionTime\":\"2026-01-01T00:01:00Z\",\"parameters\":{\"method\":\"did:webvh:0.5\",\"scid\":\"QmRQRQ6rt7hdHTm88Gsw73drf1ue3N2GVM61GJs8KGxEsj\",\"updateKeys\":[\"z6Mko9phBKc1B4rXcZuVrDQsbJ27V6N3KXH7ZPzAydAD8RHD\"]},\"state\":{\"@context\":[\"https://www.w3.org/ns/did/v1\"],\"id\":\"did:webvh:QmRQRQ6rt7hdHTm88Gsw73drf1ue3N2GVM61GJs8KGxEsj:example.com\",\"verificationMethod\":[{\"id\":\"did:webvh:QmRQRQ6rt7hdHTm88Gsw73drf1ue3N2GVM61GJs8KGxEsj:example.com#key-1\",\"type\":\"Multikey\",\"controller\":\"did:webvh:QmRQRQ6rt7hdHTm88Gsw73drf1ue3N2GVM61GJs8KGxEsj:example.com\",\"publicKeyMultibase\":\"z6Mko9phBKc1B4rXcZuVrDQsbJ27V6N3KXH7ZPzAydAD8RHD\"}],\"authentication\":[\"did:webvh:QmRQRQ6rt7hdHTm88Gsw73drf1ue3N2GVM61GJs8KGxEsj:example.com#key-1\"],\"assertionMethod\":[\"did:webvh:QmRQRQ6rt7hdHTm88Gsw73drf1ue3N2GVM61GJs8KGxEsj:example.com#key-1\"]},\"proof\":[{\"type\":\"DataIntegrityProof\",\"cryptosuite\":\"eddsa-jcs-2022\",\"verificationMethod\":\"did:key:z6Mko9phBKc1B4rXcZuVrDQsbJ27V6N3KXH7ZPzAydAD8RHD#z6Mko9phBKc1B4rXcZuVrDQsbJ27V6N3KXH7ZPzAydAD8RHD\",\"created\":\"2026-01-01T00:01:00Z\",\"proofPurpose\":\"assertionMethod\",\"proofValue\":\"z5ST8npL5tnUGvjAJ8caDDftuMNiNhwxyyaiouv32728sCmAVYcvwBJYTQgrQjUob3V8NXyZdpF7wHq1kc8bEQha5\"}]}\n",
+    "witness": null,
+    "cache": null,
+    "now": 1780272000
+  },
+  "expect": {
+    "outcome": "rejected",
+    "reason": "parameters"
+  }
+}

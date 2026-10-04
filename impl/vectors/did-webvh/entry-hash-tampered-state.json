@@ -1,0 +1,23 @@
+{
+  "vector": "did-webvh/entry-hash-tampered-state",
+  "format": 1,
+  "kind": "did-webvh",
+  "description": "Entry 2's state edited after it was hashed and signed.",
+  "spec_ref": [
+    "§7.2",
+    "§8.1",
+    "§8.4"
+  ],
+  "context": {},
+  "input": {
+    "did": "did:webvh:QmXpnm4R7BPTnL6iWNL5HJhq1sSUjkc3dudv2BRuSJWBbC:example.com",
+    "log": "{\"versionId\":\"1-QmZtE78CoY9hn9xqXR7akcdj9JyRb32v32ZqFbLsuVq1EC\",\"versionTime\":\"2026-01-01T00:01:00Z\",\"parameters\":{\"method\":\"did:webvh:1.0\",\"scid\":\"QmXpnm4R7BPTnL6iWNL5HJhq1sSUjkc3dudv2BRuSJWBbC\",\"updateKeys\":[\"z6Mko9phBKc1B4rXcZuVrDQsbJ27V6N3KXH7ZPzAydAD8RHD\"]},\"state\":{\"@context\":[\"https://www.w3.org/ns/did/v1\"],\"id\":\"did:webvh:QmXpnm4R7BPTnL6iWNL5HJhq1sSUjkc3dudv2BRuSJWBbC:example.com\",\"verificationMethod\":[{\"id\":\"did:webvh:QmXpnm4R7BPTnL6iWNL5HJhq1sSUjkc3dudv2BRuSJWBbC:example.com#key-1\",\"type\":\"Multikey\",\"controller\":\"did:webvh:QmXpnm4R7BPTnL6iWNL5HJhq1sSUjkc3dudv2BRuSJWBbC:example.com\",\"publicKeyMultibase\":\"z6Mko9phBKc1B4rXcZuVrDQsbJ27V6N3KXH7ZPzAydAD8RHD\"}],\"authentication\":[\"did:webvh:QmXpnm4R7BPTnL6iWNL5HJhq1sSUjkc3dudv2BRuSJWBbC:example.com#key-1\"],\"assertionMethod\":[\"did:webvh:QmXpnm4R7BPTnL6iWNL5HJhq1sSUjkc3dudv2BRuSJWBbC:example.com#key-1\"]},\"proof\":[{\"type\":\"DataIntegrityProof\",\"cryptosuite\":\"eddsa-jcs-2022\",\"verificationMethod\":\"did:key:z6Mko9phBKc1B4rXcZuVrDQsbJ27V6N3KXH7ZPzAydAD8RHD#z6Mko9phBKc1B4rXcZuVrDQsbJ27V6N3KXH7ZPzAydAD8RHD\",\"created\":\"2026-01-01T00:01:00Z\",\"proofPurpose\":\"assertionMethod\",\"proofValue\":\"z5d5YFQK3T4BpzHLkdj7e4gKoUSemXy9bozyo9qJyzyf6uPaTzL5nTXhsRtn3yMbnpbqTbHTPihRzw8G5Ry3Gcn9y\"}]}\n{\"versionId\":\"2-Qme2DZGuwfvZKhFXF4or6VLmqfJnkm8p1SCtEtF8fZNsSr\",\"versionTime\":\"2026-01-01T00:02:00Z\",\"parameters\":{},\"state\":{\"@context\":[\"https://www.w3.org/ns/did/v1\"],\"id\":\"did:webvh:QmXpnm4R7BPTnL6iWNL5HJhq1sSUjkc3dudv2BRuSJWBbC:example.com\",\"verificationMethod\":[{\"id\":\"did:webvh:QmXpnm4R7BPTnL6iWNL5HJhq1sSUjkc3dudv2BRuSJWBbC:example.com#key-1\",\"type\":\"Multikey\",\"controller\":\"did:webvh:QmXpnm4R7BPTnL6iWNL5HJhq1sSUjkc3dudv2BRuSJWBbC:example.com\",\"publicKeyMultibase\":\"z6Mko9phBKc1B4rXcZuVrDQsbJ27V6N3KXH7ZPzAydAD8RHD\"}],\"authentication\":[\"did:webvh:QmXpnm4R7BPTnL6iWNL5HJhq1sSUjkc3dudv2BRuSJWBbC:example.com#key-1\"],\"assertionMethod\":[\"did:webvh:QmXpnm4R7BPTnL6iWNL5HJhq1sSUjkc3dudv2BRuSJWBbC:example.com#key-1\"],\"service\":[{\"id\":\"#sig\",\"type\":\"DSIPSignaling\",\"serviceEndpoint\":\"wss://relay.example/dsip\"}],\"alsoKnownAs\":[\"x:tampered\"]},\"proof\":[{\"type\":\"DataIntegrityProof\",\"cryptosuite\":\"eddsa-jcs-2022\",\"verificationMethod\":\"did:key:z6Mko9phBKc1B4rXcZuVrDQsbJ27V6N3KXH7ZPzAydAD8RHD#z6Mko9phBKc1B4rXcZuVrDQsbJ27V6N3KXH7ZPzAydAD8RHD\",\"created\":\"2026-01-01T00:02:00Z\",\"proofPurpose\":\"assertionMethod\",\"proofValue\":\"z5ZpJ9oLPGAbkRKmzLojFj7J3VLs9tdtgrw8f1JXBVKPAxwiRWVcLTkaTAeUb6jtssDqfJ8CiFSBcy7kLjtBXANHk\"}]}\n{\"versionId\":\"3-QmUemRSZubpv84UYja8EwpQPAdWQiX2t81CTKShggp4egJ\",\"versionTime\":\"2026-01-01T00:03:00Z\",\"parameters\":{},\"state\":{\"@context\":[\"https://www.w3.org/ns/did/v1\"],\"id\":\"did:webvh:QmXpnm4R7BPTnL6iWNL5HJhq1sSUjkc3dudv2BRuSJWBbC:example.com\",\"verificationMethod\":[{\"id\":\"did:webvh:QmXpnm4R7BPTnL6iWNL5HJhq1sSUjkc3dudv2BRuSJWBbC:example.com#key-1\",\"type\":\"Multikey\",\"controller\":\"did:webvh:QmXpnm4R7BPTnL6iWNL5HJhq1sSUjkc3dudv2BRuSJWBbC:example.com\",\"publicKeyMultibase\":\"z6Mko9phBKc1B4rXcZuVrDQsbJ27V6N3KXH7ZPzAydAD8RHD\"}],\"authentication\":[\"did:webvh:QmXpnm4R7BPTnL6iWNL5HJhq1sSUjkc3dudv2BRuSJWBbC:example.com#key-1\"],\"assertionMethod\":[\"did:webvh:QmXpnm4R7BPTnL6iWNL5HJhq1sSUjkc3dudv2BRuSJWBbC:example.com#key-1\"],\"service\":[{\"id\":\"#sig\",\"type\":\"DSIPSignaling\",\"serviceEndpoint\":\"wss://relay.example/dsip\"}],\"alsoKnownAs\":[\"https://example.com/alice\"]},\"proof\":[{\"type\":\"DataIntegrityProof\",\"cryptosuite\":\"eddsa-jcs-2022\",\"verificationMethod\":\"did:key:z6Mko9phBKc1B4rXcZuVrDQsbJ27V6N3KXH7ZPzAydAD8RHD#z6Mko9phBKc1B4rXcZuVrDQsbJ27V6N3KXH7ZPzAydAD8RHD\",\"created\":\"2026-01-01T00:03:00Z\",\"proofPurpose\":\"assertionMethod\",\"proofValue\":\"z3WMgMFYV3zTwJrJdVZ4PczrW1VNveHWKL1KsEzYSKtPfxjiJ5CR1C2HRE3pHDY3rv33H113F8Fhezm35GQNN87eE\"}]}\n",
+    "witness": null,
+    "cache": null,
+    "now": 1780272000
+  },
+  "expect": {
+    "outcome": "rejected",
+    "reason": "entry-hash"
+  }
+}

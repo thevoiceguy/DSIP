@@ -4,7 +4,7 @@ A TypeScript implementation of DSIP, measured against the conformance vectors in
 It exists to test the project's second purpose: that the vector suite, not the Rust code, is the
 contract (`../impl/docs/dsip_poc_dev_plan.md`).
 
-**Tracks:** DSIP v0.8. Node ≥ 20. One runtime dependency (`ajv`, JSON Schema 2020-12); Ed25519 is `node:crypto`.
+**Tracks:** DSIP v0.9. Node ≥ 20. One runtime dependency (`ajv`, JSON Schema 2020-12); Ed25519 is `node:crypto`.
 
 ## The independence rule
 
@@ -32,16 +32,17 @@ python3 ../impl/tools/parity_ts.py       # Python harness vs this implementation
 
 ## Coverage
 
-**Every vector: 911 of 911**, no kind skipped. Python/TypeScript parity compares actual with actual on all of them.
+**Every vector: 1045 of 1045**, no kind skipped. Python/TypeScript parity compares actual with actual on all of them.
 
 | Kind | Vectors | Modules |
 |---|---|---|
-| `envelope`, `transport`, `dht` | 65, 13, 12 | `envelope.ts`, `did.ts`, `encoding.ts`, `dht.ts` |
-| `payload`, `semantic` | 97, 50 | `schema.ts`, `semantic.ts`, `registry.ts` |
-| `state` | 100 | `endpoint.ts`, `relay.ts`, `broadcast-state.ts`, `timers.ts` |
+| `envelope`, `transport`, `dht` | 65, 13, 18 | `envelope.ts`, `did.ts`, `encoding.ts`, `dht.ts` |
+| `payload`, `semantic` | 97, 79 | `schema.ts`, `semantic.ts`, `registry.ts` |
+| `state` | 108 | `endpoint.ts`, `relay.ts`, `broadcast-state.ts`, `timers.ts` |
 | `broadcast`, `trust`, `media-binding` | 21, 13, 42 | `broadcast.ts`, `trust.ts`, `binding.ts` |
 | `gateway` | 66 | `gateway.ts` |
-| `messaging` | 430 | `messaging/`: `message`, `object`, `rules`, `blobs`, `crypto` (stateless, 233); `device`, `sync`, `client`, `hub`, `mailbox` (the nine trace machines, 197) |
+| `messaging` | 457 | `messaging/`: `message`, `object`, `rules`, `blobs`, `crypto` (stateless); `device`, `sync`, `client`, `hub`, `mailbox` (the nine trace machines) |
+| `did-webvh` | 66 | `did/webvh.ts` (log verification, restricted JCS, I-JSON), `encoding.ts` |
 
 What this is not: a product. It has no transport, no MLS library and no storage — it is the protocol's *decisions*,
 which is what the vectors measure. The wire demos in `../impl/demos` remain the Rust implementation's.

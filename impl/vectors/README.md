@@ -29,6 +29,7 @@ vectors/
   dht/         Reachability hint records and §8.3 conflict rules
   broadcast/   Receiver-side verification of a publication record and its provenance (§22)
   trust/       The basis-of-verification lines a client shows (§18.1, §6.3) — exact text
+  did-webvh/   Resolving a did:webvh v1.0 log for DSIP (§7.2, §8.1, §8.4; v0.9, spec-gap 101)
 ```
 
 One vector per file. The vector id is its path relative to `vectors/` without
@@ -644,6 +645,140 @@ subject). Expect: envelope verdict plus, on accept, `"winner": "input" |
 "same-seq-live"` per the §8.3 rules (higher `seq` wins; expired records are
 invalid; same key + same `seq` + differing content → `same-seq-live`, which
 the profile treats as a warning — the existing record is kept).
+
+## Kind: `did-webvh`
+
+Resolving a `did:webvh` DID from its log (v0.9 §7.2, §8.4; spec-gap 101), per the did:webvh v1.0
+method specification (https://identity.foundation/didwebvh/v1.0/, DIF Ratified). Offline: the
+vector supplies the log text, so no HTTPS fetch takes place.
+
+**Input:** `{did, log, witness, cache, now}`.
+
+- `did`: the requested DID.
+- `log`: the `did.jsonl` text, one JSON entry per line. A single trailing `\n` is ignored.
+- `witness`: the `did-witness.json` text, or `null`.
+- `cache`: `{"versionId": "<n>-<hash>"}`, the highest versionId this resolver verified before for the
+  DID, or `null`.
+- `now`: integer Unix seconds, the resolver's clock.
+
+**Expect**, exactly one of:
+
+- `{"outcome": "resolved", "versionId", "versionTime", "document", "ttl", "cache"}`.
+  - `versionId` and `versionTime` are the last entry's.
+  - `document` is the last entry's `state`, byte-for-byte as JSON values.
+  - `ttl` is the active `ttl` parameter, an integer (default 3600).
+  - `cache` is the versionId to remember: the last entry's.
+- `{"outcome": "deactivated", "versionId", "cache"}`. The active parameters have `deactivated: true`,
+  so no document is returned (did:webvh §Deactivate). DSIP treats the DID as having no keys.
+- `{"outcome": "rejected", "reason"}`, with `reason` one of the tokens below.
+
+**Check order (normative for parity).** The first failing check gives the reason.
+
+1. **The requested DID** (`invalid-did`). It must:
+   - start `did:webvh:`;
+   - have at least a SCID and a domain;
+   - have a SCID of exactly 46 base58btc characters.
+
+   The domain is `host[%3Aport]`:
+   - `host` has at least two labels, each 1–63 characters of `[A-Za-z0-9-]`, and the labels are not
+     all digits (an IP address);
+   - `port` is 1–5 digits, 1–65535.
+
+   Each further segment matches `([A-Za-z0-9._~-]|%XX)+`, with either hex case. Its percent-decoded
+   bytes must be valid UTF-8. Once decoded, a segment must not be `.` or `..`, must not contain `/`,
+   `\` or NUL, and must not begin or end with a Unicode `White_Space` character: U+0009–U+000D,
+   U+0020, U+0085, U+00A0, U+1680, U+2000–U+200A, U+2028, U+2029, U+202F, U+205F or U+3000.
+   U+FEFF is not whitespace.
+2. **The log is not empty** (`log-malformed`). Then, for each line *n* in order, steps 3–11:
+3. **Structure** (`log-malformed`):
+   - the line is **I-JSON** (RFC 7493), as JCS requires:
+     - it parses as JSON;
+     - no object has a member name twice;
+     - no string or name contains a lone surrogate, escaped or not;
+     - every number is an integer from −(2^53−1) to 2^53−1, written without a fraction or exponent
+       (`-0` is allowed, and JCS writes it `0`);
+   - it is an object with **exactly** the keys `versionId`, `versionTime`, `parameters`, `state`,
+     `proof`;
+   - `state` is an object;
+   - `proof` is a non-empty array;
+   - `versionId` is a string.
+4. **versionId** matches `^[1-9][0-9]*-<base58btc>$`, and its number is *n* (`version-number`). The
+   part after the dash is a sha2-256 multihash, `0x12 0x20` plus 32 bytes (`entry-hash`).
+5. **versionTime** (`version-time`):
+   - matches `YYYY-MM-DDTHH:MM:SS[.1–9 digits](Z|+00:00)`;
+   - is strictly greater than the previous entry's;
+   - is not later than `now + 300` seconds.
+6. **Parameters** (`after-deactivation`, then `parameters`):
+   - An entry after one whose active parameters have `deactivated: true` gives
+     `after-deactivation`.
+   - Otherwise `parameters` must be an object holding only `method`, `scid`, `updateKeys`,
+     `nextKeyHashes`, `witness`, `watchers`, `portable`, `deactivated` and `ttl`.
+   - Entry 1 has `method`, `scid` and `updateKeys`. Later entries have no `scid`.
+   - `method` is exactly `did:webvh:1.0`. DSIP supports v1.0 only.
+   - `scid` is a sha2-256 multihash.
+   - The three lists are lists of strings, and every `updateKeys` member is an Ed25519 multikey.
+   - `portable` and `deactivated` are booleans. `ttl` is an integer from 0 to 2^31.
+   - There is no `portable: true` after entry 1.
+   - `witness` is `{}`, or exactly `{threshold, witnesses}`, where:
+     - `witnesses` is non-empty, and each element is an object whose `id` is a `did:key:` +
+       Ed25519 multikey;
+     - the ids are unique;
+     - `threshold` is an integer from 1 to the number of witnesses.
+
+   The active parameters then become the previous ones updated by this entry's. The defaults are
+   `nextKeyHashes []`, `witness {}`, `watchers []`, `portable false`, `deactivated false` and
+   `ttl 3600`.
+7. **SCID, entry 1 only** (`scid`).
+   - Take the entry without `proof` and set `versionId` to the string `{SCID}`.
+   - Serialise it to JSON text and replace every occurrence of the `scid` value with `{SCID}`.
+   - Parse it again and JCS-canonicalise it.
+   - `base58btc(0x12 0x20 ‖ sha256(bytes))` must equal `scid`. There is no multibase `z` prefix.
+8. **entryHash** (`entry-hash`). Take the entry without `proof`, with `versionId` replaced by the
+   predecessor: the SCID for entry 1, otherwise the previous entry's full versionId. Its JCS
+   canonicalisation must hash, as in step 7, to the part after the dash.
+9. **Pre-rotation** (`pre-rotation`). It applies when *n* > 1 and the previous active
+   `nextKeyHashes` is non-empty. The entry must then itself carry both `updateKeys` and
+   `nextKeyHashes`. For every one of its `updateKeys`, `base58btc(0x12 0x20 ‖ sha256(utf8(key)))`
+   must be in the previous `nextKeyHashes`.
+10. **Proofs** (`proof`, then `unauthorized-key`).
+    - The authorised keys are this entry's `updateKeys` for entry 1 or under pre-rotation, and
+      otherwise the previous active `updateKeys`.
+    - For each proof in order:
+      - Its `verificationMethod` must be `did:key:<mk>#<mk>` with identical parts; otherwise
+        `proof`.
+      - If `<mk>` is not authorised, skip the proof.
+      - Otherwise it must have `type: DataIntegrityProof`, `cryptosuite: eddsa-jcs-2022`,
+        `proofPurpose: assertionMethod` and a `z`+base58btc `proofValue`, and its Ed25519 signature
+        must verify (else `proof`). The signature is over
+        `sha256(JCS(proof without proofValue)) ‖ sha256(JCS(entry without proof))`.
+    - If no proof was by an authorised key, the reason is `unauthorized-key`.
+11. **state.id** (`identity`).
+    - It passes step 1, and its SCID equals entry 1's `scid`.
+    - If it differs from the previous entry's `state.id`, the active `portable` must be `true` and
+      `state.alsoKnownAs` must be a list containing the previous id.
+12. **The requested DID** has the log's SCID, and some entry's `state.id` equals it (`identity`).
+13. **Witnesses** (`witness`).
+    - The witness configuration for entry *n*:
+      - entry 1's active witness;
+      - an entry whose previous witness was `{}` takes its own active witness;
+      - otherwise the previous active witness.
+    - Every entry with a non-empty configuration needs `witness` to be non-null I-JSON. A text that is
+      not I-JSON counts as absent. Its records
+      are `[{versionId, proof: [...]}]`; records whose `versionId` is not in the log are ignored.
+    - A witness proof counts when its `verificationMethod` is `did:key:<mk>#<mk>` and its
+      eddsa-jcs-2022 proof verifies over the document `{"versionId": …}`.
+    - An entry is approved by the distinct witness ids, among its configuration's `witnesses`, that
+      have a valid proof for that entry or any later one. There must be at least `threshold`.
+14. **Cache** (`rollback`, then `fork`). Applies if `cache` is set and its `versionId` is a decimal number
+    without a leading zero, a `-`, then a non-empty remainder of any characters (line terminators
+    included), giving number *k*. Any other cache value is treated as absent:
+    - fewer than *k* entries gives `rollback`;
+    - an entry *k* whose versionId differs from the cached one gives `fork`.
+
+**JCS** is RFC 8785 restricted to the values these logs hold: objects, arrays, strings, integers,
+booleans and null. Object keys are sorted by their UTF-16 code units. There is no whitespace. A string escapes only `"`, `\\` and the
+control characters U+0000–U+001F: `\b \f \n \r \t` where they exist, otherwise `\u00xx` with
+lowercase hex. Everything else, non-ASCII included, is written as UTF-8.
 
 ## Spec-gap list (Impl decisions these vectors encode)
 
