@@ -10,8 +10,8 @@ contract (`../impl/docs/dsip_poc_dev_plan.md`).
 
 This code is written from three sources only:
 
-1. the spec text in `../v0.8/`,
-2. the JSON Schemas in `../v0.8/` (loaded in place at start-up, never copied),
+1. the spec text in `../v0.9/`,
+2. the JSON Schemas in `../v0.9/` (loaded in place at start-up, never copied),
 3. `../impl/vectors/README.md` and the vectors themselves.
 
 It is **never** written by reading `../impl/crates/` or the verdict logic in `../impl/tools/dsipvec/`.

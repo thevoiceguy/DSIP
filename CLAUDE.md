@@ -19,11 +19,11 @@ Full plan: `impl/docs/dsip_poc_dev_plan.md`. Read it before large changes.
 ## Repository map
 
 ```
-v0.5/ … v0.8/       Spec snapshots. v0.8 is current. NEVER edit v0.5, v0.6 or v0.7.
-v0.8/dsip-schemas…  Canonical JSON Schemas (draft 2020-12) + generate_schemas.py
-v0.8/dsip-messaging-schemas-draft/  Messaging Profile schema set (own generator)
+v0.5/ … v0.9/       Spec snapshots. v0.9 is current (draft). NEVER edit v0.5 … v0.8 (v0.8 is final at poc-v0.8.1).
+v0.9/dsip-schemas…  Canonical JSON Schemas (draft 2020-12) + generate_schemas.py
+v0.9/dsip-messaging-schemas-draft/  Messaging Profile schema set (own generator)
 impl/               PoC Cargo workspace (living code; tracks spec versions via
-                    git tags poc-v0.6, poc-v0.7, poc-v0.8, …, never via folder placement)
+                    git tags poc-v0.6, poc-v0.7, poc-v0.8, poc-v0.8.1, …, never via folder placement)
 impl/vectors/       Language-neutral JSON test vectors (envelope/ payload/
                     semantic/ state/ transport/ dht/ broadcast/ media-binding/
                     gateway/ trust/ messaging/)
@@ -80,7 +80,7 @@ shape checks. Never invert this.
    treat a DHT record, cache entry, or relay claim as authoritative.
 
 5. **Schemas are canonical in the spec folder.** Edit
-   `v0.8/…/generate_schemas.py`, never the generated schema files.
+   `v0.9/…/generate_schemas.py`, never the generated schema files.
    `dsip-schema` embeds schemas from the current spec folder at build time;
    the freshness check fails the build on drift. Regenerate after edits.
 
@@ -95,7 +95,7 @@ shape checks. Never invert this.
 
 - Every module, public type, and public function implementing normative
   behavior carries a doc comment (rustdoc; TSDoc in `impl-ts`) with a `Spec:`
-  line citing the v0.8 section (e.g. `Spec: §12.6`, `Spec: M§6.5`). Grep-able,
+  line citing the current (v0.9) section (e.g. `Spec: §12.6`, `Spec: M§6.5`). Grep-able,
   consistent format; `spec_lint.py --check` enforces the Rust module headers.
 - Where code resolves a choice the spec leaves open, add an `Impl:` line
   explaining the decision. `Spec:` = citation, `Impl:` = decision. Never mix.
@@ -114,9 +114,9 @@ shape checks. Never invert this.
 
 ```bash
 # Schemas: regenerate after editing the generator, then sanity-check
-python3 v0.8/dsip-schemas-v0.8-draft/dsip-schemas/generate_schemas.py v0.8/dsip-schemas-v0.8-draft/dsip-schemas/schemas
-python3 v0.8/dsip-schemas-v0.8-draft/dsip-schemas/validate_samples.py
-python3 v0.8/dsip-messaging-schemas-draft/generate_schemas.py v0.8/dsip-messaging-schemas-draft/schemas
+python3 v0.9/dsip-schemas-v0.9-draft/dsip-schemas/generate_schemas.py v0.9/dsip-schemas-v0.9-draft/dsip-schemas/schemas
+python3 v0.9/dsip-schemas-v0.9-draft/dsip-schemas/validate_samples.py
+python3 v0.9/dsip-messaging-schemas-draft/generate_schemas.py v0.9/dsip-messaging-schemas-draft/schemas
 
 # Vectors: regenerate + Python verdicts
 python3 impl/tools/generate_vectors.py
@@ -146,7 +146,7 @@ python3 impl/tools/dht_testnet.py --nodes 5
 pip installs in this environment need `--break-system-packages`.
 `impl/target/debug` grows without bound (it has filled the disk): `cargo clean --profile dev` when short of space.
 
-## Key spec sections (v0.8; numbering unchanged from v0.6) you will cite constantly
+## Key spec sections (v0.9; numbering unchanged from v0.6) you will cite constantly
 
 | Section | Topic |
 |---|---|
@@ -160,11 +160,11 @@ pip installs in this environment need `--break-system-packages`.
 | §15 | Reason codes: `category.condition`, category fallback |
 | §19.4 | First contact: introduction/grant |
 | §22 | Verified Broadcast profile |
-| B§2–B§8 | WebRTC Media Binding 1.0 (`v0.8/dsip-webrtc-media-binding-v0.8.md`) — cite as `B§n` |
-| G§n | Gateway Profile 1.0 (`v0.8/dsip-gateway-profile-v0.8.md`) — cite as `G§n` |
-| M§n | Messaging Profile 1.0 (`v0.8/dsip-messaging-profile-v0.8.md`) — cite as `M§n` |
-| R§n | RTP/SRTP Media Binding, draft (`v0.8/dsip-rtp-srtp-media-binding-v0.8-draft.md`) — cite as `R§n` |
-| — | DHT Reachability Hints Profile, draft (`v0.8/dsip-dht-hints-profile-v0.8-draft.md`) — no prefix of its own; cite core §8.3 / §8.5 |
+| B§2–B§8 | WebRTC Media Binding 1.0 (`v0.9/dsip-webrtc-media-binding-v0.9.md`) — cite as `B§n` |
+| G§n | Gateway Profile 1.0 (`v0.9/dsip-gateway-profile-v0.9.md`) — cite as `G§n` |
+| M§n | Messaging Profile 1.0 (`v0.9/dsip-messaging-profile-v0.9.md`) — cite as `M§n` |
+| R§n | RTP/SRTP Media Binding, draft (`v0.9/dsip-rtp-srtp-media-binding-v0.9-draft.md`) — cite as `R§n` |
+| — | DHT Reachability Hints Profile, draft (`v0.9/dsip-dht-hints-profile-v0.9-draft.md`) — no prefix of its own; cite core §8.3 / §8.5 |
 
 ## Semantic checks (post-schema, must-implement)
 
@@ -180,7 +180,7 @@ failure is reported is normative in `impl/vectors/README.md`.
 
 ## Things Claude should NOT do
 
-- Do not edit generated schema files, anything in `v0.5/`, `v0.6/` or `v0.7/`,
+- Do not edit generated schema files, anything in `v0.5/` … `v0.8/`,
   or renumber spec sections without an explicit request.
 - Do not resolve a spec ambiguity silently — implement a choice only alongside
   an `Impl:` comment and a `spec-gap` issue.

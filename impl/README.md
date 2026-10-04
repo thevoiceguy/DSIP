@@ -1,6 +1,6 @@
 # DSIP reference implementation (PoC)
 
-**Tracks:** DSIP Draft v0.8 + JSON Schema set v0.8 (tag `poc-v0.8` once green; v0.7 at `poc-v0.7`, v0.6 at `poc-v0.6`). Companion profiles: Gateway 1.0, Messaging 1.0 (`../v0.8/`). Plan: `docs/dsip_poc_dev_plan.md`.
+**Tracks:** DSIP Draft v0.9 + JSON Schema set v0.9 (`../v0.9/`; tag `poc-v0.9` once green). v0.8 final at `poc-v0.8.1` (first v0.8 suite `poc-v0.8`), v0.7 at `poc-v0.7`, v0.6 at `poc-v0.6`. Companion profiles: Gateway 1.0, Messaging 1.0. Plan: `docs/dsip_poc_dev_plan.md`.
 **Conformance contract:** `vectors/` (see `vectors/README.md`). Spec-gap issue drafts: `docs/spec-gaps.md`.
 
 ## Layout
