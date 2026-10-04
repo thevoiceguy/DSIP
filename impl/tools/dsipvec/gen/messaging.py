@@ -604,9 +604,11 @@ def grant(label="g1", scope=("dsip.message",), valid_until=NOW + 86400, frm=BOB,
 
 
 def welcome(label="w1", adder=CAROL, device=CPH, grant_=None, group=GROUP, hub=HUB_A, recipient=BOB, successor_of=None,
-            digest="d-welcome-1"):
+            digest="d-welcome-1", size=None):
     e = {"id": uid(label), "from": device, "adder_identity": adder, "recipient": recipient, "group": group, "hub": hub,
          "grant": grant_, "digest": digest}
+    if size is not None:
+        e["size"] = size
     if successor_of is not None:
         e["successor_of"] = successor_of
     return {"welcome": e}
@@ -621,8 +623,11 @@ def macc(to, label, cur=None, dup=False):
     return {"accepted": a}
 
 
-def hubdep(label, seq, cls="application", group=GROUP, frm=HUB_A, recipient=BOB):
-    return {"hub_deposit": {"id": uid(label), "from": frm, "recipient": recipient, "group": group, "seq": seq, "class": cls}}
+def hubdep(label, seq, cls="application", group=GROUP, frm=HUB_A, recipient=BOB, size=None):
+    e = {"id": uid(label), "from": frm, "recipient": recipient, "group": group, "seq": seq, "class": cls}
+    if size is not None:
+        e["size"] = size
+    return {"hub_deposit": e}
 
 
 def mailbox_vectors():
@@ -960,6 +965,78 @@ def mailbox_vectors():
                      ["M§5.5"], T, mbx_ctx(key_packages={BPH: {"one_time": 90, "last_resort": False}}), [
                          ({"kp_upload": {"id": uid("u1"), "device": BPH, "count": 20}}, [macc(BPH, "u1")],
                           ms(kps={BPH: {"one_time": 100, "last_resort": False}})),
+                     ]))
+
+    # --- owner quota (M§4.3 quota_bytes, M§4.4, M§14.3; spec-gap 99): a stored item's `size` counts against the
+    # owner's quota_bytes; a deposit that would exceed it is refused mailbox.quota-exceeded before anything is
+    # stored or registered. Redeliveries are never refused. Introductions are bounded by the §19.4 inbox instead.
+    def mq(items=(), groups=None, used=0):
+        return {**ms(items, groups), "used_bytes": used}
+    QJ_ = {GROUP: {"hub": HUB_A, "state": "joined"}}
+    Q = "mailbox.quota-exceeded"
+    G99 = ["M§4.4", "M§14.3"]
+    out.append(trace("mailbox-quota-refuses-a-deposit-that-would-exceed-it",
+                     "600 of 1,000 bytes used: a 500-byte item is refused, a 400-byte one fills the quota exactly.", G99, T,
+                     mbx_ctx(groups=QJ_, quota_bytes=1000), [
+                         (hubdep("h1", 1, size=600), [macc(HUB_A, "h1", c(1))], mq([c(1)], J, 600)),
+                         (hubdep("h2", 2, size=500), [err(HUB_A, "h2", Q)], mq([c(1)], J, 600)),
+                         (hubdep("h3", 2, size=400), [macc(HUB_A, "h3", c(2))], mq([c(1), c(2)], J, 1000)),
+                     ]))
+    out.append(trace("mailbox-quota-never-refuses-a-redelivery",
+                     "A full mailbox still acknowledges a hub's retry of an item it holds: nothing new is stored.", G99 + ["M§9.3"], T,
+                     mbx_ctx(groups=QJ_, quota_bytes=1000), [
+                         (hubdep("h1", 1, size=1000), [macc(HUB_A, "h1", c(1))], mq([c(1)], J, 1000)),
+                         (hubdep("h1r", 1, size=1000), [macc(HUB_A, "h1r", c(1), dup=True)], mq([c(1)], J, 1000)),
+                     ]))
+    out.append(trace("mailbox-quota-counts-archive-records",
+                     "Archive records are stored for the owner and count against the quota like any item.", G99 + ["M§12.2"], T,
+                     mbx_ctx(groups=QJ_, quota_bytes=1000), [
+                         (hubdep("h1", 1, size=900), [macc(HUB_A, "h1", c(1))], mq([c(1)], J, 900)),
+                         ({"archive": {"id": uid("ar1"), "device": BPH, "ref_group": GROUP, "ref_seq": 1, "size": 200}},
+                          [err(BPH, "ar1", Q)], mq([c(1)], J, 900)),
+                         ({"archive": {"id": uid("ar2"), "device": BPH, "ref_group": GROUP, "ref_seq": 1, "size": 100}},
+                          [macc(BPH, "ar2", c(2))], mq([c(1), c(2)], J, 1000)),
+                     ]))
+    out.append(trace("mailbox-quota-refused-welcome-registers-nothing",
+                     "A welcome too large for the remaining quota is refused and leaves no pending group behind.", G99 + ["M§6.6"], T,
+                     mbx_ctx(quota_bytes=500), [
+                         (welcome("w1", grant_=grant(), size=600), [err(CPH, "w1", Q)], mq([], {}, 0)),
+                         (welcome("w2", grant_=grant(), size=400, digest="d-welcome-2"), [macc(CPH, "w2", c(1))],
+                          mq([c(1)], P, 400)),
+                     ]))
+    out.append(trace("mailbox-quota-freed-when-queue-mode-items-leave",
+                     "In queue mode, an item every device has acknowledged is deleted and its bytes are free again.", G99, T,
+                     mbx_ctx(mode="queue", groups=QJ_, quota_bytes=1000), [
+                         (hubdep("h1", 1, size=600), [macc(HUB_A, "h1", c(1))], mq([c(1)], J, 600)),
+                         (hubdep("h2", 2, size=500), [err(HUB_A, "h2", Q)], mq([c(1)], J, 600)),
+                         ({"sync": {"id": uid("s1"), "device": BPH, "since": c(1), "ack_through": c(1)}},
+                          [{"items": {"to": BPH, "in_reply_to": uid("s1"), "cursors": [], "next": None}}], mq([c(1)], J, 600)),
+                         ({"sync": {"id": uid("s2"), "device": BLA, "since": c(1), "ack_through": c(1)}},
+                          [{"items": {"to": BLA, "in_reply_to": uid("s2"), "cursors": [], "next": None}}], mq([], J, 0)),
+                         (hubdep("h3", 2, size=500), [macc(HUB_A, "h3", c(2))], mq([c(2)], J, 500)),
+                     ]))
+    out.append(trace("mailbox-quota-survives-restart",
+                     "The quota and the bytes in use are durable: after a restart the same deposit is still refused.", G99 + ["M§9.3"], T,
+                     mbx_ctx(groups=QJ_, quota_bytes=1000), [
+                         (hubdep("h1", 1, size=700), [macc(HUB_A, "h1", c(1))], mq([c(1)], J, 700)),
+                         ({"restart": {}}, [], mq([c(1)], J, 700)),
+                         (hubdep("h2", 2, size=400), [err(HUB_A, "h2", Q)], mq([c(1)], J, 700)),
+                     ]))
+    out.append(trace("mailbox-quota-counts-the-group-info-a-deposit-would-replace",
+                     "Only the latest GroupInfo is kept, but the one a deposit would replace still counts while the deposit is "
+                     "checked: nothing is removed unless the deposit is accepted.", G99 + ["M§5.2"], T,
+                     mbx_ctx(groups=QJ_, quota_bytes=1000), [
+                         (hubdep("gi1", 1, cls="group-info", size=600), [macc(HUB_A, "gi1", c(1))], mq([c(1)], J, 600)),
+                         (hubdep("gi2", 2, cls="group-info", size=500), [err(HUB_A, "gi2", Q)], mq([c(1)], J, 600)),
+                         (hubdep("gi3", 2, cls="group-info", size=400), [macc(HUB_A, "gi3", c(2))], mq([c(2)], J, 400)),
+                     ]))
+    out.append(trace("mailbox-quota-does-not-apply-to-introductions",
+                     "Introductions are bounded by the §19.4 inbox, never by quota: refusing one would tell a stranger the "
+                     "recipient exists and is full. The held introduction's size is not counted.", G99 + ["§19.4"], T,
+                     mbx_ctx(quota_bytes=100, intro_limit=5, intro_window=3600, inbox_cap=16), [
+                         ({"first_contact": {"id": uid("i1"), "from": APH, "sender_identity": ALICE, "recipient": BOB,
+                                             "kind": "introduction", "expires_at": NOW + 604800, "size": 500}},
+                          [macc(APH, "i1", c(1))], mq([c(1)], {}, 0)),
                      ]))
     return out
 
@@ -1746,6 +1823,20 @@ def blob_vectors():
                    R, {"status": 400, "reason": "mailbox.blob-mismatch"}, body_size=482219))
     out.append(put("body-hash-mismatch-400", "A body whose SHA-256 differs from the authorized hash: 400 mailbox.blob-mismatch.",
                    R, {"status": 400, "reason": "mailbox.blob-mismatch"}, body_sha=other))
+    # owner quota (M§4.3 quota_bytes, M§14.3; spec-gap 99): checked from the authorized size, before the body is read
+    QM = lambda used: {**MBX, "quota_bytes": 1000000, "used_bytes": used}
+    R99 = R + ["M§4.3", "M§14.3"]
+    out.append(put("over-quota-507", "600,000 of 1,000,000 quota bytes used and 482,220 more authorized: 507 mailbox.quota-exceeded, "
+                   "refused before the body is read.", R99, {"status": 507, "reason": "mailbox.quota-exceeded"}, mbx=QM(600000)))
+    out.append(put("fills-quota-201", "An upload that fills the quota exactly is stored.", R99,
+                   {"status": 201, "accepted": acc()}, mbx=QM(517780)))
+    out.append(put("over-quota-before-body-check-507", "Quota is decided from the authorization, so it is reported before a body "
+                   "mismatch the server never reads.", R99, {"status": 507, "reason": "mailbox.quota-exceeded"},
+                   mbx=QM(600000), body_sha=other))
+    out.append(put("over-max-and-quota-413", "Over max_blob_bytes and over quota: the size bound comes first, 413.", R99,
+                   {"status": 413, "reason": "mailbox.object-too-large"}, mbx=QM(600000), size=1048577))
+    out.append(put("stored-hash-at-full-quota-200", "Re-uploading a stored hash stores nothing, so a full quota does not refuse it.",
+                   R99 + ["M§9.3"], {"status": 200, "accepted": acc(True)}, mbx=QM(1000000), stored=[sha]))
     out.append(mv("blob-get-stored-200", "GET of a stored hash returns its ciphertext; the hash is the capability.", ["M§8.4"],
                   {"check": "blob-get", "path_sha256": sha, "stored": [sha]}, {"status": 200}))
     out.append(mv("blob-get-unknown-404", "GET of a hash the mailbox does not hold: 404.", ["M§8.4"],

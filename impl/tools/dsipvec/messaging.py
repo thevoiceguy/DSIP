@@ -465,6 +465,8 @@ class Mailbox:
         self.admit = ctx.get("admit", "grant")
         self.pending_ttl = ctx.get("pending_group_ttl", 604800)
         self.pending_max = ctx.get("pending_group_max_items", 500)
+        # M§4.3 quota_bytes (spec-gap 99): None = unlimited; items carry the `size` their deposit declared
+        self.quota = ctx.get("quota_bytes")
         self.handover_wait = ctx.get("handover_wait", HANDOVER_WAIT_S)
         self.groups = {g: {"hub": r["hub"], "state": r["state"], "since": self.now, "items": 0}
                        for g, r in ctx.get("groups", {}).items()}
@@ -491,6 +493,13 @@ class Mailbox:
         return (isinstance(grant, dict) and grant.get("from") == target and grant.get("to") == grantee
                 and bool(MESSAGE_GRANT_SCOPES & set(grant.get("scope", [])))
                 and grant.get("valid_until", 0) > self.now and grant.get("id") not in self.revoked)
+
+    def _used(self) -> int:
+        return sum(it.get("size", 0) for it in self.items)
+
+    def _over_quota(self, e: dict) -> bool:
+        """spec-gap 99: would storing this deposit's `size` take the owner past quota_bytes?"""
+        return self.quota is not None and self._used() + e.get("size", 0) > self.quota
 
     def _store(self, cls: str, group: str, **extra) -> tuple[str, list]:
         if cls == "group-info":  # M§5.2: latest per group only
@@ -564,9 +573,11 @@ class Mailbox:
             for it in self.items:
                 if it["class"] == "welcome" and it["group"] == e["group"] and it.get("digest") == e["digest"]:
                     return [{"accepted": {"to": e["from"], "in_reply_to": e["id"], "cursor": it["cursor"], "duplicate": True}}]
+        if self._over_quota(e):
+            return self._error(e["from"], e["id"], "mailbox.quota-exceeded")
         if e["group"] not in self.groups:
             self.groups[e["group"]] = {"hub": e["hub"], "state": "pending", "since": self.now, "items": 0}
-        c, pushes = self._store("welcome", e["group"], digest=e.get("digest"))
+        c, pushes = self._store("welcome", e["group"], digest=e.get("digest"), size=e.get("size", 0))
         return [{"accepted": {"to": e["from"], "in_reply_to": e["id"], "cursor": c}}] + pushes
 
     def _hub_deposit(self, e: dict) -> list:
@@ -619,12 +630,14 @@ class Mailbox:
             return [{"accepted": acc}]
         if reg["state"] == "pending" and reg["items"] >= self.pending_max:
             return self._error(e["from"], e["id"], "mailbox.quota-exceeded")
+        if self._over_quota(e):
+            return out + self._error(e["from"], e["id"], "mailbox.quota-exceeded")
         reg["items"] += 1
         if late:
             prev["late"].append(seq)
         elif seq is not None:
             reg["high_seq"] = seq
-        c, pushes = self._store(e["class"], e["group"], seq=seq)
+        c, pushes = self._store(e["class"], e["group"], seq=seq, size=e.get("size", 0))
         return out + [{"accepted": {"to": e["from"], "in_reply_to": e["id"], "cursor": c}}] + pushes
 
     def _forward_failed(self, e: dict) -> list:
@@ -711,7 +724,9 @@ class Mailbox:
         key = (e["ref_group"], e["ref_seq"])
         if key in self.archived:
             return [{"accepted": {"to": dev, "in_reply_to": e["id"], "cursor": self.archived[key], "duplicate": True}}]
-        c, pushes = self._store("archive", e["ref_group"], depositor=dev)
+        if self._over_quota(e):
+            return self._error(dev, e["id"], "mailbox.quota-exceeded")
+        c, pushes = self._store("archive", e["ref_group"], depositor=dev, size=e.get("size", 0))
         self.archived[key] = c
         return [{"accepted": {"to": dev, "in_reply_to": e["id"], "cursor": c}}] + pushes
 
@@ -755,9 +770,10 @@ class Mailbox:
             "kp": self.kp, "revoked": sorted(self.revoked), "items": self.items, "counter": self.counter, "acks": self.acks,
             "archived": [[g, s, c] for (g, s), c in self.archived.items()], "intro_limit": self.intro_limit,
             "intro_window": self.intro_window, "inbox_cap": self.inbox_cap, "intro_log": self.intro_log,
-            "introductions_sent": self.introductions_sent}))
+            "introductions_sent": self.introductions_sent, "quota": self.quota}))
         for k in ("now", "owner", "devices", "mode", "admit", "pending_ttl", "pending_max", "handover_wait", "groups", "kp",
-                  "items", "counter", "acks", "intro_limit", "intro_window", "inbox_cap", "intro_log", "introductions_sent"):
+                  "items", "counter", "acks", "intro_limit", "intro_window", "inbox_cap", "intro_log", "introductions_sent",
+                  "quota"):
             setattr(self, k, state[k])
         self.serves, self.revoked = set(state["serves"]), set(state["revoked"])
         self.archived = {(g, s): c for g, s, c in state["archived"]}
@@ -767,7 +783,8 @@ class Mailbox:
     def snapshot(self) -> dict:
         return {"items": [it["cursor"] for it in self.items],
                 "groups": {g: r["state"] for g, r in sorted(self.groups.items())},
-                "key_packages": {dv: dict(k) for dv, k in sorted(self.kp.items())}}
+                "key_packages": {dv: dict(k) for dv, k in sorted(self.kp.items())},
+                **({"used_bytes": self._used()} if self.quota is not None else {})}
 
 
 # ---------------------------------------------------------------- tranche 2: client rules (M§6.5, M§7.2, M§7.5, M§10, M§11, M§13.2)
@@ -1778,6 +1795,11 @@ def blob_put(inp: dict) -> dict:
         return {"status": 400, "reason": "policy.blocked"}
     if p["size"] > mbx["max_blob_bytes"]:  # M§16
         return {"status": 413, "reason": "mailbox.object-too-large"}
+    # spec-gap 99: the owner's quota, from the authorized size before the body is read; a hash already stored stores
+    # nothing more, so it is never refused for quota (and is answered as the idempotent duplicate below)
+    if (mbx.get("quota_bytes") is not None and p["sha256"] not in inp.get("stored", [])
+            and mbx.get("used_bytes", 0) + p["size"] > mbx["quota_bytes"]):
+        return {"status": 507, "reason": "mailbox.quota-exceeded"}
     if req["body_size"] != p["size"] or req["body_sha256"] != p["sha256"]:  # M§5.6
         return {"status": 400, "reason": "mailbox.blob-mismatch"}
     if p["sha256"] in inp.get("stored", []):
