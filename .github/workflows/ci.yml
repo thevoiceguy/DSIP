@@ -128,7 +128,8 @@ jobs:
         working-directory: impl
       - name: revoking a device delegation
         # Self-verifying: the revoked device is disconnected, refused by its own and a foreign mailbox, removable by
-        # any member only after revocation, removed from its identity's groups with the archive key rotated.
+        # any member only after revocation, removed from its identity's groups with the archive key rotated; its last
+        # message, processed after the revocation, is unauthenticated and not shown (M§6.2).
         run: timeout 300 bash demos/revocation-demo.sh | tail -20
         working-directory: impl
       - name: concurrent commits
