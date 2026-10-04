@@ -1197,6 +1197,16 @@ The QUIC binding is not required for Core v1.0 conformance and MUST NOT be the o
 
 A future constrained-device profile (paired with DSIP-COSE, §10.1) MAY define a binding suited to CoAP/UDP-class environments, including its own reliability layer. Such a binding is a profile concern and does not alter the Core v1.0 requirement set.
 
+
+### 13.6 Relay Service Scope (v0.8, spec-gap 100)
+
+A relay *serves* an identity when it is that identity's designated relay: it holds store-and-forward envelopes for it (§13.3), forks invites to its devices (§12.7), and acts as its presence and broadcast authority (§9.3, §22). Discovery reaches a relay through the DID documents that name it (§8.1); no relay is required to carry traffic for identities that do not.
+
+- An **open** relay serves every identity whose device completes a verified `hello`.
+- A **private** relay serves a set of identities chosen by its operator. It MUST still accept a verified `hello` from any device, so that outside parties can reach the identities it serves, but it routes only envelopes to or from a served identity, holds envelopes only for served identities, and accepts `publish`, `unpublish` and `provenance` only from them and `subscribe` only for a served target. It refuses anything else with a signed `error` (`transport.routing-refused`, §13.2); an `introduction` it does not route is dropped silently (§19.4).
+- A relay MAY additionally refuse `hello` from devices of identities it does not serve. Such a *closed* deployment is conformant, but its identities cannot be reached from outside it.
+
+Serving is a relay's own policy: no relay is obliged to serve, forward for, or federate with any other party, and nothing in DSIP grants a relay authority over an identity it serves (§8.1 — the DID document remains the authority).
 ---
 
 ## 14. Answer Semantics and Media Timing
@@ -2337,7 +2347,7 @@ v0.8 is again written from an implementation. The reference implementation built
 
 Still open: spec-gap 26 (a DTMF carriage in `info`) is left for a later revision. *(Closed since by spec-gap 70, §12.12.)*
 
-Errata since the v0.8 snapshot, each marked in place with its spec-gap number: `media:dtmf` (§12.12; 70), the addressee of an introduction's outcome (§19.4; 74), the relay's `transport.no-response` (§12.4, §12.7, §15.4; 76), `bye` admitted for `gateway.unreachable`, `media.unsupported` and `session.timeout` (§15.4; 78), the single integrity mode (§22.3; 77), reason tokens on a terminal `notify` (§15.1, §15.4; 73), `session.answered-elsewhere` at the leg that answered (§12.4, §12.5; 75), relay routing by `to` with or without an attempt (§13.3; 82), the `bye` a late answer gets once the call has ended (§12.4, §12.7; 85), the relay never withholding an `answer` (§12.7, §13.3; 86), a reachability hint's age bounded by its own `expires_at` under a 3,600 s cap (§12.9, §8.5; 96), sealed bodies, extension `sealed-body/1.0` (§10.4, §20.7; 97), and bounded relay store-and-forward (§13.3; 99).
+Errata since the v0.8 snapshot, each marked in place with its spec-gap number: `media:dtmf` (§12.12; 70), the addressee of an introduction's outcome (§19.4; 74), the relay's `transport.no-response` (§12.4, §12.7, §15.4; 76), `bye` admitted for `gateway.unreachable`, `media.unsupported` and `session.timeout` (§15.4; 78), the single integrity mode (§22.3; 77), reason tokens on a terminal `notify` (§15.1, §15.4; 73), `session.answered-elsewhere` at the leg that answered (§12.4, §12.5; 75), relay routing by `to` with or without an attempt (§13.3; 82), the `bye` a late answer gets once the call has ended (§12.4, §12.7; 85), the relay never withholding an `answer` (§12.7, §13.3; 86), a reachability hint's age bounded by its own `expires_at` under a 3,600 s cap (§12.9, §8.5; 96), sealed bodies, extension `sealed-body/1.0` (§10.4, §20.7; 97), bounded relay store-and-forward (§13.3; 99), and relay service scope — open, private, closed (§13.6; 100).
 
 Every item above is pinned by vectors in the v0.8 conformance suite (737 vectors, Rust/Python parity).
 

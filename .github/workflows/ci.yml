@@ -95,6 +95,11 @@ jobs:
         working-directory: impl
       - name: speech and Opus tools for the voicemail demo
         run: sudo apt-get update -q && sudo apt-get install -y -q --no-install-recommends espeak-ng ffmpeg
+      - name: private relay (§13.6)
+        # Self-verifying: an outsider reaches the served identity live and queued; outsider-to-outsider refused; nothing
+        # held for an outsider; an introduction between outsiders dropped silently.
+        run: timeout 300 bash demos/private-relay-demo.sh | tail -12
+        working-directory: impl
       - name: messaging over the wire (two mailboxes, federated hub, real MLS)
         # Self-verifying: fails unless the MLS-encrypted text arrives live, after a disconnect, after a
         # device restart, after a crash between processing and commit (SQLite device state), and a
