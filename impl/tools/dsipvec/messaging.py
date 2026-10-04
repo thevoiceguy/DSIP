@@ -1159,7 +1159,7 @@ class HubOutage:
 
     def _answer(self, e: dict) -> list:
         reason = e.get("reason")
-        if reason == "mailbox.hub-unreachable":
+        if reason in ("mailbox.hub-unreachable", "mailbox.quota-exceeded"):  # spec-gap 99: a hub that cannot store
             return self._unreachable(e["id"])
         if e["id"] not in self.pending:
             return []

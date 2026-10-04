@@ -157,6 +157,18 @@ const HUB_TIMEOUT_S = 86400;
 /** Spec: §13.2 — reconnect backoff: 1 s doubling to a 60 s ceiling. */
 const BACKOFF_CEILING_S = 60;
 
+/**
+ * Whether a deposit's refusal reason means the hub is unavailable rather than a refusal of the item:
+ * `mailbox.hub-unreachable` (the mailbox could not hand it to the hub), or `mailbox.quota-exceeded`
+ * (the hub could not store it — a hub that cannot store is not ordering). A deposit with no answer
+ * counts the same; any other reason is a refusal.
+ *
+ * Spec: M§9.4 (How a client learns; spec-gap 72), M§9.3 (`accepted` means stored; spec-gap 99)
+ */
+function isHubOutageReason(reason: string | undefined): boolean {
+  return reason === "mailbox.hub-unreachable" || reason === "mailbox.quota-exceeded";
+}
+
 /** A group's outbox at a device. Spec: M§9.4 (spec-gap 72) */
 export class HubOutage implements Machine {
   private now: number;
@@ -210,7 +222,7 @@ export class HubOutage implements Machine {
       }
     } else {
       const answer = (e["answer"] ?? e["no_answer"]) as { id: string; reason?: string };
-      const outage = "no_answer" in e || answer.reason === "mailbox.hub-unreachable";
+      const outage = "no_answer" in e || isHubOutageReason(answer.reason);
       if (!this.pending.includes(answer.id) || this.state === "abandoned") {
         // nothing to do: an answer for something no longer in the outbox
       } else if (outage) {

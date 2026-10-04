@@ -1,0 +1,186 @@
+{
+  "vector": "messaging/hub-outage-storage-refusal-reaches-the-threshold",
+  "format": 1,
+  "kind": "messaging",
+  "description": "A hub that stays unable to store for hub_timeout is the successor trigger, as an unreachable one is.",
+  "spec_ref": [
+    "M§9.4",
+    "M§9.3",
+    "§13.2",
+    "M§7.5"
+  ],
+  "context": {
+    "component": "hub-outage",
+    "now": 1760000000,
+    "hub_timeout": 3600
+  },
+  "input": {
+    "check": "hub-outage-trace",
+    "steps": [
+      {
+        "event": {
+          "deposit": {
+            "id": "01K742SG00D93265YJRNSDN4ZD"
+          }
+        }
+      },
+      {
+        "event": {
+          "answer": {
+            "id": "01K742SG00D93265YJRNSDN4ZD",
+            "reason": "mailbox.quota-exceeded"
+          }
+        }
+      },
+      {
+        "event": {
+          "advance": 1
+        }
+      },
+      {
+        "event": {
+          "answer": {
+            "id": "01K742SG00D93265YJRNSDN4ZD",
+            "reason": "mailbox.quota-exceeded"
+          }
+        }
+      },
+      {
+        "event": {
+          "advance": 3598
+        }
+      },
+      {
+        "event": {
+          "answer": {
+            "id": "01K742SG00D93265YJRNSDN4ZD",
+            "reason": "mailbox.quota-exceeded"
+          }
+        }
+      },
+      {
+        "event": {
+          "advance": 1
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "forward": "01K742SG00D93265YJRNSDN4ZD"
+          }
+        ],
+        "state": {
+          "state": "up",
+          "pending": [
+            "01K742SG00D93265YJRNSDN4ZD"
+          ],
+          "attempt": 0,
+          "down_for": null,
+          "handover_attempt": 0
+        }
+      },
+      {
+        "emit": [
+          {
+            "retry_in": 1
+          }
+        ],
+        "state": {
+          "state": "down",
+          "pending": [
+            "01K742SG00D93265YJRNSDN4ZD"
+          ],
+          "attempt": 1,
+          "down_for": 0,
+          "handover_attempt": 0
+        }
+      },
+      {
+        "emit": [
+          {
+            "forward": "01K742SG00D93265YJRNSDN4ZD"
+          }
+        ],
+        "state": {
+          "state": "down",
+          "pending": [
+            "01K742SG00D93265YJRNSDN4ZD"
+          ],
+          "attempt": 1,
+          "down_for": 1,
+          "handover_attempt": 0
+        }
+      },
+      {
+        "emit": [
+          {
+            "retry_in": 2
+          }
+        ],
+        "state": {
+          "state": "down",
+          "pending": [
+            "01K742SG00D93265YJRNSDN4ZD"
+          ],
+          "attempt": 2,
+          "down_for": 1,
+          "handover_attempt": 0
+        }
+      },
+      {
+        "emit": [
+          {
+            "forward": "01K742SG00D93265YJRNSDN4ZD"
+          }
+        ],
+        "state": {
+          "state": "down",
+          "pending": [
+            "01K742SG00D93265YJRNSDN4ZD"
+          ],
+          "attempt": 2,
+          "down_for": 3599,
+          "handover_attempt": 0
+        }
+      },
+      {
+        "emit": [
+          {
+            "retry_in": 4
+          }
+        ],
+        "state": {
+          "state": "down",
+          "pending": [
+            "01K742SG00D93265YJRNSDN4ZD"
+          ],
+          "attempt": 3,
+          "down_for": 3599,
+          "handover_attempt": 0
+        }
+      },
+      {
+        "emit": [
+          {
+            "successor": {
+              "pending": [
+                "01K742SG00D93265YJRNSDN4ZD"
+              ]
+            }
+          }
+        ],
+        "state": {
+          "state": "abandoned",
+          "pending": [],
+          "attempt": 3,
+          "down_for": 3600,
+          "handover_attempt": 0
+        }
+      }
+    ]
+  }
+}
