@@ -2255,6 +2255,49 @@ queuing; the second implementation already complied. Vector
 that order). No spec text: emission order is the suite's contract, not the protocol's — two `cancel`s for different
 sessions mean the same in either order.
 
+## 99. M§4.3 / M§4.4 / M§5.6 / M§9 / core §13.3 — storage limits: what `accepted` promises, and how quota is counted
+
+**Status: decided 2026-10-04 (user: "yes to all four") — written into M§4.4, M§5.6, M§9.3 and core §13.3.** Raised by the
+user: "if a relay is storing users' messages until they can be sent, what happens when it runs out of space?"
+
+**Gap.** Four places where the profile assumes storage behaviour it never states.
+
+1. **`accepted` and durability.** Senders stop retrying on `accepted` (M§9.2–M§9.4; spec-gap 72's outbox), so a
+   mailbox that acknowledges an item it has not made durable loses it at the next restart while the sender believes it
+   delivered. The PoC did exactly that: `dsip-mailbox` logged `saving state failed` and carried on. Nothing in the
+   profile says `accepted` means "stored durably".
+2. **What `quota_bytes` counts** (M§4.3 advertises it; M§4.4 and M§14.3 say quota is `mailbox.quota-exceeded`): which
+   stored things count, when the check runs relative to the other refusals, whether a redelivery can be refused, and
+   whether introductions — which §19.4 requires to be indistinguishable from an ignoring recipient — are counted.
+3. **Blob uploads over quota.** The M§5.6 refusal table (spec-gap 48) has no row for quota.
+4. **Relay memory.** §13.3 bounds nothing globally; a per-recipient cap alone lets traffic to many recipients grow a
+   relay's store-and-forward memory without bound.
+
+**Choices made (PoC).**
+1. A deposit that stored a new item is acknowledged only after the mailbox state is written; if the write fails, the
+   step is rolled back and the deposit refused `mailbox.quota-exceeded` with `retry_after` (60 s), so the sender keeps it
+   pending. Proposed spec text (M§9): *"A service MUST NOT answer `accepted` for an item it has not stored durably; one
+   that cannot store refuses with `mailbox.quota-exceeded`."* Live check: with the mailbox's state directory unwritable
+   the fan-out was refused, and after it became writable the hub's retry delivered it exactly once.
+2. Quota counts the bytes of retained items (welcomes, hub fan-out, archive records) plus stored blobs. The check runs
+   after the duplicate checks — a redelivery is never refused — and after every other refusal of that deposit, before
+   anything is stored or registered; a `group-info` that would replace the previous one is checked with the previous one
+   still counted. Introductions are never counted or refused for quota (§19.4: they stay bounded by the inbox). Vectors:
+   `messaging/mailbox-quota-*` (8).
+3. `507 mailbox.quota-exceeded`, decided from the authorized size before the body is read, after `413`; a hash already
+   stored is never refused. Vectors: `messaging/blob-put-*quota*`, `blob-put-over-max-and-quota-413`,
+   `blob-put-stored-hash-at-full-quota-200`.
+4. Relays: a memory budget for queued envelopes across all recipients (`dsip-relay --queue-budget-bytes`, default 64
+   MiB), refused with a signed `transport.routing-refused` like the inbox cap (§13.3 forbids silent drops);
+   introductions are dropped silently at either bound (§19.4); a `cancel` for an invite still queued is never refused,
+   since it only shrinks the queue.
+
+**Open.** (a) **Known non-conformance:** M§9.3 now requires a hub, too, to store durably before `accepted`. The PoC hub
+does not yet: a sequenced item is fanned out at once and cannot simply be rolled back, so the fix is to persist the
+sequenced item before answering and fanning out, refusing `mailbox.quota-exceeded` if that write fails. (b) Whether `retry_after` on a
+storage refusal should be normative. (c) Relay store-and-forward is in memory, so a relay restart loses queued
+envelopes; §13.3 does not say whether that is acceptable.
+
 ## Already-flagged (schema README / plan §11)
 
 - §15.3 codec example uses bare strings; §16.2 defines objects (schemas follow §16.2).

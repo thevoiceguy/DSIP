@@ -6,7 +6,8 @@
  * redelivery and restarts — spec-gap 59), M§7.4 (following a hub move — spec-gaps 60 and 71), M§9.4
  * (`mailbox.hub-unreachable`, spec-gap 72), M§11.2 (ephemeral is pushed, never stored), M§12.2
  * (archive: first wins), M§14.1 / §19.4 (introductions and grants held for the owner — spec-gap 54),
- * M§14.2 (authorization of welcomes and KeyPackage fetches — spec-gap 46).
+ * M§14.2 (authorization of welcomes and KeyPackage fetches — spec-gap 46), M§4.3 / M§14.3 (`quota_bytes` —
+ * spec-gap 99; introductions and grants are never counted or refused for quota).
  *
  * Envelope verification has already happened; a trace presents grants and origins as verified facts.
  */
@@ -30,6 +31,8 @@ interface Item {
   depositor?: string;
   /** A welcome's MLS bytes, for recognising the hub's retry of it (spec-gap 66). */
   digest?: string;
+  /** Bytes counted against `quota_bytes` (Spec: M§4.3, M§14.3 — spec-gap 99); 0 when the deposit carried none. */
+  size: number;
 }
 
 interface Registration {
@@ -67,6 +70,8 @@ export interface MailboxContext {
   intro_window?: number;
   inbox_cap?: number;
   handover_wait?: number;
+  /** Spec: M§4.3 `quota_bytes`, M§14.3 (spec-gap 99) — absent means no quota is enforced. */
+  quota_bytes?: number;
 }
 
 /** One owner's mailbox. */
@@ -123,7 +128,9 @@ export class Mailbox implements Machine {
     }
     const groups: JsonObject = {};
     for (const [g, r] of this.groups) groups[g] = r.state;
-    return { emit: this.emit, state: { items: this.items.map((i) => i.cursor), groups, key_packages: structuredClone(this.keyPackages) as unknown as JsonObject } };
+    const state: JsonObject = { items: this.items.map((i) => i.cursor), groups, key_packages: structuredClone(this.keyPackages) as unknown as JsonObject };
+    if (this.ctx.quota_bytes !== undefined) state["used_bytes"] = this.usedBytes();
+    return { emit: this.emit, state };
   }
 
   // ---- helpers
@@ -137,10 +144,25 @@ export class Mailbox implements Machine {
   }
 
   /** Cursors are `c:` + 16 lowercase hex digits (Impl, vectors README). */
-  private store(item: Omit<Item, "cursor">): string {
+  private store(item: Omit<Item, "cursor" | "size">, size = 0): string {
     const cursor = `c:${(++this.counter).toString(16).padStart(16, "0")}`;
-    this.items.push({ cursor, ...item });
+    this.items.push({ cursor, ...item, size });
     return cursor;
+  }
+
+  /** Spec: M§4.3, M§14.3 (spec-gap 99) — the bytes of the retained items; durable, so it survives `restart`. */
+  private usedBytes(): number {
+    return this.items.reduce((n, i) => n + i.size, 0);
+  }
+
+  /**
+   * Whether storing `size` more bytes would exceed `quota_bytes`. Callers check it after their duplicate checks
+   * (a redelivery is never refused) and before anything is stored or registered.
+   *
+   * Spec: M§4.3, M§14.3 (spec-gap 99)
+   */
+  private overQuota(size: number): boolean {
+    return this.ctx.quota_bytes !== undefined && this.usedBytes() + size > this.ctx.quota_bytes;
   }
 
   /** M§5.4 `live`: push a new item to the bound devices, in device order, other than the one that deposited it. */
@@ -208,9 +230,12 @@ export class Mailbox implements Machine {
       }
     }
     if (r.state === "pending" && r.count >= this.ctx.pending_group_max_items) return this.error(from, id, "mailbox.quota-exceeded");
+    // spec-gap 99: after the duplicate checks and the pending-group bound, before anything is stored
+    const size = (d["size"] as number | undefined) ?? 0;
+    if (this.overQuota(size)) return this.error(from, id, "mailbox.quota-exceeded");
     // a mailbox keeps only the latest GroupInfo per group
     if (cls === "group-info") this.items = this.items.filter((i) => !(i.class === "group-info" && i.group === group));
-    const cursor = this.store({ class: cls, group, ...(seq !== null ? { seq } : {}) });
+    const cursor = this.store({ class: cls, group, ...(seq !== null ? { seq } : {}) }, size);
     r.count += 1;
     if (seq !== null) {
       r.seen.set(seq, cursor);
@@ -263,7 +288,10 @@ export class Mailbox implements Machine {
     const digest = w["digest"] as string | undefined;
     const known = digest !== undefined ? this.items.find((i) => i.class === "welcome" && i.group === group && i.digest === digest) : undefined;
     if (known !== undefined) return this.accepted(from, id, { cursor: known.cursor, duplicate: true });
-    const cursor = this.store({ class: "welcome", group, ...(digest !== undefined ? { digest } : {}) });
+    // spec-gap 99: refused before the welcome is stored or its group registered
+    const size = (w["size"] as number | undefined) ?? 0;
+    if (this.overQuota(size)) return this.error(from, id, "mailbox.quota-exceeded");
+    const cursor = this.store({ class: "welcome", group, ...(digest !== undefined ? { digest } : {}) }, size);
     if (!this.groups.has(group)) {
       this.groups.set(group, { hub: w["hub"] as string, state: "pending", since: this.now, count: 0, high: 0, seen: new Map() });
     }
@@ -370,7 +398,10 @@ export class Mailbox implements Machine {
     const first = this.archive.get(key);
     // every device may try; exactly one record is kept
     if (first !== undefined) return this.accepted(device, id, { cursor: first, duplicate: true });
-    const cursor = this.store({ class: "archive", group: a["ref_group"] as string, seq: a["ref_seq"] as number });
+    // spec-gap 99: an archive record counts against the quota like any item
+    const size = (a["size"] as number | undefined) ?? 0;
+    if (this.overQuota(size)) return this.error(device, id, "mailbox.quota-exceeded");
+    const cursor = this.store({ class: "archive", group: a["ref_group"] as string, seq: a["ref_seq"] as number }, size);
     this.archive.set(key, cursor);
     this.accepted(device, id, { cursor });
     this.push(cursor, device);

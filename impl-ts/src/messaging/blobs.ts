@@ -20,9 +20,10 @@ const MAX_REPLICATION_ATTEMPTS = 5;
  * (its payload and the delegating identity), or `null` when there was none that verified.
  *
  * Spec: M§5.6 — refusals are checked in this order so a server can refuse before reading a body.
+ * Spec: M§4.3, M§14.3 (spec-gap 99) — 507 `mailbox.quota-exceeded` after the 413 size bound.
  */
 export function blobPut(i: {
-  mailbox: { did: string; serves: string[]; max_blob_bytes: number };
+  mailbox: { did: string; serves: string[]; max_blob_bytes: number; quota_bytes?: number; used_bytes?: number };
   authorization: { identity: string; payload: JsonObject } | null;
   request: { path_sha256: string; body_size: number; body_sha256: string };
   stored: string[];
@@ -35,8 +36,15 @@ export function blobPut(i: {
   if (i.request.path_sha256 !== payload["sha256"]) return refuse(400, "policy.blocked");
   if ((payload["size"] as number) > i.mailbox.max_blob_bytes) return refuse(413, "mailbox.object-too-large");
   const accepted = { in_reply_to: payload["id"]! };
+  const already = i.stored.includes(i.request.path_sha256);
+  // M§4.3 `quota_bytes`, M§14.3 (spec-gap 99): decided from the authorized size, before the body is read;
+  // a stored hash stores nothing new, so it is never refused for quota
+  const quota = i.mailbox.quota_bytes;
+  if (quota !== undefined && !already && (i.mailbox.used_bytes ?? 0) + (payload["size"] as number) > quota) {
+    return refuse(507, "mailbox.quota-exceeded");
+  }
   // uploads are idempotent (M§9.3)
-  if (i.stored.includes(i.request.path_sha256)) return { status: 200, accepted: { ...accepted, duplicate: true } };
+  if (already) return { status: 200, accepted: { ...accepted, duplicate: true } };
   if (i.request.body_size !== payload["size"] || i.request.body_sha256 !== payload["sha256"]) return refuse(400, "mailbox.blob-mismatch");
   return { status: 201, accepted };
 }

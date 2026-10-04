@@ -230,6 +230,16 @@ every registered device has acknowledged them or `mls_retention_s` passes (RECOM
 Retention and quota never affect DID ownership (principle 2); `mailbox.quota-exceeded` refuses new
 deposits, it never deletes an identity.
 
+**What the quota counts** (spec-gap 99). `quota_bytes` bounds the bytes a mailbox holds for its owner: the
+retained items it stores (welcomes, hub fan-out, archive records) and the blobs on its blob endpoint
+(M§5.6). A deposit that would take the owner past it is refused `mailbox.quota-exceeded`, checked after
+every other refusal of that deposit and before anything is stored or registered, so a refused welcome
+leaves no pending group. A redelivery of an item already held (M§9.3) stores nothing and is never refused
+for quota. A `group-info` deposit is checked with the GroupInfo it would replace still counted: nothing is
+removed unless the deposit is accepted. Introductions and grants held for first contact (M§14.1) are
+neither counted nor refused for quota; they stay bounded by the §19.4 inbox, so a full mailbox reveals
+nothing about its owner to a stranger.
+
 ## M§5 Messages
 
 ### M§5.1 Common rules and the two-layer model
@@ -535,6 +545,7 @@ order, so a server can refuse before reading a body it will not keep:
 | `403` | `transport.unknown-recipient` | the delegating identity is not one this mailbox serves |
 | `400` | `policy.blocked` | the `{sha256}` in the URL differs from the envelope's |
 | `413` | `mailbox.object-too-large` | the authorized `size` exceeds `max_blob_bytes` |
+| `507` | `mailbox.quota-exceeded` | the authorized `size` would take the owner past `quota_bytes` (M§4.4), and the blob is not already stored (spec-gap 99) |
 | `400` | `mailbox.blob-mismatch` | the body's length or SHA-256 differs from the envelope's |
 
 A blob already stored under the same hash is answered `200` with `accepted` carrying
@@ -1146,6 +1157,13 @@ A sender that has not received `accepted` MUST re-deposit the **same** MLS messa
 re-encryption, in a fresh envelope. A hub that has already sequenced those bytes for the group
 answers `accepted` with the original `seq` and `duplicate: true`, and does not fan out again. Hubs
 MUST remember the digests of sequenced items for at least `mls_retention_s`.
+
+**`accepted` means stored** (spec-gap 99). `accepted` is where a sender stops retrying (M§9.2), so a
+service — a member mailbox storing an item for its owner, or a hub sequencing a deposit — MUST NOT answer
+`accepted` for an item it has not stored durably, such that it survives a restart of the service. A
+service that cannot store an item (its storage is full or failing) refuses the deposit with
+`mailbox.quota-exceeded` and SHOULD include `retry_after`; the sender keeps it pending and retries
+(M§9.3), as it does when the hub is unreachable (M§9.4).
 
 ### M§9.4 Hub unavailable
 
