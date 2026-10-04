@@ -2,10 +2,10 @@
 
 ## A Narrow Core for Trusted Real-Time Media Sessions
 
-**Version:** Draft v0.8
+**Version:** v0.8
 **Status:** Design Proposal
 **Editor:** James Ferris
-**Date:** September 2026
+**Date:** October 2026
 **Supersedes:** Draft v0.7
 **Companion documents:** WebRTC Media Binding 1.0 (`dsip-webrtc-media-binding-v0.8.md`); Gateway Profile 1.0 (`dsip-gateway-profile-v0.8.md`); Messaging Profile 1.0 (`dsip-messaging-profile-v0.8.md`, with its schema set `dsip-messaging-schemas-draft/`); RTP/SRTP Media Binding (draft, `dsip-rtp-srtp-media-binding-v0.8-draft.md`); DHT Hints Profile (draft, `dsip-dht-hints-profile-v0.8-draft.md`); JSON Schema set v0.8 (`dsip-schemas-v0.8-draft/`); conformance vectors (`impl/vectors/`, 737 vectors, Rust/Python parity)
 
@@ -493,11 +493,21 @@ DSIP describes `did:web` as:
 
 ### 8.5 DHTs and Decentralized Discovery
 
-DHT-based discovery is experimental for v1.0.
+A DSIP identity needs no DHT, registrar or directory to exist or to be trusted: it is a key (`did:key`) or a document its controller publishes (`did:web`, §7.2), and every record about it is signed by it (§8.1). What a DHT can add is **discovery**: finding where an identity can currently be reached when nothing else says so (a `did:key` has no document). DSIP uses a DHT for that and nothing more. It is an optional **hints tier** (§8.1 rule 6), specified by the DHT Reachability Hints Profile (draft companion).
 
-Risks include Sybil attacks, eclipse attacks, spam indexing, privacy leakage, poisoned routing records, and inconsistent availability.
+**What the hints tier guarantees by construction.**
 
-DHTs may be useful for censorship resistance or peer-to-peer reachability, but they are not the default authority mechanism in the first version.
+- **Integrity.** A hint is an envelope signed by the identity it describes. Every node verifies it (§10.2) before storing, forwarding or returning it, and the reader verifies it again. A hostile node cannot forge, alter or poison a hint, and a record that does not verify is refused at the first hop, so spam cannot be indexed. A reader collects every record returned for a key and selects by §8.3, never the first one to arrive.
+- **Bounded staleness.** A hint expires by its own `expires_at`, under a 3,600 s cap (§12.9; spec-gap 96). An older hint replayed loses to the higher `seq`.
+- **No authority.** A hint only chooses which signaling endpoint to dial. Identity, delegation and session security come from the session's own signed envelopes. A hint never overrides a DID document (§8.1) and is presented as hint-sourced.
+
+**What it does not guarantee.**
+
+- **Availability.** Nodes that control the part of the DHT near a key (Sybil and eclipse attacks) can withhold hints or serve stale but valid ones. They cannot forge one, so the worst case is failing to find an endpoint, never reaching the wrong one.
+- **Privacy.** Publishing a hint discloses the identity's current relay to anyone who knows its DID; looking one up discloses interest in that DID to the nodes near its key. Publishing is opt-in, and presence MUST NOT be published to the DHT (§9).
+- **A first contact with the overlay.** The bootstrap peers a node starts from are a point where a newcomer can be censored.
+
+DHT discovery is therefore optional, not the default. An identity whose DID document advertises a signaling endpoint needs none. A `did:key` identity may publish hints, or give its endpoint directly: in an introduction (§19.4), or in whatever contact exchange put the two parties in touch.
 
 ---
 
@@ -681,7 +691,7 @@ Message `id` values are **ULIDs** (26-character Crockford base32). ULIDs are tim
 
 ### 10.4 Sealed Bodies (extension `sealed-body/1.0`)
 
-*Errata since the v0.8 snapshot (spec-gap 97).* Envelopes are signed, not encrypted (§20.7): every relay that routes a session reads its SDP and trickled ICE candidates (the participants' IP addresses), display names, DTMF digits and policy, although no routing rule reads any of them. The extension `sealed-body/1.0` moves those fields into a ciphertext only the addressee can open, and leaves in clear everything a relay routes and tracks by. It protects bodies, not metadata: a relay still learns who talks to whom and when, because `hello` binds every connection to a device (§13.2).
+*(v0.8, spec-gap 97.)* Envelopes are signed, not encrypted (§20.7): every relay that routes a session reads its SDP and trickled ICE candidates (the participants' IP addresses), display names, DTMF digits and policy, although no routing rule reads any of them. The extension `sealed-body/1.0` moves those fields into a ciphertext only the addressee can open, and leaves in clear everything a relay routes and tracks by. It protects bodies, not metadata: a relay still learns who talks to whom and when, because `hello` binds every connection to a device (§13.2).
 
 **Sealable fields.** Only these, per type; every other field stays in clear.
 
@@ -2345,11 +2355,19 @@ v0.8 is again written from an implementation. The reference implementation built
 34. **`tel` claims** (§18.1, §24.2; spec-gap 25).
 35. **Statements** (§13.2, §20.7, §7.6; spec-gaps 33, 35, 40): profiles carry bulk data outside the signaling binding; what is end-to-end encrypted as of v0.8; identity-level profile secrets belong to the recovery model.
 
-Still open: spec-gap 26 (a DTMF carriage in `info`) is left for a later revision. *(Closed since by spec-gap 70, §12.12.)*
+36. **DTMF** (§12.12; spec-gap 70): `media:dtmf` in `dsip-info-about`. This closes spec-gap 26, which the first v0.8 text left open.
+37. **Relay forking and routing** (§12.4, §12.5, §12.7, §13.3, §15.4; spec-gaps 75, 76, 82, 85, 86): `session.answered-elsewhere` at the leg that answered; the relay's `transport.no-response` as the outcome of an attempt no leg answered or rejected; routing by `to` with or without an attempt; the `bye` a late answer gets once the call has ended; and a relay never withholding an `answer`.
+38. **Reason tokens** (§15.1, §15.4; spec-gaps 73, 78): reason tokens on a terminal `notify`; `bye` admitted for `gateway.unreachable`, `media.unsupported` and `session.timeout`.
+39. **First contact** (§19.4; spec-gap 74): who an introduction's outcome is addressed to.
+40. **Verified Broadcast** (§22.3; spec-gap 77): a single integrity mode for a statement that is not a transcode.
+41. **Reachability hints** (§8.5, §12.9; spec-gap 96): a hint's age is bounded by its own `expires_at` under a 3,600 s cap, not by the 300 s replay window, which had made every hint unusable five minutes after signing. §8.5 now states what the hints tier guarantees (integrity, bounded staleness, no authority) and what it does not (availability, privacy), in place of "experimental".
+42. **Sealed bodies** (§10.4, §20.7; spec-gap 97): the extension `sealed-body/1.0` encrypts SDP, ICE candidates, display names, DTMF and policy to the addressee, leaving in clear only what relays route by.
+43. **Storage limits** (§13.3; spec-gap 99): relays bound store-and-forward per recipient and in total and refuse beyond it, never dropping silently. The Messaging Profile's side (`accepted` means durably stored, what `quota_bytes` counts, the blob endpoint's `507`) is M§4.4, M§5.6, M§9.3 and M§9.4.
+44. **Relay service scope** (§13.6; spec-gap 100): open, private and closed relays; no relay is obliged to serve or forward for anyone.
 
-Errata since the v0.8 snapshot, each marked in place with its spec-gap number: `media:dtmf` (§12.12; 70), the addressee of an introduction's outcome (§19.4; 74), the relay's `transport.no-response` (§12.4, §12.7, §15.4; 76), `bye` admitted for `gateway.unreachable`, `media.unsupported` and `session.timeout` (§15.4; 78), the single integrity mode (§22.3; 77), reason tokens on a terminal `notify` (§15.1, §15.4; 73), `session.answered-elsewhere` at the leg that answered (§12.4, §12.5; 75), relay routing by `to` with or without an attempt (§13.3; 82), the `bye` a late answer gets once the call has ended (§12.4, §12.7; 85), the relay never withholding an `answer` (§12.7, §13.3; 86), a reachability hint's age bounded by its own `expires_at` under a 3,600 s cap (§12.9, §8.5; 96), sealed bodies, extension `sealed-body/1.0` (§10.4, §20.7; 97), bounded relay store-and-forward (§13.3; 99), and relay service scope — open, private, closed (§13.6; 100).
+The companion profiles were revised in place over the same period, each change marked with its spec-gap number: the Messaging Profile for spec-gaps 58–69, 71, 72, 80, 81, 83, 87, 88, 91, 92, 94, 95 and 99 (its Appendix M-B), the Gateway Profile for 78 and 79, and the DHT Reachability Hints draft for 96.
 
-Every item above is pinned by vectors in the v0.8 conformance suite (737 vectors, Rust/Python parity).
+Every item above is pinned by the v0.8 conformance suite (979 vectors; the Python harness, the Rust reference implementation and the independent TypeScript implementation agree on every one) except item 44, a relay's routing policy outside its state machine, which the reference relay's private-relay demo exercises.
 
 ---
 

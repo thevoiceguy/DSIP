@@ -2,9 +2,10 @@
 
 **Status:** Companion profile to DSIP v0.8 — normative 1.0 for a conformant DSIP↔SIP gateway
 (conformance piece `DSIP Gateway Profile 1.0`, §24.4). **Conformance:** the `gateway/` category of the DSIP vector suite
-(`impl/vectors/gateway/`, 53 vectors, Rust/Python parity) pins the reason tables (G§4), SDP
+(`impl/vectors/gateway/`, 66 vectors; the Python harness, the Rust reference implementation and an independent
+TypeScript implementation agree on every one) pins the reason tables (G§4), SDP
 mapping (G§6), caller claims (G§5), the downgrade rule (G§7) and the controller state machine
-(G§3). Resolves gateway spec-gaps 23–29 (`impl/docs/spec-gaps.md`).
+(G§3). Resolves gateway spec-gaps 23–29, revised in place for 78 and 79 (`impl/docs/spec-gaps.md`).
 **Editor's note:** written from the reference gateway (`impl/crates/dsip-gateway`,
 round-one host in `impl/crates/dsip-gateway/src/host`). Where this document and the code differ,
 this document wins and the code changes.

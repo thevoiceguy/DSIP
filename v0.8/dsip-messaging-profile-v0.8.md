@@ -1,11 +1,12 @@
 # DSIP Messaging Profile 1.0 — Unified Messaging, Mailboxes, and Voicemail
 
 **Status:** Companion profile to DSIP v0.8 — normative 1.0. This document was written *before* the
-reference implementation and then corrected by it: the `messaging/` vector category pins it
-(Rust/Python parity), the reference implementation runs it over the wire on real MLS and HPKE
+reference implementation and then corrected by it: the `messaging/` vector category (457 vectors)
+pins it, and the Python harness, the Rust reference implementation and an independent TypeScript
+implementation agree on every one; the reference implementation runs it over the wire on real MLS and HPKE
 (`impl/crates/dsip-messaging`, `dsip-mls`, `dsip-mailbox`), and every disagreement found on the way
 was resolved explicitly as a spec-gap (31–57, `impl/docs/spec-gaps.md`) whose disposition this text
-now states. Where the profile relies on the core, it relies on core v0.8 (delegation capabilities
+now states. Later findings revised it in place (Appendix M-B). Where the profile relies on the core, it relies on core v0.8 (delegation capabilities
 and revocation, §7.4; sealed introductions, §19.4; the `mailbox` reason category, §15).
 **Profile identifier:** `messaging/1.0`. **Conformance pieces:** `DSIP Messaging Profile 1.0`
 (clients) and `DSIP Mailbox 1.0` (mailbox and hub services) — M§18.
@@ -1784,3 +1785,30 @@ MLS itself is tested with the IETF MLS interoperability test vectors, not re-spe
    conversation groups.
 4. The tablet syncs from `null`. Archive records give it every conversation back to the retention
    horizon, and MLS items give it everything from its join onward.
+
+## Appendix M-B: Revisions within v0.8
+
+Each was found by the reference implementation, the second implementation or the differential fuzzer, pinned by
+vectors, and marked in place with its spec-gap number (`impl/docs/spec-gaps.md`).
+
+| spec-gap | sections | change |
+|---|---|---|
+| 58 | M§6.5 | what a member does when the hub refuses its commit |
+| 59 | M§6.5, M§6.6 | a restarted hub or mailbox, and redelivered fan-out |
+| 60 | M§7.4 | moving a group to another hub |
+| 61 | M§7.5 | successor groups: re-adding members, checking, converging |
+| 62 | M§6.8 | what an external commit may do, and who the joiner is |
+| 63 | M§13.3 | which devices send call events, and what the timeline does with them |
+| 64 | M§12.2 | which receipts are archived, and what restoring them does |
+| 65, 67 | M§8.4 rule 6 | replicating blobs to member mailboxes, and a replication that could not be made |
+| 66, 87, 94 | M§6.5 rule 5, M§6.6 | a welcome is a fan-out too: whose queue holds it, and how long it is "already held" |
+| 68 | M§12.2, M§10.5 | a device's own read watermark is history too |
+| 69 | M§6.5, M§6.8 | re-joining when a gap will not fill |
+| 71, 88, 95 | M§7.4 | a move whose old hub never finishes delivering: the handover wait, its expiry, and what "missing" means |
+| 72 | M§9.4 | the hub cannot be reached: the outbox, its backoff and the successor threshold |
+| 80 | M§5.2 | the deposit class field table |
+| 81 | M§6.5, M§7.4, M§14.1 | orders and scopes the traces never exercised |
+| 83 | M§6.5, M§8.5 | where a device starts counting a group's `seq` |
+| 91 | M§6.6, M§12.2 | what a pending group's expiry drops |
+| 92 | M§6.6 | which cursor a redelivery carries |
+| 99 | M§4.4, M§5.6, M§9.3, M§9.4 | storage limits: `accepted` means durably stored, what `quota_bytes` counts, `507` for blobs, a hub's storage refusal as an outage |
