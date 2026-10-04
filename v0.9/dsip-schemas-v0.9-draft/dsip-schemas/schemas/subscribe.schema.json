@@ -1,0 +1,242 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dsip.org/schema/1.0/subscribe.schema.json",
+  "title": "DSIP subscribe payload",
+  "description": "Soft-state subscription to presence or publication events (spec 9.3). expires_in 0 terminates; renewal is a fresh subscribe. Per-event lifetime caps (presence 3600, publication 86400) are semantic checks.",
+  "type": "object",
+  "properties": {
+    "dsip": {
+      "$ref": "#/$defs/versionBlock"
+    },
+    "type": {
+      "const": "subscribe"
+    },
+    "id": {
+      "$ref": "#/$defs/ulid"
+    },
+    "from": {
+      "$ref": "#/$defs/did"
+    },
+    "issued_at": {
+      "$ref": "#/$defs/timestamp"
+    },
+    "expires_at": {
+      "$ref": "#/$defs/timestamp"
+    },
+    "to": {
+      "$ref": "#/$defs/did"
+    },
+    "target": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Subject DID or stream_id being subscribed to. to= the authority answering for it."
+    },
+    "events": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9-]*$"
+      },
+      "description": "Registered event classes (dsip-subscription-event): presence, publication."
+    },
+    "expires_in": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 86400
+    },
+    "claims": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "description": "Optional VC presentations as authorization evidence."
+    },
+    "capability": {
+      "type": "string",
+      "maxLength": 2048,
+      "description": "Optional opaque authorization token previously issued by the target authority."
+    }
+  },
+  "required": [
+    "dsip",
+    "type",
+    "id",
+    "from",
+    "issued_at",
+    "expires_at",
+    "to",
+    "target",
+    "events",
+    "expires_in"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "ulid": {
+      "type": "string",
+      "pattern": "^[0-7][0-9A-HJKMNP-TV-Z]{25}$",
+      "description": "ULID (Crockford base32, 26 chars). Note: illustrative ids in spec prose (e.g. 01HZINVITEABC) are NOT valid ULIDs; conformant messages and test vectors use real ULIDs."
+    },
+    "did": {
+      "type": "string",
+      "pattern": "^did:[a-z0-9]+:[A-Za-z0-9.%_:-]+$",
+      "description": "Decentralized Identifier (DID Core syntax, method-specific validation out of scope here)."
+    },
+    "timestamp": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Integer Unix timestamp, seconds (payload rules, spec 11.3: no floating point)."
+    },
+    "versionToken": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+$"
+    },
+    "profileId": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*/\\d+\\.\\d+$",
+      "description": "Registered profile or extension identifier with version, e.g. interactive-media/1.0"
+    },
+    "versionBlock": {
+      "type": "object",
+      "properties": {
+        "core": {
+          "$ref": "#/$defs/versionToken"
+        },
+        "min_core": {
+          "$ref": "#/$defs/versionToken"
+        },
+        "profiles": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/profileId"
+          }
+        },
+        "extensions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/profileId"
+          }
+        },
+        "critical": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/profileId"
+          }
+        }
+      },
+      "required": [
+        "core",
+        "min_core",
+        "profiles",
+        "extensions",
+        "critical"
+      ],
+      "additionalProperties": false
+    },
+    "reasonToken": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*\\.[a-z][a-z0-9-]*$",
+      "description": "Namespaced reason token, category.condition (spec 13C). Registry membership is a semantic check, not a schema check; unknown conditions fall back per category."
+    },
+    "codecId": {
+      "type": "string",
+      "pattern": "^codec:(audio|video|text|application)/[a-z0-9.+-]+$"
+    },
+    "codec": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/codecId"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": true,
+      "description": "Codec descriptor. Normative form is an object with registered id plus codec-specific parameters (resolves the 14.2/15.3 draft inconsistency in favor of 14.2 objects)."
+    },
+    "transportId": {
+      "type": "string",
+      "pattern": "^transport:[a-z0-9-]+$"
+    },
+    "transportDescriptor": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/transportId"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": true
+    },
+    "mediaDescriptor": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "enum": [
+            "audio",
+            "video",
+            "text",
+            "application"
+          ]
+        },
+        "purpose": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$",
+          "description": "Registered media purpose, e.g. sign-language, caption (spec 20)."
+        },
+        "direction": {
+          "enum": [
+            "sendrecv",
+            "sendonly",
+            "recvonly",
+            "inactive"
+          ]
+        },
+        "codecs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/codec"
+          }
+        }
+      },
+      "required": [
+        "type",
+        "direction",
+        "codecs"
+      ],
+      "additionalProperties": true
+    },
+    "policy": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9_]*$"
+      },
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9-]*$"
+      },
+      "description": "Registered policy keys to registered policy values (spec 14.4). Registry membership is a semantic check."
+    },
+    "identityInfo": {
+      "type": "object",
+      "properties": {
+        "display_name": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "claims": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "description": "Unverified-by-default identity presentation; claims carry VC presentations (spec 17). Display fields are claims, not truth."
+    }
+  }
+}

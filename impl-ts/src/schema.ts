@@ -2,7 +2,7 @@
  * Payload shape validation against the normative JSON Schemas of the current spec folder.
  *
  * Spec: §10.3 (the schema files are normative for payload shape), §12.12 (`info.data` binding schemas).
- * Impl: schemas are read from `v0.8/…/schemas` at start-up rather than copied, so this
+ * Impl: schemas are read from `v0.9/…/schemas` at start-up rather than copied, so this
  * implementation cannot drift from the spec folder.
  */
 import { readdirSync, readFileSync } from "node:fs";
@@ -13,7 +13,7 @@ import type { ValidateFunction } from "ajv";
 import type { Json } from "./did.js";
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
-const CORE_SCHEMAS = join(REPO, "v0.8", "dsip-schemas-v0.8-draft", "dsip-schemas", "schemas");
+const CORE_SCHEMAS = join(REPO, "v0.9", "dsip-schemas-v0.9-draft", "dsip-schemas", "schemas");
 
 /** Schema files that are not message types. */
 const NOT_MESSAGES = new Set(["envelope", "message", "webrtc-info-data", "dtmf-info-data"]);

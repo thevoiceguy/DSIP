@@ -9,5 +9,5 @@ import { SchemaSet } from "../schema.js";
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 
-/** Compiled `v0.8/dsip-messaging-schemas-draft/schemas`. */
-export const messagingSchemas = new SchemaSet(join(REPO, "v0.8", "dsip-messaging-schemas-draft", "schemas"));
+/** Compiled `v0.9/dsip-messaging-schemas-draft/schemas`. */
+export const messagingSchemas = new SchemaSet(join(REPO, "v0.9", "dsip-messaging-schemas-draft", "schemas"));

@@ -441,7 +441,7 @@ Emissions: `send subscribe`, `{"ui":"notify","event","state"}`, `{"ui":"subscrip
 
 ## Kind: `media-binding`
 
-WebRTC Media Binding 1.0 (`v0.8/dsip-webrtc-media-binding-v0.8.md`) conformance, below the
+WebRTC Media Binding 1.0 (`v0.9/dsip-webrtc-media-binding-v0.9.md`) conformance, below the
 envelope pipeline: inputs are decoded payloads or event traces. `input.check` selects:
 
 | check | input | expect |
@@ -519,9 +519,9 @@ Details the table leaves out, all part of the contract:
 
 ## Kind: `messaging`
 
-DSIP Messaging Profile 1.0 (`v0.8/dsip-messaging-profile-v0.8.md`, cited `M§n`), tranche 1.
+DSIP Messaging Profile 1.0 (`v0.9/dsip-messaging-profile-v0.9.md`, cited `M§n`), tranche 1.
 Written **before** any implementation. The profile schema set is staged at
-`v0.8/dsip-messaging-schemas-draft/` (generated, freshness-checked like the core set). MLS is
+`v0.9/dsip-messaging-schemas-draft/` (generated, freshness-checked like the core set). MLS is
 abstracted: traces carry what a hub or mailbox observes (epoch, commit adds/removes, validity, a
 digest of the MLS bytes), just as relay traces abstract signatures. `input.check` selects:
 
