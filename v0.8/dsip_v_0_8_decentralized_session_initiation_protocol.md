@@ -493,11 +493,21 @@ DSIP describes `did:web` as:
 
 ### 8.5 DHTs and Decentralized Discovery
 
-DHT-based discovery is experimental for v1.0.
+A DSIP identity needs no DHT, registrar or directory to exist or to be trusted: it is a key (`did:key`) or a document its controller publishes (`did:web`, §7.2), and every record about it is signed by it (§8.1). What a DHT can add is **discovery**: finding where an identity can currently be reached when nothing else says so (a `did:key` has no document). DSIP uses a DHT for that and nothing more. It is an optional **hints tier** (§8.1 rule 6), specified by the DHT Reachability Hints Profile (draft companion).
 
-Risks include Sybil attacks, eclipse attacks, spam indexing, privacy leakage, poisoned routing records, and inconsistent availability.
+**What the hints tier guarantees by construction.**
 
-DHTs may be useful for censorship resistance or peer-to-peer reachability, but they are not the default authority mechanism in the first version.
+- **Integrity.** A hint is an envelope signed by the identity it describes. Every node verifies it (§10.2) before storing, forwarding or returning it, and the reader verifies it again. A hostile node cannot forge, alter or poison a hint, and a record that does not verify is refused at the first hop, so spam cannot be indexed. A reader collects every record returned for a key and selects by §8.3, never the first one to arrive.
+- **Bounded staleness.** A hint expires by its own `expires_at`, under a 3,600 s cap (§12.9; spec-gap 96). An older hint replayed loses to the higher `seq`.
+- **No authority.** A hint only chooses which signaling endpoint to dial. Identity, delegation and session security come from the session's own signed envelopes. A hint never overrides a DID document (§8.1) and is presented as hint-sourced.
+
+**What it does not guarantee.**
+
+- **Availability.** Nodes that control the part of the DHT near a key (Sybil and eclipse attacks) can withhold hints or serve stale but valid ones. They cannot forge one, so the worst case is failing to find an endpoint, never reaching the wrong one.
+- **Privacy.** Publishing a hint discloses the identity's current relay to anyone who knows its DID; looking one up discloses interest in that DID to the nodes near its key. Publishing is opt-in, and presence MUST NOT be published to the DHT (§9).
+- **A first contact with the overlay.** The bootstrap peers a node starts from are a point where a newcomer can be censored.
+
+DHT discovery is therefore optional, not the default. An identity whose DID document advertises a signaling endpoint needs none. A `did:key` identity may publish hints, or give its endpoint directly: in an introduction (§19.4), or in whatever contact exchange put the two parties in touch.
 
 ---
 
@@ -2350,7 +2360,7 @@ v0.8 is again written from an implementation. The reference implementation built
 38. **Reason tokens** (§15.1, §15.4; spec-gaps 73, 78): reason tokens on a terminal `notify`; `bye` admitted for `gateway.unreachable`, `media.unsupported` and `session.timeout`.
 39. **First contact** (§19.4; spec-gap 74): who an introduction's outcome is addressed to.
 40. **Verified Broadcast** (§22.3; spec-gap 77): a single integrity mode for a statement that is not a transcode.
-41. **Reachability hints** (§8.5, §12.9; spec-gap 96): a hint's age is bounded by its own `expires_at` under a 3,600 s cap, not by the 300 s replay window, which had made every hint unusable five minutes after signing.
+41. **Reachability hints** (§8.5, §12.9; spec-gap 96): a hint's age is bounded by its own `expires_at` under a 3,600 s cap, not by the 300 s replay window, which had made every hint unusable five minutes after signing. §8.5 now states what the hints tier guarantees (integrity, bounded staleness, no authority) and what it does not (availability, privacy), in place of "experimental".
 42. **Sealed bodies** (§10.4, §20.7; spec-gap 97): the extension `sealed-body/1.0` encrypts SDP, ICE candidates, display names, DTMF and policy to the addressee, leaving in clear only what relays route by.
 43. **Storage limits** (§13.3; spec-gap 99): relays bound store-and-forward per recipient and in total and refuse beyond it, never dropping silently. The Messaging Profile's side (`accepted` means durably stored, what `quota_bytes` counts, the blob endpoint's `507`) is M§4.4, M§5.6, M§9.3 and M§9.4.
 44. **Relay service scope** (§13.6; spec-gap 100): open, private and closed relays; no relay is obliged to serve or forward for anyone.
