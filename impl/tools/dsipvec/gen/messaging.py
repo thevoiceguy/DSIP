@@ -2474,6 +2474,31 @@ def hub_outage_vectors():
                          ({"advance": 1}, [{"forward": a}], snap("down", [a], 1, 1)),
                          (accepted("o-a"), [{"sent": a}], snap("up")),
                      ]))
+    full = lambda i: {"answer": {"id": uid(i), "reason": "mailbox.quota-exceeded"}}
+    out.append(trace("hub-outage-storage-refusal-is-an-outage",
+                     "A hub that cannot store the deposit (M§9.3, spec-gap 99) is unavailable to the sender: the item stays "
+                     "pending with the same backoff, later content queues behind it, and an accepted ends it and flushes.",
+                     refs, T, ctx, [
+                         (dep("o-a"), [{"forward": a}], snap("up", [a])),
+                         (full("o-a"), [{"retry_in": 1}], snap("down", [a], 1, 0)),
+                         (dep("o-b"), [{"queued": b}], snap("down", [a, b], 1, 0)),
+                         ({"advance": 1}, [{"forward": a}], snap("down", [a, b], 1, 1)),
+                         (full("o-a"), [{"retry_in": 2}], snap("down", [a, b], 2, 1)),
+                         ({"advance": 2}, [{"forward": a}], snap("down", [a, b], 2, 3)),
+                         (accepted("o-a"), [{"sent": a}, {"forward": b}], snap("up", [b])),
+                         (accepted("o-b"), [{"sent": b}], snap("up")),
+                     ]))
+    out.append(trace("hub-outage-storage-refusal-reaches-the-threshold",
+                     "A hub that stays unable to store for hub_timeout is the successor trigger, as an unreachable one is.",
+                     refs + ["M§7.5"], T, {**ctx, "hub_timeout": 3600}, [
+                         (dep("o-a"), [{"forward": a}], snap("up", [a])),
+                         (full("o-a"), [{"retry_in": 1}], snap("down", [a], 1, 0)),
+                         ({"advance": 1}, [{"forward": a}], snap("down", [a], 1, 1)),
+                         (full("o-a"), [{"retry_in": 2}], snap("down", [a], 2, 1)),
+                         ({"advance": 3598}, [{"forward": a}], snap("down", [a], 2, 3599)),
+                         (full("o-a"), [{"retry_in": 4}], snap("down", [a], 3, 3599)),
+                         ({"advance": 1}, [{"successor": {"pending": [a]}}], snap("abandoned", [], 3, 3600)),
+                     ]))
     out.append(trace("hub-outage-other-refusal-is-not-an-outage",
                      "A refusal for any other reason takes the item out of the outbox for its own handling (M§6.5 for a commit); "
                      "the hub is not down.", refs + ["M§6.5"], T, ctx, [

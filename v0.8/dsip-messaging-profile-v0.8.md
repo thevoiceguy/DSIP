@@ -1163,7 +1163,7 @@ service — a member mailbox storing an item for its owner, or a hub sequencing 
 `accepted` for an item it has not stored durably, such that it survives a restart of the service. A
 service that cannot store an item (its storage is full or failing) refuses the deposit with
 `mailbox.quota-exceeded` and SHOULD include `retry_after`; the sender keeps it pending and retries
-(M§9.3), as it does when the hub is unreachable (M§9.4).
+(M§9.3). A hub's storage refusal is, to the sender, the hub being unavailable (M§9.4).
 
 ### M§9.4 Hub unavailable
 
@@ -1176,7 +1176,10 @@ trigger of M§7.5.
 
 - **How a client learns.** A mailbox that cannot hand a forwarded deposit to the group's hub — the
   dial refused, the connection lost with the deposit in flight, or no endpoint known for the hub —
-  answers the device `mailbox.hub-unreachable` (M§16). A deposit with no answer at all counts the same.
+  answers the device `mailbox.hub-unreachable` (M§16). A deposit with no answer at all counts the same,
+  and so does `mailbox.quota-exceeded` for a deposit to the hub: a hub that cannot store is not ordering
+  (M§9.3; spec-gap 99). The outage's own backoff governs the retries; a `retry_after` on the refusal is
+  advisory and does not change it.
 - **The outage.** The hub is down for a group from the first such answer until an `accepted`. New
   content is encrypted at once and queued behind the pending items; the head is re-deposited as the
   same bytes (M§9.3) after 1 s, doubling to a 60 s ceiling (§13.2; a host adds jitter); an `accepted`

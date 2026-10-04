@@ -2292,11 +2292,17 @@ user: "if a relay is storing users' messages until they can be sent, what happen
    introductions are dropped silently at either bound (§19.4); a `cancel` for an invite still queued is never refused,
    since it only shrinks the queue.
 
-**Open.** (a) **Known non-conformance:** M§9.3 now requires a hub, too, to store durably before `accepted`. The PoC hub
-does not yet: a sequenced item is fanned out at once and cannot simply be rolled back, so the fix is to persist the
-sequenced item before answering and fanning out, refusing `mailbox.quota-exceeded` if that write fails. (b) Whether `retry_after` on a
-storage refusal should be normative. (c) Relay store-and-forward is in memory, so a relay restart loses queued
-envelopes; §13.3 does not say whether that is acceptable.
+**Hub durability (2026-10-04, closes the known non-conformance).** The reference hub saves a newly accepted item before
+answering the depositor or fanning out; if the write fails it restores the group's hub state (machine, public view,
+conversation, kept payload) and refuses `mailbox.quota-exceeded` with `retry_after`. To the sender a hub's storage
+refusal is the hub unavailable (M§9.4): the item stays pending under the outage backoff and counts toward
+`hub_timeout`. The backoff governs; `retry_after` is advisory and not an input to the outbox (a finding of the second
+implementation, which asked whether it replaces or floors the backoff). Vectors
+`messaging/hub-outage-storage-refusal-is-an-outage`, `-reaches-the-threshold`. Live check: the hub's state directory
+unwritable → Alice's message refused and kept PENDING (retry 1, 2, 4 s), sent once after recovery, received once.
+
+**Open (next revision).** Relay store-and-forward is in memory, so a relay restart loses queued envelopes; §13.3 does
+not say whether that is acceptable. (`retry_after` was decided: SHOULD on the refusal, advisory to the sender.)
 
 ## 100. core §13 — relay service scope: may a relay serve only some identities?
 

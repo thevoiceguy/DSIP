@@ -134,7 +134,7 @@ jobs:
       - name: concurrent commits
         # Self-verifying: a member committing from a stale epoch is refused (commit-conflict, stale-epoch), syncs past the
         # winning commit, re-proposes, and both members keep reading each other.
-        run: timeout 300 bash demos/commit-conflict-demo.sh | tail -25
+        run: timeout 300 bash demos/commit-conflict-demo.sh | tail -60
         working-directory: impl
       - name: mailbox and hub restarts
         # Self-verifying: a mailbox killed with a message waiting and a hub killed with fan-out queued both reload their

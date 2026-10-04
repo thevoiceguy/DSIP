@@ -1,0 +1,211 @@
+{
+  "vector": "messaging/hub-outage-storage-refusal-is-an-outage",
+  "format": 1,
+  "kind": "messaging",
+  "description": "A hub that cannot store the deposit (M§9.3, spec-gap 99) is unavailable to the sender: the item stays pending with the same backoff, later content queues behind it, and an accepted ends it and flushes.",
+  "spec_ref": [
+    "M§9.4",
+    "M§9.3",
+    "§13.2"
+  ],
+  "context": {
+    "component": "hub-outage",
+    "now": 1760000000
+  },
+  "input": {
+    "check": "hub-outage-trace",
+    "steps": [
+      {
+        "event": {
+          "deposit": {
+            "id": "01K742SG00D93265YJRNSDN4ZD"
+          }
+        }
+      },
+      {
+        "event": {
+          "answer": {
+            "id": "01K742SG00D93265YJRNSDN4ZD",
+            "reason": "mailbox.quota-exceeded"
+          }
+        }
+      },
+      {
+        "event": {
+          "deposit": {
+            "id": "01K742SG00JS05SXJN2KSK6DDV"
+          }
+        }
+      },
+      {
+        "event": {
+          "advance": 1
+        }
+      },
+      {
+        "event": {
+          "answer": {
+            "id": "01K742SG00D93265YJRNSDN4ZD",
+            "reason": "mailbox.quota-exceeded"
+          }
+        }
+      },
+      {
+        "event": {
+          "advance": 2
+        }
+      },
+      {
+        "event": {
+          "answer": {
+            "id": "01K742SG00D93265YJRNSDN4ZD"
+          }
+        }
+      },
+      {
+        "event": {
+          "answer": {
+            "id": "01K742SG00JS05SXJN2KSK6DDV"
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "forward": "01K742SG00D93265YJRNSDN4ZD"
+          }
+        ],
+        "state": {
+          "state": "up",
+          "pending": [
+            "01K742SG00D93265YJRNSDN4ZD"
+          ],
+          "attempt": 0,
+          "down_for": null,
+          "handover_attempt": 0
+        }
+      },
+      {
+        "emit": [
+          {
+            "retry_in": 1
+          }
+        ],
+        "state": {
+          "state": "down",
+          "pending": [
+            "01K742SG00D93265YJRNSDN4ZD"
+          ],
+          "attempt": 1,
+          "down_for": 0,
+          "handover_attempt": 0
+        }
+      },
+      {
+        "emit": [
+          {
+            "queued": "01K742SG00JS05SXJN2KSK6DDV"
+          }
+        ],
+        "state": {
+          "state": "down",
+          "pending": [
+            "01K742SG00D93265YJRNSDN4ZD",
+            "01K742SG00JS05SXJN2KSK6DDV"
+          ],
+          "attempt": 1,
+          "down_for": 0,
+          "handover_attempt": 0
+        }
+      },
+      {
+        "emit": [
+          {
+            "forward": "01K742SG00D93265YJRNSDN4ZD"
+          }
+        ],
+        "state": {
+          "state": "down",
+          "pending": [
+            "01K742SG00D93265YJRNSDN4ZD",
+            "01K742SG00JS05SXJN2KSK6DDV"
+          ],
+          "attempt": 1,
+          "down_for": 1,
+          "handover_attempt": 0
+        }
+      },
+      {
+        "emit": [
+          {
+            "retry_in": 2
+          }
+        ],
+        "state": {
+          "state": "down",
+          "pending": [
+            "01K742SG00D93265YJRNSDN4ZD",
+            "01K742SG00JS05SXJN2KSK6DDV"
+          ],
+          "attempt": 2,
+          "down_for": 1,
+          "handover_attempt": 0
+        }
+      },
+      {
+        "emit": [
+          {
+            "forward": "01K742SG00D93265YJRNSDN4ZD"
+          }
+        ],
+        "state": {
+          "state": "down",
+          "pending": [
+            "01K742SG00D93265YJRNSDN4ZD",
+            "01K742SG00JS05SXJN2KSK6DDV"
+          ],
+          "attempt": 2,
+          "down_for": 3,
+          "handover_attempt": 0
+        }
+      },
+      {
+        "emit": [
+          {
+            "sent": "01K742SG00D93265YJRNSDN4ZD"
+          },
+          {
+            "forward": "01K742SG00JS05SXJN2KSK6DDV"
+          }
+        ],
+        "state": {
+          "state": "up",
+          "pending": [
+            "01K742SG00JS05SXJN2KSK6DDV"
+          ],
+          "attempt": 0,
+          "down_for": null,
+          "handover_attempt": 0
+        }
+      },
+      {
+        "emit": [
+          {
+            "sent": "01K742SG00JS05SXJN2KSK6DDV"
+          }
+        ],
+        "state": {
+          "state": "up",
+          "pending": [],
+          "attempt": 0,
+          "down_for": null,
+          "handover_attempt": 0
+        }
+      }
+    ]
+  }
+}
