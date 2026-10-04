@@ -20,6 +20,7 @@ v0.9 is the current revision, assembled from v0.8 at tag `poc-v0.8.1`; `../v0.8/
 | `dsip-messaging-schemas-draft/` | Messaging Profile schema set | generated; unchanged |
 | `dsip-rtp-srtp-media-binding-v0.9-draft.md` | RTP/SRTP Media Binding | draft |
 | `dsip-dht-hints-profile-v0.9-draft.md` | DHT Reachability Hints Profile | draft |
+| `dsip-device-events-profile-v0.9-draft.md` | Device Events Profile (`device-events/0.1`), cited `E§n` | draft; `device-events/` vectors |
 
 No wire-format change so far: `dsip.core` stays `1.0`. Rule 7 of `CLAUDE.md` applies: each change lands as vectors
 first, then the three implementations, and `poc-v0.9` is tagged when all three agree on the v0.9 suite.

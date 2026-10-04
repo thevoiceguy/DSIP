@@ -1,0 +1,32 @@
+{
+  "vector": "device-events/trap-v2-trap-oid-not-string",
+  "format": 1,
+  "kind": "device-events",
+  "description": "snmpTrapOID.0's value must be a string.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "trap",
+    "trap": {
+      "version": "v2c",
+      "community": "public",
+      "varbinds": [
+        {
+          "oid": "1.3.6.1.2.1.1.3.0",
+          "type": "TimeTicks",
+          "value": "123400"
+        },
+        {
+          "oid": "1.3.6.1.6.3.1.1.4.1.0",
+          "type": "OBJECT IDENTIFIER",
+          "value": 3
+        }
+      ]
+    }
+  },
+  "expect": {
+    "error": "malformed-trap"
+  }
+}

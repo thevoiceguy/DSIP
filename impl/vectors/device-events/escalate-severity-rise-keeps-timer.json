@@ -1,0 +1,156 @@
+{
+  "vector": "device-events/escalate-severity-rise-keeps-timer",
+  "format": 1,
+  "kind": "device-events",
+  "description": "Rising from major to critical keeps the running timer.",
+  "spec_ref": [
+    "E§6"
+  ],
+  "context": {
+    "now": 0,
+    "escalation": {
+      "min_severity": "major",
+      "after_s": 300
+    }
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "report": {
+            "resource": "192.0.2.7/3",
+            "type": "link-down",
+            "qualifier": "",
+            "severity": "major",
+            "cleared": false
+          }
+        }
+      },
+      {
+        "event": {
+          "advance": 200
+        }
+      },
+      {
+        "event": {
+          "report": {
+            "resource": "192.0.2.7/3",
+            "type": "link-down",
+            "qualifier": "",
+            "severity": "critical",
+            "cleared": false
+          }
+        }
+      },
+      {
+        "event": {
+          "advance": 100
+        }
+      }
+    ]
+  },
+  "expect": [
+    {
+      "emit": [
+        {
+          "raised": {
+            "key": [
+              "192.0.2.7/3",
+              "link-down",
+              ""
+            ],
+            "severity": "major",
+            "reopened": false
+          }
+        }
+      ],
+      "alarms": [
+        {
+          "key": [
+            "192.0.2.7/3",
+            "link-down",
+            ""
+          ],
+          "severity": "major",
+          "cleared": false,
+          "operator": "none",
+          "count": 1,
+          "escalation_due": 300
+        }
+      ]
+    },
+    {
+      "emit": [],
+      "alarms": [
+        {
+          "key": [
+            "192.0.2.7/3",
+            "link-down",
+            ""
+          ],
+          "severity": "major",
+          "cleared": false,
+          "operator": "none",
+          "count": 1,
+          "escalation_due": 300
+        }
+      ]
+    },
+    {
+      "emit": [
+        {
+          "changed": {
+            "key": [
+              "192.0.2.7/3",
+              "link-down",
+              ""
+            ],
+            "severity": "critical"
+          }
+        }
+      ],
+      "alarms": [
+        {
+          "key": [
+            "192.0.2.7/3",
+            "link-down",
+            ""
+          ],
+          "severity": "critical",
+          "cleared": false,
+          "operator": "none",
+          "count": 2,
+          "escalation_due": 300
+        }
+      ]
+    },
+    {
+      "emit": [
+        {
+          "escalate": {
+            "key": [
+              "192.0.2.7/3",
+              "link-down",
+              ""
+            ],
+            "severity": "critical"
+          }
+        }
+      ],
+      "alarms": [
+        {
+          "key": [
+            "192.0.2.7/3",
+            "link-down",
+            ""
+          ],
+          "severity": "critical",
+          "cleared": false,
+          "operator": "none",
+          "count": 2,
+          "escalation_due": null
+        }
+      ]
+    }
+  ]
+}

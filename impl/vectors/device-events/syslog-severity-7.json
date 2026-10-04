@@ -1,0 +1,17 @@
+{
+  "vector": "device-events/syslog-severity-7",
+  "format": 1,
+  "kind": "device-events",
+  "description": "The default table: syslog severity 7 → not an alarm.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "syslog-severity",
+    "severity": 7
+  },
+  "expect": {
+    "severity": null
+  }
+}

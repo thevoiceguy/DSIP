@@ -1,0 +1,122 @@
+{
+  "vector": "device-events/escalate-cancelled-by-clear",
+  "format": 1,
+  "kind": "device-events",
+  "description": "A clear before after_s cancels the escalation.",
+  "spec_ref": [
+    "E§6"
+  ],
+  "context": {
+    "now": 0,
+    "escalation": {
+      "min_severity": "major",
+      "after_s": 300
+    }
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "report": {
+            "resource": "192.0.2.7/3",
+            "type": "link-down",
+            "qualifier": "",
+            "severity": "major",
+            "cleared": false
+          }
+        }
+      },
+      {
+        "event": {
+          "report": {
+            "resource": "192.0.2.7/3",
+            "type": "link-down",
+            "qualifier": "",
+            "severity": null,
+            "cleared": true
+          }
+        }
+      },
+      {
+        "event": {
+          "advance": 600
+        }
+      }
+    ]
+  },
+  "expect": [
+    {
+      "emit": [
+        {
+          "raised": {
+            "key": [
+              "192.0.2.7/3",
+              "link-down",
+              ""
+            ],
+            "severity": "major",
+            "reopened": false
+          }
+        }
+      ],
+      "alarms": [
+        {
+          "key": [
+            "192.0.2.7/3",
+            "link-down",
+            ""
+          ],
+          "severity": "major",
+          "cleared": false,
+          "operator": "none",
+          "count": 1,
+          "escalation_due": 300
+        }
+      ]
+    },
+    {
+      "emit": [
+        {
+          "cleared": {
+            "key": [
+              "192.0.2.7/3",
+              "link-down",
+              ""
+            ]
+          }
+        }
+      ],
+      "alarms": [
+        {
+          "key": [
+            "192.0.2.7/3",
+            "link-down",
+            ""
+          ],
+          "severity": "major",
+          "cleared": true,
+          "operator": "none",
+          "count": 2,
+          "escalation_due": null
+        }
+      ]
+    },
+    {
+      "emit": [],
+      "alarms": [
+        {
+          "key": [
+            "192.0.2.7/3",
+            "link-down",
+            ""
+          ],
+          "severity": "major",
+          "cleared": true,
+          "operator": "none",
+          "count": 2,
+          "escalation_due": null
+        }
+      ]
+    }
+  ]
+}

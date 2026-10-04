@@ -30,6 +30,7 @@ vectors/
   broadcast/   Receiver-side verification of a publication record and its provenance (§22)
   trust/       The basis-of-verification lines a client shows (§18.1, §6.3) — exact text
   did-webvh/   Resolving a did:webvh v1.0 log for DSIP (§7.2, §8.1, §8.4; v0.9, spec-gap 101)
+  device-events/ Device Events Profile draft (E§3–E§6): traps → events → alarms, the alarm list, escalation
 ```
 
 One vector per file. The vector id is its path relative to `vectors/` without
@@ -779,6 +780,88 @@ vector supplies the log text, so no HTTPS fetch takes place.
 booleans and null. Object keys are sorted by their UTF-16 code units. There is no whitespace. A string escapes only `"`, `\\` and the
 control characters U+0000–U+001F: `\b \f \n \r \t` where they exist, otherwise `\u00xx` with
 lowercase hex. Everything else, non-ASCII included, is written as UTF-8.
+
+## Kind: `device-events`
+
+Device Events Profile draft (`v0.9/dsip-device-events-profile-v0.9-draft.md`, cited `E§n`; spec-gap 103). There are two
+shapes: stateless checks (`input.check`) and alarm-list traces (`input.steps`).
+
+**`check: "trap"`** (E§3), with `input.trap`, outputs `{"snmp": {version, uptime, trap_oid, varbinds}}` or
+`{"error": "malformed-trap"}`. `varbinds` must be an array, and each element an object with string `oid` and
+`type` and a `value` (any JSON). Anything else is `malformed-trap`. The output copies exactly those three members of
+each, in order, and drops any other member.
+
+- **`version: "v1"`**, with `enterprise` and `agent_addr` (strings), `generic` (an integer from 0 to 6), `specific`
+  and `timestamp` (integers) and `varbinds`. Anything missing or of another type is `malformed-trap`.
+  - `uptime` is `timestamp`.
+  - `trap_oid` is `enterprise + ".0." + specific` when `generic` is 6, and otherwise
+    `"1.3.6.1.6.3.1.1.5." + (generic + 1)`.
+  - Two varbinds are appended in this order, each only if no varbind already has that OID:
+    - `{oid: "1.3.6.1.6.3.18.1.3.0", type: "IpAddress", value: agent_addr}`;
+    - `{oid: "1.3.6.1.6.3.1.1.4.3.0", type: "OBJECT IDENTIFIER", value: enterprise}`.
+- **`version: "v2c"` or `"v3"`.**
+  - Varbind 0 must have OID `1.3.6.1.2.1.1.3.0` and varbind 1 OID `1.3.6.1.6.3.1.1.4.1.0`; otherwise
+    `malformed-trap`.
+  - `uptime` is varbind 0's value, which must be a string of decimal digits not exceeding 2^53−1 (else
+    `malformed-trap`), read as an integer. `trap_oid` is varbind 1's value, which must be a string (else
+    `malformed-trap`).
+  - The remaining varbinds are kept in order.
+- Any other version is `malformed-trap`.
+- Finally, in every case, varbinds with OID `1.3.6.1.6.3.18.1.4.0` (`snmpTrapCommunity.0`) are removed. Any
+  `community` field in the input is never output.
+
+**`check: "syslog-severity"`**, with `severity` 0–7 and an optional `table` (string keys "0"–"7" overriding the
+default), outputs `{"severity": <token or null>}`. The default is 0–2 → `critical`, 3 → `major`, 4 → `warning`,
+5–7 → `null`.
+
+**`check: "map"`**, with `raw` (a `check: "trap"` output), `rules` and `source`:
+
+- Rules are tried in order. A rule matches when its `trap_oid` equals the raw `trap_oid` and, if it has
+  `varbind: {oid, value}`, some varbind has that OID and the same value compared as strings. The first match wins.
+- A `notify` rule, or no match, outputs `{"notify": true}`.
+- Otherwise the output is `{"alarm": {resource, type, qualifier: "", severity, cleared}}`:
+  - `cleared` is true for `clear`;
+  - `severity` is the rule's for `raise` (`null` if the rule has none), and `null` for `clear`;
+  - `resource` is `source`, or `source + "/" + value` of the first varbind whose OID equals the rule's
+    `resource_varbind` or starts with it plus `.`.
+
+**Traces** have context `{now, escalation?: {min_severity, after_s}}`. Each step has an `event` and an expect of
+`{"emit": [...], "alarms": [...]}`.
+
+`alarms` is sorted by key, the array `[resource, type, qualifier]` compared element by element. Each entry is
+`{key, severity, cleared, operator, count, escalation_due}`.
+
+Severity order is `indeterminate < warning < minor < major < critical`, and any other token orders as `indeterminate`.
+
+An alarm is **eligible** when all of these hold: the policy is set, it is not cleared, its operator state is `none`,
+it has not escalated since its last raise, and its severity ≥ `min_severity`. After every change, an eligible alarm
+with no timer gets `escalation_due = now + after_s`. An ineligible alarm has `null`. A running timer is kept while the
+alarm stays eligible.
+
+Events:
+
+- **`report: {resource, type, qualifier, severity, cleared}`.** Every report on an existing alarm adds 1 to `count`,
+  clears included.
+  - **Unknown key, not cleared:** create the alarm (count 1, operator `none`) and emit
+    `{"raised": {key, severity, reopened: false}}`.
+  - **Unknown key, cleared:** nothing.
+  - **Active, cleared report:** set cleared and emit `{"cleared": {key}}`.
+  - **Cleared alarm, cleared report:** nothing.
+  - **Cleared alarm, not-cleared report:** reopen it. Set the severity, operator `none` and not escalated, and emit
+    `{"raised": {key, severity, reopened: true}}`.
+  - **Active, same severity:** nothing.
+  - **Active, different severity:** emit `{"changed": {key, severity}}`.
+- **`ack: {alarm: {resource, type, qualifier}, state: "ack"|"closed", by}`.** A missing `qualifier` (here and in
+  reports) is `""`, and a missing `by` is emitted as `null`. Ignored for an unknown key, when the
+  operator state is already `closed`, or when it equals `state`. Otherwise set the operator state and emit
+  `{"operator": {key, state, by}}`.
+- **`heartbeat: {gateway, interval_s}`.** Records the gateway's interval and `last = now`. If the alarm
+  `[gateway, "dsip-gateway-silent", ""]` is active, apply a cleared report to it.
+- **`advance: n`.** Sets `now += n`. Then:
+  1. For each gateway, in order of gateway id (compared as strings), whose silence alarm is not active and where `now − last > 2 × interval_s`, apply the
+     report `{gateway, "dsip-gateway-silent", "", "major", not cleared}`.
+  2. For each alarm with `escalation_due ≤ now`, ordered by due time then key, emit `{"escalate": {key, severity}}`,
+     mark it escalated, and set `escalation_due` to `null`.
 
 ## Spec-gap list (Impl decisions these vectors encode)
 

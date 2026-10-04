@@ -13,8 +13,10 @@ Profile, `M§n` Messaging Profile, `R§n` RTP/SRTP Media Binding.
 | §2.1.2 | dsip-messaging/mls_wire.rs | — |
 | §2.2 | dsip-core/webvh.rs | — |
 | §3 | dsip-dht/node.rs | — |
+| §3.1 | dsip-events/lib.rs | — |
 | §4 | dsip-dht/node.rs, dsip-mailbox/bin/dsip-msg.rs | — |
 | §4.2.2 | dsip-gateway/host/sip_leg.rs | — |
+| §4.2.6 | dsip-events/lib.rs | — |
 | §5 | dsip-gateway/controller.rs | — |
 | §6 | dsip-session/lib.rs | — |
 | §6.3 | dsip-cli/console.rs, dsip-core/trust.rs, dsip-gateway/host/media.rs, dsip-gateway/host/sip_leg.rs, dsip-gateway/lib.rs | 9 vector(s): gateway/claims-attestation-a-verified, gateway/downgrade-error-none, gateway/downgrade-error-plain-trunk, gateway/downgrade-inbound-no-attestation, gateway/downgrade-outbound-asserted-srtp, gateway/downgrade-outbound-plain-trunk … |
@@ -176,6 +178,10 @@ Profile, `M§n` Messaging Profile, `R§n` RTP/SRTP Media Binding.
 | M§15.5 | dsip-messaging/mailbox.rs | 3 vector(s): messaging/blob-put-unserved-identity-403, messaging/mailbox-introduction-unknown-recipient-indistinguishable, messaging/mailbox-welcome-unknown-recipient |
 | M§16 | dsip-core/registry.rs, dsip-mailbox/verify.rs, dsip-mailbox/wire.rs, dsip-messaging/checks.rs, dsip-messaging/mailbox.rs | 6 vector(s): messaging/blob-put-over-max-413, messaging/deposit-unknown-class-refused, messaging/mailbox-config-unknown-mode-refused, messaging/mailbox-forward-hub-unreachable-answered, messaging/mailbox-key-package-fetch-none-available, messaging/mailbox-trace-config-unknown-mode-refused |
 | M§17 | dsip-messaging/checks.rs, dsip-messaging/mls_wire.rs | 11 vector(s): messaging/mls-extension-decode-eight-byte-length, messaging/mls-extension-decode-non-minimal-length, messaging/mls-extension-decode-trailing-bytes, messaging/mls-extension-decode-truncated-data, messaging/mls-extension-decode-truncated-header, messaging/mls-extension-decode-valid … |
+| E§3 | dsip-events/lib.rs | 23 vector(s): device-events/syslog-severity-0, device-events/syslog-severity-2, device-events/syslog-severity-3, device-events/syslog-severity-4, device-events/syslog-severity-5, device-events/syslog-severity-7 … |
+| E§4 | dsip-events/lib.rs | 7 vector(s): device-events/map-clear, device-events/map-first-rule-wins, device-events/map-raise-with-resource, device-events/map-raise-without-severity, device-events/map-resource-varbind-absent, device-events/map-unmatched-is-notify … |
+| E§5 | dsip-events/lib.rs | 10 vector(s): device-events/alarm-ack-then-closed-is-final, device-events/alarm-ack-unknown-ignored, device-events/alarm-ack-without-by, device-events/alarm-clear-unknown-creates-nothing, device-events/alarm-raise-repeat-clear, device-events/alarm-reraise-reopens-and-resets-ack … |
+| E§6 | dsip-events/lib.rs | 8 vector(s): device-events/alarm-unknown-severity-orders-lowest, device-events/escalate-again-after-reopen, device-events/escalate-below-threshold-never, device-events/escalate-cancelled-by-ack, device-events/escalate-cancelled-by-clear, device-events/escalate-order-by-due-then-key … |
 
 ## Headed sections cited by neither a module nor a vector
 
@@ -183,8 +189,9 @@ Numbered headings of each v0.9 document that no `Spec:` line or `spec_ref` names
 not cover its subsections here. Informative and scope sections are expected to appear; a normative one
 is a candidate for the next vector.
 
-- **Core** (`dsip_v_0_9_decentralized_session_initiation_protocol.md`): §1, §3.1, §3.2, §3.3, §5.1, §5.2, §5.3, §5.4, §5.5, §5.6, §5.7, §6.1, §6.2, §7.1, §7.7, §8, §8.2, §9, §9.1, §9.5, §10.1, §13, §13.4, §13.5, §14, §16, §16.1, §17.3, §17.4, §18, §18.3, §18.4, §19.2, §20, §20.1, §20.2, §20.3, §20.8, §21, §21.1, §21.2, §21.4, §23, §23.1, §23.2, §23.3, §24, §24.1, §24.2, §24.3, §24.4, §25, §25.2, §25.3, §25.4, §28, §29
+- **Core** (`dsip_v_0_9_decentralized_session_initiation_protocol.md`): §1, §3.2, §3.3, §5.1, §5.2, §5.3, §5.4, §5.5, §5.6, §5.7, §6.1, §6.2, §7.1, §7.7, §8, §8.2, §9, §9.1, §9.5, §10.1, §13, §13.4, §13.5, §14, §16, §16.1, §17.3, §17.4, §18, §18.3, §18.4, §19.2, §20, §20.1, §20.2, §20.3, §20.8, §21, §21.1, §21.2, §21.4, §23, §23.1, §23.2, §23.3, §24, §24.1, §24.2, §24.3, §24.4, §25, §25.2, §25.3, §25.4, §28, §29
 - **WebRTC Media Binding** (`dsip-webrtc-media-binding-v0.9.md`): B§3, B§3.2, B§4, B§5.3, B§6, B§9, B§10, B§11
 - **Gateway Profile** (`dsip-gateway-profile-v0.9.md`): G§1, G§2, G§3, G§3.1, G§3.2, G§4, G§4.1, G§4.2, G§6, G§8, G§10, G§11
 - **Messaging Profile** (`dsip-messaging-profile-v0.9.md`): M§2, M§2.1, M§2.2, M§2.3, M§3, M§4, M§4.1, M§6, M§6.10, M§7, M§9.5, M§10.1, M§12.5, M§15, M§15.1, M§15.2, M§15.3, M§15.6, M§18, M§19
 - **RTP/SRTP Media Binding** (`dsip-rtp-srtp-media-binding-v0.9-draft.md`): R§1, R§2, R§3, R§4, R§5, R§6, R§7
+- **Device Events Profile** (`dsip-device-events-profile-v0.9-draft.md`): E§1, E§2, E§7

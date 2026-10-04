@@ -164,6 +164,7 @@ pip installs in this environment need `--break-system-packages`.
 | G§n | Gateway Profile 1.0 (`v0.9/dsip-gateway-profile-v0.9.md`) — cite as `G§n` |
 | M§n | Messaging Profile 1.0 (`v0.9/dsip-messaging-profile-v0.9.md`) — cite as `M§n` |
 | R§n | RTP/SRTP Media Binding, draft (`v0.9/dsip-rtp-srtp-media-binding-v0.9-draft.md`) — cite as `R§n` |
+| E§n | Device Events Profile, draft (`v0.9/dsip-device-events-profile-v0.9-draft.md`) — cite as `E§n` |
 | — | DHT Reachability Hints Profile, draft (`v0.9/dsip-dht-hints-profile-v0.9-draft.md`) — no prefix of its own; cite core §8.3 / §8.5 |
 
 ## Semantic checks (post-schema, must-implement)

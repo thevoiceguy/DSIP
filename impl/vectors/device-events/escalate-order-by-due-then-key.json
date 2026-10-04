@@ -1,0 +1,169 @@
+{
+  "vector": "device-events/escalate-order-by-due-then-key",
+  "format": 1,
+  "kind": "device-events",
+  "description": "Several escalations due in one advance: by due time, then key.",
+  "spec_ref": [
+    "E§6"
+  ],
+  "context": {
+    "now": 0,
+    "escalation": {
+      "min_severity": "major",
+      "after_s": 300
+    }
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "report": {
+            "resource": "192.0.2.9/1",
+            "type": "link-down",
+            "qualifier": "",
+            "severity": "major",
+            "cleared": false
+          }
+        }
+      },
+      {
+        "event": {
+          "report": {
+            "resource": "192.0.2.7/3",
+            "type": "link-down",
+            "qualifier": "",
+            "severity": "major",
+            "cleared": false
+          }
+        }
+      },
+      {
+        "event": {
+          "advance": 300
+        }
+      }
+    ]
+  },
+  "expect": [
+    {
+      "emit": [
+        {
+          "raised": {
+            "key": [
+              "192.0.2.9/1",
+              "link-down",
+              ""
+            ],
+            "severity": "major",
+            "reopened": false
+          }
+        }
+      ],
+      "alarms": [
+        {
+          "key": [
+            "192.0.2.9/1",
+            "link-down",
+            ""
+          ],
+          "severity": "major",
+          "cleared": false,
+          "operator": "none",
+          "count": 1,
+          "escalation_due": 300
+        }
+      ]
+    },
+    {
+      "emit": [
+        {
+          "raised": {
+            "key": [
+              "192.0.2.7/3",
+              "link-down",
+              ""
+            ],
+            "severity": "major",
+            "reopened": false
+          }
+        }
+      ],
+      "alarms": [
+        {
+          "key": [
+            "192.0.2.7/3",
+            "link-down",
+            ""
+          ],
+          "severity": "major",
+          "cleared": false,
+          "operator": "none",
+          "count": 1,
+          "escalation_due": 300
+        },
+        {
+          "key": [
+            "192.0.2.9/1",
+            "link-down",
+            ""
+          ],
+          "severity": "major",
+          "cleared": false,
+          "operator": "none",
+          "count": 1,
+          "escalation_due": 300
+        }
+      ]
+    },
+    {
+      "emit": [
+        {
+          "escalate": {
+            "key": [
+              "192.0.2.7/3",
+              "link-down",
+              ""
+            ],
+            "severity": "major"
+          }
+        },
+        {
+          "escalate": {
+            "key": [
+              "192.0.2.9/1",
+              "link-down",
+              ""
+            ],
+            "severity": "major"
+          }
+        }
+      ],
+      "alarms": [
+        {
+          "key": [
+            "192.0.2.7/3",
+            "link-down",
+            ""
+          ],
+          "severity": "major",
+          "cleared": false,
+          "operator": "none",
+          "count": 1,
+          "escalation_due": null
+        },
+        {
+          "key": [
+            "192.0.2.9/1",
+            "link-down",
+            ""
+          ],
+          "severity": "major",
+          "cleared": false,
+          "operator": "none",
+          "count": 1,
+          "escalation_due": null
+        }
+      ]
+    }
+  ]
+}

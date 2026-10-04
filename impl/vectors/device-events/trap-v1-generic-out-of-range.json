@@ -1,0 +1,32 @@
+{
+  "vector": "device-events/trap-v1-generic-out-of-range",
+  "format": 1,
+  "kind": "device-events",
+  "description": "A v1 generic-trap of 7 is not a generic trap.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "trap",
+    "trap": {
+      "version": "v1",
+      "enterprise": "1.3.6.1.4.1.9999.1",
+      "agent_addr": "192.0.2.7",
+      "generic": 7,
+      "specific": 0,
+      "timestamp": 4200,
+      "community": "public",
+      "varbinds": [
+        {
+          "oid": "1.3.6.1.2.1.2.2.1.1.2",
+          "type": "Integer32",
+          "value": "2"
+        }
+      ]
+    }
+  },
+  "expect": {
+    "error": "malformed-trap"
+  }
+}

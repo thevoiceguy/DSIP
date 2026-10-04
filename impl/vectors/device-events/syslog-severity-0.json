@@ -1,0 +1,17 @@
+{
+  "vector": "device-events/syslog-severity-0",
+  "format": 1,
+  "kind": "device-events",
+  "description": "The default table: syslog severity 0 → critical.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "syslog-severity",
+    "severity": 0
+  },
+  "expect": {
+    "severity": "critical"
+  }
+}

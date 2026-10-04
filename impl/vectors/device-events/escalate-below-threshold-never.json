@@ -1,0 +1,184 @@
+{
+  "vector": "device-events/escalate-below-threshold-never",
+  "format": 1,
+  "kind": "device-events",
+  "description": "A minor alarm under min_severity major never escalates; rising to major starts the timer then.",
+  "spec_ref": [
+    "E§6"
+  ],
+  "context": {
+    "now": 0,
+    "escalation": {
+      "min_severity": "major",
+      "after_s": 300
+    }
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "report": {
+            "resource": "192.0.2.7/3",
+            "type": "link-down",
+            "qualifier": "",
+            "severity": "minor",
+            "cleared": false
+          }
+        }
+      },
+      {
+        "event": {
+          "advance": 500
+        }
+      },
+      {
+        "event": {
+          "report": {
+            "resource": "192.0.2.7/3",
+            "type": "link-down",
+            "qualifier": "",
+            "severity": "major",
+            "cleared": false
+          }
+        }
+      },
+      {
+        "event": {
+          "report": {
+            "resource": "192.0.2.7/3",
+            "type": "link-down",
+            "qualifier": "",
+            "severity": "minor",
+            "cleared": false
+          }
+        }
+      },
+      {
+        "event": {
+          "advance": 400
+        }
+      }
+    ]
+  },
+  "expect": [
+    {
+      "emit": [
+        {
+          "raised": {
+            "key": [
+              "192.0.2.7/3",
+              "link-down",
+              ""
+            ],
+            "severity": "minor",
+            "reopened": false
+          }
+        }
+      ],
+      "alarms": [
+        {
+          "key": [
+            "192.0.2.7/3",
+            "link-down",
+            ""
+          ],
+          "severity": "minor",
+          "cleared": false,
+          "operator": "none",
+          "count": 1,
+          "escalation_due": null
+        }
+      ]
+    },
+    {
+      "emit": [],
+      "alarms": [
+        {
+          "key": [
+            "192.0.2.7/3",
+            "link-down",
+            ""
+          ],
+          "severity": "minor",
+          "cleared": false,
+          "operator": "none",
+          "count": 1,
+          "escalation_due": null
+        }
+      ]
+    },
+    {
+      "emit": [
+        {
+          "changed": {
+            "key": [
+              "192.0.2.7/3",
+              "link-down",
+              ""
+            ],
+            "severity": "major"
+          }
+        }
+      ],
+      "alarms": [
+        {
+          "key": [
+            "192.0.2.7/3",
+            "link-down",
+            ""
+          ],
+          "severity": "major",
+          "cleared": false,
+          "operator": "none",
+          "count": 2,
+          "escalation_due": 800
+        }
+      ]
+    },
+    {
+      "emit": [
+        {
+          "changed": {
+            "key": [
+              "192.0.2.7/3",
+              "link-down",
+              ""
+            ],
+            "severity": "minor"
+          }
+        }
+      ],
+      "alarms": [
+        {
+          "key": [
+            "192.0.2.7/3",
+            "link-down",
+            ""
+          ],
+          "severity": "minor",
+          "cleared": false,
+          "operator": "none",
+          "count": 3,
+          "escalation_due": null
+        }
+      ]
+    },
+    {
+      "emit": [],
+      "alarms": [
+        {
+          "key": [
+            "192.0.2.7/3",
+            "link-down",
+            ""
+          ],
+          "severity": "minor",
+          "cleared": false,
+          "operator": "none",
+          "count": 3,
+          "escalation_due": null
+        }
+      ]
+    }
+  ]
+}

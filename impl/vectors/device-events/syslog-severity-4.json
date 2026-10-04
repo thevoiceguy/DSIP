@@ -1,0 +1,17 @@
+{
+  "vector": "device-events/syslog-severity-4",
+  "format": 1,
+  "kind": "device-events",
+  "description": "The default table: syslog severity 4 → warning.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "syslog-severity",
+    "severity": 4
+  },
+  "expect": {
+    "severity": "warning"
+  }
+}

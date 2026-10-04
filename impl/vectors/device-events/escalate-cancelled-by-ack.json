@@ -1,0 +1,126 @@
+{
+  "vector": "device-events/escalate-cancelled-by-ack",
+  "format": 1,
+  "kind": "device-events",
+  "description": "An ack before after_s cancels the escalation.",
+  "spec_ref": [
+    "E§6"
+  ],
+  "context": {
+    "now": 0,
+    "escalation": {
+      "min_severity": "major",
+      "after_s": 300
+    }
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "report": {
+            "resource": "192.0.2.7/3",
+            "type": "link-down",
+            "qualifier": "",
+            "severity": "critical",
+            "cleared": false
+          }
+        }
+      },
+      {
+        "event": {
+          "ack": {
+            "alarm": {
+              "resource": "192.0.2.7/3",
+              "type": "link-down",
+              "qualifier": ""
+            },
+            "state": "ack",
+            "by": "did:web:noc.example:users:ann"
+          }
+        }
+      },
+      {
+        "event": {
+          "advance": 600
+        }
+      }
+    ]
+  },
+  "expect": [
+    {
+      "emit": [
+        {
+          "raised": {
+            "key": [
+              "192.0.2.7/3",
+              "link-down",
+              ""
+            ],
+            "severity": "critical",
+            "reopened": false
+          }
+        }
+      ],
+      "alarms": [
+        {
+          "key": [
+            "192.0.2.7/3",
+            "link-down",
+            ""
+          ],
+          "severity": "critical",
+          "cleared": false,
+          "operator": "none",
+          "count": 1,
+          "escalation_due": 300
+        }
+      ]
+    },
+    {
+      "emit": [
+        {
+          "operator": {
+            "key": [
+              "192.0.2.7/3",
+              "link-down",
+              ""
+            ],
+            "state": "ack",
+            "by": "did:web:noc.example:users:ann"
+          }
+        }
+      ],
+      "alarms": [
+        {
+          "key": [
+            "192.0.2.7/3",
+            "link-down",
+            ""
+          ],
+          "severity": "critical",
+          "cleared": false,
+          "operator": "ack",
+          "count": 1,
+          "escalation_due": null
+        }
+      ]
+    },
+    {
+      "emit": [],
+      "alarms": [
+        {
+          "key": [
+            "192.0.2.7/3",
+            "link-down",
+            ""
+          ],
+          "severity": "critical",
+          "cleared": false,
+          "operator": "ack",
+          "count": 1,
+          "escalation_due": null
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,53 @@
+{
+  "vector": "device-events/trap-v1-generic-linkdown",
+  "format": 1,
+  "kind": "device-events",
+  "description": "An SNMPv1 linkDown (generic 2) → snmpTrapOID linkDown; snmpTrapAddress.0 and snmpTrapEnterprise.0 appended; the community is not carried (RFC 3584 §3.1).",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "trap",
+    "trap": {
+      "version": "v1",
+      "enterprise": "1.3.6.1.4.1.9999.1",
+      "agent_addr": "192.0.2.7",
+      "generic": 2,
+      "specific": 0,
+      "timestamp": 4200,
+      "community": "public",
+      "varbinds": [
+        {
+          "oid": "1.3.6.1.2.1.2.2.1.1.2",
+          "type": "Integer32",
+          "value": "2"
+        }
+      ]
+    }
+  },
+  "expect": {
+    "snmp": {
+      "version": "v1",
+      "uptime": 4200,
+      "trap_oid": "1.3.6.1.6.3.1.1.5.3",
+      "varbinds": [
+        {
+          "oid": "1.3.6.1.2.1.2.2.1.1.2",
+          "type": "Integer32",
+          "value": "2"
+        },
+        {
+          "oid": "1.3.6.1.6.3.18.1.3.0",
+          "type": "IpAddress",
+          "value": "192.0.2.7"
+        },
+        {
+          "oid": "1.3.6.1.6.3.1.1.4.3.0",
+          "type": "OBJECT IDENTIFIER",
+          "value": "1.3.6.1.4.1.9999.1"
+        }
+      ]
+    }
+  }
+}

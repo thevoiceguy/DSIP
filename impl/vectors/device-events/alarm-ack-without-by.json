@@ -1,0 +1,98 @@
+{
+  "vector": "device-events/alarm-ack-without-by",
+  "format": 1,
+  "kind": "device-events",
+  "description": "An acknowledgement with no `by`: emitted as null.",
+  "spec_ref": [
+    "E§5"
+  ],
+  "context": {
+    "now": 0
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "report": {
+            "resource": "192.0.2.7/3",
+            "type": "link-down",
+            "qualifier": "",
+            "severity": "major",
+            "cleared": false
+          }
+        }
+      },
+      {
+        "event": {
+          "ack": {
+            "alarm": {
+              "resource": "192.0.2.7/3",
+              "type": "link-down"
+            },
+            "state": "ack"
+          }
+        }
+      }
+    ]
+  },
+  "expect": [
+    {
+      "emit": [
+        {
+          "raised": {
+            "key": [
+              "192.0.2.7/3",
+              "link-down",
+              ""
+            ],
+            "severity": "major",
+            "reopened": false
+          }
+        }
+      ],
+      "alarms": [
+        {
+          "key": [
+            "192.0.2.7/3",
+            "link-down",
+            ""
+          ],
+          "severity": "major",
+          "cleared": false,
+          "operator": "none",
+          "count": 1,
+          "escalation_due": null
+        }
+      ]
+    },
+    {
+      "emit": [
+        {
+          "operator": {
+            "key": [
+              "192.0.2.7/3",
+              "link-down",
+              ""
+            ],
+            "state": "ack",
+            "by": null
+          }
+        }
+      ],
+      "alarms": [
+        {
+          "key": [
+            "192.0.2.7/3",
+            "link-down",
+            ""
+          ],
+          "severity": "major",
+          "cleared": false,
+          "operator": "ack",
+          "count": 1,
+          "escalation_due": null
+        }
+      ]
+    }
+  ]
+}

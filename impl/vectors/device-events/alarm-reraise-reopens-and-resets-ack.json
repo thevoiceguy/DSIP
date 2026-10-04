@@ -1,0 +1,178 @@
+{
+  "vector": "device-events/alarm-reraise-reopens-and-resets-ack",
+  "format": 1,
+  "kind": "device-events",
+  "description": "spec-gap 103: a re-raise after a clear reopens the same alarm and returns its operator state to none.",
+  "spec_ref": [
+    "E§5"
+  ],
+  "context": {
+    "now": 0
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "report": {
+            "resource": "192.0.2.7/3",
+            "type": "link-down",
+            "qualifier": "",
+            "severity": "major",
+            "cleared": false
+          }
+        }
+      },
+      {
+        "event": {
+          "ack": {
+            "alarm": {
+              "resource": "192.0.2.7/3",
+              "type": "link-down",
+              "qualifier": ""
+            },
+            "state": "ack",
+            "by": "did:web:noc.example:users:ann"
+          }
+        }
+      },
+      {
+        "event": {
+          "report": {
+            "resource": "192.0.2.7/3",
+            "type": "link-down",
+            "qualifier": "",
+            "severity": null,
+            "cleared": true
+          }
+        }
+      },
+      {
+        "event": {
+          "report": {
+            "resource": "192.0.2.7/3",
+            "type": "link-down",
+            "qualifier": "",
+            "severity": "minor",
+            "cleared": false
+          }
+        }
+      }
+    ]
+  },
+  "expect": [
+    {
+      "emit": [
+        {
+          "raised": {
+            "key": [
+              "192.0.2.7/3",
+              "link-down",
+              ""
+            ],
+            "severity": "major",
+            "reopened": false
+          }
+        }
+      ],
+      "alarms": [
+        {
+          "key": [
+            "192.0.2.7/3",
+            "link-down",
+            ""
+          ],
+          "severity": "major",
+          "cleared": false,
+          "operator": "none",
+          "count": 1,
+          "escalation_due": null
+        }
+      ]
+    },
+    {
+      "emit": [
+        {
+          "operator": {
+            "key": [
+              "192.0.2.7/3",
+              "link-down",
+              ""
+            ],
+            "state": "ack",
+            "by": "did:web:noc.example:users:ann"
+          }
+        }
+      ],
+      "alarms": [
+        {
+          "key": [
+            "192.0.2.7/3",
+            "link-down",
+            ""
+          ],
+          "severity": "major",
+          "cleared": false,
+          "operator": "ack",
+          "count": 1,
+          "escalation_due": null
+        }
+      ]
+    },
+    {
+      "emit": [
+        {
+          "cleared": {
+            "key": [
+              "192.0.2.7/3",
+              "link-down",
+              ""
+            ]
+          }
+        }
+      ],
+      "alarms": [
+        {
+          "key": [
+            "192.0.2.7/3",
+            "link-down",
+            ""
+          ],
+          "severity": "major",
+          "cleared": true,
+          "operator": "ack",
+          "count": 2,
+          "escalation_due": null
+        }
+      ]
+    },
+    {
+      "emit": [
+        {
+          "raised": {
+            "key": [
+              "192.0.2.7/3",
+              "link-down",
+              ""
+            ],
+            "severity": "minor",
+            "reopened": true
+          }
+        }
+      ],
+      "alarms": [
+        {
+          "key": [
+            "192.0.2.7/3",
+            "link-down",
+            ""
+          ],
+          "severity": "minor",
+          "cleared": false,
+          "operator": "none",
+          "count": 3,
+          "escalation_due": null
+        }
+      ]
+    }
+  ]
+}
