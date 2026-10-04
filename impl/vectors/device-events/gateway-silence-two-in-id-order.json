@@ -1,0 +1,99 @@
+{
+  "vector": "device-events/gateway-silence-two-in-id-order",
+  "format": 1,
+  "kind": "device-events",
+  "description": "Two gateways go silent in one advance: raised in order of gateway id, not of first heartbeat.",
+  "spec_ref": [
+    "E§5"
+  ],
+  "context": {
+    "now": 0
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "heartbeat": {
+            "gateway": "did:web:noc.example:gw:b",
+            "interval_s": 10
+          }
+        }
+      },
+      {
+        "event": {
+          "heartbeat": {
+            "gateway": "did:web:noc.example:gw:a",
+            "interval_s": 10
+          }
+        }
+      },
+      {
+        "event": {
+          "advance": 21
+        }
+      }
+    ]
+  },
+  "expect": [
+    {
+      "emit": [],
+      "alarms": []
+    },
+    {
+      "emit": [],
+      "alarms": []
+    },
+    {
+      "emit": [
+        {
+          "raised": {
+            "key": [
+              "did:web:noc.example:gw:a",
+              "dsip-gateway-silent",
+              ""
+            ],
+            "severity": "major",
+            "reopened": false
+          }
+        },
+        {
+          "raised": {
+            "key": [
+              "did:web:noc.example:gw:b",
+              "dsip-gateway-silent",
+              ""
+            ],
+            "severity": "major",
+            "reopened": false
+          }
+        }
+      ],
+      "alarms": [
+        {
+          "key": [
+            "did:web:noc.example:gw:a",
+            "dsip-gateway-silent",
+            ""
+          ],
+          "severity": "major",
+          "cleared": false,
+          "operator": "none",
+          "count": 1,
+          "escalation_due": null
+        },
+        {
+          "key": [
+            "did:web:noc.example:gw:b",
+            "dsip-gateway-silent",
+            ""
+          ],
+          "severity": "major",
+          "cleared": false,
+          "operator": "none",
+          "count": 1,
+          "escalation_due": null
+        }
+      ]
+    }
+  ]
+}

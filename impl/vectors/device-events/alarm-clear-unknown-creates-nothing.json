@@ -1,0 +1,33 @@
+{
+  "vector": "device-events/alarm-clear-unknown-creates-nothing",
+  "format": 1,
+  "kind": "device-events",
+  "description": "A clear for an alarm never raised creates nothing.",
+  "spec_ref": [
+    "E§5"
+  ],
+  "context": {
+    "now": 0
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "report": {
+            "resource": "192.0.2.7/3",
+            "type": "link-down",
+            "qualifier": "",
+            "severity": null,
+            "cleared": true
+          }
+        }
+      }
+    ]
+  },
+  "expect": [
+    {
+      "emit": [],
+      "alarms": []
+    }
+  ]
+}

@@ -1,0 +1,97 @@
+{
+  "vector": "device-events/alarm-severity-change",
+  "format": 1,
+  "kind": "device-events",
+  "description": "A different severity while active: changed.",
+  "spec_ref": [
+    "E§5"
+  ],
+  "context": {
+    "now": 0
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "report": {
+            "resource": "192.0.2.7/3",
+            "type": "link-down",
+            "qualifier": "",
+            "severity": "minor",
+            "cleared": false
+          }
+        }
+      },
+      {
+        "event": {
+          "report": {
+            "resource": "192.0.2.7/3",
+            "type": "link-down",
+            "qualifier": "",
+            "severity": "critical",
+            "cleared": false
+          }
+        }
+      }
+    ]
+  },
+  "expect": [
+    {
+      "emit": [
+        {
+          "raised": {
+            "key": [
+              "192.0.2.7/3",
+              "link-down",
+              ""
+            ],
+            "severity": "minor",
+            "reopened": false
+          }
+        }
+      ],
+      "alarms": [
+        {
+          "key": [
+            "192.0.2.7/3",
+            "link-down",
+            ""
+          ],
+          "severity": "minor",
+          "cleared": false,
+          "operator": "none",
+          "count": 1,
+          "escalation_due": null
+        }
+      ]
+    },
+    {
+      "emit": [
+        {
+          "changed": {
+            "key": [
+              "192.0.2.7/3",
+              "link-down",
+              ""
+            ],
+            "severity": "critical"
+          }
+        }
+      ],
+      "alarms": [
+        {
+          "key": [
+            "192.0.2.7/3",
+            "link-down",
+            ""
+          ],
+          "severity": "critical",
+          "cleared": false,
+          "operator": "none",
+          "count": 2,
+          "escalation_due": null
+        }
+      ]
+    }
+  ]
+}

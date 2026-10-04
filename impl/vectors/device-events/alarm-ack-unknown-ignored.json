@@ -1,0 +1,35 @@
+{
+  "vector": "device-events/alarm-ack-unknown-ignored",
+  "format": 1,
+  "kind": "device-events",
+  "description": "An acknowledgement for an alarm not in the list changes nothing.",
+  "spec_ref": [
+    "E§5"
+  ],
+  "context": {
+    "now": 0
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "ack": {
+            "alarm": {
+              "resource": "192.0.2.7/3",
+              "type": "link-down",
+              "qualifier": ""
+            },
+            "state": "ack",
+            "by": "did:web:noc.example:users:ann"
+          }
+        }
+      }
+    ]
+  },
+  "expect": [
+    {
+      "emit": [],
+      "alarms": []
+    }
+  ]
+}

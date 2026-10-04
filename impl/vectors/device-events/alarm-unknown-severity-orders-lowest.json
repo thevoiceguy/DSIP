@@ -1,0 +1,63 @@
+{
+  "vector": "device-events/alarm-unknown-severity-orders-lowest",
+  "format": 1,
+  "kind": "device-events",
+  "description": "An unregistered severity token is kept, and orders as indeterminate (below the escalation threshold).",
+  "spec_ref": [
+    "E§5",
+    "E§6"
+  ],
+  "context": {
+    "now": 0,
+    "escalation": {
+      "min_severity": "warning",
+      "after_s": 60
+    }
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "report": {
+            "resource": "192.0.2.7/3",
+            "type": "link-down",
+            "qualifier": "",
+            "severity": "catastrophic",
+            "cleared": false
+          }
+        }
+      }
+    ]
+  },
+  "expect": [
+    {
+      "emit": [
+        {
+          "raised": {
+            "key": [
+              "192.0.2.7/3",
+              "link-down",
+              ""
+            ],
+            "severity": "catastrophic",
+            "reopened": false
+          }
+        }
+      ],
+      "alarms": [
+        {
+          "key": [
+            "192.0.2.7/3",
+            "link-down",
+            ""
+          ],
+          "severity": "catastrophic",
+          "cleared": false,
+          "operator": "none",
+          "count": 1,
+          "escalation_due": null
+        }
+      ]
+    }
+  ]
+}

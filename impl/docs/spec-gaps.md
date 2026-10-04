@@ -2337,7 +2337,7 @@ client know before it tries. Not needed for correctness, since refusals are expl
 ## 101. §7.2 / §8.1 / §8.4 — `did:webvh` in DSIP: what a resolver must check, and rollback
 
 **Status: decided 2026-10-04 (user: "yes to all 4"; rollback: "cache required, watchers optional") — written into
-v0.9 §7.2, §8.4, A.6; pinned by `impl/vectors/did-webvh/` (66 vectors).**
+v0.9 §7.2, §8.4, A.6; pinned by `impl/vectors/did-webvh/` (67 vectors).**
 
 **Gap.** `did:webvh` (DIF Ratified v1.0) makes a domain-hosted DID document unforgeable by its host, but a resolver
 that only verifies the log as served still accepts an *older* valid log. A host can roll an identity back to a key it
@@ -2404,6 +2404,42 @@ issues; DSIP's resolution is pinned either way.
    - `portable: false` together with a move in the same entry;
    - leading zeros in the `versionId` number;
    - fractional seconds in `versionTime`.
+
+## 103. E§3–E§6 — Device Events Profile: re-raise, the syslog table, who escalates
+
+**Status: decided 2026-10-04 (user: "yes to all 4"; "reopen the same alarm"; "default table, configurable"; "an
+escalation agent member") — written into `v0.9/dsip-device-events-profile-v0.9-draft.md`; pinned by
+`impl/vectors/device-events/`.**
+
+**Gap.** The new profile had three choices with no standard to defer to:
+
+1. When a cleared alarm is raised again:
+   - **reopen** the same alarm (RFC 8632: one alarm per key, with history);
+   - **or open a new incident** (PagerDuty; an OpenNMS option).
+2. How syslog severities map to alarm severities. RFC 5424 has eight levels and RFC 8632 five, and no standard
+   bridges them.
+3. Who runs the escalation timer: the NOC's mailbox/hub, or a member.
+
+**Choices made.**
+1. **Reopen**, with `reopened: true`. The operator state returns to `none`, so the alarm gets attention again, and the
+   alarm can escalate again (once per raise). A flapping link is one alarm with a count.
+2. **A default table, overridable per rule:** 0–2 `critical`, 3 `major`, 4 `warning`, 5–7 no alarm. It is a
+   convention, so it is an `Impl` note.
+3. **A member, the escalation agent.** Mailboxes and hubs stay storage and ordering services (M§4). The trigger is
+   normative; the rota and timers are local policy.
+
+**Also fixed while implementing.** Probing the three implementations on the second implementation's notes pinned:
+- strict v1 fields (generic 0–6);
+- a decimal-string sysUpTime;
+- varbinds carried as exactly `{oid, type, value}`;
+- a missing severity or `by` as null;
+- gateway-silence processing in gateway-id order, not first-heartbeat order. impl-ts had read it the other way.
+
+**Open.**
+- The `device-event` and `alarm-ack` objects are specified but not yet in the Messaging Profile schema set, and there
+  is no reference gateway yet. That is the next step: an snmptrapd → `dsip-events` gateway → NOC group demo, with
+  informs acknowledged after `accepted`.
+- Flap hold-down is left to gateway configuration.
 
 ## Already-flagged (schema README / plan §11)
 

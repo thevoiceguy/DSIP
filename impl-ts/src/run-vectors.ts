@@ -11,6 +11,7 @@ import { Candidates, Renegotiation, checkAnswer, checkOffer, dtlsRoles, oneAnswe
 import { verifyPublication, type Capabilities } from "./broadcast.js";
 import { verifyHint } from "./dht.js";
 import { resolveWebvh, type WebvhInput } from "./did/webvh.js";
+import { runDeviceEvents } from "./events/device-events.js";
 import { Endpoint, type EndpointContext } from "./endpoint.js";
 import type { Json, JsonObject } from "./did.js";
 import { verifyEnvelope, type ReceiverContext } from "./envelope.js";
@@ -35,7 +36,7 @@ import { reject, type Verdict } from "./verdict.js";
 const DEFAULT_VECTORS = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "impl", "vectors");
 const schemas = new SchemaSet();
 
-type Vector = { vector: string; kind: string; context?: JsonObject; input: JsonObject; expect: JsonObject };
+type Vector = { vector: string; kind: string; context?: JsonObject; input: JsonObject; expect: JsonObject | Json[] };
 
 /** One runner per vector kind. A kind or check with no runner is reported as skipped, never as passed. */
 const RUNNERS: Record<string, (v: Vector) => Json | undefined> = {
@@ -57,6 +58,7 @@ const RUNNERS: Record<string, (v: Vector) => Json | undefined> = {
     ),
   "media-binding": (v) => mediaBinding(v),
   "did-webvh": (v) => resolveWebvh(v.input as unknown as WebvhInput),
+  "device-events": (v) => runDeviceEvents(v.context ?? {}, v.input),
   gateway: (v) => gateway(v),
   messaging: (v) => messaging(v),
   trust: (v) =>
@@ -314,13 +316,16 @@ function main(): number {
         actual = { crash: String(e) };
       }
       const ok = equal(v.expect, actual);
-      results[v.vector] = { ok, actual };
+      // a trace whose `expect` is the step list (`device-events`): results carry `steps` (README "Runner results")
+      results[v.vector] = Array.isArray(v.expect) && Array.isArray(actual) ? { ok, steps: actual } : { ok, actual };
       ok ? passed++ : failed++;
       if (!ok || verbose) {
         console.log(`[${ok ? "ok" : "FAIL"}] ${v.vector}`);
         if (!ok) {
           // a trace: show the first step that differs, with the event that led to it
-          const [es, as] = [(v.expect as JsonObject)["steps"], (actual as JsonObject | null)?.["steps"]];
+          const [es, as] = Array.isArray(v.expect)
+            ? [v.expect, actual]
+            : [(v.expect as JsonObject)["steps"], (actual as JsonObject | null)?.["steps"]];
           if (Array.isArray(es) && Array.isArray(as)) {
             const n = es.findIndex((e, k) => !equal(e, as[k] ?? null));
             console.log(`   step ${n} ${JSON.stringify((v.input["steps"] as JsonObject[])[n]?.["event"])}`);

@@ -1,0 +1,130 @@
+{
+  "vector": "device-events/gateway-silence",
+  "format": 1,
+  "kind": "device-events",
+  "description": "No heartbeat for twice the interval raises dsip-gateway-silent; the next heartbeat clears it.",
+  "spec_ref": [
+    "E§5"
+  ],
+  "context": {
+    "now": 0
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "heartbeat": {
+            "gateway": "did:web:noc.example:gw:site1",
+            "interval_s": 60
+          }
+        }
+      },
+      {
+        "event": {
+          "advance": 120
+        }
+      },
+      {
+        "event": {
+          "advance": 1
+        }
+      },
+      {
+        "event": {
+          "advance": 600
+        }
+      },
+      {
+        "event": {
+          "heartbeat": {
+            "gateway": "did:web:noc.example:gw:site1",
+            "interval_s": 60
+          }
+        }
+      }
+    ]
+  },
+  "expect": [
+    {
+      "emit": [],
+      "alarms": []
+    },
+    {
+      "emit": [],
+      "alarms": []
+    },
+    {
+      "emit": [
+        {
+          "raised": {
+            "key": [
+              "did:web:noc.example:gw:site1",
+              "dsip-gateway-silent",
+              ""
+            ],
+            "severity": "major",
+            "reopened": false
+          }
+        }
+      ],
+      "alarms": [
+        {
+          "key": [
+            "did:web:noc.example:gw:site1",
+            "dsip-gateway-silent",
+            ""
+          ],
+          "severity": "major",
+          "cleared": false,
+          "operator": "none",
+          "count": 1,
+          "escalation_due": null
+        }
+      ]
+    },
+    {
+      "emit": [],
+      "alarms": [
+        {
+          "key": [
+            "did:web:noc.example:gw:site1",
+            "dsip-gateway-silent",
+            ""
+          ],
+          "severity": "major",
+          "cleared": false,
+          "operator": "none",
+          "count": 1,
+          "escalation_due": null
+        }
+      ]
+    },
+    {
+      "emit": [
+        {
+          "cleared": {
+            "key": [
+              "did:web:noc.example:gw:site1",
+              "dsip-gateway-silent",
+              ""
+            ]
+          }
+        }
+      ],
+      "alarms": [
+        {
+          "key": [
+            "did:web:noc.example:gw:site1",
+            "dsip-gateway-silent",
+            ""
+          ],
+          "severity": "major",
+          "cleared": true,
+          "operator": "none",
+          "count": 2,
+          "escalation_due": null
+        }
+      ]
+    }
+  ]
+}

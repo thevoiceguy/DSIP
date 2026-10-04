@@ -1,0 +1,20 @@
+{
+  "vector": "device-events/syslog-severity-override",
+  "format": 1,
+  "kind": "device-events",
+  "description": "A gateway's table overrides the default for one severity.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "syslog-severity",
+    "severity": 4,
+    "table": {
+      "4": "minor"
+    }
+  },
+  "expect": {
+    "severity": "minor"
+  }
+}

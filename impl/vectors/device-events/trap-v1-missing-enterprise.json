@@ -1,0 +1,31 @@
+{
+  "vector": "device-events/trap-v1-missing-enterprise",
+  "format": 1,
+  "kind": "device-events",
+  "description": "A v1 trap with no enterprise.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "trap",
+    "trap": {
+      "version": "v1",
+      "agent_addr": "192.0.2.7",
+      "generic": 2,
+      "specific": 0,
+      "timestamp": 4200,
+      "community": "public",
+      "varbinds": [
+        {
+          "oid": "1.3.6.1.2.1.2.2.1.1.2",
+          "type": "Integer32",
+          "value": "2"
+        }
+      ]
+    }
+  },
+  "expect": {
+    "error": "malformed-trap"
+  }
+}

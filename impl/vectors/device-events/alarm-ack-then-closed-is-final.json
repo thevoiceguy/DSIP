@@ -1,0 +1,130 @@
+{
+  "vector": "device-events/alarm-ack-then-closed-is-final",
+  "format": 1,
+  "kind": "device-events",
+  "description": "ack → closed; an ack after closed is ignored; closing does not clear.",
+  "spec_ref": [
+    "E§5"
+  ],
+  "context": {
+    "now": 0
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "report": {
+            "resource": "192.0.2.7/3",
+            "type": "link-down",
+            "qualifier": "",
+            "severity": "major",
+            "cleared": false
+          }
+        }
+      },
+      {
+        "event": {
+          "ack": {
+            "alarm": {
+              "resource": "192.0.2.7/3",
+              "type": "link-down",
+              "qualifier": ""
+            },
+            "state": "closed",
+            "by": "did:web:noc.example:users:ann"
+          }
+        }
+      },
+      {
+        "event": {
+          "ack": {
+            "alarm": {
+              "resource": "192.0.2.7/3",
+              "type": "link-down",
+              "qualifier": ""
+            },
+            "state": "ack",
+            "by": "did:web:noc.example:users:ann"
+          }
+        }
+      }
+    ]
+  },
+  "expect": [
+    {
+      "emit": [
+        {
+          "raised": {
+            "key": [
+              "192.0.2.7/3",
+              "link-down",
+              ""
+            ],
+            "severity": "major",
+            "reopened": false
+          }
+        }
+      ],
+      "alarms": [
+        {
+          "key": [
+            "192.0.2.7/3",
+            "link-down",
+            ""
+          ],
+          "severity": "major",
+          "cleared": false,
+          "operator": "none",
+          "count": 1,
+          "escalation_due": null
+        }
+      ]
+    },
+    {
+      "emit": [
+        {
+          "operator": {
+            "key": [
+              "192.0.2.7/3",
+              "link-down",
+              ""
+            ],
+            "state": "closed",
+            "by": "did:web:noc.example:users:ann"
+          }
+        }
+      ],
+      "alarms": [
+        {
+          "key": [
+            "192.0.2.7/3",
+            "link-down",
+            ""
+          ],
+          "severity": "major",
+          "cleared": false,
+          "operator": "closed",
+          "count": 1,
+          "escalation_due": null
+        }
+      ]
+    },
+    {
+      "emit": [],
+      "alarms": [
+        {
+          "key": [
+            "192.0.2.7/3",
+            "link-down",
+            ""
+          ],
+          "severity": "major",
+          "cleared": false,
+          "operator": "closed",
+          "count": 1,
+          "escalation_due": null
+        }
+      ]
+    }
+  ]
+}

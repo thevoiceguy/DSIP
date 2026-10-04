@@ -32,7 +32,7 @@ python3 ../impl/tools/parity_ts.py       # Python harness vs this implementation
 
 ## Coverage
 
-**Every vector: 1045 of 1045**, no kind skipped. Python/TypeScript parity compares actual with actual on all of them.
+**Every vector: 1093 of 1093**, no kind skipped. Python/TypeScript parity compares actual with actual on all of them.
 
 | Kind | Vectors | Modules |
 |---|---|---|
@@ -42,7 +42,8 @@ python3 ../impl/tools/parity_ts.py       # Python harness vs this implementation
 | `broadcast`, `trust`, `media-binding` | 21, 13, 42 | `broadcast.ts`, `trust.ts`, `binding.ts` |
 | `gateway` | 66 | `gateway.ts` |
 | `messaging` | 457 | `messaging/`: `message`, `object`, `rules`, `blobs`, `crypto` (stateless); `device`, `sync`, `client`, `hub`, `mailbox` (the nine trace machines) |
-| `did-webvh` | 66 | `did/webvh.ts` (log verification, restricted JCS, I-JSON), `encoding.ts` |
+| `did-webvh` | 67 | `did/webvh.ts` (log verification, restricted JCS, I-JSON), `encoding.ts` |
+| `device-events` | 47 | `events/device-events.ts` (trap translation, syslog table, rule mapping; the alarm-list and escalation machine) |
 
 What this is not: a product. It has no transport, no MLS library and no storage — it is the protocol's *decisions*,
 which is what the vectors measure. The wire demos in `../impl/demos` remain the Rust implementation's.
