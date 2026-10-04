@@ -1,0 +1,23 @@
+{
+  "vector": "did-webvh/ijson-integer-beyond-max-safe",
+  "format": 1,
+  "kind": "did-webvh",
+  "description": "An integer of 2^53 is outside I-JSON: implementations that read numbers as doubles would hash a different value.",
+  "spec_ref": [
+    "§7.2",
+    "§8.1",
+    "§8.4"
+  ],
+  "context": {},
+  "input": {
+    "did": "did:webvh:QmQB5AyikDsYPPLz1K6DnheroU2TMiKBZ1BqMYpJLemEqc:example.com",
+    "log": "{\"versionId\":\"1-QmNmynpcorQQhyLE7QoHHnCEc7t4d9rCLf3ELNZhhBVrWi\",\"versionTime\":\"2026-01-01T00:01:00Z\",\"parameters\":{\"method\":\"did:webvh:1.0\",\"scid\":\"QmQB5AyikDsYPPLz1K6DnheroU2TMiKBZ1BqMYpJLemEqc\",\"updateKeys\":[\"z6Mko9phBKc1B4rXcZuVrDQsbJ27V6N3KXH7ZPzAydAD8RHD\"]},\"state\":{\"@context\":[\"https://www.w3.org/ns/did/v1\"],\"id\":\"did:webvh:QmQB5AyikDsYPPLz1K6DnheroU2TMiKBZ1BqMYpJLemEqc:example.com\",\"verificationMethod\":[{\"id\":\"did:webvh:QmQB5AyikDsYPPLz1K6DnheroU2TMiKBZ1BqMYpJLemEqc:example.com#key-1\",\"type\":\"Multikey\",\"controller\":\"did:webvh:QmQB5AyikDsYPPLz1K6DnheroU2TMiKBZ1BqMYpJLemEqc:example.com\",\"publicKeyMultibase\":\"z6Mko9phBKc1B4rXcZuVrDQsbJ27V6N3KXH7ZPzAydAD8RHD\"}],\"authentication\":[\"did:webvh:QmQB5AyikDsYPPLz1K6DnheroU2TMiKBZ1BqMYpJLemEqc:example.com#key-1\"],\"assertionMethod\":[\"did:webvh:QmQB5AyikDsYPPLz1K6DnheroU2TMiKBZ1BqMYpJLemEqc:example.com#key-1\"],\"n\":9007199254740992},\"proof\":[{\"type\":\"DataIntegrityProof\",\"cryptosuite\":\"eddsa-jcs-2022\",\"verificationMethod\":\"did:key:z6Mko9phBKc1B4rXcZuVrDQsbJ27V6N3KXH7ZPzAydAD8RHD#z6Mko9phBKc1B4rXcZuVrDQsbJ27V6N3KXH7ZPzAydAD8RHD\",\"created\":\"2026-01-01T00:01:00Z\",\"proofPurpose\":\"assertionMethod\",\"proofValue\":\"z2mCvFvT7tnN2HBV7kW8MBBnCWZbFPDbNPCAAak6FoAnisi6uJQC5tRRtXMmWtirVHK555jLqhEgi7gu6gBo7e2m9\"}]}\n",
+    "witness": null,
+    "cache": null,
+    "now": 1780272000
+  },
+  "expect": {
+    "outcome": "rejected",
+    "reason": "log-malformed"
+  }
+}

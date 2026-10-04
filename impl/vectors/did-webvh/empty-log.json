@@ -1,0 +1,23 @@
+{
+  "vector": "did-webvh/empty-log",
+  "format": 1,
+  "kind": "did-webvh",
+  "description": "An empty log.",
+  "spec_ref": [
+    "§7.2",
+    "§8.1",
+    "§8.4"
+  ],
+  "context": {},
+  "input": {
+    "did": "did:webvh:QmXpnm4R7BPTnL6iWNL5HJhq1sSUjkc3dudv2BRuSJWBbC:example.com",
+    "log": "",
+    "witness": null,
+    "cache": null,
+    "now": 1780272000
+  },
+  "expect": {
+    "outcome": "rejected",
+    "reason": "log-malformed"
+  }
+}

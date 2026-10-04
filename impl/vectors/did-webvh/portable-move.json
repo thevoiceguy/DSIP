@@ -1,0 +1,49 @@
+{
+  "vector": "did-webvh/portable-move",
+  "format": 1,
+  "kind": "did-webvh",
+  "description": "A portable DID moves domain: the SCID stays and the new document lists the old DID in alsoKnownAs.",
+  "spec_ref": [
+    "§7.2",
+    "§8.1",
+    "§8.4"
+  ],
+  "context": {},
+  "input": {
+    "did": "did:webvh:QmWHo21udMiDWkwgcP87KAgmp8qnTaWZr6uNTHKQoVk1sg:example.org",
+    "log": "{\"versionId\":\"1-QmfCHwPqJkA6UFk7qaMLNA8G7MX1xy4dUvk9McFNhcWcbH\",\"versionTime\":\"2026-01-01T00:01:00Z\",\"parameters\":{\"method\":\"did:webvh:1.0\",\"scid\":\"QmWHo21udMiDWkwgcP87KAgmp8qnTaWZr6uNTHKQoVk1sg\",\"updateKeys\":[\"z6Mko9phBKc1B4rXcZuVrDQsbJ27V6N3KXH7ZPzAydAD8RHD\"],\"portable\":true},\"state\":{\"@context\":[\"https://www.w3.org/ns/did/v1\"],\"id\":\"did:webvh:QmWHo21udMiDWkwgcP87KAgmp8qnTaWZr6uNTHKQoVk1sg:example.com\",\"verificationMethod\":[{\"id\":\"did:webvh:QmWHo21udMiDWkwgcP87KAgmp8qnTaWZr6uNTHKQoVk1sg:example.com#key-1\",\"type\":\"Multikey\",\"controller\":\"did:webvh:QmWHo21udMiDWkwgcP87KAgmp8qnTaWZr6uNTHKQoVk1sg:example.com\",\"publicKeyMultibase\":\"z6Mko9phBKc1B4rXcZuVrDQsbJ27V6N3KXH7ZPzAydAD8RHD\"}],\"authentication\":[\"did:webvh:QmWHo21udMiDWkwgcP87KAgmp8qnTaWZr6uNTHKQoVk1sg:example.com#key-1\"],\"assertionMethod\":[\"did:webvh:QmWHo21udMiDWkwgcP87KAgmp8qnTaWZr6uNTHKQoVk1sg:example.com#key-1\"]},\"proof\":[{\"type\":\"DataIntegrityProof\",\"cryptosuite\":\"eddsa-jcs-2022\",\"verificationMethod\":\"did:key:z6Mko9phBKc1B4rXcZuVrDQsbJ27V6N3KXH7ZPzAydAD8RHD#z6Mko9phBKc1B4rXcZuVrDQsbJ27V6N3KXH7ZPzAydAD8RHD\",\"created\":\"2026-01-01T00:01:00Z\",\"proofPurpose\":\"assertionMethod\",\"proofValue\":\"z2xZLJ3Zzaux3ZKcqL8i5oKfKL8iXhPVDfnQR1FRHE61PZKKbENC7bLGNGWTFLM9zfQv3ztu1cna4TNAfDyhMu5Tn\"}]}\n{\"versionId\":\"2-Qmdpbu3L64LkXFC4NZJ9axTVFmtSNFvsiEap9pUPRYVV1T\",\"versionTime\":\"2026-01-01T00:02:00Z\",\"parameters\":{},\"state\":{\"@context\":[\"https://www.w3.org/ns/did/v1\"],\"id\":\"did:webvh:QmWHo21udMiDWkwgcP87KAgmp8qnTaWZr6uNTHKQoVk1sg:example.org\",\"verificationMethod\":[{\"id\":\"did:webvh:QmWHo21udMiDWkwgcP87KAgmp8qnTaWZr6uNTHKQoVk1sg:example.org#key-1\",\"type\":\"Multikey\",\"controller\":\"did:webvh:QmWHo21udMiDWkwgcP87KAgmp8qnTaWZr6uNTHKQoVk1sg:example.org\",\"publicKeyMultibase\":\"z6Mko9phBKc1B4rXcZuVrDQsbJ27V6N3KXH7ZPzAydAD8RHD\"}],\"authentication\":[\"did:webvh:QmWHo21udMiDWkwgcP87KAgmp8qnTaWZr6uNTHKQoVk1sg:example.org#key-1\"],\"assertionMethod\":[\"did:webvh:QmWHo21udMiDWkwgcP87KAgmp8qnTaWZr6uNTHKQoVk1sg:example.org#key-1\"],\"alsoKnownAs\":[\"did:webvh:QmWHo21udMiDWkwgcP87KAgmp8qnTaWZr6uNTHKQoVk1sg:example.com\"]},\"proof\":[{\"type\":\"DataIntegrityProof\",\"cryptosuite\":\"eddsa-jcs-2022\",\"verificationMethod\":\"did:key:z6Mko9phBKc1B4rXcZuVrDQsbJ27V6N3KXH7ZPzAydAD8RHD#z6Mko9phBKc1B4rXcZuVrDQsbJ27V6N3KXH7ZPzAydAD8RHD\",\"created\":\"2026-01-01T00:02:00Z\",\"proofPurpose\":\"assertionMethod\",\"proofValue\":\"z5QruVxrB67WpLAdpA3MxkgBT2Dw6aH9ia168coK4oxE82UDLRG9eLjsqb9h2n63cRk5oeRA2dh1QPYwLwv4j27FV\"}]}\n",
+    "witness": null,
+    "cache": null,
+    "now": 1780272000
+  },
+  "expect": {
+    "outcome": "resolved",
+    "versionId": "2-Qmdpbu3L64LkXFC4NZJ9axTVFmtSNFvsiEap9pUPRYVV1T",
+    "versionTime": "2026-01-01T00:02:00Z",
+    "document": {
+      "@context": [
+        "https://www.w3.org/ns/did/v1"
+      ],
+      "id": "did:webvh:QmWHo21udMiDWkwgcP87KAgmp8qnTaWZr6uNTHKQoVk1sg:example.org",
+      "verificationMethod": [
+        {
+          "id": "did:webvh:QmWHo21udMiDWkwgcP87KAgmp8qnTaWZr6uNTHKQoVk1sg:example.org#key-1",
+          "type": "Multikey",
+          "controller": "did:webvh:QmWHo21udMiDWkwgcP87KAgmp8qnTaWZr6uNTHKQoVk1sg:example.org",
+          "publicKeyMultibase": "z6Mko9phBKc1B4rXcZuVrDQsbJ27V6N3KXH7ZPzAydAD8RHD"
+        }
+      ],
+      "authentication": [
+        "did:webvh:QmWHo21udMiDWkwgcP87KAgmp8qnTaWZr6uNTHKQoVk1sg:example.org#key-1"
+      ],
+      "assertionMethod": [
+        "did:webvh:QmWHo21udMiDWkwgcP87KAgmp8qnTaWZr6uNTHKQoVk1sg:example.org#key-1"
+      ],
+      "alsoKnownAs": [
+        "did:webvh:QmWHo21udMiDWkwgcP87KAgmp8qnTaWZr6uNTHKQoVk1sg:example.com"
+      ]
+    },
+    "ttl": 3600,
+    "cache": "2-Qmdpbu3L64LkXFC4NZJ9axTVFmtSNFvsiEap9pUPRYVV1T"
+  }
+}

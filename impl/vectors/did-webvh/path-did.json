@@ -1,0 +1,46 @@
+{
+  "vector": "did-webvh/path-did",
+  "format": 1,
+  "kind": "did-webvh",
+  "description": "A DID with path segments (did:webvh:<scid>:example.com:users:alice).",
+  "spec_ref": [
+    "§7.2",
+    "§8.1",
+    "§8.4"
+  ],
+  "context": {},
+  "input": {
+    "did": "did:webvh:QmWVioP1CthT4BGChL7S2kwgSiGGNZZdV1LawZozvwKRaV:example.com:users:alice",
+    "log": "{\"versionId\":\"1-QmZ9nrMyfCTJkde2rwTx4tTJbsjvuXhKVTjkycxfMFoxWg\",\"versionTime\":\"2026-01-01T00:01:00Z\",\"parameters\":{\"method\":\"did:webvh:1.0\",\"scid\":\"QmWVioP1CthT4BGChL7S2kwgSiGGNZZdV1LawZozvwKRaV\",\"updateKeys\":[\"z6Mko9phBKc1B4rXcZuVrDQsbJ27V6N3KXH7ZPzAydAD8RHD\"]},\"state\":{\"@context\":[\"https://www.w3.org/ns/did/v1\"],\"id\":\"did:webvh:QmWVioP1CthT4BGChL7S2kwgSiGGNZZdV1LawZozvwKRaV:example.com:users:alice\",\"verificationMethod\":[{\"id\":\"did:webvh:QmWVioP1CthT4BGChL7S2kwgSiGGNZZdV1LawZozvwKRaV:example.com:users:alice#key-1\",\"type\":\"Multikey\",\"controller\":\"did:webvh:QmWVioP1CthT4BGChL7S2kwgSiGGNZZdV1LawZozvwKRaV:example.com:users:alice\",\"publicKeyMultibase\":\"z6Mko9phBKc1B4rXcZuVrDQsbJ27V6N3KXH7ZPzAydAD8RHD\"}],\"authentication\":[\"did:webvh:QmWVioP1CthT4BGChL7S2kwgSiGGNZZdV1LawZozvwKRaV:example.com:users:alice#key-1\"],\"assertionMethod\":[\"did:webvh:QmWVioP1CthT4BGChL7S2kwgSiGGNZZdV1LawZozvwKRaV:example.com:users:alice#key-1\"]},\"proof\":[{\"type\":\"DataIntegrityProof\",\"cryptosuite\":\"eddsa-jcs-2022\",\"verificationMethod\":\"did:key:z6Mko9phBKc1B4rXcZuVrDQsbJ27V6N3KXH7ZPzAydAD8RHD#z6Mko9phBKc1B4rXcZuVrDQsbJ27V6N3KXH7ZPzAydAD8RHD\",\"created\":\"2026-01-01T00:01:00Z\",\"proofPurpose\":\"assertionMethod\",\"proofValue\":\"z26E9U7GwoTRn4YffJ844qHtNfewiF5z54ZBgd1BHc3WosFdyZ6cQVXfGrTxxD6EZRjce6PybHwcMQgnfwptZZbjU\"}]}\n",
+    "witness": null,
+    "cache": null,
+    "now": 1780272000
+  },
+  "expect": {
+    "outcome": "resolved",
+    "versionId": "1-QmZ9nrMyfCTJkde2rwTx4tTJbsjvuXhKVTjkycxfMFoxWg",
+    "versionTime": "2026-01-01T00:01:00Z",
+    "document": {
+      "@context": [
+        "https://www.w3.org/ns/did/v1"
+      ],
+      "id": "did:webvh:QmWVioP1CthT4BGChL7S2kwgSiGGNZZdV1LawZozvwKRaV:example.com:users:alice",
+      "verificationMethod": [
+        {
+          "id": "did:webvh:QmWVioP1CthT4BGChL7S2kwgSiGGNZZdV1LawZozvwKRaV:example.com:users:alice#key-1",
+          "type": "Multikey",
+          "controller": "did:webvh:QmWVioP1CthT4BGChL7S2kwgSiGGNZZdV1LawZozvwKRaV:example.com:users:alice",
+          "publicKeyMultibase": "z6Mko9phBKc1B4rXcZuVrDQsbJ27V6N3KXH7ZPzAydAD8RHD"
+        }
+      ],
+      "authentication": [
+        "did:webvh:QmWVioP1CthT4BGChL7S2kwgSiGGNZZdV1LawZozvwKRaV:example.com:users:alice#key-1"
+      ],
+      "assertionMethod": [
+        "did:webvh:QmWVioP1CthT4BGChL7S2kwgSiGGNZZdV1LawZozvwKRaV:example.com:users:alice#key-1"
+      ]
+    },
+    "ttl": 3600,
+    "cache": "1-QmZ9nrMyfCTJkde2rwTx4tTJbsjvuXhKVTjkycxfMFoxWg"
+  }
+}

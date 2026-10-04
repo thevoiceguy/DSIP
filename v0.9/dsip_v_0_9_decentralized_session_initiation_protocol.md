@@ -220,6 +220,7 @@ DSIP is honest about decentralization.
 
 - `did:key` is self-certifying but hard to recover and hard to make human-friendly.
 - `did:web` is practical for organizations but depends on DNS and Web PKI.
+- `did:webvh` keeps `did:web`'s hosting but makes the document unforgeable by the host; availability still depends on it (v0.9).
 - DHTs may improve censorship resistance but introduce Sybil and eclipse attack risks.
 - WebFinger can improve usability but may leak account existence.
 - Federation reduces dependence on one provider but does not eliminate trust boundaries.
@@ -304,10 +305,21 @@ Recommended DID methods for early DSIP profiles:
 
 ```
 did:key    Self-certifying identities, test endpoints, ephemeral users, devices
+did:webvh  Organizations and individuals who want a domain-hosted document the host cannot forge (v0.9)
 did:web    Organizations, broadcasters, domains, gateways, service providers
 ```
 
 Other DID methods may be supported by extension, but v1.0 keeps the required set small.
+
+**`did:webvh` (v0.9, spec-gap 101).** `did:webvh` v1.0 (DIF Ratified Specification, `did:webvh:1.0`) is `did:web` plus a verifiable history: the DID document is published as a log of entries, each hash-chained to the one before and signed by the identity's update keys, and the DID itself embeds a self-certifying identifier (SCID) derived from the first entry. The host serving the log can withhold it or serve an older version, but it cannot forge one. Keys rotate within the log, optionally pre-committed (pre-rotation), and optional witnesses co-sign updates. A DSIP resolver of `did:webvh`:
+
+- MUST verify the whole log as the method specifies, and MUST reject it if any entry fails. It MUST NOT return the document of a deactivated DID; such an identity has no keys.
+- MUST support `did:webvh:1.0` and MUST reject other method versions.
+- MUST read the log as I-JSON (RFC 7493), since the method's canonicalization (JCS, RFC 8785) assumes it.
+- MUST remember, per DID, the highest `versionId` it has verified, and MUST reject a log that ends before it (rollback) or holds a different entry at that position (fork). Without this, a host could roll an identity back to a key it has since rotated away from. It MAY also consult the DID's watchers.
+- reads the same document properties as for any method (below), and applies §8.1 unchanged: the verified document is the DID document.
+
+The method's canonicalization applies inside its own hashes and proofs only. A DSIP envelope's signature still covers its bytes as sent (§10.2).
 
 **Document properties DSIP reads (v0.8).** Beyond verification methods: service entries (`DSIPSignaling`, §13.2; `DSIPMailbox`, Messaging Profile), embedded X25519 `keyAgreement` methods (the key sealed introductions are encrypted to, §19.4), and `dsipDelegationRevocations` (§7.4). All are authoritative in the order of §8.1.
 
@@ -490,6 +502,8 @@ Rules:
 
 DSIP describes `did:web` as:
 > A practical domain-bound identity method that removes dependence on carrier registrars but still depends on DNS/Web PKI.
+
+The host of a `did:web` document can also rewrite it, replacing the identity's keys, and nothing in the document shows it. `did:webvh` (§7.2) keeps the domain hosting and removes that power: the host still controls whether the log is available, but not what it says, and a resolver that has seen a version detects any older one served in its place.
 
 ### 8.5 DHTs and Decentralized Discovery
 
@@ -2375,7 +2389,7 @@ Every item above is pinned by the v0.8 conformance suite (979 vectors; the Pytho
 
 v0.8 is final at tag `poc-v0.8.1`. v0.9 work, decided 2026-10-04 from `impl/docs/v0.9-research.md`:
 
-- `did:webvh` as a recommended DID method beside `did:web` (§7.2, §8.4).
+- `did:webvh` as a recommended DID method beside `did:web` (§7.2, §8.4; spec-gap 101): resolvers verify the whole log, support v1.0 only, read I-JSON, and reject rollback and fork against the highest `versionId` they have verified. Pinned by the `did-webvh/` vectors.
 - Reachability hints on the BitTorrent Mainline DHT (Pkarr) for `did:key` subjects, in addition to the hints overlay (§8.5; DHT Reachability Hints Profile).
 - Alias transparency: a log that makes an alias provider's `alias → DID` answers auditable (§8.2).
 - A Device Events Profile: signed device alarms and events, gatewayed from SNMP and syslog (companion profile).

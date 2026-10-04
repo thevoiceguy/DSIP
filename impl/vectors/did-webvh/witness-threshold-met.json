@@ -1,0 +1,46 @@
+{
+  "vector": "did-webvh/witness-threshold-met",
+  "format": 1,
+  "kind": "did-webvh",
+  "description": "Two of three witnesses approve the entry: threshold 2 met.",
+  "spec_ref": [
+    "§7.2",
+    "§8.1",
+    "§8.4"
+  ],
+  "context": {},
+  "input": {
+    "did": "did:webvh:QmYZPeyxc2xG51wFmrBpF1EWDPeuYa6cUiLnsVn5Lt5KrL:example.com",
+    "log": "{\"versionId\":\"1-QmR99Sjc1L9d2Kb2HSG77V1xVdH7MwK7WZnUVLcvjmmTUw\",\"versionTime\":\"2026-01-01T00:01:00Z\",\"parameters\":{\"method\":\"did:webvh:1.0\",\"scid\":\"QmYZPeyxc2xG51wFmrBpF1EWDPeuYa6cUiLnsVn5Lt5KrL\",\"updateKeys\":[\"z6Mko9phBKc1B4rXcZuVrDQsbJ27V6N3KXH7ZPzAydAD8RHD\"],\"witness\":{\"threshold\":2,\"witnesses\":[{\"id\":\"did:key:z6MkrKTfKBuS5QxTaXqzNbPk4vyCUu35HUgZwdVQteT6k5oK\"},{\"id\":\"did:key:z6MkfVMZF2F41K5ifyPj25KbQETv5CMhZpU6GsViE2w1VJjd\"},{\"id\":\"did:key:z6MknHaZc2MqA8fdM9wGnCvpANznjKFxfog3z6UjjxiAxerV\"}]}},\"state\":{\"@context\":[\"https://www.w3.org/ns/did/v1\"],\"id\":\"did:webvh:QmYZPeyxc2xG51wFmrBpF1EWDPeuYa6cUiLnsVn5Lt5KrL:example.com\",\"verificationMethod\":[{\"id\":\"did:webvh:QmYZPeyxc2xG51wFmrBpF1EWDPeuYa6cUiLnsVn5Lt5KrL:example.com#key-1\",\"type\":\"Multikey\",\"controller\":\"did:webvh:QmYZPeyxc2xG51wFmrBpF1EWDPeuYa6cUiLnsVn5Lt5KrL:example.com\",\"publicKeyMultibase\":\"z6Mko9phBKc1B4rXcZuVrDQsbJ27V6N3KXH7ZPzAydAD8RHD\"}],\"authentication\":[\"did:webvh:QmYZPeyxc2xG51wFmrBpF1EWDPeuYa6cUiLnsVn5Lt5KrL:example.com#key-1\"],\"assertionMethod\":[\"did:webvh:QmYZPeyxc2xG51wFmrBpF1EWDPeuYa6cUiLnsVn5Lt5KrL:example.com#key-1\"]},\"proof\":[{\"type\":\"DataIntegrityProof\",\"cryptosuite\":\"eddsa-jcs-2022\",\"verificationMethod\":\"did:key:z6Mko9phBKc1B4rXcZuVrDQsbJ27V6N3KXH7ZPzAydAD8RHD#z6Mko9phBKc1B4rXcZuVrDQsbJ27V6N3KXH7ZPzAydAD8RHD\",\"created\":\"2026-01-01T00:01:00Z\",\"proofPurpose\":\"assertionMethod\",\"proofValue\":\"z3RkBT4HKuPjoyVvHecKJMujDHaZGMbAFTvPWpTxtVEByaEBrRzeYobFgfHGzshAa9p6RP6TSr3UTHYYfAwFVsLcX\"}]}\n",
+    "witness": "[{\"versionId\":\"1-QmR99Sjc1L9d2Kb2HSG77V1xVdH7MwK7WZnUVLcvjmmTUw\",\"proof\":[{\"type\":\"DataIntegrityProof\",\"cryptosuite\":\"eddsa-jcs-2022\",\"verificationMethod\":\"did:key:z6MkrKTfKBuS5QxTaXqzNbPk4vyCUu35HUgZwdVQteT6k5oK#z6MkrKTfKBuS5QxTaXqzNbPk4vyCUu35HUgZwdVQteT6k5oK\",\"created\":\"2026-01-02T00:00:00Z\",\"proofPurpose\":\"assertionMethod\",\"proofValue\":\"z39Hf2GQ9qs7ddh2orZ2PakcksyLkip4ChZrE6c8MtyKPTjR51qnwAnV3y54inWrLfsQkmQ3M74e37PdQSFWuHxBm\"},{\"type\":\"DataIntegrityProof\",\"cryptosuite\":\"eddsa-jcs-2022\",\"verificationMethod\":\"did:key:z6MknHaZc2MqA8fdM9wGnCvpANznjKFxfog3z6UjjxiAxerV#z6MknHaZc2MqA8fdM9wGnCvpANznjKFxfog3z6UjjxiAxerV\",\"created\":\"2026-01-02T00:00:00Z\",\"proofPurpose\":\"assertionMethod\",\"proofValue\":\"z5UGQgDqjKQww2aKbo4BrMj7cis4iB86F1tABRZkroJKyM4sqQ9yud4bZhziuqXWnarN8eZyN1Wc2ts47NeANjTmo\"}]}]",
+    "cache": null,
+    "now": 1780272000
+  },
+  "expect": {
+    "outcome": "resolved",
+    "versionId": "1-QmR99Sjc1L9d2Kb2HSG77V1xVdH7MwK7WZnUVLcvjmmTUw",
+    "versionTime": "2026-01-01T00:01:00Z",
+    "document": {
+      "@context": [
+        "https://www.w3.org/ns/did/v1"
+      ],
+      "id": "did:webvh:QmYZPeyxc2xG51wFmrBpF1EWDPeuYa6cUiLnsVn5Lt5KrL:example.com",
+      "verificationMethod": [
+        {
+          "id": "did:webvh:QmYZPeyxc2xG51wFmrBpF1EWDPeuYa6cUiLnsVn5Lt5KrL:example.com#key-1",
+          "type": "Multikey",
+          "controller": "did:webvh:QmYZPeyxc2xG51wFmrBpF1EWDPeuYa6cUiLnsVn5Lt5KrL:example.com",
+          "publicKeyMultibase": "z6Mko9phBKc1B4rXcZuVrDQsbJ27V6N3KXH7ZPzAydAD8RHD"
+        }
+      ],
+      "authentication": [
+        "did:webvh:QmYZPeyxc2xG51wFmrBpF1EWDPeuYa6cUiLnsVn5Lt5KrL:example.com#key-1"
+      ],
+      "assertionMethod": [
+        "did:webvh:QmYZPeyxc2xG51wFmrBpF1EWDPeuYa6cUiLnsVn5Lt5KrL:example.com#key-1"
+      ]
+    },
+    "ttl": 3600,
+    "cache": "1-QmR99Sjc1L9d2Kb2HSG77V1xVdH7MwK7WZnUVLcvjmmTUw"
+  }
+}

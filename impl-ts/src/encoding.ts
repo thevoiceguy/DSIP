@@ -69,6 +69,22 @@ export function base58Decode(text: string): Buffer | null {
   return Buffer.from(out);
 }
 
+/** Encode bytes as base58btc (no multibase prefix); leading zero bytes become `1`s. */
+export function base58Encode(bytes: Uint8Array): string {
+  let n = 0n;
+  for (const b of bytes) n = (n << 8n) | BigInt(b);
+  let out = "";
+  while (n > 0n) {
+    out = B58[Number(n % 58n)] + out;
+    n /= 58n;
+  }
+  for (const b of bytes) {
+    if (b !== 0) break;
+    out = "1" + out;
+  }
+  return out;
+}
+
 /**
  * The raw Ed25519 public key inside a `z6Mk…` multibase value, or `null`.
  *

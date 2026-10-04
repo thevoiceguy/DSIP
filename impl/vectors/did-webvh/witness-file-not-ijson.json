@@ -1,0 +1,23 @@
+{
+  "vector": "did-webvh/witness-file-not-ijson",
+  "format": 1,
+  "kind": "did-webvh",
+  "description": "A witness file with a duplicate member name counts as absent.",
+  "spec_ref": [
+    "§7.2",
+    "§8.1",
+    "§8.4"
+  ],
+  "context": {},
+  "input": {
+    "did": "did:webvh:QmSpFSRACgSKsjPyN91DHXCVf3CPu769qqYMw8QGqvgt2s:example.com",
+    "log": "{\"versionId\":\"1-QmW9SXwepsU2mYUzCzFMrHecZsAH1o8V62vtvN23148b15\",\"versionTime\":\"2026-01-01T00:01:00Z\",\"parameters\":{\"method\":\"did:webvh:1.0\",\"scid\":\"QmSpFSRACgSKsjPyN91DHXCVf3CPu769qqYMw8QGqvgt2s\",\"updateKeys\":[\"z6Mko9phBKc1B4rXcZuVrDQsbJ27V6N3KXH7ZPzAydAD8RHD\"],\"witness\":{\"threshold\":1,\"witnesses\":[{\"id\":\"did:key:z6MkrKTfKBuS5QxTaXqzNbPk4vyCUu35HUgZwdVQteT6k5oK\"}]}},\"state\":{\"@context\":[\"https://www.w3.org/ns/did/v1\"],\"id\":\"did:webvh:QmSpFSRACgSKsjPyN91DHXCVf3CPu769qqYMw8QGqvgt2s:example.com\",\"verificationMethod\":[{\"id\":\"did:webvh:QmSpFSRACgSKsjPyN91DHXCVf3CPu769qqYMw8QGqvgt2s:example.com#key-1\",\"type\":\"Multikey\",\"controller\":\"did:webvh:QmSpFSRACgSKsjPyN91DHXCVf3CPu769qqYMw8QGqvgt2s:example.com\",\"publicKeyMultibase\":\"z6Mko9phBKc1B4rXcZuVrDQsbJ27V6N3KXH7ZPzAydAD8RHD\"}],\"authentication\":[\"did:webvh:QmSpFSRACgSKsjPyN91DHXCVf3CPu769qqYMw8QGqvgt2s:example.com#key-1\"],\"assertionMethod\":[\"did:webvh:QmSpFSRACgSKsjPyN91DHXCVf3CPu769qqYMw8QGqvgt2s:example.com#key-1\"]},\"proof\":[{\"type\":\"DataIntegrityProof\",\"cryptosuite\":\"eddsa-jcs-2022\",\"verificationMethod\":\"did:key:z6Mko9phBKc1B4rXcZuVrDQsbJ27V6N3KXH7ZPzAydAD8RHD#z6Mko9phBKc1B4rXcZuVrDQsbJ27V6N3KXH7ZPzAydAD8RHD\",\"created\":\"2026-01-01T00:01:00Z\",\"proofPurpose\":\"assertionMethod\",\"proofValue\":\"zoNvba1s1JkGExLEq12Vbz28sK7xqRGWMqbVPimWc1MvAMBU6phHtJvxKFHkwoyJ4VhK3xGezzBUqm4aDqhiXDTt\"}]}\n",
+    "witness": "[{\"versionId\":\"x\",\"versionId\":\"1-QmW9SXwepsU2mYUzCzFMrHecZsAH1o8V62vtvN23148b15\",\"proof\":[{\"type\":\"DataIntegrityProof\",\"cryptosuite\":\"eddsa-jcs-2022\",\"verificationMethod\":\"did:key:z6MkrKTfKBuS5QxTaXqzNbPk4vyCUu35HUgZwdVQteT6k5oK#z6MkrKTfKBuS5QxTaXqzNbPk4vyCUu35HUgZwdVQteT6k5oK\",\"created\":\"2026-01-02T00:00:00Z\",\"proofPurpose\":\"assertionMethod\",\"proofValue\":\"z3PvzSDooyALMRLTnzFFed4mis91T2BGWrS33k4qqxFTwwpHMd1q3cYASP38k2i5FZYUjAFxLeHa9xnycHkUostRU\"}]}]",
+    "cache": null,
+    "now": 1780272000
+  },
+  "expect": {
+    "outcome": "rejected",
+    "reason": "witness"
+  }
+}

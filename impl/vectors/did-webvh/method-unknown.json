@@ -1,0 +1,23 @@
+{
+  "vector": "did-webvh/method-unknown",
+  "format": 1,
+  "kind": "did-webvh",
+  "description": "method did:webvh:9.9 in the first entry: not a version of the method.",
+  "spec_ref": [
+    "§7.2",
+    "§8.1",
+    "§8.4"
+  ],
+  "context": {},
+  "input": {
+    "did": "did:webvh:Qmbis6Br6CaqLi9znD9scBVoNeHkRmHjuFx7Yg33eHzsaz:example.com",
+    "log": "{\"versionId\":\"1-QmP3YwP2m1md4WLZDXoczeJUQ7LifGf5wEmEZytuvBya2v\",\"versionTime\":\"2026-01-01T00:01:00Z\",\"parameters\":{\"method\":\"did:webvh:9.9\",\"scid\":\"Qmbis6Br6CaqLi9znD9scBVoNeHkRmHjuFx7Yg33eHzsaz\",\"updateKeys\":[\"z6Mko9phBKc1B4rXcZuVrDQsbJ27V6N3KXH7ZPzAydAD8RHD\"]},\"state\":{\"@context\":[\"https://www.w3.org/ns/did/v1\"],\"id\":\"did:webvh:Qmbis6Br6CaqLi9znD9scBVoNeHkRmHjuFx7Yg33eHzsaz:example.com\",\"verificationMethod\":[{\"id\":\"did:webvh:Qmbis6Br6CaqLi9znD9scBVoNeHkRmHjuFx7Yg33eHzsaz:example.com#key-1\",\"type\":\"Multikey\",\"controller\":\"did:webvh:Qmbis6Br6CaqLi9znD9scBVoNeHkRmHjuFx7Yg33eHzsaz:example.com\",\"publicKeyMultibase\":\"z6Mko9phBKc1B4rXcZuVrDQsbJ27V6N3KXH7ZPzAydAD8RHD\"}],\"authentication\":[\"did:webvh:Qmbis6Br6CaqLi9znD9scBVoNeHkRmHjuFx7Yg33eHzsaz:example.com#key-1\"],\"assertionMethod\":[\"did:webvh:Qmbis6Br6CaqLi9znD9scBVoNeHkRmHjuFx7Yg33eHzsaz:example.com#key-1\"]},\"proof\":[{\"type\":\"DataIntegrityProof\",\"cryptosuite\":\"eddsa-jcs-2022\",\"verificationMethod\":\"did:key:z6Mko9phBKc1B4rXcZuVrDQsbJ27V6N3KXH7ZPzAydAD8RHD#z6Mko9phBKc1B4rXcZuVrDQsbJ27V6N3KXH7ZPzAydAD8RHD\",\"created\":\"2026-01-01T00:01:00Z\",\"proofPurpose\":\"assertionMethod\",\"proofValue\":\"z1iqqU5Kn6zB1Nhv7BL4BTqKK4wjPnSdPUmF1d5Y3dT7KPPiFxvfE633VosR6ZCqyPPYzGCSQAhUm5Ts7NMk22B7\"}]}\n",
+    "witness": null,
+    "cache": null,
+    "now": 1780272000
+  },
+  "expect": {
+    "outcome": "rejected",
+    "reason": "parameters"
+  }
+}
