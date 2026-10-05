@@ -1,0 +1,17 @@
+{
+  "vector": "device-events/syslog-malformed-version-2",
+  "format": 1,
+  "kind": "device-events",
+  "description": "RFC 5424 version 2 is not version 1.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "syslog",
+    "datagram": "3c31343e32202d202d202d202d202d202d"
+  },
+  "expect": {
+    "error": "malformed-syslog"
+  }
+}

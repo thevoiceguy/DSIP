@@ -1,0 +1,42 @@
+{
+  "vector": "device-events/map-syslog-table-override",
+  "format": 1,
+  "kind": "device-events",
+  "description": "The gateway's table turns notices (5) into minor alarms.",
+  "spec_ref": [
+    "E§4",
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "map",
+    "raw": {
+      "syslog": {
+        "format": "rfc5424",
+        "facility": 1,
+        "severity": 5,
+        "timestamp": null,
+        "hostname": null,
+        "app_name": "ntpd",
+        "procid": null,
+        "msgid": null,
+        "structured_data": [],
+        "msg": ""
+      }
+    },
+    "rules": [],
+    "source": "192.0.2.9",
+    "syslog_table": {
+      "5": "minor"
+    }
+  },
+  "expect": {
+    "alarm": {
+      "resource": "192.0.2.9",
+      "type": "syslog",
+      "qualifier": "ntpd",
+      "severity": "minor",
+      "cleared": false
+    }
+  }
+}

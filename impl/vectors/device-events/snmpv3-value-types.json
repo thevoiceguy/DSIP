@@ -1,0 +1,127 @@
+{
+  "vector": "device-events/snmpv3-value-types",
+  "format": 1,
+  "kind": "device-events",
+  "description": "Every value type: Counter64 at its maximum, IpAddress, binary and UTF-8 strings, a control character forcing hex, Opaque, NULL, an OID whose first subidentifier needs two bytes, a negative Integer32.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {
+    "component": "snmpv3",
+    "now": 1790000000,
+    "local": {
+      "engine_id": "80001f8880aaaaaaaaaaaaaaaa",
+      "boots": 1,
+      "time": 500
+    },
+    "users": [
+      {
+        "engine_id": null,
+        "user": "ops",
+        "auth": "sha",
+        "auth_password": "auth-pass-1",
+        "priv": null
+      }
+    ]
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "receive": {
+            "from": "192.0.2.7:161",
+            "datagram": "3082013e020103300e020107020300ffe3040101020103042c302a040d80001f8880bbbbbbbbbbbbbbbb02010102016404036f7073040c7fe0c0d8bff017e46ac37faa04003081fa04000400a781f30201010201000201003081e7300d06082b060102010103004301073018060a2b060106030101040100060a2b06010401ce0f010001301606092b06010401ce0f0201460900ffffffffffffffff301106092b06010401ce0f020240040a000001301006092b06010401ce0f020304030001ff301206092b06010401ce0f02040405636166c3a9300f06092b06010401ce0f02054402dead300d06092b06010401ce0f02060500301006092b06010401ce0f02070603883701300e06092b06010401ce0f02080201fb301206092b06010401ce0f0209410500ffffffff301506092b06010401ce0f020a04087461620968657265"
+          }
+        }
+      }
+    ]
+  },
+  "expect": [
+    {
+      "emit": [
+        {
+          "accepted": {
+            "trap": {
+              "version": "v3",
+              "varbinds": [
+                {
+                  "oid": "1.3.6.1.2.1.1.3.0",
+                  "type": "TimeTicks",
+                  "value": "7"
+                },
+                {
+                  "oid": "1.3.6.1.6.3.1.1.4.1.0",
+                  "type": "OBJECT IDENTIFIER",
+                  "value": "1.3.6.1.4.1.9999.1.0.1"
+                },
+                {
+                  "oid": "1.3.6.1.4.1.9999.2.1",
+                  "type": "Counter64",
+                  "value": "18446744073709551615"
+                },
+                {
+                  "oid": "1.3.6.1.4.1.9999.2.2",
+                  "type": "IpAddress",
+                  "value": "10.0.0.1"
+                },
+                {
+                  "oid": "1.3.6.1.4.1.9999.2.3",
+                  "type": "OCTET STRING",
+                  "value": "0001ff"
+                },
+                {
+                  "oid": "1.3.6.1.4.1.9999.2.4",
+                  "type": "OCTET STRING",
+                  "value": "café"
+                },
+                {
+                  "oid": "1.3.6.1.4.1.9999.2.5",
+                  "type": "Opaque",
+                  "value": "dead"
+                },
+                {
+                  "oid": "1.3.6.1.4.1.9999.2.6",
+                  "type": "NULL",
+                  "value": ""
+                },
+                {
+                  "oid": "1.3.6.1.4.1.9999.2.7",
+                  "type": "OBJECT IDENTIFIER",
+                  "value": "2.999.1"
+                },
+                {
+                  "oid": "1.3.6.1.4.1.9999.2.8",
+                  "type": "Integer32",
+                  "value": "-5"
+                },
+                {
+                  "oid": "1.3.6.1.4.1.9999.2.9",
+                  "type": "Counter32",
+                  "value": "4294967295"
+                },
+                {
+                  "oid": "1.3.6.1.4.1.9999.2.10",
+                  "type": "OCTET STRING",
+                  "value": "7461620968657265"
+                }
+              ]
+            },
+            "usm": {
+              "engine_id": "80001f8880bbbbbbbbbbbbbbbb",
+              "user": "ops",
+              "level": "authNoPriv"
+            }
+          }
+        }
+      ],
+      "engines": [
+        {
+          "engine_id": "80001f8880bbbbbbbbbbbbbbbb",
+          "boots": 1,
+          "time": 100,
+          "latest": 100
+        }
+      ]
+    }
+  ]
+}

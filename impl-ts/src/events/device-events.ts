@@ -9,6 +9,8 @@
  * timer rules are the vectors README's, "Kind: `device-events`".
  */
 import type { Json, JsonObject } from "../did.js";
+import { mapSyslog, parseSyslog } from "./syslog.js";
+import { UsmReceiver, usmKey } from "./usm.js";
 
 /** One varbind, as carried. Spec: E§3 */
 export interface Varbind {
@@ -137,8 +139,8 @@ export function syslogSeverity(severity: number, table?: JsonObject): JsonObject
 
 /** One row of a gateway's rule table. Spec: E§4 */
 export interface Rule {
-  /** The notification OID this rule matches. */
-  trap_oid: string;
+  /** The notification OID this rule matches; a rule without it (a syslog rule) never matches a trap. */
+  trap_oid?: string;
   /** An exact varbind condition, optional. */
   varbind?: { oid: string; value: Json };
   /** `raise`, `clear` or `notify`. */
@@ -156,13 +158,14 @@ export interface Rule {
  *
  * Spec: E§4 — the first matching rule wins; `notify`, or no match, is an event with no alarm;
  * the resource is the source, or `source/value` of the varbind `resource_varbind` names
- * (equal, or extended by `.n`).
+ * (equal, or extended by `.n`). A rule with `syslog` in place of `trap_oid` never matches.
  */
 export function mapEvent(raw: JsonObject, rules: Rule[], source: string): JsonObject {
   const snmp = raw["snmp"] as JsonObject;
   const vbs = varbinds(snmp["varbinds"]) ?? [];
   const rule = rules.find(
     (r) =>
+      typeof r.trap_oid === "string" &&
       r.trap_oid === snmp["trap_oid"] &&
       (!r.varbind || vbs.some((v) => v.oid === r.varbind!.oid && String(v.value) === String(r.varbind!.value))),
   );
@@ -452,12 +455,17 @@ export class InformTable {
 /**
  * The `device-events` vector kind: a stateless check, or an alarm-list trace returning one
  * `{emit, alarms}` per step, or an inform trace (`context.component: "informs"`) returning one
- * `{emit, informs}` per step. Spec: E§3–E§6
+ * `{emit, informs}` per step, or an SNMPv3 trace (`context.component: "snmpv3"`) returning one
+ * `{emit, engines}` per step; the stateless checks include `syslog` and `usm-key`. Spec: E§3–E§6
  */
 export function runDeviceEvents(context: JsonObject, input: JsonObject): Json {
   if (Array.isArray(input["steps"]) && context["component"] === "informs") {
     const table = new InformTable(context);
     return (input["steps"] as JsonObject[]).map((s) => table.step(s["event"] as JsonObject));
+  }
+  if (Array.isArray(input["steps"]) && context["component"] === "snmpv3") {
+    const usm = new UsmReceiver(context);
+    return (input["steps"] as JsonObject[]).map((s) => usm.step(s["event"] as JsonObject));
   }
   if (Array.isArray(input["steps"])) {
     const list = new AlarmList(context);
@@ -468,8 +476,20 @@ export function runDeviceEvents(context: JsonObject, input: JsonObject): Json {
       return translateTrap(input["trap"] as JsonObject);
     case "syslog-severity":
       return syslogSeverity(input["severity"] as number, input["table"] as JsonObject | undefined);
-    case "map":
+    case "syslog":
+      return parseSyslog(Buffer.from(input["datagram"] as string, "hex"));
+    case "usm-key":
+      return usmKey(input);
+    case "map": {
+      const raw = input["raw"] as JsonObject;
+      if ("syslog" in raw) {
+        const table = input["syslog_table"] as JsonObject | undefined;
+        return mapSyslog(raw["syslog"] as JsonObject, input["rules"] as JsonObject[], input["source"] as string, (sev) =>
+          syslogSeverity(sev, table)["severity"] as string | null,
+        );
+      }
       return mapEvent(input["raw"] as JsonObject, input["rules"] as unknown as Rule[], input["source"] as string);
+    }
     default:
       throw new Error(`unknown device-events check ${String(input["check"])}`);
   }

@@ -1,0 +1,28 @@
+{
+  "vector": "device-events/syslog-rfc3164-example",
+  "format": 1,
+  "kind": "device-events",
+  "description": "RFC 3164 §5.4's first example: timestamp, hostname, tag.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "syslog",
+    "datagram": "3c33343e4f63742031312032323a31343a3135206d796d616368696e652073753a2027737520726f6f7427206661696c656420666f72206c6f6e7669636b206f6e202f6465762f7074732f38"
+  },
+  "expect": {
+    "syslog": {
+      "format": "rfc3164",
+      "facility": 4,
+      "severity": 2,
+      "timestamp": "Oct 11 22:14:15",
+      "hostname": "mymachine",
+      "app_name": "su",
+      "procid": null,
+      "msgid": null,
+      "structured_data": [],
+      "msg": "'su root' failed for lonvick on /dev/pts/8"
+    }
+  }
+}

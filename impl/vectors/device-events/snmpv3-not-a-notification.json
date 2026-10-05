@@ -1,0 +1,59 @@
+{
+  "vector": "device-events/snmpv3-not-a-notification",
+  "format": 1,
+  "kind": "device-events",
+  "description": "A GetRequest is authenticated and timely but not a notification.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {
+    "component": "snmpv3",
+    "now": 1790000000,
+    "local": {
+      "engine_id": "80001f8880aaaaaaaaaaaaaaaa",
+      "boots": 1,
+      "time": 500
+    },
+    "users": [
+      {
+        "engine_id": null,
+        "user": "ops",
+        "auth": "sha",
+        "auth_password": "auth-pass-1",
+        "priv": null
+      }
+    ]
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "receive": {
+            "from": "192.0.2.7:161",
+            "datagram": "3062020103300e020107020300ffe3040101020103042c302a040d80001f8880bbbbbbbbbbbbbbbb02010102016404036f7073040c39b388208df262ebf509100c0400301f04000400a019020101020100020100300e300c06082b060102010103000500"
+          }
+        }
+      }
+    ]
+  },
+  "expect": [
+    {
+      "emit": [
+        {
+          "refused": {
+            "reason": "not-a-notification",
+            "report": false
+          }
+        }
+      ],
+      "engines": [
+        {
+          "engine_id": "80001f8880bbbbbbbbbbbbbbbb",
+          "boots": 1,
+          "time": 100,
+          "latest": 100
+        }
+      ]
+    }
+  ]
+}

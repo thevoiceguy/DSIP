@@ -1,0 +1,47 @@
+{
+  "vector": "device-events/map-syslog-hostname-null-never-matches",
+  "format": 1,
+  "kind": "device-events",
+  "description": "A rule's hostname never matches a null hostname; the table decides.",
+  "spec_ref": [
+    "E§4",
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "map",
+    "raw": {
+      "syslog": {
+        "format": "rfc5424",
+        "facility": 1,
+        "severity": 3,
+        "timestamp": null,
+        "hostname": null,
+        "app_name": "x",
+        "procid": null,
+        "msgid": null,
+        "structured_data": [],
+        "msg": ""
+      }
+    },
+    "rules": [
+      {
+        "syslog": {
+          "hostname": "sw1"
+        },
+        "action": "notify",
+        "type": "t"
+      }
+    ],
+    "source": "192.0.2.9"
+  },
+  "expect": {
+    "alarm": {
+      "resource": "192.0.2.9",
+      "type": "syslog",
+      "qualifier": "x",
+      "severity": "major",
+      "cleared": false
+    }
+  }
+}

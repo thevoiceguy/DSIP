@@ -1,0 +1,17 @@
+{
+  "vector": "device-events/syslog-malformed-sd-value-unterminated",
+  "format": 1,
+  "kind": "device-events",
+  "description": "A parameter value without its closing quote.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "syslog",
+    "datagram": "3c31343e31202d202d202d202d202d205b78403120613d22625d"
+  },
+  "expect": {
+    "error": "malformed-syslog"
+  }
+}

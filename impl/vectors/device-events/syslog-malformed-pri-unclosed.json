@@ -1,0 +1,17 @@
+{
+  "vector": "device-events/syslog-malformed-pri-unclosed",
+  "format": 1,
+  "kind": "device-events",
+  "description": "PRI without its >.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "syslog",
+    "datagram": "3c31342068656c6c6f"
+  },
+  "expect": {
+    "error": "malformed-syslog"
+  }
+}

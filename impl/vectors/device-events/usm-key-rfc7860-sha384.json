@@ -1,0 +1,20 @@
+{
+  "vector": "device-events/usm-key-rfc7860-sha384",
+  "format": 1,
+  "kind": "device-events",
+  "description": "RFC 7860: \"maplesyrup\", SHA384 (pysnmp's value).",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "usm-key",
+    "auth": "sha384",
+    "password": "maplesyrup",
+    "engine_id": "000000000000000000000002"
+  },
+  "expect": {
+    "auth_key": "3b298f16164a11184279d5432bf169e2d2a48307de02b3d3f7e2b4f36eb6f0455a53689a3937eea07319a633d2ccba78",
+    "priv_key": "3b298f16164a11184279d5432bf169e2"
+  }
+}

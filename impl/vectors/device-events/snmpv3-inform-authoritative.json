@@ -1,0 +1,189 @@
+{
+  "vector": "device-events/snmpv3-inform-authoritative",
+  "format": 1,
+  "kind": "device-events",
+  "description": "An inform names the gateway's engine and is checked against the gateway's clock.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {
+    "component": "snmpv3",
+    "now": 1790000000,
+    "local": {
+      "engine_id": "80001f8880aaaaaaaaaaaaaaaa",
+      "boots": 7,
+      "time": 500
+    },
+    "users": [
+      {
+        "engine_id": null,
+        "user": "ops",
+        "auth": "sha",
+        "auth_password": "auth-pass-1",
+        "priv": null
+      }
+    ]
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "receive": {
+            "from": "192.0.2.7:161",
+            "datagram": "308190020103300e020107020300ffe3040105020103042d302b040d80001f8880aaaaaaaaaaaaaaaa020107020201f404036f7073040c1ec040427aae28d3316368e90400304c04000400a64602021092020100020100303a300e06082b06010201010300430204d23017060a2b06010603010104010006092b0601060301010503300f060a2b060102010202010103020103"
+          }
+        }
+      },
+      {
+        "event": {
+          "advance": 100
+        }
+      },
+      {
+        "event": {
+          "receive": {
+            "from": "192.0.2.7:161",
+            "datagram": "308190020103300e020107020300ffe3040105020103042d302b040d80001f8880aaaaaaaaaaaaaaaa020107020202ee04036f7073040c374d3970e92131b401bf91f30400304c04000400a64602021092020100020100303a300e06082b06010201010300430204d23017060a2b06010603010104010006092b0601060301010503300f060a2b060102010202010103020103"
+          }
+        }
+      },
+      {
+        "event": {
+          "receive": {
+            "from": "192.0.2.7:161",
+            "datagram": "308190020103300e020107020300ffe3040105020103042d302b040d80001f8880aaaaaaaaaaaaaaaa020107020202ef04036f7073040c086fd490d7a634f2b74bc7fc0400304c04000400a64602021092020100020100303a300e06082b06010201010300430204d23017060a2b06010603010104010006092b0601060301010503300f060a2b060102010202010103020103"
+          }
+        }
+      },
+      {
+        "event": {
+          "receive": {
+            "from": "192.0.2.7:161",
+            "datagram": "308190020103300e020107020300ffe3040105020103042d302b040d80001f8880aaaaaaaaaaaaaaaa0201060202025804036f7073040c387765cb8b418b73ec7591160400304c04000400a64602021092020100020100303a300e06082b06010201010300430204d23017060a2b06010603010104010006092b0601060301010503300f060a2b060102010202010103020103"
+          }
+        }
+      },
+      {
+        "event": {
+          "receive": {
+            "from": "192.0.2.7:161",
+            "datagram": "308190020103300e020107020300ffe3040101020103042d302b040d80001f8880aaaaaaaaaaaaaaaa020107020201c104036f7073040c6449ad786a49dbae78f457990400304c04000400a64602021092020100020100303a300e06082b06010201010300430204d23017060a2b06010603010104010006092b0601060301010503300f060a2b060102010202010103020103"
+          }
+        }
+      }
+    ]
+  },
+  "expect": [
+    {
+      "emit": [
+        {
+          "accepted": {
+            "trap": {
+              "version": "v3",
+              "varbinds": [
+                {
+                  "oid": "1.3.6.1.2.1.1.3.0",
+                  "type": "TimeTicks",
+                  "value": "1234"
+                },
+                {
+                  "oid": "1.3.6.1.6.3.1.1.4.1.0",
+                  "type": "OBJECT IDENTIFIER",
+                  "value": "1.3.6.1.6.3.1.1.5.3"
+                },
+                {
+                  "oid": "1.3.6.1.2.1.2.2.1.1.3",
+                  "type": "Integer32",
+                  "value": "3"
+                }
+              ],
+              "inform": {
+                "request_id": 4242
+              }
+            },
+            "usm": {
+              "engine_id": "80001f8880aaaaaaaaaaaaaaaa",
+              "user": "ops",
+              "level": "authNoPriv"
+            }
+          }
+        }
+      ],
+      "engines": []
+    },
+    {
+      "emit": [],
+      "engines": []
+    },
+    {
+      "emit": [
+        {
+          "accepted": {
+            "trap": {
+              "version": "v3",
+              "varbinds": [
+                {
+                  "oid": "1.3.6.1.2.1.1.3.0",
+                  "type": "TimeTicks",
+                  "value": "1234"
+                },
+                {
+                  "oid": "1.3.6.1.6.3.1.1.4.1.0",
+                  "type": "OBJECT IDENTIFIER",
+                  "value": "1.3.6.1.6.3.1.1.5.3"
+                },
+                {
+                  "oid": "1.3.6.1.2.1.2.2.1.1.3",
+                  "type": "Integer32",
+                  "value": "3"
+                }
+              ],
+              "inform": {
+                "request_id": 4242
+              }
+            },
+            "usm": {
+              "engine_id": "80001f8880aaaaaaaaaaaaaaaa",
+              "user": "ops",
+              "level": "authNoPriv"
+            }
+          }
+        }
+      ],
+      "engines": []
+    },
+    {
+      "emit": [
+        {
+          "refused": {
+            "reason": "not-in-time-window",
+            "report": true
+          }
+        }
+      ],
+      "engines": []
+    },
+    {
+      "emit": [
+        {
+          "refused": {
+            "reason": "not-in-time-window",
+            "report": true
+          }
+        }
+      ],
+      "engines": []
+    },
+    {
+      "emit": [
+        {
+          "refused": {
+            "reason": "not-in-time-window",
+            "report": false
+          }
+        }
+      ],
+      "engines": []
+    }
+  ]
+}

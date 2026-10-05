@@ -41,6 +41,11 @@ devices (SNMP SET, NETCONF); standardized vendor mapping content.
 
   A client MUST render the basis with the event, as G§5 requires for STIR attestation. An unknown basis renders as
   unauthenticated.
+- **What an authenticated basis adds to the claim.** The address alone is spoofable on a LAN; the authenticated
+  identity is what the basis verified, so `event.source` carries it:
+  - `snmpv3-auth`, `snmpv3-authpriv`: `"usm": {"engine_id": "<hex>", "user": "<name>"}`, the authoritative engine
+    and the user whose key verified the message;
+  - `syslog-tls`: `"certificate_sha256": "<hex>"`, the SHA-256 of the device's verified leaf certificate.
 
 ## E§3 From a notification to an event
 
@@ -71,6 +76,39 @@ again, without a new event. A refused deposit is forgotten, so the next retransm
 remembers an answered inform for 300 s. A pending one is kept until the hub decides, including across an outage
 (M§9.4). The `device-events/inform-*` traces pin these rules.
 
+**SNMPv3** is accepted with the User-based Security Model only (USM, RFC 3414), at `authNoPriv` or `authPriv`. A
+gateway configures users as `(engine_id, user)` with an authentication protocol and, for `authPriv`, a privacy
+protocol, each given as a localized key or a password (RFC 3414 A.2, localized with the message's authoritative
+engine ID). A password user MAY omit `engine_id`, and then matches that user name from any engine.
+
+- **Authentication:** `md5` and `sha` (HMAC-96, RFC 3414), `sha224`, `sha256`, `sha384`, `sha512` (RFC 7860).
+- **Privacy:** `aes128` (AES-128-CFB, RFC 3826; the privacy key is localized with the authentication protocol's
+  hash and truncated to 16 bytes).
+- **Refused:** other security models, `noAuthNoPriv` (it proves nothing that v2c does not), and DES (RFC 3414 §8:
+  56-bit, broken).
+
+A received message is checked in the order of RFC 3414 §3.2, and the first failure is reported. The steps and their
+reason tokens are those of `impl/vectors/README.md` (component `snmpv3`):
+`malformed`, `unsupported-security-model`, `unknown-engine-id`, `unknown-user`, `unsupported-security-level`,
+`wrong-digest`, `not-in-time-window`, `decryption-error`, `not-a-notification`, `engine-id-mismatch`.
+
+- **Who is authoritative.** A trap's authoritative engine is the device; an inform's is the gateway (RFC 3412
+  §7.2). A message naming the gateway's own engine ID is checked against the gateway's clock; any other against the
+  gateway's cached notion of that engine's clock. A trap naming the gateway's engine ID, or an inform naming
+  another, is `engine-id-mismatch`.
+- **Timeliness for traps** (RFC 3414 §3.2 step 7b). The first authenticated message from an engine seeds its cache
+  entry `(boots, time)`, since a trap receiver performs no discovery. Thereafter a message is outside the window if
+  its boots is below the cached boots, or equal with a time more than 150 s behind the cached time advanced by the
+  local clock, or if the cached boots is 2^31−1. A newer `(boots, time)` updates the cache. A replayed trap is
+  therefore refused once it is 150 s old.
+- **Timeliness for informs** (step 7a): boots equal to the gateway's, and time within 150 s of the gateway's.
+- **Discovery** (RFC 3414 §4). A reportable message with an empty engine ID is answered with a Report carrying
+  `usmStatsUnknownEngineIDs` and the gateway's engine ID, boots and time. An authenticated inform outside the window
+  is answered with an authenticated Report carrying `usmStatsNotInTimeWindows`, so the sender can synchronize. No
+  other failure is reported: the gateway drops it silently.
+- **The response to an inform** is sent once the hub has stored the event, as for v2c. It is a Response-PDU at the
+  inform's security level, under the gateway's engine ID, boots and time.
+
 **Syslog** (RFC 5424 and its transports) is carried as its fields. Its severity maps to an alarm severity through a
 table the gateway MAY override per rule. By default:
 
@@ -82,6 +120,29 @@ table the gateway MAY override per rule. By default:
 | 5 Notice, 6 Informational, 7 Debug | none: an event, not an alarm |
 
 Impl (spec-gap 103): this default is a convention, not a standard, so a gateway's configuration may differ.
+
+A syslog message is parsed into `raw.syslog`:
+
+```json
+{"syslog": {"format": "rfc5424", "facility": 4, "severity": 3, "timestamp": "2026-10-05T12:00:00Z",
+            "hostname": "sw1", "app_name": "linkd", "procid": null, "msgid": "LINKDOWN",
+            "structured_data": [{"id": "if@32473", "params": [{"name": "ifIndex", "value": "3"}]}],
+            "msg": "port 3 down"}}
+```
+
+- **RFC 5424** applies when the `<PRI>` is followed by a version and a space. Its header fields are taken as given,
+  `-` becoming `null`; the timestamp is the device's claim and is not interpreted. Parameter values are unescaped
+  (`\"`, `\\`, `\]`). A leading BOM is removed from the message.
+- **RFC 3164** (BSD syslog), which most network equipment still sends, applies otherwise: an optional
+  `Mmm dd hh:mm:ss` timestamp and hostname, then an optional `TAG[pid]:` giving `app_name` and `procid`. Its
+  `msgid` is `null` and its `structured_data` empty.
+- Bytes that are not UTF-8 are replaced with U+FFFD. Trailing CR and LF are removed from the message.
+- A datagram without a valid `<PRI>` (0–191) is malformed and dropped.
+
+The exact grammar is in `impl/vectors/README.md` (checks `syslog`).
+
+Over UDP (RFC 5426) the basis is `syslog-udp`. Over TLS (RFC 5425, octet-counted framing) it is `syslog-tls` only
+when the device presented a certificate that chains to a CA the gateway trusts for its devices.
 
 ## E§4 From an event to an alarm
 
@@ -103,6 +164,17 @@ A gateway maps notifications to alarms with a **rule table** shaped like RFC 387
 The **first matching rule** wins. The resource is `<source address>`, or `<source address>/<value>` when
 `resource_varbind` names a varbind whose OID equals the prefix or extends it by `.n`. An unmatched notification, or a
 `notify` rule, gives an event with no alarm. The profile standardizes the shape of the table, not its contents.
+
+A rule for syslog has `syslog` in place of `trap_oid`, with any of `app_name`, `msgid`, `hostname` and `facility`
+(matched exactly) and `msg_contains` (a substring of the message). A trap rule never matches syslog, nor a syslog rule
+a trap.
+
+- A `raise` rule's severity is the rule's `severity`, or else the syslog severity table's. If both give none, the
+  message is an event with no alarm.
+- `resource_sd: {"id", "param"}` names a structured-data parameter. The resource is `<source address>/<value>` from
+  the first element with that `id` and, in it, the first parameter with that name; otherwise `<source address>`.
+- An unmatched syslog message whose severity the table maps to an alarm severity raises
+  `(<source address>, syslog, <app_name or "">)`. Otherwise it is an event with no alarm.
 
 ## E§5 The `device-event` object and the alarm list
 

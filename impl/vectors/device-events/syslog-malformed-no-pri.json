@@ -1,0 +1,17 @@
+{
+  "vector": "device-events/syslog-malformed-no-pri",
+  "format": 1,
+  "kind": "device-events",
+  "description": "No PRI at all.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "syslog",
+    "datagram": "4f63742031312032323a31343a313520686f7374206d7367"
+  },
+  "expect": {
+    "error": "malformed-syslog"
+  }
+}

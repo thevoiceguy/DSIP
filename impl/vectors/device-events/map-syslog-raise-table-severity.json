@@ -1,0 +1,74 @@
+{
+  "vector": "device-events/map-syslog-raise-table-severity",
+  "format": 1,
+  "kind": "device-events",
+  "description": "A raise rule without severity takes the table's (3 → major); the resource from structured data.",
+  "spec_ref": [
+    "E§4",
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "map",
+    "raw": {
+      "syslog": {
+        "format": "rfc5424",
+        "facility": 23,
+        "severity": 3,
+        "timestamp": null,
+        "hostname": "sw1",
+        "app_name": "linkd",
+        "procid": null,
+        "msgid": "LINKDOWN",
+        "structured_data": [
+          {
+            "id": "if@32473",
+            "params": [
+              {
+                "name": "ifIndex",
+                "value": "3"
+              }
+            ]
+          }
+        ],
+        "msg": "port 3 down"
+      }
+    },
+    "rules": [
+      {
+        "syslog": {
+          "app_name": "linkd",
+          "msgid": "LINKDOWN"
+        },
+        "action": "raise",
+        "type": "link-down",
+        "resource_sd": {
+          "id": "if@32473",
+          "param": "ifIndex"
+        }
+      },
+      {
+        "syslog": {
+          "app_name": "linkd",
+          "msgid": "LINKUP"
+        },
+        "action": "clear",
+        "type": "link-down",
+        "resource_sd": {
+          "id": "if@32473",
+          "param": "ifIndex"
+        }
+      }
+    ],
+    "source": "192.0.2.9"
+  },
+  "expect": {
+    "alarm": {
+      "resource": "192.0.2.9/3",
+      "type": "link-down",
+      "qualifier": "",
+      "severity": "major",
+      "cleared": false
+    }
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "vector": "device-events/syslog-rfc5424-pri-zero",
+  "format": 1,
+  "kind": "device-events",
+  "description": "<0> is kernel emergency.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "syslog",
+    "datagram": "3c303e31202d202d202d202d202d202d"
+  },
+  "expect": {
+    "syslog": {
+      "format": "rfc5424",
+      "facility": 0,
+      "severity": 0,
+      "timestamp": null,
+      "hostname": null,
+      "app_name": null,
+      "procid": null,
+      "msgid": null,
+      "structured_data": [],
+      "msg": ""
+    }
+  }
+}

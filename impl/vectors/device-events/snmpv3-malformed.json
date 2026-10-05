@@ -1,0 +1,166 @@
+{
+  "vector": "device-events/snmpv3-malformed",
+  "format": 1,
+  "kind": "device-events",
+  "description": "Structural failures: trailing bytes, a 2-byte msgFlags, priv without auth, a 4-byte engine ID, msgMaxSize below 484, version 2, an indefinite length.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {
+    "component": "snmpv3",
+    "now": 1790000000,
+    "local": {
+      "engine_id": "80001f8880aaaaaaaaaaaaaaaa",
+      "boots": 1,
+      "time": 500
+    },
+    "users": [
+      {
+        "engine_id": null,
+        "user": "ops",
+        "auth": "sha",
+        "auth_password": "auth-pass-1",
+        "priv": null
+      }
+    ]
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "receive": {
+            "from": "192.0.2.7:161",
+            "datagram": "30818e020103300e020107020300ffe3040101020103042c302a040d80001f8880bbbbbbbbbbbbbbbb02010102016404036f7073040cd93e90f602a25fccc07ff7560400304b04000400a745020101020100020100303a300e06082b06010201010300430204d23017060a2b06010603010104010006092b0601060301010503300f060a2b06010201020201010302010300"
+          }
+        }
+      },
+      {
+        "event": {
+          "receive": {
+            "from": "192.0.2.7:161",
+            "datagram": "30818f020103300f020107020300ffe304020100020103042c302a040d80001f8880bbbbbbbbbbbbbbbb02010102016404036f7073040c857ac68aa1ead2f89c2764810400304b04000400a745020101020100020100303a300e06082b06010201010300430204d23017060a2b06010603010104010006092b0601060301010503300f060a2b060102010202010103020103"
+          }
+        }
+      },
+      {
+        "event": {
+          "receive": {
+            "from": "192.0.2.7:161",
+            "datagram": "30818e020103300e020107020300ffe3040102020103042c302a040d80001f8880bbbbbbbbbbbbbbbb02010102016404036f7073040c52dcefd927aa67c1f955b7170400304b04000400a745020101020100020100303a300e06082b06010201010300430204d23017060a2b06010603010104010006092b0601060301010503300f060a2b060102010202010103020103"
+          }
+        }
+      },
+      {
+        "event": {
+          "receive": {
+            "from": "192.0.2.7:161",
+            "datagram": "308185020103300e020107020300ffe304010102010304233021040480001f8802010102016404036f7073040c9bc86c19ab1551bc4cff9bcb0400304b04000400a745020101020100020100303a300e06082b06010201010300430204d23017060a2b06010603010104010006092b0601060301010503300f060a2b060102010202010103020103"
+          }
+        }
+      },
+      {
+        "event": {
+          "receive": {
+            "from": "192.0.2.7:161",
+            "datagram": "30818d020103300d02010702020190040101020103042c302a040d80001f8880bbbbbbbbbbbbbbbb02010102016404036f7073040cc29fa8b00a9ff178b3fd83540400304b04000400a745020101020100020100303a300e06082b06010201010300430204d23017060a2b06010603010104010006092b0601060301010503300f060a2b060102010202010103020103"
+          }
+        }
+      },
+      {
+        "event": {
+          "receive": {
+            "from": "192.0.2.7:161",
+            "datagram": "30818e020102300e020107020300ffe3040101020103042c302a040d80001f8880bbbbbbbbbbbbbbbb02010102016404036f7073040c21c30ded0a5d6427b259c2c10400304b04000400a745020101020100020100303a300e06082b06010201010300430204d23017060a2b06010603010104010006092b0601060301010503300f060a2b060102010202010103020103"
+          }
+        }
+      },
+      {
+        "event": {
+          "receive": {
+            "from": "192.0.2.7:161",
+            "datagram": "3080020103300e020107020300ffe3040101020103042c302a040d80001f8880bbbbbbbbbbbbbbbb02010102016404036f7073040cd93e90f602a25fccc07ff7560400304b04000400a745020101020100020100303a300e06082b06010201010300430204d23017060a2b06010603010104010006092b0601060301010503300f060a2b0601020102020101030201030000"
+          }
+        }
+      }
+    ]
+  },
+  "expect": [
+    {
+      "emit": [
+        {
+          "refused": {
+            "reason": "malformed",
+            "report": false
+          }
+        }
+      ],
+      "engines": []
+    },
+    {
+      "emit": [
+        {
+          "refused": {
+            "reason": "malformed",
+            "report": false
+          }
+        }
+      ],
+      "engines": []
+    },
+    {
+      "emit": [
+        {
+          "refused": {
+            "reason": "malformed",
+            "report": false
+          }
+        }
+      ],
+      "engines": []
+    },
+    {
+      "emit": [
+        {
+          "refused": {
+            "reason": "malformed",
+            "report": false
+          }
+        }
+      ],
+      "engines": []
+    },
+    {
+      "emit": [
+        {
+          "refused": {
+            "reason": "malformed",
+            "report": false
+          }
+        }
+      ],
+      "engines": []
+    },
+    {
+      "emit": [
+        {
+          "refused": {
+            "reason": "malformed",
+            "report": false
+          }
+        }
+      ],
+      "engines": []
+    },
+    {
+      "emit": [
+        {
+          "refused": {
+            "reason": "malformed",
+            "report": false
+          }
+        }
+      ],
+      "engines": []
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "vector": "device-events/syslog-rfc3164-day-zero-padded",
+  "format": 1,
+  "kind": "device-events",
+  "description": "\"Oct 05\" is not an RFC 3164 timestamp, so all of it is the message.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "syslog",
+    "datagram": "3c31333e4f63742030352031323a30303a303020686f73742078"
+  },
+  "expect": {
+    "syslog": {
+      "format": "rfc3164",
+      "facility": 1,
+      "severity": 5,
+      "timestamp": null,
+      "hostname": null,
+      "app_name": null,
+      "procid": null,
+      "msgid": null,
+      "structured_data": [],
+      "msg": "Oct 05 12:00:00 host x"
+    }
+  }
+}

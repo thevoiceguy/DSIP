@@ -1,0 +1,71 @@
+{
+  "vector": "device-events/snmpv3-key-user-other-engine",
+  "format": 1,
+  "kind": "device-events",
+  "description": "A user given keys for one engine is unknown from another; a password user would match.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {
+    "component": "snmpv3",
+    "now": 1790000000,
+    "local": {
+      "engine_id": "80001f8880aaaaaaaaaaaaaaaa",
+      "boots": 1,
+      "time": 500
+    },
+    "users": [
+      {
+        "engine_id": "80001f8880bbbbbbbbbbbbbbbb",
+        "user": "ops",
+        "auth": "sha",
+        "auth_key": "3f17bf7ce6ad0646b7041848a3f50d69ea3ea4d4",
+        "priv": null
+      }
+    ]
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "receive": {
+            "from": "192.0.2.7:161",
+            "datagram": "30818e020103300e020107020300ffe3040101020103042c302a040d80001f8880cccccccccccccccc02010102016404036f7073040c83dd0e1ea742070ef09a6ea00400304b04000400a745020101020100020100303a300e06082b06010201010300430204d23017060a2b06010603010104010006092b0601060301010503300f060a2b060102010202010103020103"
+          }
+        }
+      },
+      {
+        "event": {
+          "receive": {
+            "from": "192.0.2.7:161",
+            "datagram": "308191020103300e020107020300ffe3040101020103042f302d040d80001f8880bbbbbbbbbbbbbbbb02010102016404066e6f626f6479040cb6d4928dc5a4713d5779b5e40400304b04000400a745020101020100020100303a300e06082b06010201010300430204d23017060a2b06010603010104010006092b0601060301010503300f060a2b060102010202010103020103"
+          }
+        }
+      }
+    ]
+  },
+  "expect": [
+    {
+      "emit": [
+        {
+          "refused": {
+            "reason": "unknown-user",
+            "report": false
+          }
+        }
+      ],
+      "engines": []
+    },
+    {
+      "emit": [
+        {
+          "refused": {
+            "reason": "unknown-user",
+            "report": false
+          }
+        }
+      ],
+      "engines": []
+    }
+  ]
+}

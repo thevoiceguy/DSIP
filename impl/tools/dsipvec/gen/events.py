@@ -342,4 +342,6 @@ def vectors() -> list[dict]:
                          ({"advance": 3600}, {"emit": [], "informs": [st(7, "pending")]}),
                          (ok(7), {"emit": [{"respond": {"key": [S, 7]}}], "informs": [st(7, "answered")]}),
                      ]))
+    from . import events_v3  # SNMPv3 (USM) and syslog
+    out += events_v3.usm_key_vectors() + events_v3.snmpv3_vectors() + events_v3.syslog_vectors()
     return out

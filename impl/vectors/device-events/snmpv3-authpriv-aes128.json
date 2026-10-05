@@ -1,0 +1,254 @@
+{
+  "vector": "device-events/snmpv3-authpriv-aes128",
+  "format": 1,
+  "kind": "device-events",
+  "description": "authPriv traps: AES-128-CFB, the privacy key localized with the auth hash and cut to 16 bytes.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {
+    "component": "snmpv3",
+    "now": 1790000000,
+    "local": {
+      "engine_id": "80001f8880aaaaaaaaaaaaaaaa",
+      "boots": 1,
+      "time": 500
+    },
+    "users": [
+      {
+        "engine_id": null,
+        "user": "p-md5",
+        "auth": "md5",
+        "auth_password": "auth-pass-1",
+        "priv": "aes128",
+        "priv_password": "priv-pass-2"
+      },
+      {
+        "engine_id": null,
+        "user": "p-sha",
+        "auth": "sha",
+        "auth_password": "auth-pass-1",
+        "priv": "aes128",
+        "priv_password": "priv-pass-2"
+      },
+      {
+        "engine_id": null,
+        "user": "p-sha256",
+        "auth": "sha256",
+        "auth_password": "auth-pass-1",
+        "priv": "aes128",
+        "priv_password": "priv-pass-2"
+      },
+      {
+        "engine_id": null,
+        "user": "p-sha512",
+        "auth": "sha512",
+        "auth_password": "auth-pass-1",
+        "priv": "aes128",
+        "priv_password": "priv-pass-2"
+      }
+    ]
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "receive": {
+            "from": "192.0.2.7:161",
+            "datagram": "30819a020103300e020107020300ffe304010302010304363034040d80001f8880bbbbbbbbbbbbbbbb0201010201640405702d6d6435040c7d1bb91249b51ac102fe1e7a04080000000000000001044d197fa8990a47b39d17b38ef5ed6c1fd8c48db4e9204d1dad70b61a4905a7e0a662ec19268396eeb0e48850042915654f3f9a512974a66e46ad42d9d113fcd4a290c9d0fdae36039533555109aa"
+          }
+        }
+      },
+      {
+        "event": {
+          "receive": {
+            "from": "192.0.2.7:161",
+            "datagram": "30819a020103300e020107020300ffe304010302010304363034040d80001f8880bbbbbbbbbbbbbbbb0201010201650405702d736861040cdd47f8ebca4fd827f4f1da2c04080000000000000001044d1571654bd0d5f75d8d2199cae7ca4a8dfeee97e6d02e2e5c7d7e0cfd00053c52bd120aa10a62ebdc2bd9c93529050d0ea39702245a603973ba9a095964ccb86dc65af2475486c1bc97bc194b38"
+          }
+        }
+      },
+      {
+        "event": {
+          "receive": {
+            "from": "192.0.2.7:161",
+            "datagram": "3081a9020103300e020107020300ffe304010302010304453043040d80001f8880bbbbbbbbbbbbbbbb0201010201660408702d7368613235360418d168d44a65ef5388b0fd6d9ccddb49d6b0964ec7508b544c04080000000000000001044d1f24caae2bbfe176e5e342721e62aa4b7cc871aede6ae873d8f79391a67469878e166af2afa0140e253ebfbec85eb2adad79e5f5c819d4913546c82bd257b11ed99b41f124daba32abea63a9d0"
+          }
+        }
+      },
+      {
+        "event": {
+          "receive": {
+            "from": "192.0.2.7:161",
+            "datagram": "3081c1020103300e020107020300ffe3040103020103045d305b040d80001f8880bbbbbbbbbbbbbbbb0201010201670408702d73686135313204303aaa0e7ac3bbd33f8df151da6b3ba8f8895d665aea758c83cdc6279ef778521cd0554192bda8ce95f77df2ce52f206af04080000000000000001044d6cc6e240c6c5fd14347622648abca5f50a3d99e510cd4db495c57a67b46f7104e2433f5556729fc2aa3a4cc0488b7f8940c0b08bfd9c954be74892acea97ba624592ba34b278b9c16132b0c4b9"
+          }
+        }
+      }
+    ]
+  },
+  "expect": [
+    {
+      "emit": [
+        {
+          "accepted": {
+            "trap": {
+              "version": "v3",
+              "varbinds": [
+                {
+                  "oid": "1.3.6.1.2.1.1.3.0",
+                  "type": "TimeTicks",
+                  "value": "1234"
+                },
+                {
+                  "oid": "1.3.6.1.6.3.1.1.4.1.0",
+                  "type": "OBJECT IDENTIFIER",
+                  "value": "1.3.6.1.6.3.1.1.5.3"
+                },
+                {
+                  "oid": "1.3.6.1.2.1.2.2.1.1.3",
+                  "type": "Integer32",
+                  "value": "3"
+                }
+              ]
+            },
+            "usm": {
+              "engine_id": "80001f8880bbbbbbbbbbbbbbbb",
+              "user": "p-md5",
+              "level": "authPriv"
+            }
+          }
+        }
+      ],
+      "engines": [
+        {
+          "engine_id": "80001f8880bbbbbbbbbbbbbbbb",
+          "boots": 1,
+          "time": 100,
+          "latest": 100
+        }
+      ]
+    },
+    {
+      "emit": [
+        {
+          "accepted": {
+            "trap": {
+              "version": "v3",
+              "varbinds": [
+                {
+                  "oid": "1.3.6.1.2.1.1.3.0",
+                  "type": "TimeTicks",
+                  "value": "1234"
+                },
+                {
+                  "oid": "1.3.6.1.6.3.1.1.4.1.0",
+                  "type": "OBJECT IDENTIFIER",
+                  "value": "1.3.6.1.6.3.1.1.5.3"
+                },
+                {
+                  "oid": "1.3.6.1.2.1.2.2.1.1.3",
+                  "type": "Integer32",
+                  "value": "3"
+                }
+              ]
+            },
+            "usm": {
+              "engine_id": "80001f8880bbbbbbbbbbbbbbbb",
+              "user": "p-sha",
+              "level": "authPriv"
+            }
+          }
+        }
+      ],
+      "engines": [
+        {
+          "engine_id": "80001f8880bbbbbbbbbbbbbbbb",
+          "boots": 1,
+          "time": 101,
+          "latest": 101
+        }
+      ]
+    },
+    {
+      "emit": [
+        {
+          "accepted": {
+            "trap": {
+              "version": "v3",
+              "varbinds": [
+                {
+                  "oid": "1.3.6.1.2.1.1.3.0",
+                  "type": "TimeTicks",
+                  "value": "1234"
+                },
+                {
+                  "oid": "1.3.6.1.6.3.1.1.4.1.0",
+                  "type": "OBJECT IDENTIFIER",
+                  "value": "1.3.6.1.6.3.1.1.5.3"
+                },
+                {
+                  "oid": "1.3.6.1.2.1.2.2.1.1.3",
+                  "type": "Integer32",
+                  "value": "3"
+                }
+              ]
+            },
+            "usm": {
+              "engine_id": "80001f8880bbbbbbbbbbbbbbbb",
+              "user": "p-sha256",
+              "level": "authPriv"
+            }
+          }
+        }
+      ],
+      "engines": [
+        {
+          "engine_id": "80001f8880bbbbbbbbbbbbbbbb",
+          "boots": 1,
+          "time": 102,
+          "latest": 102
+        }
+      ]
+    },
+    {
+      "emit": [
+        {
+          "accepted": {
+            "trap": {
+              "version": "v3",
+              "varbinds": [
+                {
+                  "oid": "1.3.6.1.2.1.1.3.0",
+                  "type": "TimeTicks",
+                  "value": "1234"
+                },
+                {
+                  "oid": "1.3.6.1.6.3.1.1.4.1.0",
+                  "type": "OBJECT IDENTIFIER",
+                  "value": "1.3.6.1.6.3.1.1.5.3"
+                },
+                {
+                  "oid": "1.3.6.1.2.1.2.2.1.1.3",
+                  "type": "Integer32",
+                  "value": "3"
+                }
+              ]
+            },
+            "usm": {
+              "engine_id": "80001f8880bbbbbbbbbbbbbbbb",
+              "user": "p-sha512",
+              "level": "authPriv"
+            }
+          }
+        }
+      ],
+      "engines": [
+        {
+          "engine_id": "80001f8880bbbbbbbbbbbbbbbb",
+          "boots": 1,
+          "time": 103,
+          "latest": 103
+        }
+      ]
+    }
+  ]
+}

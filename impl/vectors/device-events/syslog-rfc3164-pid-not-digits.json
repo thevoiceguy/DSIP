@@ -1,0 +1,28 @@
+{
+  "vector": "device-events/syslog-rfc3164-pid-not-digits",
+  "format": 1,
+  "kind": "device-events",
+  "description": "A bracket that is not [digits]: is not a tag.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "syslog",
+    "datagram": "3c31333e6170705b785d3a206d"
+  },
+  "expect": {
+    "syslog": {
+      "format": "rfc3164",
+      "facility": 1,
+      "severity": 5,
+      "timestamp": null,
+      "hostname": null,
+      "app_name": null,
+      "procid": null,
+      "msgid": null,
+      "structured_data": [],
+      "msg": "app[x]: m"
+    }
+  }
+}

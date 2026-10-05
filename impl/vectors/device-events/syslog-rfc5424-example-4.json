@@ -1,0 +1,55 @@
+{
+  "vector": "device-events/syslog-rfc5424-example-4",
+  "format": 1,
+  "kind": "device-events",
+  "description": "RFC 5424 §6.5 example 4: two elements, no message.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "syslog",
+    "datagram": "3c3136353e3120323030332d31302d31315432323a31343a31352e3030335a206d796d616368696e652e6578616d706c652e636f6d2065766e74736c6f67202d2049443437205b6578616d706c6553444944403332343733206975743d223322206576656e74536f757263653d224170706c69636174696f6e22206576656e7449443d2231303131225d5b6578616d706c655072696f7269747940333234373320636c6173733d2268696768225d"
+  },
+  "expect": {
+    "syslog": {
+      "format": "rfc5424",
+      "facility": 20,
+      "severity": 5,
+      "timestamp": "2003-10-11T22:14:15.003Z",
+      "hostname": "mymachine.example.com",
+      "app_name": "evntslog",
+      "procid": null,
+      "msgid": "ID47",
+      "structured_data": [
+        {
+          "id": "exampleSDID@32473",
+          "params": [
+            {
+              "name": "iut",
+              "value": "3"
+            },
+            {
+              "name": "eventSource",
+              "value": "Application"
+            },
+            {
+              "name": "eventID",
+              "value": "1011"
+            }
+          ]
+        },
+        {
+          "id": "examplePriority@32473",
+          "params": [
+            {
+              "name": "class",
+              "value": "high"
+            }
+          ]
+        }
+      ],
+      "msg": ""
+    }
+  }
+}

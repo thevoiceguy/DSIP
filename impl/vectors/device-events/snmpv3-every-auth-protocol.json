@@ -1,0 +1,362 @@
+{
+  "vector": "device-events/snmpv3-every-auth-protocol",
+  "format": 1,
+  "kind": "device-events",
+  "description": "authNoPriv traps under each authentication protocol, keys localized from passwords.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {
+    "component": "snmpv3",
+    "now": 1790000000,
+    "local": {
+      "engine_id": "80001f8880aaaaaaaaaaaaaaaa",
+      "boots": 1,
+      "time": 500
+    },
+    "users": [
+      {
+        "engine_id": null,
+        "user": "u-md5",
+        "auth": "md5",
+        "auth_password": "auth-pass-1",
+        "priv": null
+      },
+      {
+        "engine_id": null,
+        "user": "u-sha",
+        "auth": "sha",
+        "auth_password": "auth-pass-1",
+        "priv": null
+      },
+      {
+        "engine_id": null,
+        "user": "u-sha224",
+        "auth": "sha224",
+        "auth_password": "auth-pass-1",
+        "priv": null
+      },
+      {
+        "engine_id": null,
+        "user": "u-sha256",
+        "auth": "sha256",
+        "auth_password": "auth-pass-1",
+        "priv": null
+      },
+      {
+        "engine_id": null,
+        "user": "u-sha384",
+        "auth": "sha384",
+        "auth_password": "auth-pass-1",
+        "priv": null
+      },
+      {
+        "engine_id": null,
+        "user": "u-sha512",
+        "auth": "sha512",
+        "auth_password": "auth-pass-1",
+        "priv": null
+      }
+    ]
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "receive": {
+            "from": "192.0.2.7:161",
+            "datagram": "308190020103300e020107020300ffe3040101020103042e302c040d80001f8880bbbbbbbbbbbbbbbb0201010201640405752d6d6435040c852efb037b210809dd8e1de60400304b04000400a745020101020100020100303a300e06082b06010201010300430204d23017060a2b06010603010104010006092b0601060301010503300f060a2b060102010202010103020103"
+          }
+        }
+      },
+      {
+        "event": {
+          "receive": {
+            "from": "192.0.2.7:161",
+            "datagram": "308190020103300e020107020300ffe3040101020103042e302c040d80001f8880bbbbbbbbbbbbbbbb0201010201650405752d736861040c01ed15e35ab0d54bc19473300400304b04000400a745020101020100020100303a300e06082b06010201010300430204d23017060a2b06010603010104010006092b0601060301010503300f060a2b060102010202010103020103"
+          }
+        }
+      },
+      {
+        "event": {
+          "receive": {
+            "from": "192.0.2.7:161",
+            "datagram": "308197020103300e020107020300ffe304010102010304353033040d80001f8880bbbbbbbbbbbbbbbb0201010201660408752d73686132323404103d6fbaf5e2ad8ff636e9b6a09891a5f30400304b04000400a745020101020100020100303a300e06082b06010201010300430204d23017060a2b06010603010104010006092b0601060301010503300f060a2b060102010202010103020103"
+          }
+        }
+      },
+      {
+        "event": {
+          "receive": {
+            "from": "192.0.2.7:161",
+            "datagram": "30819f020103300e020107020300ffe3040101020103043d303b040d80001f8880bbbbbbbbbbbbbbbb0201010201670408752d7368613235360418e14b0868a33c4d643f9eb9718802a89aa21774ee62f0d19a0400304b04000400a745020101020100020100303a300e06082b06010201010300430204d23017060a2b06010603010104010006092b0601060301010503300f060a2b060102010202010103020103"
+          }
+        }
+      },
+      {
+        "event": {
+          "receive": {
+            "from": "192.0.2.7:161",
+            "datagram": "3081a7020103300e020107020300ffe304010102010304453043040d80001f8880bbbbbbbbbbbbbbbb0201010201680408752d73686133383404206cde61c9cb322587727d5a813e630947762b3bb61be612acdb8d455bc50bf3600400304b04000400a745020101020100020100303a300e06082b06010201010300430204d23017060a2b06010603010104010006092b0601060301010503300f060a2b060102010202010103020103"
+          }
+        }
+      },
+      {
+        "event": {
+          "receive": {
+            "from": "192.0.2.7:161",
+            "datagram": "3081b7020103300e020107020300ffe304010102010304553053040d80001f8880bbbbbbbbbbbbbbbb0201010201690408752d7368613531320430a333b302fe21f2baaa4eacfe2ea88c9fbb425d2ff1d6a5eb2cc7d69cab5346486796ad7640485680b08e067f3e14f2f60400304b04000400a745020101020100020100303a300e06082b06010201010300430204d23017060a2b06010603010104010006092b0601060301010503300f060a2b060102010202010103020103"
+          }
+        }
+      }
+    ]
+  },
+  "expect": [
+    {
+      "emit": [
+        {
+          "accepted": {
+            "trap": {
+              "version": "v3",
+              "varbinds": [
+                {
+                  "oid": "1.3.6.1.2.1.1.3.0",
+                  "type": "TimeTicks",
+                  "value": "1234"
+                },
+                {
+                  "oid": "1.3.6.1.6.3.1.1.4.1.0",
+                  "type": "OBJECT IDENTIFIER",
+                  "value": "1.3.6.1.6.3.1.1.5.3"
+                },
+                {
+                  "oid": "1.3.6.1.2.1.2.2.1.1.3",
+                  "type": "Integer32",
+                  "value": "3"
+                }
+              ]
+            },
+            "usm": {
+              "engine_id": "80001f8880bbbbbbbbbbbbbbbb",
+              "user": "u-md5",
+              "level": "authNoPriv"
+            }
+          }
+        }
+      ],
+      "engines": [
+        {
+          "engine_id": "80001f8880bbbbbbbbbbbbbbbb",
+          "boots": 1,
+          "time": 100,
+          "latest": 100
+        }
+      ]
+    },
+    {
+      "emit": [
+        {
+          "accepted": {
+            "trap": {
+              "version": "v3",
+              "varbinds": [
+                {
+                  "oid": "1.3.6.1.2.1.1.3.0",
+                  "type": "TimeTicks",
+                  "value": "1234"
+                },
+                {
+                  "oid": "1.3.6.1.6.3.1.1.4.1.0",
+                  "type": "OBJECT IDENTIFIER",
+                  "value": "1.3.6.1.6.3.1.1.5.3"
+                },
+                {
+                  "oid": "1.3.6.1.2.1.2.2.1.1.3",
+                  "type": "Integer32",
+                  "value": "3"
+                }
+              ]
+            },
+            "usm": {
+              "engine_id": "80001f8880bbbbbbbbbbbbbbbb",
+              "user": "u-sha",
+              "level": "authNoPriv"
+            }
+          }
+        }
+      ],
+      "engines": [
+        {
+          "engine_id": "80001f8880bbbbbbbbbbbbbbbb",
+          "boots": 1,
+          "time": 101,
+          "latest": 101
+        }
+      ]
+    },
+    {
+      "emit": [
+        {
+          "accepted": {
+            "trap": {
+              "version": "v3",
+              "varbinds": [
+                {
+                  "oid": "1.3.6.1.2.1.1.3.0",
+                  "type": "TimeTicks",
+                  "value": "1234"
+                },
+                {
+                  "oid": "1.3.6.1.6.3.1.1.4.1.0",
+                  "type": "OBJECT IDENTIFIER",
+                  "value": "1.3.6.1.6.3.1.1.5.3"
+                },
+                {
+                  "oid": "1.3.6.1.2.1.2.2.1.1.3",
+                  "type": "Integer32",
+                  "value": "3"
+                }
+              ]
+            },
+            "usm": {
+              "engine_id": "80001f8880bbbbbbbbbbbbbbbb",
+              "user": "u-sha224",
+              "level": "authNoPriv"
+            }
+          }
+        }
+      ],
+      "engines": [
+        {
+          "engine_id": "80001f8880bbbbbbbbbbbbbbbb",
+          "boots": 1,
+          "time": 102,
+          "latest": 102
+        }
+      ]
+    },
+    {
+      "emit": [
+        {
+          "accepted": {
+            "trap": {
+              "version": "v3",
+              "varbinds": [
+                {
+                  "oid": "1.3.6.1.2.1.1.3.0",
+                  "type": "TimeTicks",
+                  "value": "1234"
+                },
+                {
+                  "oid": "1.3.6.1.6.3.1.1.4.1.0",
+                  "type": "OBJECT IDENTIFIER",
+                  "value": "1.3.6.1.6.3.1.1.5.3"
+                },
+                {
+                  "oid": "1.3.6.1.2.1.2.2.1.1.3",
+                  "type": "Integer32",
+                  "value": "3"
+                }
+              ]
+            },
+            "usm": {
+              "engine_id": "80001f8880bbbbbbbbbbbbbbbb",
+              "user": "u-sha256",
+              "level": "authNoPriv"
+            }
+          }
+        }
+      ],
+      "engines": [
+        {
+          "engine_id": "80001f8880bbbbbbbbbbbbbbbb",
+          "boots": 1,
+          "time": 103,
+          "latest": 103
+        }
+      ]
+    },
+    {
+      "emit": [
+        {
+          "accepted": {
+            "trap": {
+              "version": "v3",
+              "varbinds": [
+                {
+                  "oid": "1.3.6.1.2.1.1.3.0",
+                  "type": "TimeTicks",
+                  "value": "1234"
+                },
+                {
+                  "oid": "1.3.6.1.6.3.1.1.4.1.0",
+                  "type": "OBJECT IDENTIFIER",
+                  "value": "1.3.6.1.6.3.1.1.5.3"
+                },
+                {
+                  "oid": "1.3.6.1.2.1.2.2.1.1.3",
+                  "type": "Integer32",
+                  "value": "3"
+                }
+              ]
+            },
+            "usm": {
+              "engine_id": "80001f8880bbbbbbbbbbbbbbbb",
+              "user": "u-sha384",
+              "level": "authNoPriv"
+            }
+          }
+        }
+      ],
+      "engines": [
+        {
+          "engine_id": "80001f8880bbbbbbbbbbbbbbbb",
+          "boots": 1,
+          "time": 104,
+          "latest": 104
+        }
+      ]
+    },
+    {
+      "emit": [
+        {
+          "accepted": {
+            "trap": {
+              "version": "v3",
+              "varbinds": [
+                {
+                  "oid": "1.3.6.1.2.1.1.3.0",
+                  "type": "TimeTicks",
+                  "value": "1234"
+                },
+                {
+                  "oid": "1.3.6.1.6.3.1.1.4.1.0",
+                  "type": "OBJECT IDENTIFIER",
+                  "value": "1.3.6.1.6.3.1.1.5.3"
+                },
+                {
+                  "oid": "1.3.6.1.2.1.2.2.1.1.3",
+                  "type": "Integer32",
+                  "value": "3"
+                }
+              ]
+            },
+            "usm": {
+              "engine_id": "80001f8880bbbbbbbbbbbbbbbb",
+              "user": "u-sha512",
+              "level": "authNoPriv"
+            }
+          }
+        }
+      ],
+      "engines": [
+        {
+          "engine_id": "80001f8880bbbbbbbbbbbbbbbb",
+          "boots": 1,
+          "time": 105,
+          "latest": 105
+        }
+      ]
+    }
+  ]
+}

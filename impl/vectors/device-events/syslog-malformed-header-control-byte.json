@@ -1,0 +1,17 @@
+{
+  "vector": "device-events/syslog-malformed-header-control-byte",
+  "format": 1,
+  "kind": "device-events",
+  "description": "A control byte inside a header token.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "syslog",
+    "datagram": "3c31343e31202d206801202d202d202d202d"
+  },
+  "expect": {
+    "error": "malformed-syslog"
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "vector": "device-events/syslog-rfc3164-no-colon",
+  "format": 1,
+  "kind": "device-events",
+  "description": "Without a colon there is no tag.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "syslog",
+    "datagram": "3c31333e6b65726e656c2070616e6963"
+  },
+  "expect": {
+    "syslog": {
+      "format": "rfc3164",
+      "facility": 1,
+      "severity": 5,
+      "timestamp": null,
+      "hostname": null,
+      "app_name": null,
+      "procid": null,
+      "msgid": null,
+      "structured_data": [],
+      "msg": "kernel panic"
+    }
+  }
+}

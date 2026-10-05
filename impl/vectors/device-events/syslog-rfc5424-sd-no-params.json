@@ -1,0 +1,33 @@
+{
+  "vector": "device-events/syslog-rfc5424-sd-no-params",
+  "format": 1,
+  "kind": "device-events",
+  "description": "An element with no parameters.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "syslog",
+    "datagram": "3c31343e31202d202d202d202d202d205b7840315d206d"
+  },
+  "expect": {
+    "syslog": {
+      "format": "rfc5424",
+      "facility": 1,
+      "severity": 6,
+      "timestamp": null,
+      "hostname": null,
+      "app_name": null,
+      "procid": null,
+      "msgid": null,
+      "structured_data": [
+        {
+          "id": "x@1",
+          "params": []
+        }
+      ],
+      "msg": "m"
+    }
+  }
+}

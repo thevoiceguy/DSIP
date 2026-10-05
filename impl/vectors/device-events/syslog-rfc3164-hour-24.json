@@ -1,0 +1,28 @@
+{
+  "vector": "device-events/syslog-rfc3164-hour-24",
+  "format": 1,
+  "kind": "device-events",
+  "description": "Hour 24 is not a timestamp.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "syslog",
+    "datagram": "3c31333e4f63742020352032343a30303a303020686f73742078"
+  },
+  "expect": {
+    "syslog": {
+      "format": "rfc3164",
+      "facility": 1,
+      "severity": 5,
+      "timestamp": null,
+      "hostname": null,
+      "app_name": null,
+      "procid": null,
+      "msgid": null,
+      "structured_data": [],
+      "msg": "Oct  5 24:00:00 host x"
+    }
+  }
+}

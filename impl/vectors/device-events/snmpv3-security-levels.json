@@ -1,0 +1,71 @@
+{
+  "vector": "device-events/snmpv3-security-levels",
+  "format": 1,
+  "kind": "device-events",
+  "description": "noAuthNoPriv is refused; so is the priv flag for a user without privacy.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {
+    "component": "snmpv3",
+    "now": 1790000000,
+    "local": {
+      "engine_id": "80001f8880aaaaaaaaaaaaaaaa",
+      "boots": 1,
+      "time": 500
+    },
+    "users": [
+      {
+        "engine_id": null,
+        "user": "ops",
+        "auth": "sha",
+        "auth_password": "auth-pass-1",
+        "priv": null
+      }
+    ]
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "receive": {
+            "from": "192.0.2.7:161",
+            "datagram": "308182020103300e020107020300ffe30401000201030420301e040d80001f8880bbbbbbbbbbbbbbbb02010102016404036f707304000400304b04000400a745020101020100020100303a300e06082b06010201010300430204d23017060a2b06010603010104010006092b0601060301010503300f060a2b060102010202010103020103"
+          }
+        }
+      },
+      {
+        "event": {
+          "receive": {
+            "from": "192.0.2.7:161",
+            "datagram": "308198020103300e020107020300ffe304010302010304343032040d80001f8880bbbbbbbbbbbbbbbb02010102016404036f7073040c3ede0de2e54f5e979edbcbef04080000000000000001044d04346b846a3924a781748bf5ebbac25b3a25b6c137cd85727dfac70022977fe62a940a871036cf1761b9ce4e6aa44c11b363a2a478fd0b30f7246e4640f66cc1cf280e911a92f33550f42d23e0"
+          }
+        }
+      }
+    ]
+  },
+  "expect": [
+    {
+      "emit": [
+        {
+          "refused": {
+            "reason": "unsupported-security-level",
+            "report": false
+          }
+        }
+      ],
+      "engines": []
+    },
+    {
+      "emit": [
+        {
+          "refused": {
+            "reason": "unsupported-security-level",
+            "report": false
+          }
+        }
+      ],
+      "engines": []
+    }
+  ]
+}

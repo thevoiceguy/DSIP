@@ -1,0 +1,28 @@
+{
+  "vector": "device-events/syslog-rfc5424-trailing-newlines",
+  "format": 1,
+  "kind": "device-events",
+  "description": "Trailing CR and LF are removed from the message, not inner ones.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "syslog",
+    "datagram": "3c31343e31202d202d202d202d202d202d206c696e65206f6e650a6c696e652074776f0d0a0a"
+  },
+  "expect": {
+    "syslog": {
+      "format": "rfc5424",
+      "facility": 1,
+      "severity": 6,
+      "timestamp": null,
+      "hostname": null,
+      "app_name": null,
+      "procid": null,
+      "msgid": null,
+      "structured_data": [],
+      "msg": "line one\nline two"
+    }
+  }
+}

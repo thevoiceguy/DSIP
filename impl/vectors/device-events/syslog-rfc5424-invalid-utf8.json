@@ -1,0 +1,28 @@
+{
+  "vector": "device-events/syslog-rfc5424-invalid-utf8",
+  "format": 1,
+  "kind": "device-events",
+  "description": "Invalid UTF-8 in the message: each maximal invalid subpart becomes U+FFFD.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "syslog",
+    "datagram": "3c31343e31202d202d202d202d202d202d2061ff62e28263f09f9880"
+  },
+  "expect": {
+    "syslog": {
+      "format": "rfc5424",
+      "facility": 1,
+      "severity": 6,
+      "timestamp": null,
+      "hostname": null,
+      "app_name": null,
+      "procid": null,
+      "msgid": null,
+      "structured_data": [],
+      "msg": "a�b�c😀"
+    }
+  }
+}

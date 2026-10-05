@@ -1,0 +1,28 @@
+{
+  "vector": "device-events/syslog-rfc3164-no-hostname-token",
+  "format": 1,
+  "kind": "device-events",
+  "description": "After the timestamp, a token followed by a space is taken as the hostname, as RFC 3164 does.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "syslog",
+    "datagram": "3c31333e4f63742020352031323a30303a303020737368645b315d3a206869"
+  },
+  "expect": {
+    "syslog": {
+      "format": "rfc3164",
+      "facility": 1,
+      "severity": 5,
+      "timestamp": "Oct  5 12:00:00",
+      "hostname": "sshd[1]:",
+      "app_name": null,
+      "procid": null,
+      "msgid": null,
+      "structured_data": [],
+      "msg": "hi"
+    }
+  }
+}

@@ -9,6 +9,8 @@ escalation is run by a member (the agent), not the mailbox.
 """
 from __future__ import annotations
 
+from . import events_v3
+
 SYS_UPTIME = "1.3.6.1.2.1.1.3.0"
 SNMP_TRAP_OID = "1.3.6.1.6.3.1.1.4.1.0"
 SNMP_TRAP_ADDRESS = "1.3.6.1.6.3.18.1.3.0"
@@ -106,7 +108,13 @@ def run_check(i: dict) -> dict:
     if c == "syslog-severity":
         return {"severity": syslog_severity(i["severity"], i.get("table"))}
     if c == "map":
-        return map_alarm(i["raw"], i["rules"], i["source"])
+        if "syslog" in i["raw"]:
+            return events_v3.map_syslog(i["raw"], i["rules"], i["source"], i.get("syslog_table"), syslog_severity)
+        return map_alarm(i["raw"], [r for r in i["rules"] if "trap_oid" in r], i["source"])
+    if c == "syslog":
+        return events_v3.parse_syslog(bytes.fromhex(i["datagram"]))
+    if c == "usm-key":
+        return events_v3.usm_key(i)
     raise ValueError(f"unknown check {c}")
 
 
@@ -259,6 +267,9 @@ def run(v: dict):
     i = v["input"]
     if "check" in i:
         return run_check(i)
+    if v["context"].get("component") == "snmpv3":
+        m = events_v3.UsmReceiver(v["context"])
+        return [{"emit": m.step(st["event"]), "engines": m.snapshot()} for st in i["steps"]]
     if v["context"].get("component") == "informs":
         m = InformTracker(v["context"])
         return [{"emit": m.step(st["event"]), "informs": m.snapshot()} for st in i["steps"]]

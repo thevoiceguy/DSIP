@@ -1,0 +1,20 @@
+{
+  "vector": "device-events/usm-key-rfc3414-sha",
+  "format": 1,
+  "kind": "device-events",
+  "description": "RFC 3414 A.3.2: \"maplesyrup\", SHA-1; the privacy key is its first 16 bytes.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "usm-key",
+    "auth": "sha",
+    "password": "maplesyrup",
+    "engine_id": "000000000000000000000002"
+  },
+  "expect": {
+    "auth_key": "6695febc9288e36282235fc7151f128497b38f3f",
+    "priv_key": "6695febc9288e36282235fc7151f1284"
+  }
+}

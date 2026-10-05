@@ -52,7 +52,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
-      - run: pip install jsonschema pynacl cryptography
+      - run: pip install jsonschema pynacl cryptography pysnmp
       - name: Rust, as pinned in impl/rust-toolchain.toml
         # installs the channel, components and targets the file names, and makes it the default for steps that
         # run cargo from outside impl/
@@ -107,6 +107,13 @@ jobs:
         # stored, and across a hub outage its retransmissions deposit nothing more; a silent gateway raises its own
         # alarm; the community string never leaves the gateway.
         run: timeout 300 bash demos/device-events-demo.sh | tail -30
+        working-directory: impl
+      - name: device events, authenticated inputs (SNMPv3 USM, syslog over UDP and TLS; v0.9 draft)
+        # Self-verifying, with real senders (pysnmp for SNMPv3, util-linux logger, a TLS client): an authPriv v3 trap
+        # carries its engine and user; a wrong digest and a pre-reboot replay are refused; a v3 inform is answered only
+        # once stored, after discovery; RFC 5424 / 3164 syslog map through the rules and the severity table; a TLS client
+        # with a device certificate gets basis syslog-tls and one without is refused; no USM password leaves the gateway.
+        run: timeout 300 bash demos/device-events-v3-syslog-demo.sh | tail -30
         working-directory: impl
       - name: reachability hints on Pkarr (v0.9 draft)
         # Self-verifying: Bob publishes _dsip records signed by his did:key to two Pkarr relays (local stand-ins of the
