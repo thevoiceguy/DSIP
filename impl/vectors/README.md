@@ -308,7 +308,7 @@ attempt — through a scripted event sequence with a mock clock.
 | `{"local":"alert","session":ID,"ring_timeout":N?}` | policy admits invite → `progress ringing`, start T-Ring-Local |
 | `{"local":"auto_reject","session":ID,"reason":TOKEN}` | policy rejects at OFFERED |
 | `{"local":"accept","session":ID,"answered_by":V}` | user/service answers → `answer` |
-| `{"local":"decline","session":ID}` | `reject user.declined` |
+| `{"local":"decline","session":ID,"reason"?}` | `reject` with `reason` (the host's choice, sent as given), or `user.declined` without one |
 | `{"local":"update","session":ID,"id":ULID,"answered_by":V?}` | send `update` |
 | `{"local":"answer_update","session":ID,"in_reply_to":ULID}` | answer the inbound outstanding update; the `send` carries `answered_by: "user"` (the schema requires it on every `answer`); with no matching inbound update → `refused no-pending-update` |
 | `{"local":"reject_update","session":ID,"in_reply_to":ULID,"reason":TOKEN}` | reject it |

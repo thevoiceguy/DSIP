@@ -299,7 +299,7 @@ class Endpoint:
         elif kind == "decline":
             if s.role == "responder" and s.state == "ALERTING":
                 self.stop_all(s)
-                self.send(type="reject", to=s.peer, session=s.id, reason="user.declined")
+                self.send(type="reject", to=s.peer, session=s.id, reason=ev.get("reason", "user.declined"))
                 self.end(s, None)
             else:
                 self.emit({"refused": "invalid-state"})

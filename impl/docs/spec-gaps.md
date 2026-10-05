@@ -2743,8 +2743,22 @@ at an endpoint the organisation controls (research track C). Without a disclosur
   - an unregistered state counts as declared;
   - the six refusal tokens are local results, and the leg is ended with `bye` and `policy.blocked`.
 
+**On the wire (2026-10-05).**
+- **New flags:** `dsip call/answer --recorded-by <recorder> [--record-purpose] [--record-later]`, and
+  `--recording-accept ask|always|never`.
+- **New commands:** `accept-recording`, `decline-recording`, `record on|pause|off`.
+- The endpoint signs the declaration into every invite, answer and update.
+- The console runs `dsip_recording::Consent`. It never auto-answers before acceptance, and holds the media leg
+  (`hold_sending`) while acceptance is pending.
+- A local decline may now carry a reason: `state/responder-declines-with-reason` (all three implementations).
+- `demos/recording-consent-demo.sh` (in CI) runs four calls:
+  - a caller holds all audio (0 frames) until acceptance;
+  - a callee will not answer before acceptance, and its decline is `reject policy.recording-declined`;
+  - a standing `never` policy declines at once;
+  - recording begun mid-call by `update` and declined ends with `bye policy.recording-declined`.
+
 **Not done yet.**
-- The wire: CLI declaration and consent, the recorder leg's media fork, `dsip-msg` recorder devices, and the demos.
+- The recorder leg's media fork (C§6), `dsip-msg` recorder devices (C§5), and their demos.
 - Whether a party's `policy.recording: forbidden` should also be enforced by its relay. It is not: a relay never
   sees media and cannot know.
 

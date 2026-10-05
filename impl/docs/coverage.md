@@ -13,10 +13,10 @@ Profile, `M§n` Messaging Profile, `R§n` RTP/SRTP Media Binding.
 | §2 | dsip-cli/main.rs, dsip-core/lib.rs, dsip-recording/lib.rs | — |
 | §2.1.2 | dsip-messaging/mls_wire.rs | — |
 | §2.2 | dsip-core/webvh.rs, dsip-mailbox/bin/dsip-msg.rs | — |
-| §3 | dsip-dht/node.rs, dsip-events/ber.rs | 2 vector(s): semantic/recording-declaration-valid, semantic/recording-declaration-without-recorder |
+| §3 | dsip-cli/console.rs, dsip-cli/main.rs, dsip-dht/node.rs, dsip-endpoint/core.rs, dsip-events/ber.rs, dsip-transport/agent.rs | 2 vector(s): semantic/recording-declaration-valid, semantic/recording-declaration-without-recorder |
 | §3.1 | dsip-events/lib.rs, dsip-events/usm.rs | — |
 | §3.2 | dsip-events/usm.rs | — |
-| §4 | dsip-core/registry.rs, dsip-dht/node.rs, dsip-events/usm.rs, dsip-mailbox/bin/dsip-msg.rs, dsip-recording/lib.rs | 22 vector(s): recording/callee-answered-then-declines-bye, recording/callee-declines-with-reject, recording/callee-must-accept-before-answering, recording/caller-answer-does-nothing, recording/caller-declines-with-bye, recording/caller-holds-media-after-recorded-answer … |
+| §4 | dsip-cli/console.rs, dsip-cli/main.rs, dsip-core/registry.rs, dsip-dht/node.rs, dsip-events/usm.rs, dsip-mailbox/bin/dsip-msg.rs, dsip-media/backend/forge.rs, dsip-media/backend/webrtc_rs.rs, dsip-media/leg.rs, dsip-recording/lib.rs, dsip-session/event.rs | 23 vector(s): recording/callee-answered-then-declines-bye, recording/callee-declines-with-reject, recording/callee-must-accept-before-answering, recording/caller-answer-does-nothing, recording/caller-declines-with-bye, recording/caller-holds-media-after-recorded-answer … |
 | §4.1 | dsip-kt/lib.rs | — |
 | §4.1.6 | dsip-events/ber.rs | — |
 | §4.2.2 | dsip-gateway/host/sip_leg.rs | — |
@@ -34,7 +34,7 @@ Profile, `M§n` Messaging Profile, `R§n` RTP/SRTP Media Binding.
 | §5.5 | dsip-kt/lib.rs | — |
 | §6 | dsip-recording/lib.rs, dsip-session/lib.rs | 16 vector(s): recording/session-direction, recording/session-direction-missing, recording/session-media-not-integer, recording/session-missing-capability, recording/session-no-streams, recording/session-not-declared … |
 | §6.3 | dsip-cli/console.rs, dsip-core/trust.rs, dsip-gateway/host/media.rs, dsip-gateway/host/sip_leg.rs, dsip-gateway/lib.rs | 9 vector(s): gateway/claims-attestation-a-verified, gateway/downgrade-error-none, gateway/downgrade-error-plain-trunk, gateway/downgrade-inbound-no-attestation, gateway/downgrade-outbound-asserted-srtp, gateway/downgrade-outbound-plain-trunk … |
-| §7 | dsip-media/backend/webrtc_rs.rs, dsip-media/leg.rs, dsip-media/lib.rs, dsip-recording/lib.rs | 1 vector(s): semantic/reason-recording-declined-on-error |
+| §7 | dsip-cli/main.rs, dsip-media/backend/webrtc_rs.rs, dsip-media/leg.rs, dsip-media/lib.rs, dsip-recording/lib.rs | 1 vector(s): semantic/reason-recording-declined-on-error |
 | §7.1.3 | dsip-core/hpke.rs | — |
 | §7.2 | dsip-cli/main.rs, dsip-core/did.rs, dsip-core/hpke.rs, dsip-core/keys.rs, dsip-core/lib.rs, dsip-core/webvh.rs, dsip-endpoint/core.rs, dsip-relay/main.rs, dsip-transport/lib.rs, dsip-transport/resolver.rs | 69 vector(s): did-webvh/cache-at-latest-resolves, did-webvh/cache-behind-advances, did-webvh/cache-malformed-is-absent, did-webvh/carries-dsip-document-properties, did-webvh/create-resolves, did-webvh/deactivated … |
 | §7.3 | dsip-core/keys.rs, dsip-transport/identity.rs | — |
@@ -61,7 +61,7 @@ Profile, `M§n` Messaging Profile, `R§n` RTP/SRTP Media Binding.
 | §12.1 | dsip-core/registry.rs | 3 vector(s): payload/bye-valid, payload/invite-valid, semantic/unknown-message-type |
 | §12.2 | dsip-session/endpoint.rs, dsip-session/lib.rs | 3 vector(s): payload/bye-no-session, payload/progress-missing-session, state/unknown-session-rejected |
 | §12.3 | dsip-session/message.rs | — |
-| §12.4 | dsip-cli/console.rs, dsip-endpoint/core.rs, dsip-session/endpoint.rs, dsip-session/fork.rs, dsip-session/lib.rs | 28 vector(s): gateway/trace-outbound-ring-answer-hangup, payload/error-session-scoped, state/fork-answer-before-progress, state/fork-first-answer-wins, state/fork-late-answer-after-our-hangup, state/fork-late-answer-after-the-call-ended … |
+| §12.4 | dsip-cli/console.rs, dsip-endpoint/core.rs, dsip-session/endpoint.rs, dsip-session/fork.rs, dsip-session/lib.rs | 29 vector(s): gateway/trace-outbound-ring-answer-hangup, payload/error-session-scoped, state/fork-answer-before-progress, state/fork-first-answer-wins, state/fork-late-answer-after-our-hangup, state/fork-late-answer-after-the-call-ended … |
 | §12.5 | dsip-gateway/controller.rs, dsip-gateway/lib.rs, dsip-session/endpoint.rs, dsip-session/fork.rs, dsip-session/lib.rs | 9 vector(s): gateway/trace-inbound-cancel, gateway/trace-outbound-cancel-487, gateway/trace-outbound-cancel-crosses-200, state/fork-late-answer-after-our-hangup, state/race-initiator-cancel-then-answer, state/race-responder-answered-elsewhere-at-answering-leg … |
 | §12.6 | dsip-cli/console.rs, dsip-core/ulid.rs, dsip-session/endpoint.rs, dsip-session/lib.rs | 7 vector(s): envelope/ulid-backdated, state/glare-equal-ids, state/glare-every-losing-attempt-is-withdrawn, state/glare-lowest-id-of-all-decides, state/glare-not-triggered-different-identity, state/glare-we-lose … |
 | §12.7 | dsip-core/registry.rs, dsip-relay/main.rs, dsip-session/endpoint.rs, dsip-session/fork.rs, dsip-session/lib.rs, dsip-webrtc-binding/lib.rs | 31 vector(s): media-binding/candidates-non-party-ignored, media-binding/one-answer-first-valid-applied, messaging/call-event-answered-elsewhere-none, state/direct-device-call-no-fork-cancel, state/fork-first-answer-wins, state/fork-late-answer-after-our-hangup … |
