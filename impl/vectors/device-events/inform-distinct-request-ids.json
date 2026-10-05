@@ -1,0 +1,122 @@
+{
+  "vector": "device-events/inform-distinct-request-ids",
+  "format": 1,
+  "kind": "device-events",
+  "description": "Two informs with different request ids are two events.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {
+    "component": "informs",
+    "now": 0
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "inform": {
+            "source": "192.0.2.7:161",
+            "request_id": 7
+          }
+        }
+      },
+      {
+        "event": {
+          "inform": {
+            "source": "192.0.2.7:161",
+            "request_id": 8
+          }
+        }
+      },
+      {
+        "event": {
+          "accepted": {
+            "key": [
+              "192.0.2.7:161",
+              8
+            ]
+          }
+        }
+      }
+    ]
+  },
+  "expect": [
+    {
+      "emit": [
+        {
+          "deposit": {
+            "key": [
+              "192.0.2.7:161",
+              7
+            ]
+          }
+        }
+      ],
+      "informs": [
+        {
+          "key": [
+            "192.0.2.7:161",
+            7
+          ],
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "emit": [
+        {
+          "deposit": {
+            "key": [
+              "192.0.2.7:161",
+              8
+            ]
+          }
+        }
+      ],
+      "informs": [
+        {
+          "key": [
+            "192.0.2.7:161",
+            7
+          ],
+          "status": "pending"
+        },
+        {
+          "key": [
+            "192.0.2.7:161",
+            8
+          ],
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "emit": [
+        {
+          "respond": {
+            "key": [
+              "192.0.2.7:161",
+              8
+            ]
+          }
+        }
+      ],
+      "informs": [
+        {
+          "key": [
+            "192.0.2.7:161",
+            7
+          ],
+          "status": "pending"
+        },
+        {
+          "key": [
+            "192.0.2.7:161",
+            8
+          ],
+          "status": "answered"
+        }
+      ]
+    }
+  ]
+}

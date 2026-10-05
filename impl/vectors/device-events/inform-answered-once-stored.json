@@ -1,0 +1,79 @@
+{
+  "vector": "device-events/inform-answered-once-stored",
+  "format": 1,
+  "kind": "device-events",
+  "description": "An inform deposits one event and is answered only when the hub accepts it.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {
+    "component": "informs",
+    "now": 0
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "inform": {
+            "source": "192.0.2.7:161",
+            "request_id": 7
+          }
+        }
+      },
+      {
+        "event": {
+          "accepted": {
+            "key": [
+              "192.0.2.7:161",
+              7
+            ]
+          }
+        }
+      }
+    ]
+  },
+  "expect": [
+    {
+      "emit": [
+        {
+          "deposit": {
+            "key": [
+              "192.0.2.7:161",
+              7
+            ]
+          }
+        }
+      ],
+      "informs": [
+        {
+          "key": [
+            "192.0.2.7:161",
+            7
+          ],
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "emit": [
+        {
+          "respond": {
+            "key": [
+              "192.0.2.7:161",
+              7
+            ]
+          }
+        }
+      ],
+      "informs": [
+        {
+          "key": [
+            "192.0.2.7:161",
+            7
+          ],
+          "status": "answered"
+        }
+      ]
+    }
+  ]
+}
