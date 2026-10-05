@@ -14,6 +14,7 @@ import { runPkarr } from "./dht/pkarr.js";
 import { runAliasTransparency } from "./kt/alias-transparency.js";
 import { resolveWebvh, type WebvhInput } from "./did/webvh.js";
 import { runDeviceEvents } from "./events/device-events.js";
+import { runRecording } from "./recording/recording.js";
 import { Endpoint, type EndpointContext } from "./endpoint.js";
 import type { Json, JsonObject } from "./did.js";
 import { verifyEnvelope, type ReceiverContext } from "./envelope.js";
@@ -61,6 +62,7 @@ const RUNNERS: Record<string, (v: Vector) => Json | undefined> = {
   "media-binding": (v) => mediaBinding(v),
   "did-webvh": (v) => resolveWebvh(v.input as unknown as WebvhInput),
   "device-events": (v) => runDeviceEvents(v.context ?? {}, v.input),
+  recording: (v) => runRecording(v.context ?? {}, v.input),
   "alias-transparency": (v) => runAliasTransparency(v.input),
   pkarr: (v) => runPkarr(v.input),
   gateway: (v) => gateway(v),
@@ -322,7 +324,7 @@ function main(): number {
         actual = { crash: String(e) };
       }
       const ok = equal(v.expect, actual);
-      // a trace whose `expect` is the step list (`device-events`): results carry `steps` (README "Runner results")
+      // a trace whose `expect` is the step list (`device-events`, `recording`): results carry `steps` (README "Runner results")
       results[v.vector] = Array.isArray(v.expect) && Array.isArray(actual) ? { ok, steps: actual } : { ok, actual };
       ok ? passed++ : failed++;
       if (!ok || verbose) {

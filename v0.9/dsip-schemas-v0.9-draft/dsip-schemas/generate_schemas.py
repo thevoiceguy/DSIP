@@ -103,6 +103,39 @@ COMMON_DEFS = {
         "additionalProperties": {"type": "string", "pattern": "^[a-z][a-z0-9-]*$"},
         "description": "Registered policy keys to registered policy values (spec 14.4). Registry membership is a semantic check.",
     },
+    "recording": {
+        "type": "object",
+        "properties": {
+            "state": {"type": "string", "pattern": "^[a-z][a-z0-9-]*$",
+                      "description": "Registered (dsip-recording-state): on, paused, off. Membership is a semantic check."},
+            "recorder": {"$ref": "#/$defs/did", "description": "The recorder's identity (Recording Profile C§3, C§6); a claim, rendered."},
+            "purpose": {"type": "string", "pattern": "^[a-z][a-z0-9-]*$",
+                        "description": "Registered (dsip-recording-purpose): compliance, quality, personal; open."},
+        },
+        "required": ["state"],
+        "additionalProperties": False,
+        "if": {"properties": {"state": {"not": {"const": "off"}}}},
+        "then": {"required": ["state", "recorder"]},
+        "description": "The sender's recording declaration (Recording Profile C§3, draft): shaped like SIPREC a=record.",
+    },
+    "recordingSession": {
+        "type": "object",
+        "properties": {
+            "of": {"$ref": "#/$defs/ulid", "description": "The recorded session's id."},
+            "participants": {"type": "array", "minItems": 1, "items": {
+                "type": "object",
+                "properties": {"identity": {"$ref": "#/$defs/did"},
+                               "role": {"type": "string", "pattern": "^[a-z][a-z0-9-]*$", "description": "self or peer."}},
+                "required": ["identity", "role"], "additionalProperties": False}},
+            "streams": {"type": "array", "minItems": 1, "items": {
+                "type": "object",
+                "properties": {"media": {"type": "integer", "minimum": 0}, "participant": {"$ref": "#/$defs/did"}},
+                "required": ["media", "participant"], "additionalProperties": False}},
+        },
+        "required": ["of", "participants", "streams"],
+        "additionalProperties": False,
+        "description": "Metadata of a recording session (Recording Profile C§6, draft): shaped like RFC 7865.",
+    },
     "identityInfo": {
         "type": "object",
         "properties": {
@@ -173,6 +206,8 @@ schemas["invite"] = base(
         "media": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/mediaDescriptor"}},
         "transports": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/transportDescriptor"}},
         "policy": {"$ref": "#/$defs/policy"},
+        "recording": {"$ref": "#/$defs/recording"},
+        "recording_session": {"$ref": "#/$defs/recordingSession"},
     },
     extra_required=["media", "transports"],
 )
@@ -206,6 +241,7 @@ schemas["answer"] = base(
         "media": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/mediaDescriptor"}},
         "transports": {"type": "array", "minItems": 1, "maxItems": 1, "items": {"$ref": "#/$defs/transportDescriptor"}},
         "policy": {"$ref": "#/$defs/policy"},
+        "recording": {"$ref": "#/$defs/recording"},
         "in_reply_to": {"$ref": "#/$defs/ulid", "description": "id of the update being answered, when responding to renegotiation (spec 13A.4.8). Absent on initial answer."},
     },
     extra_required=["answered_by", "media", "transports"],
@@ -235,6 +271,7 @@ schemas["update"] = base(
         "answered_by": {"type": "string", "pattern": "^[a-z][a-z0-9-]*$",
                         "description": "Optional on update: signals role transition, e.g. screening -> user escalation (spec 13C.2.4)."},
         "policy": {"$ref": "#/$defs/policy"},
+        "recording": {"$ref": "#/$defs/recording"},
     },
     extra_required=["media"],
 )

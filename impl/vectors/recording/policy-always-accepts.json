@@ -1,0 +1,84 @@
+{
+  "vector": "recording/policy-always-accepts",
+  "format": 1,
+  "kind": "recording",
+  "description": "A standing policy of always accepting: rendered, accepted, nothing held.",
+  "spec_ref": [
+    "C§4"
+  ],
+  "context": {
+    "role": "callee",
+    "accept": "always"
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "received": {
+            "type": "invite",
+            "recording": {
+              "state": "on",
+              "recorder": "did:web:rec.acme.example",
+              "purpose": "compliance"
+            }
+          }
+        }
+      },
+      {
+        "event": {
+          "local": "answer"
+        }
+      }
+    ]
+  },
+  "expect": [
+    {
+      "emit": [
+        {
+          "render": {
+            "state": "on",
+            "recorder": "did:web:rec.acme.example",
+            "purpose": "compliance"
+          }
+        },
+        {
+          "accepted": {
+            "recorder": "did:web:rec.acme.example",
+            "by": "policy"
+          }
+        }
+      ],
+      "disclosure": {
+        "state": "on",
+        "recorder": "did:web:rec.acme.example",
+        "purpose": "compliance"
+      },
+      "pending": false,
+      "hold_media": false,
+      "accepted": [
+        "did:web:rec.acme.example"
+      ],
+      "ended": null
+    },
+    {
+      "emit": [
+        {
+          "send": {
+            "type": "answer"
+          }
+        }
+      ],
+      "disclosure": {
+        "state": "on",
+        "recorder": "did:web:rec.acme.example",
+        "purpose": "compliance"
+      },
+      "pending": false,
+      "hold_media": false,
+      "accepted": [
+        "did:web:rec.acme.example"
+      ],
+      "ended": null
+    }
+  ]
+}

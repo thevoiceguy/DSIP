@@ -1,0 +1,37 @@
+{
+  "vector": "recording/conversation-not-recorded",
+  "format": 1,
+  "kind": "recording",
+  "description": "No leaf carries dsip.record.",
+  "spec_ref": [
+    "C§5"
+  ],
+  "context": {},
+  "input": {
+    "check": "conversation",
+    "leaves": [
+      {
+        "device": "did:key:z6MkAlice1",
+        "subject": "did:web:alice.example",
+        "capabilities": [
+          "dsip.signaling",
+          "dsip.messaging"
+        ]
+      },
+      {
+        "device": "did:key:z6MkBob1",
+        "subject": "did:web:acme.example:bob",
+        "capabilities": [
+          "dsip.signaling",
+          "dsip.messaging"
+        ]
+      }
+    ],
+    "accepted": []
+  },
+  "expect": {
+    "recorded": false,
+    "recorders": [],
+    "may_send": true
+  }
+}

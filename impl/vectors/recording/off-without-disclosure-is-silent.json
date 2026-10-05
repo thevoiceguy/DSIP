@@ -1,0 +1,37 @@
+{
+  "vector": "recording/off-without-disclosure-is-silent",
+  "format": 1,
+  "kind": "recording",
+  "description": "An off declaration with nothing disclosed renders nothing.",
+  "spec_ref": [
+    "C§4"
+  ],
+  "context": {
+    "role": "caller",
+    "accept": "ask"
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "received": {
+            "type": "answer",
+            "recording": {
+              "state": "off"
+            }
+          }
+        }
+      }
+    ]
+  },
+  "expect": [
+    {
+      "emit": [],
+      "disclosure": null,
+      "pending": false,
+      "hold_media": false,
+      "accepted": [],
+      "ended": null
+    }
+  ]
+}

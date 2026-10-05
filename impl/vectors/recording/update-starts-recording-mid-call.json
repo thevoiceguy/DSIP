@@ -1,0 +1,119 @@
+{
+  "vector": "recording/update-starts-recording-mid-call",
+  "format": 1,
+  "kind": "recording",
+  "description": "Recording begun mid-call by update holds media until acceptance; ending it releases the disclosure.",
+  "spec_ref": [
+    "C§4"
+  ],
+  "context": {
+    "role": "caller",
+    "accept": "ask"
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "received": {
+            "type": "answer"
+          }
+        }
+      },
+      {
+        "event": {
+          "received": {
+            "type": "update",
+            "recording": {
+              "state": "on",
+              "recorder": "did:web:rec.acme.example",
+              "purpose": "compliance"
+            }
+          }
+        }
+      },
+      {
+        "event": {
+          "local": "accept"
+        }
+      },
+      {
+        "event": {
+          "received": {
+            "type": "update",
+            "recording": {
+              "state": "off"
+            }
+          }
+        }
+      }
+    ]
+  },
+  "expect": [
+    {
+      "emit": [],
+      "disclosure": null,
+      "pending": false,
+      "hold_media": false,
+      "accepted": [],
+      "ended": null
+    },
+    {
+      "emit": [
+        {
+          "render": {
+            "state": "on",
+            "recorder": "did:web:rec.acme.example",
+            "purpose": "compliance"
+          }
+        }
+      ],
+      "disclosure": {
+        "state": "on",
+        "recorder": "did:web:rec.acme.example",
+        "purpose": "compliance"
+      },
+      "pending": true,
+      "hold_media": true,
+      "accepted": [],
+      "ended": null
+    },
+    {
+      "emit": [
+        {
+          "accepted": {
+            "recorder": "did:web:rec.acme.example",
+            "by": "user"
+          }
+        }
+      ],
+      "disclosure": {
+        "state": "on",
+        "recorder": "did:web:rec.acme.example",
+        "purpose": "compliance"
+      },
+      "pending": false,
+      "hold_media": false,
+      "accepted": [
+        "did:web:rec.acme.example"
+      ],
+      "ended": null
+    },
+    {
+      "emit": [
+        {
+          "render": {
+            "state": "off",
+            "recorder": "did:web:rec.acme.example"
+          }
+        }
+      ],
+      "disclosure": null,
+      "pending": false,
+      "hold_media": false,
+      "accepted": [
+        "did:web:rec.acme.example"
+      ],
+      "ended": null
+    }
+  ]
+}

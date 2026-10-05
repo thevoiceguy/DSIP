@@ -599,8 +599,38 @@ def gen_snmpv3(r: random.Random):
     return "device-events", None, ctx, steps
 
 
+def gen_recording(r: random.Random):
+    """A counterparty's consent trace (Recording Profile C§4): declarations, accepts, declines, answers in any order."""
+    recs = ["did:web:rec.acme.example", "did:web:rec2.acme.example"]
+
+    def decl():
+        x = r.random()
+        if x < 0.2:
+            return None
+        d = {"state": r.choice(["on", "on", "paused", "off", "streaming"])}
+        if d["state"] != "off":
+            d["recorder"] = r.choice(recs)
+            if r.random() < 0.6:
+                d["purpose"] = r.choice(["compliance", "quality"])
+        return d
+    role = r.choice(["caller", "callee"])
+    ctx = {"role": role, "accept": r.choice(["ask", "ask", "always", "never"])}
+    steps = []
+    first = "invite" if role == "callee" else "answer"
+    d = decl()
+    steps.append({"received": {"type": first, **({"recording": d} if d else {})}})
+    for _ in range(r.randint(1, 8)):
+        x = r.random()
+        if x < 0.4:
+            d = decl()
+            steps.append({"received": {"type": "update", **({"recording": d} if d else {})}})
+        else:
+            steps.append({"local": r.choice(["accept", "accept", "decline", "answer"])})
+    return "recording", None, ctx, steps
+
+
 TARGETS = {
-    "syslog": gen_syslog, "snmpv3": gen_snmpv3,
+    "syslog": gen_syslog, "snmpv3": gen_snmpv3, "recording": gen_recording,
     "gap": gen_gap, "commit-retry": gen_commit_retry, "hub-outage": gen_hub_outage, "resume": gen_resume, "history": gen_history,
     "successor": gen_successor, "client": gen_client, "hub": gen_hub, "mailbox": gen_mailbox, "endpoint": gen_endpoint,
     "relay": gen_relay, "deposit-fields": gen_deposit_fields, "gateway-reason": gen_gateway_reason,

@@ -1,0 +1,145 @@
+{
+  "vector": "recording/pause-and-resume-same-recorder",
+  "format": 1,
+  "kind": "recording",
+  "description": "Paused holds nothing; resuming with the same recorder needs no new acceptance.",
+  "spec_ref": [
+    "C§4"
+  ],
+  "context": {
+    "role": "caller",
+    "accept": "ask"
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "received": {
+            "type": "answer",
+            "recording": {
+              "state": "on",
+              "recorder": "did:web:rec.acme.example",
+              "purpose": "compliance"
+            }
+          }
+        }
+      },
+      {
+        "event": {
+          "local": "accept"
+        }
+      },
+      {
+        "event": {
+          "received": {
+            "type": "update",
+            "recording": {
+              "state": "paused",
+              "recorder": "did:web:rec.acme.example",
+              "purpose": "compliance"
+            }
+          }
+        }
+      },
+      {
+        "event": {
+          "received": {
+            "type": "update",
+            "recording": {
+              "state": "on",
+              "recorder": "did:web:rec.acme.example",
+              "purpose": "compliance"
+            }
+          }
+        }
+      }
+    ]
+  },
+  "expect": [
+    {
+      "emit": [
+        {
+          "render": {
+            "state": "on",
+            "recorder": "did:web:rec.acme.example",
+            "purpose": "compliance"
+          }
+        }
+      ],
+      "disclosure": {
+        "state": "on",
+        "recorder": "did:web:rec.acme.example",
+        "purpose": "compliance"
+      },
+      "pending": true,
+      "hold_media": true,
+      "accepted": [],
+      "ended": null
+    },
+    {
+      "emit": [
+        {
+          "accepted": {
+            "recorder": "did:web:rec.acme.example",
+            "by": "user"
+          }
+        }
+      ],
+      "disclosure": {
+        "state": "on",
+        "recorder": "did:web:rec.acme.example",
+        "purpose": "compliance"
+      },
+      "pending": false,
+      "hold_media": false,
+      "accepted": [
+        "did:web:rec.acme.example"
+      ],
+      "ended": null
+    },
+    {
+      "emit": [
+        {
+          "render": {
+            "state": "paused",
+            "recorder": "did:web:rec.acme.example",
+            "purpose": "compliance"
+          }
+        }
+      ],
+      "disclosure": {
+        "state": "paused",
+        "recorder": "did:web:rec.acme.example",
+        "purpose": "compliance"
+      },
+      "pending": false,
+      "hold_media": false,
+      "accepted": [
+        "did:web:rec.acme.example"
+      ],
+      "ended": null
+    },
+    {
+      "emit": [
+        {
+          "render": {
+            "state": "on",
+            "recorder": "did:web:rec.acme.example",
+            "purpose": "compliance"
+          }
+        }
+      ],
+      "disclosure": {
+        "state": "on",
+        "recorder": "did:web:rec.acme.example",
+        "purpose": "compliance"
+      },
+      "pending": false,
+      "hold_media": false,
+      "accepted": [
+        "did:web:rec.acme.example"
+      ],
+      "ended": null
+    }
+  ]
+}

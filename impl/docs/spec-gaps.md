@@ -2687,3 +2687,64 @@ never fetched again, so a voice message could stay unplayable for good. That is 
 - §12.7 rule 6 reject preference order lists four tokens; the relay needs a rule
   for other tokens (PoC: first-seen).
 - §26 step 8 says ICE candidates ride in `update` envelopes; §12.12/§16.3 say `info`.
+
+## 107. §16.4 / Recording Profile C§1–C§7 (draft) — compliance recording under end-to-end encryption
+
+**Gap.** §16.4's `policy.recording` says what a party accepts, but nothing says that a party **is** recording, who
+records, or what a counterparty's client must do. Under end-to-end encryption, compliance recording can only happen
+at an endpoint the organisation controls (research track C). Without a disclosure, it happens unannounced.
+
+**Prior art (2026-10-05).**
+- **SIPREC** (RFC 7866, RFC 7865): the recording client declares `a=record:on|off|paused`. A participant states
+  `a=recordpref`, which the recorder may ignore, and refusing means leaving. The recorder is not a participant: the
+  client forks media to it, at least as secure as the recorded session.
+- **Wire legal hold** (MLS): a disclosed device on the subject's account, with an indicator in every conversation.
+  Users who have not consented are kept out of conversations a legal-hold device is in (per team).
+
+**Decided (with the user, 2026-10-05).**
+- **Scope:** all three — disclosure, a recorder role, and a recorder leg for calls.
+- **Consent:** render plus local acceptance. A callee does not answer, and a caller holds its media, until the user
+  or a standing policy accepts. Declining is `reject` or `bye` with the new reason `policy.recording-declined`.
+- **Recorder devices are receive-only:** members do not render their content.
+
+**Choices made (Impl).**
+- **The declaration** is a top-level `recording` member on `invite`, `answer` and `update`, signed with the
+  envelope: `{state, recorder, purpose?}`. A mid-call change is an `update`, as SIPREC uses a re-INVITE or UPDATE.
+- **Acceptance** is per session and per recorder. A resume with the same recorder needs none; a new recorder needs
+  it again. A `paused` declaration holds nothing.
+- **An unregistered state** reads as `on`, the safe reading.
+- **The messaging recorder** is a device of the recorded identity carrying `dsip.record` (the Wire model), visible
+  through its leaf's delegation (M§6.2). Acceptance is per conversation and per set of recorder devices.
+- **The recorder leg** is an ordinary DSIP session to the declared recorder, carrying RFC 7865-shaped
+  `recording_session` metadata and `sendonly` streams. The recording party checks the recorder's identity and
+  capability first.
+
+**Spec.**
+- `v0.9/dsip-recording-profile-v0.9-draft.md`.
+- Core: §15.4 adds `policy.recording-declined`; §16.4 separates the preference from the declaration; §24.2 adds
+  `dsip.record` and the recording registries.
+- Schemas: `recording` on invite/answer/update, and `recording_session` on invite, with samples.
+
+**Vectors.**
+- `recording/` (39): consent traces, recorded conversations, recorder-leg checks.
+- `semantic/` (4): the reason token, and declarations with and without a recorder.
+
+**The second implementation's questions, decided and pinned.**
+- **Returning to an accepted recorder** while a new one is pending releases the hold. C§4's intent; the README had
+  said "nothing more". Vector: return-to-accepted-recorder-releases-hold.
+- **A caller's local `answer`** does nothing.
+- **Any message type is processed for either role.**
+- **The disclosure** holds only `state`, `recorder` and `purpose`.
+- **Conversation acceptance** covers every recorder present: a new one asks again, one that leaves asks nothing.
+  C§5's "set of recorder devices" wording was aligned with the README's subset test.
+- **The recording-session check:**
+  - at least one stream, each with an integer `media`;
+  - a missing `direction` is not `sendonly`;
+  - an unregistered state counts as declared;
+  - the six refusal tokens are local results, and the leg is ended with `bye` and `policy.blocked`.
+
+**Not done yet.**
+- The wire: CLI declaration and consent, the recorder leg's media fork, `dsip-msg` recorder devices, and the demos.
+- Whether a party's `policy.recording: forbidden` should also be enforced by its relay. It is not: a relay never
+  sees media and cannot know.
+

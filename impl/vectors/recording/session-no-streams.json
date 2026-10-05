@@ -1,0 +1,55 @@
+{
+  "vector": "recording/session-no-streams",
+  "format": 1,
+  "kind": "recording",
+  "description": "A recording session with no stream is refused.",
+  "spec_ref": [
+    "C§6"
+  ],
+  "context": {},
+  "input": {
+    "check": "recording-session",
+    "declared": {
+      "session": "01J9ZRECRD0000000000000001",
+      "state": "on",
+      "recorder": "did:web:rec.acme.example"
+    },
+    "recorder": {
+      "identity": "did:web:rec.acme.example",
+      "capabilities": [
+        "dsip.signaling",
+        "dsip.media.interactive",
+        "dsip.record"
+      ]
+    },
+    "offer": {
+      "media": [
+        {
+          "type": "audio",
+          "direction": "sendonly"
+        },
+        {
+          "type": "audio",
+          "direction": "sendonly"
+        }
+      ],
+      "recording_session": {
+        "of": "01J9ZRECRD0000000000000001",
+        "participants": [
+          {
+            "identity": "did:web:acme.example:bob",
+            "role": "self"
+          },
+          {
+            "identity": "did:web:carol.example",
+            "role": "peer"
+          }
+        ],
+        "streams": []
+      }
+    }
+  },
+  "expect": {
+    "refused": "bad-stream-map"
+  }
+}

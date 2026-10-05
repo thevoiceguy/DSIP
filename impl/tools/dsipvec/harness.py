@@ -232,6 +232,9 @@ def run_vector(v: dict) -> Result:
             actual = KT.run(v)
         elif kind == "device-events":
             actual = EVENTS.run(v)
+        elif kind == "recording":
+            from . import recording as RECORDING
+            actual = RECORDING.run(v)
         elif kind == "did-webvh":
             i = v["input"]
             actual = WEBVH.resolve(i["did"], i["log"], i["witness"], i["cache"], i["now"])

@@ -298,6 +298,18 @@ cases.append(("delegation-revocation", REV, True, "valid delegation revocation")
 cases.append(("delegation-revocation", {k: v for k, v in REV.items() if k != "revoked_at"}, False, "revocation without revoked_at"))
 cases.append(("delegation-revocation", {**REV, "reason": "Lost!"}, False, "revocation reason must be a token"))
 
+# Recording Profile (draft, C§3, C§6): a declaration, and a recording session's metadata
+INV = next(c[1] for c in cases if c[0] == "invite" and c[2])
+cases.append(("invite", {**INV, "recording": {"state": "on", "recorder": BOB, "purpose": "compliance"}}, True,
+              "invite declaring recording (C§3)"))
+cases.append(("invite", {**INV, "recording": {"state": "off"}}, True, "recording off needs no recorder"))
+cases.append(("invite", {**INV, "recording": {"state": "on"}}, False, "recording on without its recorder (C§3)"))
+cases.append(("invite", {**INV, "recording_session": {"of": U["inv"], "participants": [{"identity": BOB, "role": "self"}],
+                                                      "streams": [{"media": 0, "participant": BOB}]}}, True,
+              "recording session metadata (C§6)"))
+cases.append(("invite", {**INV, "recording_session": {"of": U["inv"], "participants": [], "streams": []}}, False,
+              "recording session with no participants (C§6)"))
+
 def run():
     validators, failures = {}, 0
     for name in {c[0] for c in cases}:
