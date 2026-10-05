@@ -1,0 +1,32 @@
+{
+  "vector": "pkarr/owner-name-case-insensitive",
+  "format": 1,
+  "kind": "pkarr",
+  "description": "Owner names compare case-insensitively.",
+  "spec_ref": [
+    "§8.5",
+    "§8.3"
+  ],
+  "context": {},
+  "input": {
+    "check": "hint",
+    "did": "did:key:z6MkwTqcmDUwWJfByWHX5ehMGDYrSoBd8jXdsZPjVAbVPrjB",
+    "payload": "1f9993d5bd938070d5cdcf05645788227c5f0681b76d0dcee3599d41cd8a03e3b9eeda8d6d597ed0b7e19c15060f32c6f01be16a0f844f6874bfb0564252280a00065bfed6925900000080000000000100000000055f44534950343931366b677838356a62677974697037696e396768786a347372646d396a796161776931696f38366d3567386d3966686a61747900001000010000070800261c7572693d7773733a2f2f72656c61792e6578616d706c652f6473697008623d77732f312e30",
+    "now": 1790000000
+  },
+  "expect": {
+    "outcome": "hint",
+    "subject": "did:key:z6MkwTqcmDUwWJfByWHX5ehMGDYrSoBd8jXdsZPjVAbVPrjB",
+    "seq": 1789999940000000,
+    "issued_at": 1789999940,
+    "expires_at": 1790001740,
+    "endpoints": [
+      {
+        "uri": "wss://relay.example/dsip",
+        "bindings": [
+          "ws/1.0"
+        ]
+      }
+    ]
+  }
+}

@@ -32,6 +32,7 @@ vectors/
   did-webvh/   Resolving a did:webvh v1.0 log for DSIP (§7.2, §8.1, §8.4; v0.9, spec-gap 101)
   device-events/ Device Events Profile draft (E§3–E§6): traps → events → alarms, the alarm list, escalation
   alias-transparency/ Alias Transparency Profile draft (T§2–T§5): KEYTRANS building blocks, alias normalization
+  pkarr/       Reachability hints on Pkarr / BEP 44 for did:key subjects (§8.5; DHT Hints Profile §9; spec-gap 105)
 ```
 
 One vector per file. The vector id is its path relative to `vectors/` without
@@ -962,6 +963,82 @@ Each vector has `input.check`. The checks and their outputs:
   - Append `2^i − 1` for `i = 0, 1, …` until a value exceeds `version`.
   - Then binary-search between the last two: repeatedly append `mid = ⌊(lo + hi)/2⌋` while `lo + 1 < hi`, setting
     `lo = mid` if `mid ≤ version` and `hi = mid` otherwise.
+
+## Kind: `pkarr`
+
+Reachability hints carried on Pkarr: BEP 44 mutable items on the BitTorrent Mainline DHT (v0.9; DHT Hints Profile §9;
+spec-gap 105).
+
+- A `did:key` identity publishes `_dsip` TXT records in its own Pkarr zone, signed by its identity key.
+- Binary values are lowercase hex. Integers in encodings are big-endian.
+- `now` is Unix seconds, and a payload's timestamp `ts` is Unix **microseconds**.
+
+**`check: "hint"`** has input `{did, payload, now}`, where `payload` is a Pkarr relay payload:
+`signature(64) ‖ ts(u64) ‖ dns`. The output is
+`{"outcome": "hint", subject, seq, issued_at, expires_at, endpoints}` or `{"outcome": "rejected", reason}`.
+
+The first failing step gives the reason:
+
+1. **`did`** must be `did:key:z…` whose base58btc decodes to `0xed 0x01` plus 32 key bytes. Otherwise
+   `not-did-key`.
+2. **The payload** is hex (either case) for 72–1072 bytes. Anything else, including hex that does not decode, is
+   `malformed`.
+3. **The signature** is Ed25519 by the DID's key over the BEP 44 buffer
+   `"3:seqi" ‖ decimal(ts) ‖ "e1:v" ‖ decimal(len(dns)) ‖ ":" ‖ dns`. A bad signature gives `signature`.
+4. **`ts`** must be at most 2^53−1, so that it stays exact as a JSON number (Impl; BEP 44 allows up to 2^63−1, and
+   2^53 µs is the year 2255), else `malformed`. It must also be at most `(now + 300) · 10^6`, else `future`.
+5. **`dns`** must parse as an RFC 1035 message, else `malformed`:
+   - It has a 12-byte header (ID, flags, QDCOUNT, ANCOUNT, NSCOUNT, ARCOUNT).
+   - There are QDCOUNT questions (a name, then 4 bytes), then ANCOUNT + NSCOUNT + ARCOUNT records. Each record is
+     a name, `type u16`, `class u16`, `ttl u32`, `rdlength u16` and `rdata`.
+   - The message ends exactly where the last record does.
+   - A name is a sequence of labels (length byte 1–63) ending in a zero byte, or ending in a compression pointer
+     `0b11xxxxxx xxxxxxxx`. A pointer must point to an offset **before** the start of the name segment it appears in
+     (counting from the start of the name, or from the previous pointer's target), and the name continues there.
+   - Any other label type, or running past the end, is `malformed`.
+   - Only the answer records are used.
+6. **The DSIP records** are the answers whose name is exactly two labels, equal to `_dsip` and `z32(key)` after
+   ASCII case-folding (A–Z only), with type 16 (TXT) and class exactly 1. Labels are compared one by one: a single
+   label containing a `.` byte does not match. Every other answer is ignored.
+
+   The DSIP records are processed in order. For each one, its rdata is first framed as a sequence of
+   character-strings (a length byte, then that many bytes) that must consume it exactly, else `malformed`. Only then
+   is its content checked. Each string must be UTF-8 `key=value`, split at the first `=`. The record
+   becomes an endpoint `{uri, bindings[, service]}`:
+   - exactly one `uri`, whose value starts with `wss://`;
+   - one or more `b`, in order, which become `bindings`;
+   - at most one `svc`, which becomes `service`, present only when given;
+   - unknown keys are ignored.
+
+   Anything else is `bad-endpoint`. Endpoints keep the records' order.
+7. **No DSIP records** gives `no-endpoints`. Any DSIP record TTL above 3600 gives `ttl-too-long`.
+8. **Expiry.** `issued_at = ⌊ts / 10^6⌋` and `expires_at = issued_at + min(TTL)`. If `now ≥ expires_at`, the
+   reason is `expired`.
+9. **The output:** `subject` is `did`, and `seq` is `ts`.
+
+**`check: "select"`** (`{did, payload, held, now}`) applies §8.3 between a newly received payload and one already
+held:
+- `payload` is read as above; a rejection is the output.
+- If `held` no longer reads (for example it has expired), the output is `{"winner": "input", "conflict": "none"}`.
+- Otherwise:
+  - a higher `seq` gives `{"winner": "input", "conflict": "newer-seq"}`;
+  - a lower one gives `{"winner": "held", "conflict": "older-seq"}`;
+  - an equal `seq` with byte-identical payloads gives `{"winner": "held", "conflict": "none"}`;
+  - an equal `seq` with different payloads gives `{"winner": "held", "conflict": "same-seq-live"}`.
+
+**`check: "bep44-signable"`** (`{seq, value, salt}`, salt hex or null) → `{"bytes"}`:
+`["4:salt" ‖ decimal(len(salt)) ‖ ":" ‖ salt]` (only when the salt is non-empty) followed by
+`"3:seqi" ‖ decimal(seq) ‖ "e1:v" ‖ decimal(len(value)) ‖ ":" ‖ value`.
+
+**`check: "bep44-verify"`** (`{public_key, seq, value, salt, signature}`) → `{"valid"}`: an Ed25519 signature over
+that buffer.
+
+**`check: "z32-encode"`** (`{key}`) → `{"z32"}`, and **`check: "z32-decode"`** (`{z32}`) → `{"key"}`, or
+`{"outcome": "rejected", "reason": "malformed" | "non-canonical"}`.
+- z-base-32 uses the alphabet `ybndrfg8ejkmcpqxot1uwisza345h769`, most significant bit first.
+- 32 bytes are 52 characters, the last carrying 1 key bit and 4 padding bits.
+- Decoding requires exactly 52 alphabet characters (else `malformed`) and zero padding bits (else
+  `non-canonical`).
 
 ## Spec-gap list (Impl decisions these vectors encode)
 

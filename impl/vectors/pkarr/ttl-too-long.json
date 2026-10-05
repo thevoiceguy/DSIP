@@ -1,0 +1,21 @@
+{
+  "vector": "pkarr/ttl-too-long",
+  "format": 1,
+  "kind": "pkarr",
+  "description": "A TTL above 3600 s (a hint's lifetime cap, §12.9; spec-gap 96).",
+  "spec_ref": [
+    "§8.5",
+    "§8.3"
+  ],
+  "context": {},
+  "input": {
+    "check": "hint",
+    "did": "did:key:z6MkwTqcmDUwWJfByWHX5ehMGDYrSoBd8jXdsZPjVAbVPrjB",
+    "payload": "b143ed037a8857aace733fbda8fa603f9613209b2b8bd2091315511ca945c7fe0b1fce4abc0d2d1056096323d1bf397eaa7652588853b6aa6c7ecb80de1e300500065bfed6925900000080000000000100000000055f64736970343931366b677838356a62677974697037696e396768786a347372646d396a796161776931696f38366d3567386d3966686a617479000010000100001c2000261c7572693d7773733a2f2f72656c61792e6578616d706c652f6473697008623d77732f312e30",
+    "now": 1790000000
+  },
+  "expect": {
+    "outcome": "rejected",
+    "reason": "ttl-too-long"
+  }
+}

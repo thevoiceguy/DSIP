@@ -1,0 +1,21 @@
+{
+  "vector": "pkarr/bep44-test-vector",
+  "format": 1,
+  "kind": "pkarr",
+  "description": "BEP 44's mutable test vector verifies.",
+  "spec_ref": [
+    "§8.5"
+  ],
+  "context": {},
+  "input": {
+    "check": "bep44-verify",
+    "public_key": "77ff84905a91936367c01360803104f92432fcd904a43511876df5cdf3e7e548",
+    "seq": 1,
+    "value": "48656c6c6f20576f726c6421",
+    "salt": null,
+    "signature": "305ac8aeb6c9c151fa120f120ea2cfb923564e11552d06a5d856091e5e853cff1260d3f39e4999684aa92eb73ffd136e6f4f3ecbfda0ce53a1608ecd7ae21f01"
+  },
+  "expect": {
+    "valid": true
+  }
+}

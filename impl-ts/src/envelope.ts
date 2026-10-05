@@ -48,7 +48,7 @@ export interface ReceiverContext extends SemanticContext {
 const SPKI_ED25519 = Buffer.from("302a300506032b6570032100", "hex");
 
 /** Ed25519 verification over exact bytes. Spec: §10.2 */
-function ed25519Verify(key: Buffer, message: Buffer, signature: Buffer): boolean {
+export function ed25519Verify(key: Buffer, message: Buffer, signature: Buffer): boolean {
   if (signature.length !== 64) return false;
   try {
     const pub = createPublicKey({ key: Buffer.concat([SPKI_ED25519, key]), format: "der", type: "spki" });

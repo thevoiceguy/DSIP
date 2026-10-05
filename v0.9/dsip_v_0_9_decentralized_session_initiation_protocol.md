@@ -507,7 +507,7 @@ The host of a `did:web` document can also rewrite it, replacing the identity's k
 
 ### 8.5 DHTs and Decentralized Discovery
 
-A DSIP identity needs no DHT, registrar or directory to exist or to be trusted: it is a key (`did:key`) or a document its controller publishes (`did:web`, §7.2), and every record about it is signed by it (§8.1). What a DHT can add is **discovery**: finding where an identity can currently be reached when nothing else says so (a `did:key` has no document). DSIP uses a DHT for that and nothing more. It is an optional **hints tier** (§8.1 rule 6), specified by the DHT Reachability Hints Profile (draft companion).
+A DSIP identity needs no DHT, registrar or directory to exist or to be trusted: it is a key (`did:key`) or a document its controller publishes (`did:web`, §7.2), and every record about it is signed by it (§8.1). What a DHT can add is **discovery**: finding where an identity can currently be reached when nothing else says so (a `did:key` has no document). DSIP uses a DHT for that and nothing more. It is an optional **hints tier** (§8.1 rule 6), specified by the DHT Reachability Hints Profile (draft companion). Hints travel on DSIP's own overlay and, for `did:key` identities that publish with their identity key, on the BitTorrent Mainline DHT through Pkarr (v0.9; profile §9).
 
 **What the hints tier guarantees by construction.**
 
@@ -2390,7 +2390,7 @@ Every item above is pinned by the v0.8 conformance suite (979 vectors; the Pytho
 v0.8 is final at tag `poc-v0.8.1`. v0.9 work, decided 2026-10-04 from `impl/docs/v0.9-research.md`:
 
 - `did:webvh` as a recommended DID method beside `did:web` (§7.2, §8.4; spec-gap 101): resolvers verify the whole log, support v1.0 only, read I-JSON, and reject rollback and fork against the highest `versionId` they have verified. Pinned by the `did-webvh/` vectors.
-- Reachability hints on the BitTorrent Mainline DHT (Pkarr) for `did:key` subjects, in addition to the hints overlay (§8.5; DHT Reachability Hints Profile).
+- Reachability hints on the BitTorrent Mainline DHT (Pkarr) for `did:key` subjects, in addition to the hints overlay (§8.5; DHT Reachability Hints Profile §9; spec-gap 105): compact `_dsip` TXT records signed by the identity key, with a signed expiry of the timestamp plus the smallest TTL (≤ 3600 s), the checks Pkarr omits, and §8.3 conflicts. Pinned by the `pkarr/` vectors and confirmed against the pkarr crate.
 - Alias transparency: a log that makes an alias provider's `alias → DID` answers auditable (§8.2) — companion profile `v0.9/dsip-alias-transparency-profile-v0.9-draft.md` (cited `T§n`; spec-gap 104), KEYTRANS-shaped with VRF-blinded aliases. Stage 1 (this revision): the profile's choices and the KEYTRANS building blocks, pinned by the `alias-transparency/` vectors and confirmed against the KEYTRANS editor's implementation. Lookup verification, owner monitoring and fork detection follow KEYTRANS -06.
 - A Device Events Profile: signed device alarms and events, gatewayed from SNMP and syslog (companion profile `v0.9/dsip-device-events-profile-v0.9-draft.md`, cited `E§n`; spec-gap 103): RFC 3584 trap translation without the community, an RFC 3877-shaped rule table, an RFC 8632-style alarm list every member computes from the group's order, acknowledgement separate from read receipts, gateway silence, and an escalation trigger run by a member. Pinned by the `device-events/` vectors.
 

@@ -1,0 +1,18 @@
+{
+  "vector": "pkarr/z32-bad-length",
+  "format": 1,
+  "kind": "pkarr",
+  "description": "51 characters.",
+  "spec_ref": [
+    "§8.5"
+  ],
+  "context": {},
+  "input": {
+    "check": "z32-decode",
+    "z32": "47pjoycnsrfmxikm95jh13y88e8qnhzu5kungjpxyepgt7a8krp"
+  },
+  "expect": {
+    "outcome": "rejected",
+    "reason": "malformed"
+  }
+}
