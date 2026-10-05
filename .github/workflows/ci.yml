@@ -114,6 +114,12 @@ jobs:
         # the honest one; Bob re-signs before expiry with a rising seq and keeps another application's record in his zone.
         run: timeout 120 bash demos/pkarr-demo.sh | tail -16
         working-directory: impl
+      - name: reachability hints on the Mainline DHT directly (v0.9 draft)
+        # Self-verifying, on a local 10-node Mainline testnet (nothing public): Bob puts his signed _dsip packet as a
+        # BEP 44 item with no relay in his path; Alice gets it from the DHT, rejects a hostile relay's forgery, and
+        # calls him; the seq rises over re-publishes; a fresh node finds the newest packet after Bob left.
+        run: timeout 180 bash demos/pkarr-mainline-demo.sh | tail -18
+        working-directory: impl
       - name: messaging over the wire (two mailboxes, federated hub, real MLS)
         # Self-verifying: fails unless the MLS-encrypted text arrives live, after a disconnect, after a
         # device restart, after a crash between processing and commit (SQLite device state), and a
