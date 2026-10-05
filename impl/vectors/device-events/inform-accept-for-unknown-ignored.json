@@ -1,0 +1,33 @@
+{
+  "vector": "device-events/inform-accept-for-unknown-ignored",
+  "format": 1,
+  "kind": "device-events",
+  "description": "An acceptance for an inform not pending changes nothing.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {
+    "component": "informs",
+    "now": 0
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "accepted": {
+            "key": [
+              "192.0.2.7:161",
+              9
+            ]
+          }
+        }
+      }
+    ]
+  },
+  "expect": [
+    {
+      "emit": [],
+      "informs": []
+    }
+  ]
+}

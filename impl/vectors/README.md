@@ -866,6 +866,21 @@ Events:
   2. For each alarm with `escalation_due ≤ now`, ordered by due time then key, emit `{"escalate": {key, severity}}`,
      mark it escalated, and set `escalation_due` to `null`.
 
+**Inform traces** (`context.component: "informs"`, E§3) have context `{component, now}`. Each step's expect is
+`{"emit": [...], "informs": [...]}`.
+
+- `informs` is sorted by key: the source by code point, then `request_id` as a number (so 9 sorts before 10). Each
+  entry is `{key: [source, request_id], status}`, where `status` is `pending` or `answered`.
+- **`inform: {source, request_id}`.**
+  - An unknown key becomes `pending` and emits `{"deposit": {"key"}}`.
+  - A `pending` key emits nothing: a retransmission deposits no second event and is not answered.
+  - An `answered` key emits `{"respond": {"key"}}`: the lost response is answered again.
+- **`accepted: {key}`.** A `pending` key becomes `answered`, remembered until `now + 300`, and emits
+  `{"respond": {"key"}}`. Anything else changes nothing.
+- **`refused: {key}`.** A `pending` key is removed, so the next retransmission deposits anew. It emits nothing.
+- **`advance: n`.** Sets `now += n`, then removes every `answered` key whose remembered-until time is `≤ now`.
+  `pending` keys never expire. Advance emits nothing.
+
 ## Kind: `alias-transparency`
 
 Alias Transparency Profile draft, stage 1 (`v0.9/dsip-alias-transparency-profile-v0.9-draft.md`, cited `T§n`;

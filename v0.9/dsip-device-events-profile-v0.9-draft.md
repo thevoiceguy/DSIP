@@ -65,6 +65,12 @@ for the event, which means it is stored durably (M§9.3). An inform thus becomes
 acknowledgement rather than a one-hop one. If the hub refuses or cannot be reached, the gateway does not answer, and
 the device retries as SNMP specifies.
 
+An inform is identified by its source and request id. A retransmission of an inform whose event is still pending
+deposits nothing more and is not answered. A retransmission after the answer (the response was lost) is answered
+again, without a new event. A refused deposit is forgotten, so the next retransmission deposits anew. The gateway
+remembers an answered inform for 300 s. A pending one is kept until the hub decides, including across an outage
+(M§9.4). The `device-events/inform-*` traces pin these rules.
+
 **Syslog** (RFC 5424 and its transports) is carried as its fields. Its severity maps to an alarm severity through a
 table the gateway MAY override per rule. By default:
 

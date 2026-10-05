@@ -276,4 +276,70 @@ def vectors() -> list[dict]:
                                                       {"escalate": {"key": K2, "severity": "major"}}],
                                              "alarms": [alarm(K, "major"), alarm(K2, "major")]}),
                      ]))
+    # --- E§3: informs, answered only once stored -------------------------------------------------------
+    S = "192.0.2.7:161"
+    CTX = {"component": "informs", "now": 0}
+
+    def inf(rid):
+        return {"inform": {"source": S, "request_id": rid}}
+
+    def ok(rid):
+        return {"accepted": {"key": [S, rid]}}
+
+    def no(rid):
+        return {"refused": {"key": [S, rid]}}
+
+    def st(rid, status):
+        return {"key": [S, rid], "status": status}
+
+    out.append(trace("inform-answered-once-stored", "An inform deposits one event and is answered only when the hub accepts it.",
+                     ["E§3"], CTX, [
+                         (inf(7), {"emit": [{"deposit": {"key": [S, 7]}}], "informs": [st(7, "pending")]}),
+                         (ok(7), {"emit": [{"respond": {"key": [S, 7]}}], "informs": [st(7, "answered")]}),
+                     ]))
+    out.append(trace("inform-retransmission-while-pending", "A retransmission before the hub accepts deposits nothing and is not "
+                     "answered: the device keeps retrying.", ["E§3"], CTX, [
+                         (inf(7), {"emit": [{"deposit": {"key": [S, 7]}}], "informs": [st(7, "pending")]}),
+                         (inf(7), {"emit": [], "informs": [st(7, "pending")]}),
+                         (inf(7), {"emit": [], "informs": [st(7, "pending")]}),
+                         (ok(7), {"emit": [{"respond": {"key": [S, 7]}}], "informs": [st(7, "answered")]}),
+                     ]))
+    out.append(trace("inform-retransmission-after-answer", "A retransmission after the answer (the response was lost) is answered "
+                     "again, without a second event.", ["E§3"], CTX, [
+                         (inf(7), {"emit": [{"deposit": {"key": [S, 7]}}], "informs": [st(7, "pending")]}),
+                         (ok(7), {"emit": [{"respond": {"key": [S, 7]}}], "informs": [st(7, "answered")]}),
+                         (inf(7), {"emit": [{"respond": {"key": [S, 7]}}], "informs": [st(7, "answered")]}),
+                     ]))
+    out.append(trace("inform-refused-deposits-again", "The hub refused the deposit: no answer, and the device's next retransmission "
+                     "deposits anew.", ["E§3"], CTX, [
+                         (inf(7), {"emit": [{"deposit": {"key": [S, 7]}}], "informs": [st(7, "pending")]}),
+                         (no(7), {"emit": [], "informs": []}),
+                         (inf(7), {"emit": [{"deposit": {"key": [S, 7]}}], "informs": [st(7, "pending")]}),
+                     ]))
+    out.append(trace("inform-distinct-request-ids", "Two informs with different request ids are two events.", ["E§3"], CTX, [
+        (inf(7), {"emit": [{"deposit": {"key": [S, 7]}}], "informs": [st(7, "pending")]}),
+        (inf(8), {"emit": [{"deposit": {"key": [S, 8]}}], "informs": [st(7, "pending"), st(8, "pending")]}),
+        (ok(8), {"emit": [{"respond": {"key": [S, 8]}}], "informs": [st(7, "pending"), st(8, "answered")]}),
+    ]))
+    out.append(trace("inform-answered-forgotten-after-300s", "An answered inform is remembered 300 s; after that the same request id "
+                     "is a new inform.", ["E§3"], CTX, [
+                         (inf(7), {"emit": [{"deposit": {"key": [S, 7]}}], "informs": [st(7, "pending")]}),
+                         (ok(7), {"emit": [{"respond": {"key": [S, 7]}}], "informs": [st(7, "answered")]}),
+                         ({"advance": 299}, {"emit": [], "informs": [st(7, "answered")]}),
+                         ({"advance": 1}, {"emit": [], "informs": []}),
+                         (inf(7), {"emit": [{"deposit": {"key": [S, 7]}}], "informs": [st(7, "pending")]}),
+                     ]))
+    out.append(trace("inform-keys-sort-numerically", "Request ids sort as numbers: 9 before 10.", ["E§3"], CTX, [
+        (inf(10), {"emit": [{"deposit": {"key": [S, 10]}}], "informs": [st(10, "pending")]}),
+        (inf(9), {"emit": [{"deposit": {"key": [S, 9]}}], "informs": [st(9, "pending"), st(10, "pending")]}),
+    ]))
+    out.append(trace("inform-accept-for-unknown-ignored", "An acceptance for an inform not pending changes nothing.", ["E§3"], CTX, [
+        (ok(9), {"emit": [], "informs": []}),
+    ]))
+    out.append(trace("inform-pending-never-expires", "A pending inform is not forgotten: its event may still be accepted after an outage.",
+                     ["E§3"], CTX, [
+                         (inf(7), {"emit": [{"deposit": {"key": [S, 7]}}], "informs": [st(7, "pending")]}),
+                         ({"advance": 3600}, {"emit": [], "informs": [st(7, "pending")]}),
+                         (ok(7), {"emit": [{"respond": {"key": [S, 7]}}], "informs": [st(7, "answered")]}),
+                     ]))
     return out

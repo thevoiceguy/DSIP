@@ -367,11 +367,98 @@ export class AlarmList {
   }
 }
 
+/** An inform key: the sending source and the SNMP request id. Spec: E§3 */
+type InformKey = [string, number];
+
+/**
+ * Impl: the README says "sorted by key, compared element by element" without naming a
+ * collation; the source compares by code point (as alarm keys do) and the request id, an
+ * integer, numerically.
+ */
+function cmpInformKey(a: InformKey, b: InformKey): number {
+  return cmpStr(a[0], b[0]) || a[1] - b[1];
+}
+
+interface Inform {
+  key: InformKey;
+  status: "pending" | "answered";
+  /** For `answered`: forgotten once `now` reaches this. */
+  until: number | null;
+}
+
+/**
+ * The gateway's inform deduplication: a retransmitted inform deposits no second event, an
+ * accepted one is answered (and answered again on retransmission) for 300 s, a refused one is
+ * forgotten so the next retransmission deposits anew.
+ *
+ * Spec: E§3. README "Kind: `device-events`", "Inform traces": events inform / accepted /
+ * refused / advance, emissions deposit / respond, the snapshot sorted by key; `pending` keys
+ * never expire.
+ */
+export class InformTable {
+  private now: number;
+  private readonly informs = new Map<string, Inform>();
+
+  /** A table at `context.now`. */
+  constructor(context: JsonObject) {
+    this.now = isInt(context["now"]) ? context["now"] : 0;
+  }
+
+  private static id(k: InformKey): string {
+    return JSON.stringify(k);
+  }
+
+  /** Apply one event; return `{emit, informs}`. Spec: E§3 */
+  step(event: JsonObject): JsonObject {
+    const emit: Json[] = [];
+    if ("inform" in event) {
+      const e = event["inform"] as JsonObject;
+      const key: InformKey = [e["source"] as string, e["request_id"] as number];
+      const cur = this.informs.get(InformTable.id(key));
+      if (cur === undefined) {
+        this.informs.set(InformTable.id(key), { key, status: "pending", until: null });
+        emit.push({ deposit: { key } });
+      } else if (cur.status === "answered") {
+        // The response was lost: answer the retransmission again.
+        emit.push({ respond: { key: cur.key } });
+      }
+    } else if ("accepted" in event) {
+      const key = (event["accepted"] as JsonObject)["key"] as unknown as InformKey;
+      const cur = this.informs.get(InformTable.id(key));
+      if (cur !== undefined && cur.status === "pending") {
+        cur.status = "answered";
+        cur.until = this.now + 300;
+        emit.push({ respond: { key: cur.key } });
+      }
+    } else if ("refused" in event) {
+      const key = (event["refused"] as JsonObject)["key"] as unknown as InformKey;
+      const id = InformTable.id(key);
+      if (this.informs.get(id)?.status === "pending") this.informs.delete(id);
+    } else if ("advance" in event) {
+      this.now += event["advance"] as number;
+      for (const [id, i] of this.informs) {
+        if (i.status === "answered" && i.until !== null && i.until <= this.now) this.informs.delete(id);
+      }
+    } else {
+      throw new Error(`unknown inform event ${JSON.stringify(event)}`);
+    }
+    const informs = [...this.informs.values()]
+      .sort((a, b) => cmpInformKey(a.key, b.key))
+      .map((i) => ({ key: i.key, status: i.status }));
+    return { emit, informs } as unknown as JsonObject;
+  }
+}
+
 /**
  * The `device-events` vector kind: a stateless check, or an alarm-list trace returning one
- * `{emit, alarms}` per step. Spec: E§3–E§6
+ * `{emit, alarms}` per step, or an inform trace (`context.component: "informs"`) returning one
+ * `{emit, informs}` per step. Spec: E§3–E§6
  */
 export function runDeviceEvents(context: JsonObject, input: JsonObject): Json {
+  if (Array.isArray(input["steps"]) && context["component"] === "informs") {
+    const table = new InformTable(context);
+    return (input["steps"] as JsonObject[]).map((s) => table.step(s["event"] as JsonObject));
+  }
   if (Array.isArray(input["steps"])) {
     const list = new AlarmList(context);
     return (input["steps"] as JsonObject[]).map((s) => list.step(s["event"] as JsonObject));

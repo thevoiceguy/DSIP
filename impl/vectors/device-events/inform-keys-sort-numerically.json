@@ -1,0 +1,84 @@
+{
+  "vector": "device-events/inform-keys-sort-numerically",
+  "format": 1,
+  "kind": "device-events",
+  "description": "Request ids sort as numbers: 9 before 10.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {
+    "component": "informs",
+    "now": 0
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "inform": {
+            "source": "192.0.2.7:161",
+            "request_id": 10
+          }
+        }
+      },
+      {
+        "event": {
+          "inform": {
+            "source": "192.0.2.7:161",
+            "request_id": 9
+          }
+        }
+      }
+    ]
+  },
+  "expect": [
+    {
+      "emit": [
+        {
+          "deposit": {
+            "key": [
+              "192.0.2.7:161",
+              10
+            ]
+          }
+        }
+      ],
+      "informs": [
+        {
+          "key": [
+            "192.0.2.7:161",
+            10
+          ],
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "emit": [
+        {
+          "deposit": {
+            "key": [
+              "192.0.2.7:161",
+              9
+            ]
+          }
+        }
+      ],
+      "informs": [
+        {
+          "key": [
+            "192.0.2.7:161",
+            9
+          ],
+          "status": "pending"
+        },
+        {
+          "key": [
+            "192.0.2.7:161",
+            10
+          ],
+          "status": "pending"
+        }
+      ]
+    }
+  ]
+}

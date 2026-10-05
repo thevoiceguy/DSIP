@@ -1,0 +1,119 @@
+{
+  "vector": "device-events/inform-retransmission-while-pending",
+  "format": 1,
+  "kind": "device-events",
+  "description": "A retransmission before the hub accepts deposits nothing and is not answered: the device keeps retrying.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {
+    "component": "informs",
+    "now": 0
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "inform": {
+            "source": "192.0.2.7:161",
+            "request_id": 7
+          }
+        }
+      },
+      {
+        "event": {
+          "inform": {
+            "source": "192.0.2.7:161",
+            "request_id": 7
+          }
+        }
+      },
+      {
+        "event": {
+          "inform": {
+            "source": "192.0.2.7:161",
+            "request_id": 7
+          }
+        }
+      },
+      {
+        "event": {
+          "accepted": {
+            "key": [
+              "192.0.2.7:161",
+              7
+            ]
+          }
+        }
+      }
+    ]
+  },
+  "expect": [
+    {
+      "emit": [
+        {
+          "deposit": {
+            "key": [
+              "192.0.2.7:161",
+              7
+            ]
+          }
+        }
+      ],
+      "informs": [
+        {
+          "key": [
+            "192.0.2.7:161",
+            7
+          ],
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "emit": [],
+      "informs": [
+        {
+          "key": [
+            "192.0.2.7:161",
+            7
+          ],
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "emit": [],
+      "informs": [
+        {
+          "key": [
+            "192.0.2.7:161",
+            7
+          ],
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "emit": [
+        {
+          "respond": {
+            "key": [
+              "192.0.2.7:161",
+              7
+            ]
+          }
+        }
+      ],
+      "informs": [
+        {
+          "key": [
+            "192.0.2.7:161",
+            7
+          ],
+          "status": "answered"
+        }
+      ]
+    }
+  ]
+}

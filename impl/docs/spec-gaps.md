@@ -2451,9 +2451,17 @@ escalation agent member") — written into `v0.9/dsip-device-events-profile-v0.9
   - a silent gateway raises its alarm;
   - the community never leaves the gateway.
 
+**Informs (2026-10-05).**
+- The trap receiver moved into the gateway's `dsip-msg` (`--snmp-listen`, `--snmp-rules`, `--heartbeat`), which
+  sees the hub's verdict. `dsip-trapd` is retired.
+- An inform is answered (RFC 3416 §4.2.7 Response-PDU, echoing request-id and varbinds) only once its event is
+  `accepted`, including when the outbox delivers it after a hub outage.
+- An inform tracker gives one event per inform. Pinned by `device-events/inform-*` (9 traces), with the key order
+  pinned numerically after a question from the second implementation.
+- The demo kills the hub mid-inform: the device's 3 retransmissions go unanswered and deposit nothing more, and the
+  next one after recovery is answered. There is exactly one event.
+
 **Open.**
-- InformRequest: answered only after the hub's `accepted`. That needs the gateway's DSIP side to report acceptance
-  back to `dsip-trapd`.
 - SNMPv3 (USM) and syslog inputs.
 - Flap hold-down, left to gateway configuration.
 

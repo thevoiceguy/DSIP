@@ -213,9 +213,54 @@ class AlarmList:
                  "count": a["count"], "escalation_due": a["due"]} for k, a in sorted(self.alarms.items())]
 
 
+INFORM_MEMORY_S = 300  # an answered inform is remembered this long, to answer its retransmissions
+
+
+class InformTracker:
+    """E§3: an inform is answered only once its event is stored (the hub's `accepted`); one event per inform."""
+
+    def __init__(self, ctx: dict):
+        self.now = ctx.get("now", 0)
+        self.informs: dict[tuple, dict] = {}  # (source, request_id) → {status, until}
+
+    def step(self, ev: dict) -> list:
+        if "inform" in ev:
+            k = (ev["inform"]["source"], ev["inform"]["request_id"])
+            e = self.informs.get(k)
+            if e is None:
+                self.informs[k] = {"status": "pending", "until": None}
+                return [{"deposit": {"key": list(k)}}]
+            if e["status"] == "answered":
+                return [{"respond": {"key": list(k)}}]  # a retransmission of an answered inform: answer again
+            return []  # still pending: no second event, no answer yet
+        if "accepted" in ev or "refused" in ev:
+            accepted = "accepted" in ev
+            k = tuple((ev.get("accepted") or ev.get("refused"))["key"])
+            e = self.informs.get(k)
+            if e is None or e["status"] != "pending":
+                return []
+            if not accepted:
+                del self.informs[k]  # the device's next retransmission deposits anew
+                return []
+            e.update(status="answered", until=self.now + INFORM_MEMORY_S)
+            return [{"respond": {"key": list(k)}}]
+        if "advance" in ev:
+            self.now += ev["advance"]
+            for k in [k for k, e in self.informs.items() if e["status"] == "answered" and e["until"] <= self.now]:
+                del self.informs[k]
+            return []
+        raise ValueError(f"unknown event {ev}")
+
+    def snapshot(self) -> list:
+        return [{"key": list(k), "status": e["status"]} for k, e in sorted(self.informs.items())]
+
+
 def run(v: dict):
     i = v["input"]
     if "check" in i:
         return run_check(i)
+    if v["context"].get("component") == "informs":
+        m = InformTracker(v["context"])
+        return [{"emit": m.step(st["event"]), "informs": m.snapshot()} for st in i["steps"]]
     m = AlarmList(v["context"])
     return [{"emit": m.step(st["event"]), "alarms": m.snapshot()} for st in i["steps"]]
