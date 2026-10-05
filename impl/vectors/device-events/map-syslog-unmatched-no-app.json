@@ -1,0 +1,64 @@
+{
+  "vector": "device-events/map-syslog-unmatched-no-app",
+  "format": 1,
+  "kind": "device-events",
+  "description": "No rule and no app_name: the qualifier is empty.",
+  "spec_ref": [
+    "E§4",
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "map",
+    "raw": {
+      "syslog": {
+        "format": "rfc3164",
+        "facility": 1,
+        "severity": 2,
+        "timestamp": null,
+        "hostname": null,
+        "app_name": null,
+        "procid": null,
+        "msgid": null,
+        "structured_data": [],
+        "msg": "x"
+      }
+    },
+    "rules": [
+      {
+        "syslog": {
+          "app_name": "linkd",
+          "msgid": "LINKDOWN"
+        },
+        "action": "raise",
+        "type": "link-down",
+        "resource_sd": {
+          "id": "if@32473",
+          "param": "ifIndex"
+        }
+      },
+      {
+        "syslog": {
+          "app_name": "linkd",
+          "msgid": "LINKUP"
+        },
+        "action": "clear",
+        "type": "link-down",
+        "resource_sd": {
+          "id": "if@32473",
+          "param": "ifIndex"
+        }
+      }
+    ],
+    "source": "192.0.2.9"
+  },
+  "expect": {
+    "alarm": {
+      "resource": "192.0.2.9",
+      "type": "syslog",
+      "qualifier": "",
+      "severity": "critical",
+      "cleared": false
+    }
+  }
+}

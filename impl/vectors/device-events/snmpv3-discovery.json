@@ -1,0 +1,71 @@
+{
+  "vector": "device-events/snmpv3-discovery",
+  "format": 1,
+  "kind": "device-events",
+  "description": "An empty engine ID is unknown-engine-id, reported when the message is reportable (RFC 3414 §4).",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {
+    "component": "snmpv3",
+    "now": 1790000000,
+    "local": {
+      "engine_id": "80001f8880aaaaaaaaaaaaaaaa",
+      "boots": 1,
+      "time": 500
+    },
+    "users": [
+      {
+        "engine_id": null,
+        "user": "ops",
+        "auth": "sha",
+        "auth_password": "auth-pass-1",
+        "priv": null
+      }
+    ]
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "receive": {
+            "from": "192.0.2.7:161",
+            "datagram": "3038020103300e020107020300ffe30401040201030410300e0400020101020164040004000400301104000400a00b0201630201000201003000"
+          }
+        }
+      },
+      {
+        "event": {
+          "receive": {
+            "from": "192.0.2.7:161",
+            "datagram": "3038020103300e020107020300ffe30401000201030410300e0400020101020164040004000400301104000400a00b0201630201000201003000"
+          }
+        }
+      }
+    ]
+  },
+  "expect": [
+    {
+      "emit": [
+        {
+          "refused": {
+            "reason": "unknown-engine-id",
+            "report": true
+          }
+        }
+      ],
+      "engines": []
+    },
+    {
+      "emit": [
+        {
+          "refused": {
+            "reason": "unknown-engine-id",
+            "report": false
+          }
+        }
+      ],
+      "engines": []
+    }
+  ]
+}

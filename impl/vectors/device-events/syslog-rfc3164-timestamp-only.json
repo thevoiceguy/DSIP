@@ -1,0 +1,28 @@
+{
+  "vector": "device-events/syslog-rfc3164-timestamp-only",
+  "format": 1,
+  "kind": "device-events",
+  "description": "A timestamp then a lone token: no hostname, the token is the content.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "syslog",
+    "datagram": "3c31333e4f63742020352031323a30303a3030206c6f6e656c79"
+  },
+  "expect": {
+    "syslog": {
+      "format": "rfc3164",
+      "facility": 1,
+      "severity": 5,
+      "timestamp": "Oct  5 12:00:00",
+      "hostname": null,
+      "app_name": null,
+      "procid": null,
+      "msgid": null,
+      "structured_data": [],
+      "msg": "lonely"
+    }
+  }
+}

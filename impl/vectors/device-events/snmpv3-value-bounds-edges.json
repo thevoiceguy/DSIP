@@ -1,0 +1,97 @@
+{
+  "vector": "device-events/snmpv3-value-bounds-edges",
+  "format": 1,
+  "kind": "device-events",
+  "description": "Values exactly at the 32-bit bounds are accepted.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {
+    "component": "snmpv3",
+    "now": 1790000000,
+    "local": {
+      "engine_id": "80001f8880aaaaaaaaaaaaaaaa",
+      "boots": 1,
+      "time": 500
+    },
+    "users": [
+      {
+        "engine_id": null,
+        "user": "ops",
+        "auth": "sha",
+        "auth_password": "auth-pass-1",
+        "priv": null
+      }
+    ]
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "receive": {
+            "from": "192.0.2.7:161",
+            "datagram": "3081cd020103300e020107020300ffe3040101020103042c302a040d80001f8880bbbbbbbbbbbbbbbb02010102016404036f7073040c12744b22a9678e43a968fdc0040030818904000400a781820201010201000201003077300e06082b06010201010300430204d23017060a2b06010603010104010006092b0601060301010503301106092b06010401ce0f0301020480000000301106092b06010401ce0f030202047fffffff301206092b06010401ce0f0303420500ffffffff301206092b06010401ce0f0304430500ffffffff"
+          }
+        }
+      }
+    ]
+  },
+  "expect": [
+    {
+      "emit": [
+        {
+          "accepted": {
+            "trap": {
+              "version": "v3",
+              "varbinds": [
+                {
+                  "oid": "1.3.6.1.2.1.1.3.0",
+                  "type": "TimeTicks",
+                  "value": "1234"
+                },
+                {
+                  "oid": "1.3.6.1.6.3.1.1.4.1.0",
+                  "type": "OBJECT IDENTIFIER",
+                  "value": "1.3.6.1.6.3.1.1.5.3"
+                },
+                {
+                  "oid": "1.3.6.1.4.1.9999.3.1",
+                  "type": "Integer32",
+                  "value": "-2147483648"
+                },
+                {
+                  "oid": "1.3.6.1.4.1.9999.3.2",
+                  "type": "Integer32",
+                  "value": "2147483647"
+                },
+                {
+                  "oid": "1.3.6.1.4.1.9999.3.3",
+                  "type": "Gauge32",
+                  "value": "4294967295"
+                },
+                {
+                  "oid": "1.3.6.1.4.1.9999.3.4",
+                  "type": "TimeTicks",
+                  "value": "4294967295"
+                }
+              ]
+            },
+            "usm": {
+              "engine_id": "80001f8880bbbbbbbbbbbbbbbb",
+              "user": "ops",
+              "level": "authNoPriv"
+            }
+          }
+        }
+      ],
+      "engines": [
+        {
+          "engine_id": "80001f8880bbbbbbbbbbbbbbbb",
+          "boots": 1,
+          "time": 100,
+          "latest": 100
+        }
+      ]
+    }
+  ]
+}

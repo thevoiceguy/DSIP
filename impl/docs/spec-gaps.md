@@ -2405,7 +2405,7 @@ issues; DSIP's resolution is pinned either way.
    - leading zeros in the `versionId` number;
    - fractional seconds in `versionTime`.
 
-## 103. E§3–E§6 — Device Events Profile: re-raise, the syslog table, who escalates
+## 103. E§3–E§6 — Device Events Profile: re-raise, the syslog table, who escalates, SNMPv3 and syslog inputs
 
 **Status: decided 2026-10-04 (user: "yes to all 4"; "reopen the same alarm"; "default table, configurable"; "an
 escalation agent member") — written into `v0.9/dsip-device-events-profile-v0.9-draft.md`; pinned by
@@ -2461,8 +2461,58 @@ escalation agent member") — written into `v0.9/dsip-device-events-profile-v0.9
 - The demo kills the hub mid-inform: the device's 3 retransmissions go unanswered and deposit nothing more, and the
   next one after recovery is answered. There is exactly one event.
 
+**SNMPv3 and syslog (2026-10-05).** E§2 gains the claims an authenticated basis adds: `usm: {engine_id, user}`
+and `certificate_sha256`. E§3 gains USM processing and the syslog fields; E§4 gains syslog rules. The vectors README
+pins the USM pipeline (10 reason tokens, in RFC 3414 §3.2 order), BER, the RFC 5424 / RFC 3164 grammar and the
+syslog mapping. That adds 86 vectors (1309 total), with three-way parity and two new fuzz targets (`syslog`,
+`snmpv3`).
+
+Choices made (Impl):
+- **Refused:** `noAuthNoPriv` (it proves nothing v2c does not), DES (RFC 3414 §8), and security models other than
+  USM.
+- **Wildcard users:** a password user may omit its engine ID and is then localized per message.
+- **Trap time cache:** a trap engine's cache entry is seeded by its first authenticated message. RFC 3414 creates it
+  by discovery, which a trap receiver never does.
+- **Reports:** only `unknown-engine-id` (discovery) and `not-in-time-window` (time sync) are answered; every other
+  failure is silent.
+- **RFC 3164** is accepted. Its tag heuristic reads Cisco's sequence number as `app_name`, and a vector pins that.
+- **Unmatched syslog:** an unmatched message that the table maps to a severity raises `(source, syslog, app_name)`.
+
+Questions the second implementation raised, now pinned by README text and vectors:
+- `<00>` is malformed.
+- `resource_sd` searches only the first element with its `id` (E§4's wording was aligned).
+- A userName that is not UTF-8 matches no user.
+- An empty OID is malformed.
+- NULL must have empty content (X.690 §8.8.2).
+- Integer32 is bounded to ±2^31, and Counter32, Gauge32 and TimeTicks to 2^32−1 (RFC 2578).
+- A PDU's constructed bit is not checked.
+- Every SEQUENCE holds exactly its listed elements.
+- Encodings need not be minimal (BER, not DER).
+
+Outside oracles:
+- RFC 3414 A.3's MD5 and SHA-1 localized keys.
+- pysnmp 7.1.30's RFC 7860 SHA-2 keys.
+- Three traps captured from pysnmp (SHA+AES, SHA-256, MD5+AES), kept verbatim as vectors.
+
+The gateway (`dsip-msg`):
+- New flags: `--snmp-users`, `--snmp-engine-id` (a persistent ID, with boots incremented at each start),
+  `--syslog-listen`, `--syslog-tls-listen` (client certificates required, RFC 5425 octet-counted frames) and
+  `--syslog-table`.
+- Members render the basis with its verified identity.
+
+`demos/device-events-v3-syslog-demo.sh` (in CI) uses real senders:
+- **pysnmp:**
+  - an authPriv trap arrives with its engine and user;
+  - a wrong password is refused with `wrong-digest`;
+  - after a reboot (boots + 1), a byte-for-byte replay of the pre-reboot trap is refused with `not-in-time-window`;
+  - a v3 inform runs discovery against the gateway (a Report), is answered only once stored, and is deposited once.
+- **logger:** RFC 5424 matched by a rule, and RFC 3164 through the table.
+- **TLS:** a client with a device certificate gets `syslog-tls` and its fingerprint; one without is refused.
+- No USM password leaves the gateway.
+
 **Open.**
-- SNMPv3 (USM) and syslog inputs.
+- Mapping a syslog-tls certificate to a named device, beyond its fingerprint (local configuration).
+- SNMPv3 over TSM/TLS (RFC 6353), and signed syslog (RFC 5848).
 - Flap hold-down, left to gateway configuration.
 
 ## 104. T§2–T§5 / core §8.1–§8.2 — alias transparency: what DSIP adopts of KEYTRANS, and when

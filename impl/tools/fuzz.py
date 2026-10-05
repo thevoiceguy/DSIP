@@ -541,7 +541,66 @@ def gen_gateway_reason(r: random.Random):
     return "gateway", None, {}, {"check": "reason-outbound", "reason": r.choice(tokens), "phase": r.choice(["pre-answer", "active"])}
 
 
+SYSLOG_SEEDS = [
+    b"<34>1 2003-10-11T22:14:15.003Z mymachine.example.com su - ID47 - \xef\xbb\xbf'su root' failed",
+    b'<165>1 2003-10-11T22:14:15.003Z host evntslog - ID47 [exampleSDID@32473 iut="3" eventSource="App\\"x\\]"] msg',
+    b"<14>1 - - - - - -", b"<13>Oct  5 12:00:00 host sshd[1234]: hello\r\n", b"<189>123: *Mar  1 18:46:11: %LINK-3-UPDOWN: x",
+    b"<34>Oct 11 22:14:15 mymachine su: 'su root' failed", b"<0>", b"<191>app: m",
+]
+
+
+def mutate(r: random.Random, b: bytes, alphabet: bytes) -> bytes:
+    b = bytearray(b)
+    for _ in range(r.randint(1, 3)):
+        op = r.random()
+        i = r.randint(0, len(b)) if b else 0
+        if op < 0.35 and b:
+            b[min(i, len(b) - 1)] = r.choice(alphabet)
+        elif op < 0.6:
+            b[i:i] = bytes([r.choice(alphabet)])
+        elif op < 0.85 and b:
+            del b[min(i, len(b) - 1)]
+        else:
+            b = b[:i]
+    return bytes(b)
+
+
+def gen_syslog(r: random.Random):
+    """One syslog datagram, a mutation of a real-world shape (E§3; the README grammar)."""
+    alphabet = b' <>-[]="\\:0123456789abcAZ\t\r\n\x00\xff\xc3\xef\xbb\xbf@.'
+    d = mutate(r, r.choice(SYSLOG_SEEDS), alphabet) if r.random() < 0.9 else r.choice(SYSLOG_SEEDS)
+    return "device-events", "syslog", {}, {"datagram": d.hex()}
+
+
+def gen_snmpv3(r: random.Random):
+    """A USM receiver trace: valid, tampered and replayed v3 messages with clock advances (E§3, RFC 3414 §3.2)."""
+    from dsipvec.gen import events_v3 as g
+    users = [g.user(), g.user("p", "sha256", "aes128"), g.user("k", engine=g.DEV, keys=True)]
+    ctx = g.ctx(users, local_boots=r.choice([1, 7]), local_time=500)
+    steps, sent = [], []
+    for _ in range(r.randint(2, 8)):
+        x = r.random()
+        if x < 0.15:
+            steps.append({"advance": r.choice([1, 60, 149, 150, 151, 400])})
+            continue
+        if x < 0.25 and sent:
+            d = r.choice(sent)
+        else:
+            engine = r.choice([g.DEV, g.DEV2, g.LOCAL])
+            uname, auth, priv = r.choice([("ops", "sha", False), ("p", "sha256", True), ("k", "sha", False), ("nobody", "md5", False)])
+            pdu = g.scoped(tag=r.choice([0xA7, 0xA7, 0xA6, 0xA0]), rid=r.randint(-3, 99))
+            d = g.v3(engine=engine, boots=r.choice([0, 1, 5, 7, 2**31 - 1]), time=r.choice([0, 100, 350, 500, 651, 1000]),
+                     user=uname, auth=auth, key=g.key(auth, engine), priv_key=g.pkey(auth, engine) if priv else None,
+                     pdu=pdu, flags=r.choice([None, None, 0x05, 0x04, 0x02]))
+            if r.random() < 0.35:
+                d = mutate(r, bytes.fromhex(d), bytes(range(256))).hex()
+            sent.append(d)
+        steps.append({"receive": {"from": "192.0.2.7:161", "datagram": d}})
+    return "device-events", None, ctx, steps
+
+
 TARGETS = {
+    "syslog": gen_syslog, "snmpv3": gen_snmpv3,
     "gap": gen_gap, "commit-retry": gen_commit_retry, "hub-outage": gen_hub_outage, "resume": gen_resume, "history": gen_history,
     "successor": gen_successor, "client": gen_client, "hub": gen_hub, "mailbox": gen_mailbox, "endpoint": gen_endpoint,
     "relay": gen_relay, "deposit-fields": gen_deposit_fields, "gateway-reason": gen_gateway_reason,
@@ -565,7 +624,7 @@ def probe(name: str, kind: str, check, ctx: dict, body) -> dict:
         v["input"] = {"steps": [{"event": e, "expect": {"emit": [], **snap}} for e, snap in body]}
         v["expect"] = {}
     else:
-        v["input"] = {"check": check, "steps": [{"event": e} for e in body]}
+        v["input"] = {**({"check": check} if check else {}), "steps": [{"event": e} for e in body]}
         v["expect"] = {"steps": [{"emit": [], "state": {}} for _ in body]}
     return v
 

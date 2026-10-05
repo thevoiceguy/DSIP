@@ -1,0 +1,28 @@
+{
+  "vector": "device-events/syslog-rfc3164-cisco-sequence",
+  "format": 1,
+  "kind": "device-events",
+  "description": "Cisco's sequence-number prefix has no valid timestamp, and its number reads as a tag.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "syslog",
+    "datagram": "3c3138393e3132333a202a4d61722020312031383a34363a31313a20254c494e4b2d332d5550444f574e3a20496e74657266616365204769302f312c206368616e67656420737461746520746f20646f776e0a"
+  },
+  "expect": {
+    "syslog": {
+      "format": "rfc3164",
+      "facility": 23,
+      "severity": 5,
+      "timestamp": null,
+      "hostname": null,
+      "app_name": "123",
+      "procid": null,
+      "msgid": null,
+      "structured_data": [],
+      "msg": "*Mar  1 18:46:11: %LINK-3-UPDOWN: Interface Gi0/1, changed state to down"
+    }
+  }
+}

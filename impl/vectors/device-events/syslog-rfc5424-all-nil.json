@@ -1,0 +1,28 @@
+{
+  "vector": "device-events/syslog-rfc5424-all-nil",
+  "format": 1,
+  "kind": "device-events",
+  "description": "Every header field NILVALUE, no message.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "syslog",
+    "datagram": "3c31343e31202d202d202d202d202d202d"
+  },
+  "expect": {
+    "syslog": {
+      "format": "rfc5424",
+      "facility": 1,
+      "severity": 6,
+      "timestamp": null,
+      "hostname": null,
+      "app_name": null,
+      "procid": null,
+      "msgid": null,
+      "structured_data": [],
+      "msg": ""
+    }
+  }
+}

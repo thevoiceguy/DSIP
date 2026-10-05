@@ -1,0 +1,28 @@
+{
+  "vector": "device-events/syslog-rfc5424-pri-191",
+  "format": 1,
+  "kind": "device-events",
+  "description": "<191> is local7 debug, the largest value.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "syslog",
+    "datagram": "3c3139313e31202d202d202d202d202d202d"
+  },
+  "expect": {
+    "syslog": {
+      "format": "rfc5424",
+      "facility": 23,
+      "severity": 7,
+      "timestamp": null,
+      "hostname": null,
+      "app_name": null,
+      "procid": null,
+      "msgid": null,
+      "structured_data": [],
+      "msg": ""
+    }
+  }
+}

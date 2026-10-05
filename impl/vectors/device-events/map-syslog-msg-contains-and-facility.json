@@ -1,0 +1,49 @@
+{
+  "vector": "device-events/map-syslog-msg-contains-and-facility",
+  "format": 1,
+  "kind": "device-events",
+  "description": "msg_contains and facility both must match.",
+  "spec_ref": [
+    "E§4",
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "map",
+    "raw": {
+      "syslog": {
+        "format": "rfc5424",
+        "facility": 4,
+        "severity": 2,
+        "timestamp": null,
+        "hostname": null,
+        "app_name": "su",
+        "procid": null,
+        "msgid": null,
+        "structured_data": [],
+        "msg": "'su root' failed"
+      }
+    },
+    "rules": [
+      {
+        "syslog": {
+          "facility": 4,
+          "msg_contains": "failed"
+        },
+        "action": "raise",
+        "type": "auth-failure",
+        "severity": "minor"
+      }
+    ],
+    "source": "192.0.2.9"
+  },
+  "expect": {
+    "alarm": {
+      "resource": "192.0.2.9",
+      "type": "auth-failure",
+      "qualifier": "",
+      "severity": "minor",
+      "cleared": false
+    }
+  }
+}

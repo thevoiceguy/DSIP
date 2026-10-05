@@ -1,0 +1,59 @@
+{
+  "vector": "device-events/snmpv3-primitive-pdu-tag",
+  "format": 1,
+  "kind": "device-events",
+  "description": "A PDU's constructed bit is not checked: a primitive tag with PDU content is not a notification, not malformed.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {
+    "component": "snmpv3",
+    "now": 1790000000,
+    "local": {
+      "engine_id": "80001f8880aaaaaaaaaaaaaaaa",
+      "boots": 1,
+      "time": 500
+    },
+    "users": [
+      {
+        "engine_id": null,
+        "user": "ops",
+        "auth": "sha",
+        "auth_password": "auth-pass-1",
+        "priv": null
+      }
+    ]
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "receive": {
+            "from": "192.0.2.7:161",
+            "datagram": "30818e020103300e020107020300ffe3040101020103042c302a040d80001f8880bbbbbbbbbbbbbbbb02010102016404036f7073040c4d412022b35bc2336b0242aa0400304b040004008745020101020100020100303a300e06082b06010201010300430204d23017060a2b06010603010104010006092b0601060301010503300f060a2b060102010202010103020103"
+          }
+        }
+      }
+    ]
+  },
+  "expect": [
+    {
+      "emit": [
+        {
+          "refused": {
+            "reason": "not-a-notification",
+            "report": false
+          }
+        }
+      ],
+      "engines": [
+        {
+          "engine_id": "80001f8880bbbbbbbbbbbbbbbb",
+          "boots": 1,
+          "time": 100,
+          "latest": 100
+        }
+      ]
+    }
+  ]
+}

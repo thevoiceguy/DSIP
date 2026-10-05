@@ -817,7 +817,11 @@ each, in order, and drops any other member.
 default), outputs `{"severity": <token or null>}`. The default is 0–2 → `critical`, 3 → `major`, 4 → `warning`,
 5–7 → `null`.
 
-**`check: "map"`**, with `raw` (a `check: "trap"` output), `rules` and `source`:
+**`check: "map"`**, with `raw` (a `check: "trap"` or `check: "syslog"` output), `rules`, `source` and, for syslog,
+an optional `syslog_table` (as `syslog-severity`'s `table`). A rule with `trap_oid` only ever matches `raw.snmp`, and
+a rule with `syslog` only `raw.syslog`.
+
+For `raw.snmp`:
 
 - Rules are tried in order. A rule matches when its `trap_oid` equals the raw `trap_oid` and, if it has
   `varbind: {oid, value}`, some varbind has that OID and the same value compared as strings. The first match wins.
@@ -827,6 +831,63 @@ default), outputs `{"severity": <token or null>}`. The default is 0–2 → `cri
   - `severity` is the rule's for `raise` (`null` if the rule has none), and `null` for `clear`;
   - `resource` is `source`, or `source + "/" + value` of the first varbind whose OID equals the rule's
     `resource_varbind` or starts with it plus `.`.
+
+For `raw.syslog` (E§4):
+
+- A rule matches when every member present in its `syslog` object matches. `app_name`, `msgid` and `hostname` must
+  equal the raw field (a `null` field equals nothing), `facility` must equal it as an integer, and `msg_contains`
+  must be a substring of `msg`. The first match wins.
+- A `notify` rule outputs `{"notify": true}`. A `clear` rule outputs the alarm with `severity: null` and
+  `cleared: true`.
+- A `raise` rule's severity is its own `severity` if present and not `null`, and otherwise the table's for the raw
+  `severity` (`syslog-severity` with `syslog_table`). If that is `null` too, the output is `{"notify": true}`.
+- `resource` is `source`, or `source + "/" + value` where the rule's `resource_sd: {id, param}` names the first
+  structured-data element with that `id` and, in it, the first parameter with that `name`. `qualifier` is `""`.
+- **No rule matches:** if the table gives a severity, output
+  `{"alarm": {resource: source, type: "syslog", qualifier: app_name or "", severity, cleared: false}}`; otherwise
+  `{"notify": true}`.
+
+**`check: "syslog"`** (E§3), with `datagram` (hex), outputs `{"syslog": {format, facility, severity, timestamp,
+hostname, app_name, procid, msgid, structured_data, msg}}` or `{"error": "malformed-syslog"}`. It works on bytes.
+
+- **PRI.** Byte 0 is `<`, then 1–3 ASCII digits, then `>`. A leading `0` is allowed only as the single digit `0`
+  (`<00>` is malformed), and the value is at most 191. `facility` is the value div 8, `severity` the value mod 8. Anything else is malformed.
+- **RFC 5424** applies when the bytes after `>` are 1–3 digits, the first not `0`, followed by a space. The version
+  must be `1` (else malformed). `format` is `"rfc5424"`. Then these fields follow, each preceded by exactly one space:
+  - `TIMESTAMP`, `HOSTNAME` (≤ 255 bytes), `APP-NAME` (≤ 48), `PROCID` (≤ 128) and `MSGID` (≤ 32). Each is 1 or more
+    bytes in 33–126, and `-` alone gives `null`. The timestamp is kept as given, not interpreted.
+  - `STRUCTURED-DATA` is `-` (giving `[]`) or one or more elements with nothing between them. An element is `[`,
+    then an SD-ID, then zero or more `SP PARAM-NAME="PARAM-VALUE"`, then `]`. SD-ID and PARAM-NAME are 1–32 bytes in
+    33–126 other than `=`, space, `]` and `"`. PARAM-VALUE runs to the first `"` not preceded by an escaping
+    backslash. A backslash followed by `"`, `\` or `]` gives that byte; any other backslash is kept, with the byte
+    after it. The value is decoded as below. Each element becomes `{"id", "params": [{"name", "value"}]}`, in order.
+  - After the structured data, either the datagram ends (`msg` is `""`) or a space follows and the rest is `MSG`.
+    Anything else is malformed. A leading BOM (`EF BB BF`) is removed from `MSG`.
+  - Any token rule broken is malformed.
+- **RFC 3164** applies otherwise. `format` is `"rfc3164"`, `msgid` is `null` and `structured_data` is `[]`. On the
+  bytes after `>`:
+  - **Timestamp.** If they begin with exactly `Mmm dd hh:mm:ss ` (15 bytes, then a space), that is the timestamp.
+    `Mmm` is `Jan` to `Dec`, `dd` is ` 1` to ` 9` or `10` to `31`, `hh` is `00` to `23`, and `mm` and `ss` are `00` to
+    `59`. If the next token, up to a space, is 1 or more bytes in 33–126 and a space follows it, that token is the
+    hostname and the content starts after that space. Otherwise the hostname is `null` and the content starts after
+    the timestamp's space. With no such timestamp, both are `null` and the content is all the bytes after `>`.
+  - **Tag.** Take the longest run of bytes from `A–Z a–z 0–9 _ . - /` at the start of the content. If it is 1–32
+    bytes long and is followed by `:`, or by `[`, 1–10 digits, `]` and `:`, then `app_name` is the run and `procid`
+    is the digits (or `null`). `msg` is what follows the `:`, minus one leading space if there is one. Otherwise
+    `app_name` and `procid` are `null` and `msg` is the whole content.
+- **Text.** `msg` and parameter values are decoded as UTF-8, each maximal invalid subpart replaced with U+FFFD
+  (Unicode §3.9; WHATWG decode). Header fields are ASCII by the rules above. All trailing CR and LF characters are
+  removed from `msg`.
+
+**`check: "usm-key"`** (E§3, RFC 3414 A.2, RFC 7860 §9.3), with `auth` (`md5`, `sha`, `sha224`, `sha256`, `sha384`,
+`sha512`), `password` (a non-empty string, its UTF-8 bytes) and `engine_id` (hex), outputs
+`{"auth_key": hex, "priv_key": hex}`:
+
+- `Ku` is the hash of the password repeated, and cut, to 1,048,576 bytes.
+- The localized key is `H(Ku ‖ engine_id ‖ Ku)`, the length of the hash.
+- `priv_key` is the first 16 bytes of the same localized key (AES-128, RFC 3826 §1.2.1).
+
+An empty password outputs `{"error": "bad-password"}`.
 
 **Traces** have context `{now, escalation?: {min_severity, after_s}}`. Each step has an `event` and an expect of
 `{"emit": [...], "alarms": [...]}`.
@@ -880,6 +941,95 @@ Events:
 - **`refused: {key}`.** A `pending` key is removed, so the next retransmission deposits anew. It emits nothing.
 - **`advance: n`.** Sets `now += n`, then removes every `answered` key whose remembered-until time is `≤ now`.
   `pending` keys never expire. Advance emits nothing.
+
+**SNMPv3 traces** (`context.component: "snmpv3"`, E§3) model a gateway's USM receiver (RFC 3414 §3.2).
+
+The context is `{component, now, local: {engine_id, boots, time}, users: [...]}`. `local.time` is the gateway's
+engine time at the context's `now`, and it advances with `advance`. Each user is
+`{engine_id: hex | null, user, auth, auth_key? | auth_password?, priv: "aes128" | null, priv_key? | priv_password?}`:
+
+- A key is already localized for its `engine_id`. A password is localized with the message's engine ID, as for
+  `usm-key`.
+- An `aes128` `priv_key` uses its first 16 bytes.
+- A user with `engine_id: null` gives passwords, never keys.
+
+Each step's expect is `{"emit": [...], "engines": [...]}`. `engines` is the non-authoritative cache, sorted by
+`engine_id`. Each entry is `{engine_id, boots, time, latest}`, where `time` is the cached time advanced by the local
+clock to now.
+
+**`receive: {from, datagram}`** (hex) emits exactly one of these:
+
+- `{"accepted": {"trap": {"version": "v3", "varbinds": [...], "inform"?: {"request_id"}}, "usm": {engine_id, user,
+  level}}}`, where `level` is `authNoPriv` or `authPriv`;
+- `{"refused": {"reason", "report"}}`, where `report` says whether the gateway answers with a Report.
+
+The checks run in this order, and the first failure is the reason:
+
+1. **`malformed`.**
+   - **BER.** Tags are one byte; a high-tag-number tag is malformed. Lengths are definite, short form or long form
+     with 1–4 length bytes. The indefinite length (`0x80`) is malformed. Content must fit in its parent, and nothing
+     may follow the outer SEQUENCE. INTEGER content is 1–8 bytes, two's complement. Every SEQUENCE holds exactly
+     the elements listed for it, and an extra element is malformed. Encodings need not be minimal, as BER (unlike
+     DER) allows: padded INTEGER content, a long-form length that fits the short form, and `0x80` bytes leading an OID
+     subidentifier are all accepted. A PDU's tag is any single byte; its constructed bit
+     is not checked.
+   - **The message** is `SEQUENCE {INTEGER 3, SEQUENCE {msgID, msgMaxSize, msgFlags, msgSecurityModel},
+     OCTET STRING securityParameters, msgData}`:
+     - `msgID` and `msgSecurityModel` are 0–2^31−1, and `msgMaxSize` is 484–2^31−1;
+     - `msgFlags` is exactly 1 byte, with bit `0x01` auth, `0x02` priv and `0x04` reportable. Priv without auth is
+       malformed, and other bits are ignored;
+     - `securityParameters` must hold exactly `SEQUENCE {OCTET STRING engineID (0 or 5–32 bytes), INTEGER boots,
+       INTEGER time (each 0–2^31−1), OCTET STRING userName (0–32 bytes), OCTET STRING authParams, OCTET STRING
+       privParams}`.
+   - **`msgData`** is an OCTET STRING when the priv flag is set, and otherwise a ScopedPDU:
+     - **ScopedPDU** is `SEQUENCE {OCTET STRING contextEngineID, OCTET STRING contextName, PDU}`;
+     - **PDU** is any tag holding `INTEGER request-id` (−2^31 to 2^31−1), two INTEGERs and `SEQUENCE` of varbinds.
+       Each varbind is `SEQUENCE {OID, value}`.
+   - **OIDs** are 1 or more base-128 subidentifiers (empty content is malformed), with no unterminated last byte,
+     each at most 2^64−1. The first
+     subidentifier X gives `0.X` (X < 40), `1.(X−40)` (X < 80) or `2.(X−80)`.
+   - **Values** are typed as follows; any other tag is malformed:
+     - `0x02` Integer32: decimal, −2^31 to 2^31−1 (RFC 2578);
+     - `0x04` OCTET STRING: the text if it is valid UTF-8 with no code point in U+0000–U+001F or U+007F–U+009F,
+       otherwise lowercase hex;
+     - `0x05` NULL: `""`, with empty content (X.690 §8.8.2);
+     - `0x06` OBJECT IDENTIFIER: dotted;
+     - `0x40` IpAddress: exactly 4 bytes, dotted quad;
+     - `0x41` Counter32, `0x42` Gauge32, `0x43` TimeTicks and `0x46` Counter64: unsigned decimal of 1–9 content
+       bytes, where 9 bytes need a leading `00`. The first three are at most 2^32−1;
+     - `0x44` Opaque: lowercase hex.
+
+     Varbinds are `{oid, type, value}`, with the type names of `check: "trap"`.
+2. **`unsupported-security-model`:** `msgSecurityModel` ≠ 3.
+3. **`unknown-engine-id`:** an empty engineID. `report` is the reportable flag (RFC 3414 §4, discovery).
+4. **`unknown-user`:** the user is the first entry whose `engine_id` equals the engineID (hex, lowercase) and whose
+   `user` equals the userName bytes, read as UTF-8 (a userName that is not UTF-8 matches no user). Failing that, it is the first entry with `engine_id: null` and
+   that `user`. Failing both, the reason is `unknown-user`.
+5. **`unsupported-security-level`:** no auth flag, or the priv flag on a user without `priv`.
+6. **`wrong-digest`:** the MAC lengths are `md5`/`sha` 12, `sha224` 16, `sha256` 24, `sha384` 32 and `sha512` 48.
+   The digest is wrong if authParams is not that length. It is also wrong if it differs from the HMAC (with the
+   protocol's hash, keyed with the localized key) of the received bytes with authParams' content bytes replaced by
+   zeros, truncated to that length. The bytes are the received ones, never re-encoded.
+7. **`not-in-time-window`.**
+   - **Authoritative (engineID = `local.engine_id`).** Outside the window if `local.boots` is 2^31−1, or boots ≠
+     `local.boots`, or |time − the gateway's time now| > 150. `report` is the reportable flag.
+   - **Otherwise,** using the cache entry for the engineID:
+     - if there is none, it is seeded with `{boots, time, latest: time}` at now;
+     - else, if boots > the cached boots, or they are equal and time > `latest`, it is set to `{boots, time,
+       latest: time}` at now;
+     - then the message is outside the window if the cached boots is 2^31−1, or boots < the cached boots, or they
+       are equal and time < (the cached time advanced to now) − 150. `report` is false.
+
+     The cache changes even when a later step fails.
+8. **`decryption-error`** (priv only):
+   - privParams must be 8 bytes;
+   - the IV is boots (4 bytes, big-endian), then time (4 bytes, big-endian), then privParams;
+   - AES-128-CFB (128-bit feedback) with the 16-byte privacy key;
+   - the plaintext must be exactly a ScopedPDU as in step 1 (any failure there, here, is `decryption-error`).
+9. **`not-a-notification`:** the PDU tag is neither `0xA7` (SNMPv2-Trap) nor `0xA6` (InformRequest).
+10. **`engine-id-mismatch`:** a trap whose engineID is `local.engine_id`, or an inform whose engineID is not.
+
+`report` is false for every reason not named above. **`advance: n`** sets `now += n` and emits nothing.
 
 ## Kind: `alias-transparency`
 

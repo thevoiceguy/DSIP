@@ -1,0 +1,52 @@
+{
+  "vector": "device-events/map-syslog-resource-sd-missing",
+  "format": 1,
+  "kind": "device-events",
+  "description": "resource_sd names no parameter present: the resource is the source.",
+  "spec_ref": [
+    "E§4",
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "map",
+    "raw": {
+      "syslog": {
+        "format": "rfc5424",
+        "facility": 1,
+        "severity": 3,
+        "timestamp": null,
+        "hostname": null,
+        "app_name": "linkd",
+        "procid": null,
+        "msgid": "LINKDOWN",
+        "structured_data": [],
+        "msg": ""
+      }
+    },
+    "rules": [
+      {
+        "syslog": {
+          "app_name": "linkd",
+          "msgid": "LINKDOWN"
+        },
+        "action": "raise",
+        "type": "link-down",
+        "resource_sd": {
+          "id": "if@32473",
+          "param": "ifIndex"
+        }
+      }
+    ],
+    "source": "192.0.2.9"
+  },
+  "expect": {
+    "alarm": {
+      "resource": "192.0.2.9",
+      "type": "link-down",
+      "qualifier": "",
+      "severity": "major",
+      "cleared": false
+    }
+  }
+}

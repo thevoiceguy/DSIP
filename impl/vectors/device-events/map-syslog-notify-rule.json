@@ -1,0 +1,41 @@
+{
+  "vector": "device-events/map-syslog-notify-rule",
+  "format": 1,
+  "kind": "device-events",
+  "description": "A notify rule makes even an error (3) an event.",
+  "spec_ref": [
+    "E§4",
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "map",
+    "raw": {
+      "syslog": {
+        "format": "rfc5424",
+        "facility": 1,
+        "severity": 3,
+        "timestamp": null,
+        "hostname": null,
+        "app_name": "x",
+        "procid": null,
+        "msgid": null,
+        "structured_data": [],
+        "msg": ""
+      }
+    },
+    "rules": [
+      {
+        "syslog": {
+          "app_name": "x"
+        },
+        "action": "notify",
+        "type": "t"
+      }
+    ],
+    "source": "192.0.2.9"
+  },
+  "expect": {
+    "notify": true
+  }
+}

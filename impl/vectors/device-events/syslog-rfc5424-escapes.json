@@ -1,0 +1,38 @@
+{
+  "vector": "device-events/syslog-rfc5424-escapes",
+  "format": 1,
+  "kind": "device-events",
+  "description": "Parameter escapes: \\\", \\\\ and \\] are unescaped; any other backslash is kept.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "syslog",
+    "datagram": "3c31343e31202d20682061202d202d205b78403120763d22715c22625c5c735c5d655c6e225d"
+  },
+  "expect": {
+    "syslog": {
+      "format": "rfc5424",
+      "facility": 1,
+      "severity": 6,
+      "timestamp": null,
+      "hostname": "h",
+      "app_name": "a",
+      "procid": null,
+      "msgid": null,
+      "structured_data": [
+        {
+          "id": "x@1",
+          "params": [
+            {
+              "name": "v",
+              "value": "q\"b\\s]e\\n"
+            }
+          ]
+        }
+      ],
+      "msg": ""
+    }
+  }
+}

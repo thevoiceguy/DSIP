@@ -1,0 +1,60 @@
+{
+  "vector": "device-events/snmpv3-decryption-error",
+  "format": 1,
+  "kind": "device-events",
+  "description": "With the wrong privacy key the plaintext is not a ScopedPDU.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {
+    "component": "snmpv3",
+    "now": 1790000000,
+    "local": {
+      "engine_id": "80001f8880aaaaaaaaaaaaaaaa",
+      "boots": 1,
+      "time": 500
+    },
+    "users": [
+      {
+        "engine_id": null,
+        "user": "ops",
+        "auth": "sha",
+        "auth_password": "auth-pass-1",
+        "priv": "aes128",
+        "priv_password": "priv-pass-2"
+      }
+    ]
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "receive": {
+            "from": "192.0.2.7:161",
+            "datagram": "308198020103300e020107020300ffe304010302010304343032040d80001f8880bbbbbbbbbbbbbbbb02010102016404036f7073040cb48e52f3bd6e718e5e6c3a9304080000000000000001044dd3064d9b9dba5fb30ad607d4df6c12b4d4bb66b6f99aeca643d933bcd924351292ca17ebbac85b6dd00396c29ad7a84ee1598f4660940a164f71be772acd60e5c63d50c0f14a96848f9383e44d"
+          }
+        }
+      }
+    ]
+  },
+  "expect": [
+    {
+      "emit": [
+        {
+          "refused": {
+            "reason": "decryption-error",
+            "report": false
+          }
+        }
+      ],
+      "engines": [
+        {
+          "engine_id": "80001f8880bbbbbbbbbbbbbbbb",
+          "boots": 1,
+          "time": 100,
+          "latest": 100
+        }
+      ]
+    }
+  ]
+}

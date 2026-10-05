@@ -1,0 +1,46 @@
+{
+  "vector": "device-events/syslog-rfc5424-example-3",
+  "format": 1,
+  "kind": "device-events",
+  "description": "RFC 5424 §6.5 example 3: one structured-data element with three parameters.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "syslog",
+    "datagram": "3c3136353e3120323030332d31302d31315432323a31343a31352e3030335a206d796d616368696e652e6578616d706c652e636f6d2065766e74736c6f67202d2049443437205b6578616d706c6553444944403332343733206975743d223322206576656e74536f757263653d224170706c69636174696f6e22206576656e7449443d2231303131225d20416e206170706c69636174696f6e206576656e74206c6f6720656e7472792e2e2e"
+  },
+  "expect": {
+    "syslog": {
+      "format": "rfc5424",
+      "facility": 20,
+      "severity": 5,
+      "timestamp": "2003-10-11T22:14:15.003Z",
+      "hostname": "mymachine.example.com",
+      "app_name": "evntslog",
+      "procid": null,
+      "msgid": "ID47",
+      "structured_data": [
+        {
+          "id": "exampleSDID@32473",
+          "params": [
+            {
+              "name": "iut",
+              "value": "3"
+            },
+            {
+              "name": "eventSource",
+              "value": "Application"
+            },
+            {
+              "name": "eventID",
+              "value": "1011"
+            }
+          ]
+        }
+      ],
+      "msg": "An application event log entry..."
+    }
+  }
+}

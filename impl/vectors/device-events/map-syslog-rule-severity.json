@@ -1,0 +1,63 @@
+{
+  "vector": "device-events/map-syslog-rule-severity",
+  "format": 1,
+  "kind": "device-events",
+  "description": "A rule's own severity overrides the table.",
+  "spec_ref": [
+    "E§4",
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "map",
+    "raw": {
+      "syslog": {
+        "format": "rfc5424",
+        "facility": 23,
+        "severity": 3,
+        "timestamp": null,
+        "hostname": "sw1",
+        "app_name": "linkd",
+        "procid": null,
+        "msgid": "LINKDOWN",
+        "structured_data": [
+          {
+            "id": "if@32473",
+            "params": [
+              {
+                "name": "ifIndex",
+                "value": "3"
+              }
+            ]
+          }
+        ],
+        "msg": "port 3 down"
+      }
+    },
+    "rules": [
+      {
+        "syslog": {
+          "app_name": "linkd",
+          "msgid": "LINKDOWN"
+        },
+        "action": "raise",
+        "type": "link-down",
+        "resource_sd": {
+          "id": "if@32473",
+          "param": "ifIndex"
+        },
+        "severity": "critical"
+      }
+    ],
+    "source": "192.0.2.9"
+  },
+  "expect": {
+    "alarm": {
+      "resource": "192.0.2.9/3",
+      "type": "link-down",
+      "qualifier": "",
+      "severity": "critical",
+      "cleared": false
+    }
+  }
+}

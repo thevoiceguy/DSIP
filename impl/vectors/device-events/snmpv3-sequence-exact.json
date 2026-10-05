@@ -1,0 +1,71 @@
+{
+  "vector": "device-events/snmpv3-sequence-exact",
+  "format": 1,
+  "kind": "device-events",
+  "description": "An extra element in the PDU, or in a varbind, is malformed.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {
+    "component": "snmpv3",
+    "now": 1790000000,
+    "local": {
+      "engine_id": "80001f8880aaaaaaaaaaaaaaaa",
+      "boots": 1,
+      "time": 500
+    },
+    "users": [
+      {
+        "engine_id": null,
+        "user": "ops",
+        "auth": "sha",
+        "auth_password": "auth-pass-1",
+        "priv": null
+      }
+    ]
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "receive": {
+            "from": "192.0.2.7:161",
+            "datagram": "308191020103300e020107020300ffe3040101020103042c302a040d80001f8880bbbbbbbbbbbbbbbb02010102016404036f7073040c737b7cdc057118fee8d9438c0400304e04000400a748020101020100020100303a300e06082b06010201010300430204d23017060a2b06010603010104010006092b0601060301010503300f060a2b060102010202010103020103020109"
+          }
+        }
+      },
+      {
+        "event": {
+          "receive": {
+            "from": "192.0.2.7:161",
+            "datagram": "3066020103300e020107020300ffe3040101020103042c302a040d80001f8880bbbbbbbbbbbbbbbb02010102016404036f7073040cf27393099d8b4fe8833c13770400302304000400a71d0201010201000201003012301006082b06010201010300430101020105"
+          }
+        }
+      }
+    ]
+  },
+  "expect": [
+    {
+      "emit": [
+        {
+          "refused": {
+            "reason": "malformed",
+            "report": false
+          }
+        }
+      ],
+      "engines": []
+    },
+    {
+      "emit": [
+        {
+          "refused": {
+            "reason": "malformed",
+            "report": false
+          }
+        }
+      ],
+      "engines": []
+    }
+  ]
+}

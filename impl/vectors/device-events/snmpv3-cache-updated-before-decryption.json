@@ -1,0 +1,86 @@
+{
+  "vector": "device-events/snmpv3-cache-updated-before-decryption",
+  "format": 1,
+  "kind": "device-events",
+  "description": "Timeliness runs before decryption, so a bad privParams still moves the cache.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {
+    "component": "snmpv3",
+    "now": 1790000000,
+    "local": {
+      "engine_id": "80001f8880aaaaaaaaaaaaaaaa",
+      "boots": 1,
+      "time": 500
+    },
+    "users": [
+      {
+        "engine_id": null,
+        "user": "ops",
+        "auth": "sha",
+        "auth_password": "auth-pass-1",
+        "priv": "aes128",
+        "priv_password": "priv-pass-2"
+      }
+    ]
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "receive": {
+            "from": "192.0.2.7:161",
+            "datagram": "308198020103300e020107020300ffe304010302010304343032040d80001f8880bbbbbbbbbbbbbbbb0201010202019004036f7073040c91e22a9d32f0d6d9264ae08d040700000000000000044dd3dfa15de1b14f83fb173601d335da2889676864188a5f8c83874551207f75fe5aa3fa843e6394397c1337c70fe8bcc44fbb1fe70b3fff5014fd2cd4d6d89937e1197f2066b09a829d840203cb"
+          }
+        }
+      },
+      {
+        "event": {
+          "receive": {
+            "from": "192.0.2.7:161",
+            "datagram": "308199020103300e020107020300ffe304010302010304353033040d80001f8880bbbbbbbbbbbbbbbb020101020200c804036f7073040c489032517e67890df2d0841a04080000000000000001044dad896cade722aadddc7d52ffcf86c378042af294ff49d2457ad7138a797ea00cf9c195d00e9672b6ce2e23af15a2babd0e573a0b457f91682e5d2f20ec85b9627e3041df3988bdefa2bd84b700"
+          }
+        }
+      }
+    ]
+  },
+  "expect": [
+    {
+      "emit": [
+        {
+          "refused": {
+            "reason": "decryption-error",
+            "report": false
+          }
+        }
+      ],
+      "engines": [
+        {
+          "engine_id": "80001f8880bbbbbbbbbbbbbbbb",
+          "boots": 1,
+          "time": 400,
+          "latest": 400
+        }
+      ]
+    },
+    {
+      "emit": [
+        {
+          "refused": {
+            "reason": "not-in-time-window",
+            "report": false
+          }
+        }
+      ],
+      "engines": [
+        {
+          "engine_id": "80001f8880bbbbbbbbbbbbbbbb",
+          "boots": 1,
+          "time": 400,
+          "latest": 400
+        }
+      ]
+    }
+  ]
+}

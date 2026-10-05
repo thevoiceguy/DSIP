@@ -1,0 +1,79 @@
+{
+  "vector": "device-events/snmpv3-inform-authpriv",
+  "format": 1,
+  "kind": "device-events",
+  "description": "An authPriv inform, answered later at its own level.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {
+    "component": "snmpv3",
+    "now": 1790000000,
+    "local": {
+      "engine_id": "80001f8880aaaaaaaaaaaaaaaa",
+      "boots": 1,
+      "time": 500
+    },
+    "users": [
+      {
+        "engine_id": null,
+        "user": "ops",
+        "auth": "sha",
+        "auth_password": "auth-pass-1",
+        "priv": "aes128",
+        "priv_password": "priv-pass-2"
+      }
+    ]
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "receive": {
+            "from": "192.0.2.7:161",
+            "datagram": "30819a020103300e020107020300ffe304010302010304353033040d80001f8880aaaaaaaaaaaaaaaa020101020201f404036f7073040c353b66811f216e02b6c6eb6e04080000000000000001044e71496db23d304e8d8feb19624150281f2f4af2cfd4a322e8655bcb4601ba125fac03144513ae676e59e02d694e82e68178ebb79799b87cf943a7ce58a45c72f5a54d6eac3af324f8ac394f3c4a83"
+          }
+        }
+      }
+    ]
+  },
+  "expect": [
+    {
+      "emit": [
+        {
+          "accepted": {
+            "trap": {
+              "version": "v3",
+              "varbinds": [
+                {
+                  "oid": "1.3.6.1.2.1.1.3.0",
+                  "type": "TimeTicks",
+                  "value": "1234"
+                },
+                {
+                  "oid": "1.3.6.1.6.3.1.1.4.1.0",
+                  "type": "OBJECT IDENTIFIER",
+                  "value": "1.3.6.1.6.3.1.1.5.3"
+                },
+                {
+                  "oid": "1.3.6.1.2.1.2.2.1.1.3",
+                  "type": "Integer32",
+                  "value": "3"
+                }
+              ],
+              "inform": {
+                "request_id": 4242
+              }
+            },
+            "usm": {
+              "engine_id": "80001f8880aaaaaaaaaaaaaaaa",
+              "user": "ops",
+              "level": "authPriv"
+            }
+          }
+        }
+      ],
+      "engines": []
+    }
+  ]
+}

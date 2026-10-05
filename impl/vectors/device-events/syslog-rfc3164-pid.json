@@ -1,0 +1,28 @@
+{
+  "vector": "device-events/syslog-rfc3164-pid",
+  "format": 1,
+  "kind": "device-events",
+  "description": "A tag with a process id, a space-padded day, a trailing CR LF.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "syslog",
+    "datagram": "3c31333e4f63742020352031323a30303a303020686f737420737368645b313233345d3a2068656c6c6f0d0a"
+  },
+  "expect": {
+    "syslog": {
+      "format": "rfc3164",
+      "facility": 1,
+      "severity": 5,
+      "timestamp": "Oct  5 12:00:00",
+      "hostname": "host",
+      "app_name": "sshd",
+      "procid": "1234",
+      "msgid": null,
+      "structured_data": [],
+      "msg": "hello"
+    }
+  }
+}
