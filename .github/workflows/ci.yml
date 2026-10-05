@@ -164,7 +164,8 @@ jobs:
         working-directory: impl
       - name: blob replication
         # Self-verifying: a member mailbox replicates a verified blob and serves it while the origin is down; a damaged
-        # copy fails the device's check and the origin serves it; a blob over the member's limit stays at the origin.
+        # copy fails the device's check and the origin serves it; a blob over the member's limit stays at the origin;
+        # a device whose fetch finds nothing tries again until the blob is there (spec-gap 106).
         run: timeout 300 bash demos/blob-replication-demo.sh | tail -20
         working-directory: impl
       - name: welcome retry

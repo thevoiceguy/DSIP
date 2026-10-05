@@ -1,0 +1,28 @@
+{
+  "vector": "messaging/blob-fetch-unavailable-bounded",
+  "format": 1,
+  "kind": "messaging",
+  "description": "On the last attempt a fetch that found nothing is given up.",
+  "spec_ref": [
+    "M§8.4"
+  ],
+  "context": {},
+  "input": {
+    "check": "blob-fetch",
+    "blob": {
+      "sha256": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+      "size": 482220
+    },
+    "tried": [
+      {
+        "uri": "https://mbx-a.example/blobs/9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+        "status": 404
+      }
+    ],
+    "attempt": 5
+  },
+  "expect": {
+    "action": "give-up",
+    "reason": "unavailable"
+  }
+}

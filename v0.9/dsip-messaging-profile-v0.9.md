@@ -1106,6 +1106,11 @@ Large payloads are encrypted client-side and stored as opaque blobs:
   `blob` at a different `uri` (its mailbox's copy) first, then the content's `uri`. The manifest is not
   encrypted and only reorders sources: whichever source answers, the device verifies against the content's
   `sha256` and `size` (rule 7) and moves on to the next source on a mismatch.
+- **A device trying again** (spec-gap 106). If no source served the blob, the content stays shown and its media is
+  fetched again later. That happens when some source had nothing to serve: the replication not yet done, or the
+  origin down. Retries use the same backoff and bound as a mailbox's replication (RECOMMENDED 5 attempts), across
+  restarts. If every source served other bytes, the fetch is given up at once, since they would serve the same
+  bytes again.
 
 ### M§8.5 Deduplication and ordering
 

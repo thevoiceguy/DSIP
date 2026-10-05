@@ -1,0 +1,31 @@
+{
+  "vector": "messaging/blob-fetch-nothing-served-retried",
+  "format": 1,
+  "kind": "messaging",
+  "description": "No source had it yet (the replication not done, the origin down): tried again.",
+  "spec_ref": [
+    "M§8.4"
+  ],
+  "context": {},
+  "input": {
+    "check": "blob-fetch",
+    "blob": {
+      "sha256": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+      "size": 482220
+    },
+    "tried": [
+      {
+        "uri": "https://mbx-b.example/blobs/9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+        "status": 404
+      },
+      {
+        "uri": "https://mbx-a.example/blobs/9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+        "status": 0
+      }
+    ]
+  },
+  "expect": {
+    "action": "retry",
+    "reason": "unavailable"
+  }
+}
