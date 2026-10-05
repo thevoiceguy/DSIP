@@ -143,6 +143,13 @@ def vectors() -> list[dict]:
                               [TP("T-Ring-Local"), S(type="reject", to=APH, session=sid, reason="user.declined")],
                               **{sid: sess("responder", "ENDED")}),
                      ]))
+    out.append(trace("responder-declines-with-reason", "A decline may name its reason: declining to be recorded (Recording "
+                     "Profile C§4) sends reject policy.recording-declined.", ["§12.4", "C§4"], BOBPH_SELF,
+                     responder_to_active(sid)[:3] + [
+                         step({"local": "decline", "session": sid, "reason": "policy.recording-declined"},
+                              [TP("T-Ring-Local"), S(type="reject", to=APH, session=sid, reason="policy.recording-declined")],
+                              **{sid: sess("responder", "ENDED")}),
+                     ]))
     out.append(trace("responder-auto-reject-policy", "Policy rejects at OFFERED without alerting.", ["§12.4", "§19"], BOBPH_SELF, [
         responder_to_active(sid)[0],
         step({"local": "auto_reject", "session": sid, "reason": "policy.first-contact-required"},

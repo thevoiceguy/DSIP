@@ -249,7 +249,9 @@ export class Endpoint {
       case "decline":
         if (!s || s.state !== "ALERTING") return void this.emit.push({ refused: "invalid-state" });
         this.stop("T-Ring-Local", id);
-        this.send("reject", s.to, { session: id, reason: "user.declined" });
+        // §12.4: the user's decline; a caller-named reason (e.g. Recording Profile C§4's
+        // `policy.recording-declined`) is carried as given, `user.declined` otherwise
+        this.send("reject", s.to, { session: id, reason: typeof e["reason"] === "string" ? e["reason"] : "user.declined" });
         return this.end(id, s);
       case "update":
         if (!s || s.state !== "ACTIVE") return void this.emit.push({ refused: "invalid-state" });

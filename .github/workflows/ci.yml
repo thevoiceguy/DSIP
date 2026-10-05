@@ -115,6 +115,13 @@ jobs:
         # with a device certificate gets basis syslog-tls and one without is refused; no USM password leaves the gateway.
         run: timeout 300 bash demos/device-events-v3-syslog-demo.sh | tail -30
         working-directory: impl
+      - name: recording disclosure and consent (Recording Profile draft)
+        # Self-verifying, four calls over a relay with real media: a callee's recorded answer makes the caller hold all
+        # audio (0 frames sent) until acceptance; a callee never answers a recorded invite before acceptance and its
+        # decline is reject policy.recording-declined; a standing never policy declines at once; recording begun
+        # mid-call by update and declined ends with bye policy.recording-declined.
+        run: timeout 300 bash demos/recording-consent-demo.sh | tail -14
+        working-directory: impl
       - name: reachability hints on Pkarr (v0.9 draft)
         # Self-verifying: Bob publishes _dsip records signed by his did:key to two Pkarr relays (local stand-ins of the
         # HTTP API); Alice, knowing only his did:key, rejects a hostile relay's forged newer packet and calls him through
