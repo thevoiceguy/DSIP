@@ -1,0 +1,47 @@
+{
+  "vector": "messaging/content-device-event-valid",
+  "format": 1,
+  "kind": "messaging",
+  "description": "A Device Events Profile `device-event` (v0.9, E§5) is a registered kind.",
+  "spec_ref": [
+    "M§8.2",
+    "E§5"
+  ],
+  "context": {
+    "conversation": "01K742SG00AX1F6HVTRWBW227R",
+    "conversation_kind": "direct",
+    "leaf_identity": "did:web:alice.example"
+  },
+  "input": {
+    "check": "object",
+    "object": {
+      "object": "content",
+      "id": "01K742SG00RJ7WGYDY1AHFRB27",
+      "conversation": "01K742SG00AX1F6HVTRWBW227R",
+      "sender": "did:web:alice.example",
+      "sent_at": 1760000000,
+      "kind": "device-event",
+      "purpose": "message",
+      "event": {
+        "source": {
+          "address": "192.0.2.7",
+          "basis": "snmpv2c"
+        },
+        "alarm": {
+          "resource": "192.0.2.7/3",
+          "type": "link-down",
+          "qualifier": "",
+          "severity": "major",
+          "cleared": false
+        }
+      }
+    }
+  },
+  "expect": {
+    "verdict": "accept",
+    "effective": {
+      "kind": "device-event",
+      "purpose": "message"
+    }
+  }
+}

@@ -45,7 +45,8 @@ MESSAGING_PROFILE = "messaging/1.0"
 # Registries (M§17). Membership is checked here; the schemas only check token shape.
 DEPOSIT_CLASSES = {"handshake", "application", "welcome", "group-info", "ephemeral", "archive", "introduction", "grant"}
 FIRST_CONTACT_CLASSES = ("introduction", "grant")  # M§14.1 (spec-gap 54): carry a signed core envelope, no group
-CONTENT_KINDS = {"text", "audio", "video", "image", "file", "contact", "location"}
+CONTENT_KINDS = {"text", "audio", "video", "image", "file", "contact", "location",
+                 "device-event", "alarm-ack"}  # v0.9: the Device Events Profile's objects (E§5)
 CONTENT_PURPOSES = {"message", "voice-message", "video-message", "voicemail", "attachment", "reaction",
                     "callback-request"}
 RECEIPT_KINDS = {"delivered", "read", "played"}
@@ -204,6 +205,8 @@ _KIND_BODY = {
     "file": ("blob", "name"),
     "contact": ("did",),
     "location": ("lat_e7", "lon_e7"),
+    "device-event": ("event",),         # E§5
+    "alarm-ack": ("alarm", "state"),    # E§5
 }
 
 

@@ -1,0 +1,40 @@
+{
+  "vector": "messaging/content-alarm-ack-valid",
+  "format": 1,
+  "kind": "messaging",
+  "description": "An `alarm-ack` (E§5) names the alarm and the operator state.",
+  "spec_ref": [
+    "M§8.2",
+    "E§5"
+  ],
+  "context": {
+    "conversation": "01K742SG00AX1F6HVTRWBW227R",
+    "conversation_kind": "direct",
+    "leaf_identity": "did:web:alice.example"
+  },
+  "input": {
+    "check": "object",
+    "object": {
+      "object": "content",
+      "id": "01K742SG004MX947VE2678VPXT",
+      "conversation": "01K742SG00AX1F6HVTRWBW227R",
+      "sender": "did:web:alice.example",
+      "sent_at": 1760000000,
+      "kind": "alarm-ack",
+      "purpose": "message",
+      "alarm": {
+        "resource": "192.0.2.7/3",
+        "type": "link-down",
+        "qualifier": ""
+      },
+      "state": "ack"
+    }
+  },
+  "expect": {
+    "verdict": "accept",
+    "effective": {
+      "kind": "alarm-ack",
+      "purpose": "message"
+    }
+  }
+}

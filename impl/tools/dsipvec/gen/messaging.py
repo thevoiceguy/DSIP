@@ -224,6 +224,17 @@ def object_vectors():
       accept(effective={"kind": "location", "purpose": "message"}))
     o("content-location-float-refused", "A float coordinate violates §10.3 inside MLS plaintext too.", ["M§8.2", "§10.3"],
       content("locf", kind="location", lat_e7=43.0481, lon_e7=-76.1474), reject("payload-float"))
+    ev = {"source": {"address": "192.0.2.7", "basis": "snmpv2c"},
+          "alarm": {"resource": "192.0.2.7/3", "type": "link-down", "qualifier": "", "severity": "major", "cleared": False}}
+    o("content-device-event-valid", "A Device Events Profile `device-event` (v0.9, E§5) is a registered kind.", ["M§8.2", "E§5"],
+      content("dev", kind="device-event", event=ev), accept(effective={"kind": "device-event", "purpose": "message"}))
+    o("content-device-event-without-event", "A `device-event` must carry `event`.", ["M§8.2", "E§5"],
+      content("dev0", kind="device-event"), reject("content-body"))
+    o("content-alarm-ack-valid", "An `alarm-ack` (E§5) names the alarm and the operator state.", ["M§8.2", "E§5"],
+      content("ack", kind="alarm-ack", alarm={"resource": "192.0.2.7/3", "type": "link-down", "qualifier": ""}, state="ack"),
+      accept(effective={"kind": "alarm-ack", "purpose": "message"}))
+    o("content-alarm-ack-without-state", "An `alarm-ack` must carry `state`.", ["M§8.2", "E§5"],
+      content("ack0", kind="alarm-ack", alarm={"resource": "192.0.2.7/3", "type": "link-down", "qualifier": ""}), reject("content-body"))
     o("content-unknown-kind-with-blob-is-file", "Unknown kind carrying a blob is offered as a file.", ["M§8.2"],
       content("hol", kind="hologram", blob=blob(content_type="model/gltf-binary")),
       accept(effective={"kind": "file", "purpose": "message"}))

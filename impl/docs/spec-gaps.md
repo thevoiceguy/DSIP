@@ -2435,11 +2435,27 @@ escalation agent member") — written into `v0.9/dsip-device-events-profile-v0.9
 - a missing severity or `by` as null;
 - gateway-silence processing in gateway-id order, not first-heartbeat order. impl-ts had read it the other way.
 
+**Done (2026-10-05).**
+- `device-event` and `alarm-ack` are registered content kinds (M§8.2; 4 vectors).
+  - The kind check tests that the body fields are present.
+  - Their contents are the alarm list's to judge (E§5).
+- A reference gateway: `dsip-trapd` (BER decoding of SNMPv1/v2c traps, E§3 translation, E§4 rules, heartbeats)
+  feeding the gateway's `dsip-msg`.
+- `dsip-msg` keeps each group's alarm list and acknowledges with `alarm-ack`. As an escalation agent
+  (`--escalate-min`, `--escalate-after`, `--escalate-cmd`) it runs the escalation command.
+- `demos/device-events-demo.sh`, in CI. Real traps become signed events in an MLS alarm group, and:
+  - every member keeps the same alarm list;
+  - a repeat pages nobody;
+  - an acknowledged alarm does not escalate;
+  - an unacknowledged critical alarm rings the on-call phone through `dsip call`;
+  - a silent gateway raises its alarm;
+  - the community never leaves the gateway.
+
 **Open.**
-- The `device-event` and `alarm-ack` objects are specified but not yet in the Messaging Profile schema set, and there
-  is no reference gateway yet. That is the next step: an snmptrapd → `dsip-events` gateway → NOC group demo, with
-  informs acknowledged after `accepted`.
-- Flap hold-down is left to gateway configuration.
+- InformRequest: answered only after the hub's `accepted`. That needs the gateway's DSIP side to report acceptance
+  back to `dsip-trapd`.
+- SNMPv3 (USM) and syslog inputs.
+- Flap hold-down, left to gateway configuration.
 
 ## 104. T§2–T§5 / core §8.1–§8.2 — alias transparency: what DSIP adopts of KEYTRANS, and when
 
