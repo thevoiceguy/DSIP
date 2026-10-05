@@ -1,0 +1,19 @@
+{
+  "vector": "pkarr/bep44-signable",
+  "format": 1,
+  "kind": "pkarr",
+  "description": "BEP 44's signed buffer for seq 1, value \"Hello World!\".",
+  "spec_ref": [
+    "§8.5"
+  ],
+  "context": {},
+  "input": {
+    "check": "bep44-signable",
+    "seq": 1,
+    "value": "48656c6c6f20576f726c6421",
+    "salt": null
+  },
+  "expect": {
+    "bytes": "333a736571693165313a7631323a48656c6c6f20576f726c6421"
+  }
+}

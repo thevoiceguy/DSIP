@@ -1,0 +1,21 @@
+{
+  "vector": "pkarr/framing-checked-before-content",
+  "format": 1,
+  "kind": "pkarr",
+  "description": "A DSIP record with a bad string first and broken framing later: framing is checked first.",
+  "spec_ref": [
+    "§8.5",
+    "§8.3"
+  ],
+  "context": {},
+  "input": {
+    "check": "hint",
+    "did": "did:key:z6MkwTqcmDUwWJfByWHX5ehMGDYrSoBd8jXdsZPjVAbVPrjB",
+    "payload": "b4e31773d1ea5f70fdba17cc872c3f2f74a371303cf1c365b251d162e4756a5962350ecb63b6c30bf7e3d99d5f7173da6fa4c8c3366567058c056a5f9074500400065bfed6925900000080000000000100000000055f64736970343931366b677838356a62677974697037696e396768786a347372646d396a796161776931696f38366d3567386d3966686a617479000010000100000708000b046a756e6b2873686f7274",
+    "now": 1790000000
+  },
+  "expect": {
+    "outcome": "rejected",
+    "reason": "malformed"
+  }
+}

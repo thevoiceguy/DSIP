@@ -1,0 +1,32 @@
+{
+  "vector": "pkarr/out-of-zone-record-ignored",
+  "format": 1,
+  "kind": "pkarr",
+  "description": "A record named outside the key's zone is ignored, not used.",
+  "spec_ref": [
+    "§8.5",
+    "§8.3"
+  ],
+  "context": {},
+  "input": {
+    "check": "hint",
+    "did": "did:key:z6MkwTqcmDUwWJfByWHX5ehMGDYrSoBd8jXdsZPjVAbVPrjB",
+    "payload": "c426812ff3368659eafe098eaf6d7fd5c30170d81f541c00635c1a6a1c407318616bd61b04eeaf81e31fc08dab28d9fc3957ff61f581c121f6755718a2a6750a00065bfed6925900000080000000000200000000055f64736970076578616d706c6503636f6d00001000010000070800251b7572693d7773733a2f2f6576696c2e6578616d706c652f6473697008623d77732f312e30055f64736970343931366b677838356a62677974697037696e396768786a347372646d396a796161776931696f38366d3567386d3966686a61747900001000010000070800261c7572693d7773733a2f2f72656c61792e6578616d706c652f6473697008623d77732f312e30",
+    "now": 1790000000
+  },
+  "expect": {
+    "outcome": "hint",
+    "subject": "did:key:z6MkwTqcmDUwWJfByWHX5ehMGDYrSoBd8jXdsZPjVAbVPrjB",
+    "seq": 1789999940000000,
+    "issued_at": 1789999940,
+    "expires_at": 1790001740,
+    "endpoints": [
+      {
+        "uri": "wss://relay.example/dsip",
+        "bindings": [
+          "ws/1.0"
+        ]
+      }
+    ]
+  }
+}

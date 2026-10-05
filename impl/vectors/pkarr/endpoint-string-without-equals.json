@@ -1,0 +1,21 @@
+{
+  "vector": "pkarr/endpoint-string-without-equals",
+  "format": 1,
+  "kind": "pkarr",
+  "description": "A string that is not key=value.",
+  "spec_ref": [
+    "§8.5",
+    "§8.3"
+  ],
+  "context": {},
+  "input": {
+    "check": "hint",
+    "did": "did:key:z6MkwTqcmDUwWJfByWHX5ehMGDYrSoBd8jXdsZPjVAbVPrjB",
+    "payload": "fdb595ac6fbb486aa66a75beb41c82298e72a6cb24c3a741e77a672839149bc920ea14942159e4feb8995e702d70bbba4cd67483d2714284fd802f696d9a2f0000065bfed6925900000080000000000100000000055f64736970343931366b677838356a62677974697037696e396768786a347372646d396a796161776931696f38366d3567386d3966686a617479000010000100000708002b1c7572693d7773733a2f2f72656c61792e6578616d706c652f6473697008623d77732f312e30046a756e6b",
+    "now": 1790000000
+  },
+  "expect": {
+    "outcome": "rejected",
+    "reason": "bad-endpoint"
+  }
+}

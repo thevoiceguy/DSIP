@@ -1,0 +1,21 @@
+{
+  "vector": "pkarr/bep44-test-vector-salt",
+  "format": 1,
+  "kind": "pkarr",
+  "description": "BEP 44's salted test vector verifies.",
+  "spec_ref": [
+    "§8.5"
+  ],
+  "context": {},
+  "input": {
+    "check": "bep44-verify",
+    "public_key": "77ff84905a91936367c01360803104f92432fcd904a43511876df5cdf3e7e548",
+    "seq": 1,
+    "value": "48656c6c6f20576f726c6421",
+    "salt": "666f6f626172",
+    "signature": "6834284b6b24c3204eb2fea824d82f88883a3d95e8b4a21b8c0ded553d17d17ddf9a8a7104b1258f30bed3787e6cb896fca78c58f8e03b5f18f14951a87d9a08"
+  },
+  "expect": {
+    "valid": true
+  }
+}

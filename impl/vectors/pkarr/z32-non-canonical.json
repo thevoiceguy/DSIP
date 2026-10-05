@@ -1,0 +1,18 @@
+{
+  "vector": "pkarr/z32-non-canonical",
+  "format": 1,
+  "kind": "pkarr",
+  "description": "The same key with padding bits set: Pkarr accepts it, DSIP does not.",
+  "spec_ref": [
+    "§8.5"
+  ],
+  "context": {},
+  "input": {
+    "check": "z32-decode",
+    "z32": "47pjoycnsrfmxikm95jh13y88e8qnhzu5kungjpxyepgt7a8krpb"
+  },
+  "expect": {
+    "outcome": "rejected",
+    "reason": "non-canonical"
+  }
+}

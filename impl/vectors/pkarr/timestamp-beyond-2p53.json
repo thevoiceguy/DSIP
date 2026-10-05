@@ -1,0 +1,21 @@
+{
+  "vector": "pkarr/timestamp-beyond-2p53",
+  "format": 1,
+  "kind": "pkarr",
+  "description": "A timestamp above 2^53−1 µs (exact JSON integers).",
+  "spec_ref": [
+    "§8.5",
+    "§8.3"
+  ],
+  "context": {},
+  "input": {
+    "check": "hint",
+    "did": "did:key:z6MkwTqcmDUwWJfByWHX5ehMGDYrSoBd8jXdsZPjVAbVPrjB",
+    "payload": "875914403f3570908b55c7d87c7103b422fb61b5c119afe3a4642fdd16449817b6c62a03d7d71bab61fcb37bb9fdc340c7fc3d275c9f7dd920af66cf4586be040020000000000000000080000000000100000000055f64736970343931366b677838356a62677974697037696e396768786a347372646d396a796161776931696f38366d3567386d3966686a61747900001000010000070800261c7572693d7773733a2f2f72656c61792e6578616d706c652f6473697008623d77732f312e30",
+    "now": 9007199254
+  },
+  "expect": {
+    "outcome": "rejected",
+    "reason": "malformed"
+  }
+}

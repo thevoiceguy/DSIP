@@ -1,0 +1,21 @@
+{
+  "vector": "pkarr/timestamp-in-future",
+  "format": 1,
+  "kind": "pkarr",
+  "description": "A timestamp 6 minutes ahead: Pkarr accepts it, DSIP does not.",
+  "spec_ref": [
+    "§8.5",
+    "§8.3"
+  ],
+  "context": {},
+  "input": {
+    "check": "hint",
+    "did": "did:key:z6MkwTqcmDUwWJfByWHX5ehMGDYrSoBd8jXdsZPjVAbVPrjB",
+    "payload": "ab8d2f9382c4c7a15842fc5ca690d17de1be24b44dd5f3a3d0872a33bdf7a871ca4aebb4e1377ec3b19a66b165994e24a44a3156b1eb1be9ab8c501d64527a0900065bfeef9b0a00000080000000000100000000055f64736970343931366b677838356a62677974697037696e396768786a347372646d396a796161776931696f38366d3567386d3966686a61747900001000010000070800261c7572693d7773733a2f2f72656c61792e6578616d706c652f6473697008623d77732f312e30",
+    "now": 1790000000
+  },
+  "expect": {
+    "outcome": "rejected",
+    "reason": "future"
+  }
+}

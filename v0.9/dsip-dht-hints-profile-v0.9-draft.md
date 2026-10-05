@@ -102,3 +102,52 @@ for newcomers. See `docs/dht-findings.md`.
 - `dsip-profile`: `dht-hints/0.1` (optional).
 - message type `reachability-hint` (not a session message; §12.1 unaffected).
 - `dsip-info-about` unchanged.
+
+## 9. Pkarr carrier (v0.9, spec-gap 105)
+
+A `did:key` identity whose identity key can publish MAY also carry its hint on the BitTorrent Mainline DHT through
+Pkarr: a BEP 44 mutable item under the identity's own Ed25519 key, whose value is a DNS message. This is in addition
+to the overlay of §3, not a replacement. Device-signed hints stay on the overlay, because a BEP 44 item can only be
+signed by the key it is stored under.
+
+**Record.**
+- The identity publishes TXT records named `_dsip.<z32(key)>`, where `z32` is the z-base-32 encoding Pkarr uses.
+- Each record is one endpoint, made of `key=value` character-strings:
+  - exactly one `uri=` with a `wss://` URI;
+  - one or more `b=` bindings;
+  - optionally one `svc=`, the service type the endpoint stands in for, as `endpoints[].service` in §2.
+  - Unknown keys are ignored.
+- The record's TTL, at most 3600 s, bounds the hint's life:
+  - `issued_at` is the signed timestamp, in seconds;
+  - `expires_at` is `issued_at` plus the smallest `_dsip` TTL.
+- The BEP 44 `seq` is the signed timestamp, in µs, and §8.3 applies to it: a higher `seq` wins, and an equal `seq`
+  with different content is a conflict that keeps the held hint. Pkarr's own "larger packet wins" does not apply.
+
+**Publishing.**
+- Sign with the identity key over BEP 44's buffer, with no salt.
+- Compress names.
+- Keep the DNS message at most 996 bytes, so the bencoded value stays within BEP 44's 1000.
+- Keep the zone's other records, since the key has one slot shared by every Pkarr use.
+- Never sign a timestamp ahead of the clock: honest nodes then refuse every lower `seq`.
+- Re-sign before `expires_at`. Anyone may re-announce the signed bytes, but that never extends a hint.
+- Fetching from Pkarr relays (HTTP `GET /<z32>`) is equivalent to the DHT. A relay can withhold or serve an older
+  hint; it cannot forge one.
+
+**Reading.** A reader verifies the payload offline before use, in the order and with the reason tokens of
+`impl/vectors/README.md`, kind `pkarr`:
+1. the subject is a `did:key`;
+2. the payload is the right size;
+3. the BEP 44 signature verifies under the DID's key;
+4. the timestamp is at most 2^53−1 µs and no more than 300 s ahead;
+5. the DNS message parses, with backward-only compression pointers;
+6. only `_dsip.<z32>` TXT records are used, compared label by label without case;
+7. the endpoints are well formed;
+8. every TTL is at most 3600 s;
+9. the hint has not expired.
+
+These are the checks Pkarr itself does not make: it accepts future timestamps, records outside the key's zone,
+non-canonical z-base-32 and any TXT content. A hint from Pkarr is a hint like any other (§1): it never overrides a DID
+document and is shown as hint-sourced.
+
+**Privacy.** As §6, plus the relays: a relay sees the client's address and which key it looks up.
+

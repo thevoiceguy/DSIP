@@ -2505,6 +2505,48 @@ identity. IETF KEYTRANS solves this, but it is a working-group draft whose looku
   limits.
 - Credentials in introductions.
 
+## 105. §8.5 / DHT Hints Profile §9 — reachability hints on Pkarr (the Mainline DHT)
+
+**Status: decided 2026-10-04 (user: "yes to all 4"; "compact root-signed record") — written into the DHT Hints Profile
+§9 and core §8.5; pinned by `impl/vectors/pkarr/` (40 vectors).**
+
+**Gap.** v0.9 adds Pkarr as a second carrier for hints, putting them on a DHT far larger than DSIP's own overlay.
+Pkarr does not fit DSIP hints directly:
+- a BEP 44 item can be signed only by the key it is stored under, so a device cannot publish;
+- values are capped at 1000 bytes, and a DSIP-JOSE hint with delegations does not fit;
+- Pkarr has no signed expiry.
+
+**Choices considered.**
+- **(a) Compact `_dsip` TXT records signed by the identity key.** Chosen.
+- **(b) A pointer to device-signed hints.** Deferred: it needs a new delegation conveyance (§7.4) and a freshness
+  rule, because a withholding node can keep serving a pointer that still lists a revoked device.
+- **(c) The whole JOSE hint in TXT.** Rejected: only an identity-signed, single-endpoint hint fits.
+
+**What DSIP adds over Pkarr.** The pkarr crate accepts all of the following, which DSIP refuses or rejects:
+- a timestamp in the future (DSIP allows at most 300 s ahead);
+- a record outside the key's zone (DSIP ignores it);
+- non-canonical z-base-32 (Pkarr accepts 16 encodings per key; DSIP requires the canonical one);
+- any TXT content (DSIP requires exactly one `wss://` `uri=` and at least one `b=`).
+
+DSIP also adds:
+- a signed expiry of the timestamp plus the smallest TTL, each TTL at most 3600 s;
+- §8.3 conflicts in place of "larger packet wins";
+- owner names compared label by label without case (the crate's lookup is case-sensitive);
+- `seq` at most 2^53−1, so it is exact as a JSON number.
+
+**Evidence.**
+- BEP 44's published test vectors are vectors.
+- An independent Python codec produces packets byte-identical to the pkarr crate's.
+- Every vector's payload was run through the crate (`SignedPacket::from_relay_payload`, v8.1.0). It agrees on every
+  value and must-agree case, and every difference is one of DSIP's additions listed above.
+- Probing the second implementation's notes pinned: label-by-label name matching, framing checked before content,
+  the 2^53 bound, and non-hex payloads as `malformed`.
+
+**Open.**
+- Option (b), for multi-device identities.
+- A publisher and resolver over the network: the Rust side would use the pkarr and mainline crates (relays, DHT);
+  browsers are relay-only.
+
 ## Already-flagged (schema README / plan §11)
 
 - §15.3 codec example uses bare strings; §16.2 defines objects (schemas follow §16.2).

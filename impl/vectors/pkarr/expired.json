@@ -1,0 +1,21 @@
+{
+  "vector": "pkarr/expired",
+  "format": 1,
+  "kind": "pkarr",
+  "description": "Published 31 minutes ago with a 30-minute TTL.",
+  "spec_ref": [
+    "§8.5",
+    "§8.3"
+  ],
+  "context": {},
+  "input": {
+    "check": "hint",
+    "did": "did:key:z6MkwTqcmDUwWJfByWHX5ehMGDYrSoBd8jXdsZPjVAbVPrjB",
+    "payload": "850e59922b675bb94e7382988184dcd8d7b35fddec5ee9a0fdaa11bb0614ed879e50cbcd908194b3dc360b962042c5fe4d2f237362852869c8da20b43266860300065bfe6b488700000080000000000100000000055f64736970343931366b677838356a62677974697037696e396768786a347372646d396a796161776931696f38366d3567386d3966686a61747900001000010000070800261c7572693d7773733a2f2f72656c61792e6578616d706c652f6473697008623d77732f312e30",
+    "now": 1790000000
+  },
+  "expect": {
+    "outcome": "rejected",
+    "reason": "expired"
+  }
+}

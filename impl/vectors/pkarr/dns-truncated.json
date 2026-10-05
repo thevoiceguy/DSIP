@@ -1,0 +1,21 @@
+{
+  "vector": "pkarr/dns-truncated",
+  "format": 1,
+  "kind": "pkarr",
+  "description": "A DNS packet cut inside its record (signed as is).",
+  "spec_ref": [
+    "§8.5",
+    "§8.3"
+  ],
+  "context": {},
+  "input": {
+    "check": "hint",
+    "did": "did:key:z6MkwTqcmDUwWJfByWHX5ehMGDYrSoBd8jXdsZPjVAbVPrjB",
+    "payload": "fd891186aa26672d7f31d8042ba2c8e0184810bd111d36505bca1c010792eaff8f1dc4084e0bfae9d39c8ec57091ccfd9a8156464229ae3a61addf0289132f0c00065bfed6925900000080000000000100000000055f64736970343931366b677838356a62677974697037696e396768786a347372646d396a796161776931696f38366d3567386d3966686a61747900001000010000070800261c7572693d7773733a2f2f72656c61792e6578616d706c652f6473697008623d77732f",
+    "now": 1790000000
+  },
+  "expect": {
+    "outcome": "rejected",
+    "reason": "malformed"
+  }
+}

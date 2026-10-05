@@ -1,0 +1,17 @@
+{
+  "vector": "pkarr/z32-encode",
+  "format": 1,
+  "kind": "pkarr",
+  "description": "The RFC 8032 test-1 key in z-base-32 (as the pkarr crate writes it).",
+  "spec_ref": [
+    "§8.5"
+  ],
+  "context": {},
+  "input": {
+    "check": "z32-encode",
+    "key": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a"
+  },
+  "expect": {
+    "z32": "47pjoycnsrfmxikm95jh13y88e8qnhzu5kungjpxyepgt7a8krpy"
+  }
+}

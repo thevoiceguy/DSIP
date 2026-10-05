@@ -1,0 +1,21 @@
+{
+  "vector": "pkarr/dns-forward-pointer",
+  "format": 1,
+  "kind": "pkarr",
+  "description": "A compression pointer that does not point backwards.",
+  "spec_ref": [
+    "§8.5",
+    "§8.3"
+  ],
+  "context": {},
+  "input": {
+    "check": "hint",
+    "did": "did:key:z6MkwTqcmDUwWJfByWHX5ehMGDYrSoBd8jXdsZPjVAbVPrjB",
+    "payload": "fdf3b2c450c0d0231a4c4119fd6f2c3a0526f5f7513b5b6f20f15b66de9409bd7e799bfc460d201b369f30363a26bcafb54bc285e2bfc4a081298755184e330500065bfed6925900000080000000000200000000055f64736970343931366b677838356a62677974697037696e396768786a347372646d396a796161776931696f38366d3567386d3966686a61747900001000010000070800261c7572693d7773733a2f2f72656c61792e6578616d706c652f6473697008623d77732f312e30c0a8001000010000070800261c7572693d7773733a2f2f72656c61792e6578616d706c652f6473697008623d77732f312e30",
+    "now": 1790000000
+  },
+  "expect": {
+    "outcome": "rejected",
+    "reason": "malformed"
+  }
+}

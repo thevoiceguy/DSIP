@@ -1,0 +1,32 @@
+{
+  "vector": "pkarr/timestamp-within-tolerance",
+  "format": 1,
+  "kind": "pkarr",
+  "description": "A timestamp 4 minutes ahead of the reader's clock.",
+  "spec_ref": [
+    "§8.5",
+    "§8.3"
+  ],
+  "context": {},
+  "input": {
+    "check": "hint",
+    "did": "did:key:z6MkwTqcmDUwWJfByWHX5ehMGDYrSoBd8jXdsZPjVAbVPrjB",
+    "payload": "399d23c7248e8420e68f5160f75e0b1da80ff7fbed029dd9b57275faa79fb03df08fe73b11c2cbc07c02bfacd97f4a651f3db5dc51bff05229643a885ad0020100065bfee873fc00000080000000000100000000055f64736970343931366b677838356a62677974697037696e396768786a347372646d396a796161776931696f38366d3567386d3966686a61747900001000010000070800261c7572693d7773733a2f2f72656c61792e6578616d706c652f6473697008623d77732f312e30",
+    "now": 1790000000
+  },
+  "expect": {
+    "outcome": "hint",
+    "subject": "did:key:z6MkwTqcmDUwWJfByWHX5ehMGDYrSoBd8jXdsZPjVAbVPrjB",
+    "seq": 1790000240000000,
+    "issued_at": 1790000240,
+    "expires_at": 1790002040,
+    "endpoints": [
+      {
+        "uri": "wss://relay.example/dsip",
+        "bindings": [
+          "ws/1.0"
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "vector": "pkarr/payload-too-short",
+  "format": 1,
+  "kind": "pkarr",
+  "description": "A payload shorter than signature and timestamp.",
+  "spec_ref": [
+    "§8.5",
+    "§8.3"
+  ],
+  "context": {},
+  "input": {
+    "check": "hint",
+    "did": "did:key:z6MkwTqcmDUwWJfByWHX5ehMGDYrSoBd8jXdsZPjVAbVPrjB",
+    "payload": "dc6a5e8bdd6489d7bc78e32fdc432b1f0ae29be973663535df487cf236ac1638cf683cbb89f813d8b6049971e905c0737f07a96983e374411ab982a78b73d70d00065bfed69259",
+    "now": 1790000000
+  },
+  "expect": {
+    "outcome": "rejected",
+    "reason": "malformed"
+  }
+}
