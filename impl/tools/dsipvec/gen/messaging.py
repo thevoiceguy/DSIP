@@ -3150,6 +3150,28 @@ def blob_replication_vectors():
        {"fetched": {"status": 200, "sha256": "0" * 64, "size": 482220}}, {"action": "discard", "reason": "mismatch", "retry": False})
     br("blob-replicate-size-mismatch-discarded", "The size must match too.",
        {"fetched": {"status": 200, "sha256": SHA, "size": 482221}}, {"action": "discard", "reason": "mismatch", "retry": False})
+    # spec-gap 106: the device's side — what it does after trying the sources in order
+    OWN, ORIG = "https://mbx-b.example/blobs/" + SHA, "https://mbx-a.example/blobs/" + SHA
+    BLOB = {"sha256": SHA, "size": 482220}
+
+    def bf(vid, desc, tried, expect, **kw):
+        out.append(mv(vid, desc, refs, {"check": "blob-fetch", "blob": BLOB, "tried": tried, **kw}, expect))
+    bf("blob-fetch-own-copy-plays", "The device's own mailbox's copy matches: played from it.",
+       [{"uri": OWN, "status": 200, "sha256": SHA, "size": 482220}], {"action": "play", "source": OWN})
+    bf("blob-fetch-falls-back-to-origin", "The own copy is damaged, the origin's matches: played from the origin.",
+       [{"uri": OWN, "status": 200, "sha256": "00" * 32, "size": 482220}, {"uri": ORIG, "status": 200, "sha256": SHA, "size": 482220}],
+       {"action": "play", "source": ORIG})
+    bf("blob-fetch-nothing-served-retried", "No source had it yet (the replication not done, the origin down): tried again.",
+       [{"uri": OWN, "status": 404}, {"uri": ORIG, "status": 0}], {"action": "retry", "reason": "unavailable"})
+    bf("blob-fetch-unavailable-bounded", "On the last attempt a fetch that found nothing is given up.",
+       [{"uri": ORIG, "status": 404}], {"action": "give-up", "reason": "unavailable"}, attempt=5)
+    bf("blob-fetch-mismatch-and-unavailable-retried", "One source served the wrong bytes, another had nothing yet: the second may "
+       "still have it, so it is tried again.",
+       [{"uri": OWN, "status": 200, "sha256": "00" * 32, "size": 482220}, {"uri": ORIG, "status": 503}], {"action": "retry", "reason": "unavailable"})
+    bf("blob-fetch-all-mismatch-given-up", "Every source served the wrong bytes: given up at once, they would serve them again.",
+       [{"uri": OWN, "status": 200, "sha256": "00" * 32, "size": 482220}, {"uri": ORIG, "status": 200, "sha256": SHA, "size": 1}],
+       {"action": "give-up", "reason": "mismatch"})
+    bf("blob-fetch-no-source-tried", "No source could be tried at all: counts as nothing served.", [], {"action": "retry", "reason": "unavailable"})
     br("blob-replicate-unavailable-retried",
        "A fetch that found nothing to serve — the origin mailbox down at that moment — stores nothing and is tried again "
        "(spec-gap 67); until it succeeds the item keeps the original uri.",

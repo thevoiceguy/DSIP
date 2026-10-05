@@ -156,6 +156,8 @@ function messaging(v: Vector): Json | undefined {
       return blobs.blobGet(i["path_sha256"] as string, i["stored"] as string[]);
     case "blob-replicate":
       return blobs.blobReplicate(i as never);
+    case "blob-fetch":
+      return blobs.blobFetch(i as never);
     case "items-blobs":
       return blobs.itemsBlobs(i["blob_endpoint"] as string, i["stored"] as string[], i["manifest"] as never);
     case "blob-sources":

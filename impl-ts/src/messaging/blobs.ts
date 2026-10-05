@@ -2,7 +2,7 @@
  * Blobs: the HTTPS upload endpoint, replication to member mailboxes, and where a device fetches from.
  *
  * Spec: M§5.6 (`blob-put`, refusal order — spec-gap 48), M§8.4 rules 6–7 (replication, rewriting,
- * fetch order — spec-gaps 65 and 67).
+ * fetch order — spec-gaps 65 and 67), M§8.4 "Fetching" (spec-gap 106).
  */
 import type { JsonObject } from "../did.js";
 
@@ -72,6 +72,29 @@ export function blobReplicate(i: {
     return { action: "discard", reason: "mismatch", retry: false }; // the origin would serve the same bytes
   }
   return { action: "store" };
+}
+
+/**
+ * What a device does with the results of fetching a blob from its sources, in the order tried.
+ *
+ * Spec: M§8.4 ("Fetching") — every source is verified against the content's `sha256` and `size`;
+ * the first that verifies is played.
+ * Impl: spec-gap 106 — a source with nothing to serve (or no source tried) is retried, a bounded
+ * number of times (`attempt` of `max_attempts`, 5 by default); when every source served other bytes
+ * there is nothing to wait for, so the device gives up at once.
+ */
+export function blobFetch(i: {
+  blob: { sha256: string; size: number };
+  tried: { uri: string; status: number; sha256?: string; size?: number }[];
+  attempt?: number; max_attempts?: number;
+}): JsonObject {
+  const good = i.tried.find((t) => t.status === 200 && t.sha256 === i.blob.sha256 && t.size === i.blob.size);
+  if (good !== undefined) return { action: "play", source: good.uri };
+  if (i.tried.length === 0 || i.tried.some((t) => t.status !== 200)) {
+    const retry = (i.attempt ?? 1) < (i.max_attempts ?? MAX_REPLICATION_ATTEMPTS);
+    return { action: retry ? "retry" : "give-up", reason: "unavailable" };
+  }
+  return { action: "give-up", reason: "mismatch" };
 }
 
 /** Spec: M§8.4 rule 6 — in `items`, a held blob is named at this mailbox's own endpoint; the rest are unchanged. */

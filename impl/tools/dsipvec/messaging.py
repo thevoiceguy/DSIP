@@ -1845,6 +1845,24 @@ def blob_replicate(inp: dict) -> dict:
 BLOB_REPLICATION_ATTEMPTS = 5   # spec-gap 67
 
 
+def blob_fetch(inp: dict) -> dict:
+    """M§8.4 "Fetching" (spec-gap 106): what a device does after trying a content's blob sources in order.
+
+    `tried` holds each source's result `{uri, status, sha256?, size?}`. The first 200 whose body matches the
+    content's `blob` `sha256` and `size` is played. Otherwise, if any source had nothing to serve (not 200) the fetch
+    is tried again, boundedly, like a mailbox's replication (spec-gap 67); if every source served the wrong bytes it
+    is given up at once, since they would serve the same bytes again.
+    """
+    b = inp["blob"]
+    for t in inp.get("tried", []):
+        if t.get("status") == 200 and t.get("sha256") == b["sha256"] and t.get("size") == b["size"]:
+            return {"action": "play", "source": t["uri"]}
+    if any(t.get("status") != 200 for t in inp.get("tried", [])) or not inp.get("tried"):
+        more = inp.get("attempt", 1) < inp.get("max_attempts", BLOB_REPLICATION_ATTEMPTS)
+        return {"action": "retry" if more else "give-up", "reason": "unavailable"}
+    return {"action": "give-up", "reason": "mismatch"}
+
+
 def items_blobs(inp: dict) -> dict:
     """M§8.4 rule 6 (spec-gap 65): the `blobs` manifest a mailbox puts in `items` — `uri` rewritten to its own blob
     endpoint for every blob it holds, unchanged otherwise."""
@@ -1953,6 +1971,8 @@ def run(v: dict) -> dict:
         return registration_on_removal(inp)
     if check == "blob-put":
         return blob_put(inp)
+    if check == "blob-fetch":
+        return blob_fetch(inp)
     if check == "blob-replicate":
         return blob_replicate(inp)
     if check == "items-blobs":

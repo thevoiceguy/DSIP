@@ -10,7 +10,7 @@
   "context": {},
   "input": {
     "check": "items-blobs",
-    "blob_endpoint": "https://mbx.bob.example/blobs",
+    "blob_endpoint": "https://mbx-b.example/blobs/9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
     "stored": [
       "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"
     ],
@@ -30,7 +30,7 @@
   "expect": {
     "blobs": [
       {
-        "uri": "https://mbx.bob.example/blobs/9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+        "uri": "https://mbx-b.example/blobs/9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08/9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
         "sha256": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
         "size": 482220
       },

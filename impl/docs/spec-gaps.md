@@ -2547,6 +2547,31 @@ DSIP also adds:
 - A publisher and resolver over the network: the Rust side would use the pkarr and mainline crates (relays, DHT);
   browsers are relay-only.
 
+## 106. M§8.4 "Fetching" — a device whose blob fetch finds nothing
+
+**Status: fixed 2026-10-05 — M§8.4 text; vectors `messaging/blob-fetch-*` (7).** Found when #82 changed the
+blob-replication demo.
+
+**Gap.** M§8.4 says how a device orders a content's blob sources and verifies what it gets (rule 7). It says nothing
+about a device for which **no** source served the blob, for example when the item arrives before its own mailbox has
+replicated the blob and the origin is down. The reference device sent its "delivered" receipt, printed an error and
+never fetched again, so a voice message could stay unplayable for good. That is the device-side twin of spec-gap 67.
+
+**Choices considered.**
+- **(a)** Retry like a mailbox's replication: only when some source had nothing to serve, with the same backoff and
+  bound, across restarts; never when every source served other bytes.
+- **(b)** Retry until success: a hostile or broken origin is refetched forever.
+- **(c)** Hold back the "delivered" receipt until the media plays. That conflates delivery of the message with
+  downloading its attachment, which M§10.2 does not do.
+
+**Choice made.** (a). The receipt is unchanged: the message was delivered, and its media is fetched separately.
+
+**PoC.**
+- `dsip-msg` records each source's result, decides with `client::blob_fetch`, and keeps pending fetches persisted.
+- It retries them from its ticker: 4 s, doubling, at most 60 s, for 5 attempts.
+- It prints `AUDIO-PENDING`, then `RECV-AUDIO` on success.
+- `demos/blob-replication-demo.sh` gains a stage where the device's only source has nothing to serve, then does.
+
 ## Already-flagged (schema README / plan §11)
 
 - §15.3 codec example uses bare strings; §16.2 defines objects (schemas follow §16.2).
