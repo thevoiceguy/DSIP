@@ -2587,9 +2587,22 @@ DSIP also adds:
   clock, which the profile forbids, but publishing below the held seq is refused everywhere. The profile could
   name this case.
 
+**Mainline directly (2026-10-05).**
+- `--mainline [--mainline-bootstrap host:port,…]` on `dsip answer`, `dsip call` and `dsip resolve` runs a Mainline
+  node (the mainline crate, v8.0.1). It puts the same signed bytes as a BEP 44 mutable item (`seq` = ts, `v` = the
+  DNS message, no salt), and gets every item a lookup returns.
+- Relays and the DHT are sources of one candidate set. Every candidate is read offline by the DSIP reader, and the
+  highest valid seq wins; the crate's own checks and "most recent" choice are not relied on. The put carries no
+  CAS, since the seq order settles concurrent publishers.
+- **Interoperability:** Pkarr's own client (v8.1.0 source, DHT only, `ResolvePolicy::NetworkOnly`) resolved the item
+  DSIP put on a local testnet and parsed the `_dsip` TXT record intact.
+- **Demo** (`demos/pkarr-mainline-demo.sh`, in CI): `dsip mainline-testnet` runs 10 nodes on 127.0.0.1. Bob puts to
+  the DHT with no relay in his path, and Alice gets it from the DHT while a hostile relay's forgery is rejected. The
+  seq rises over 3 puts, and a fresh node finds the newest packet after Bob left.
+
 **Open.**
 - Option (b), for multi-device identities.
-- Direct Mainline DHT access (no relay) on the Rust side; browsers are relay-only.
+- Browsers are relay-only (no UDP).
 
 ## 106. M§8.4 "Fetching" — a device whose blob fetch finds nothing
 
