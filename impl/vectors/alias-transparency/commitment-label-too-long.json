@@ -1,0 +1,20 @@
+{
+  "vector": "alias-transparency/commitment-label-too-long",
+  "format": 1,
+  "kind": "alias-transparency",
+  "description": "A label of 256 bytes.",
+  "spec_ref": [
+    "T§5"
+  ],
+  "context": {},
+  "input": {
+    "check": "commitment",
+    "opening": "00000000000000000000000000000000",
+    "label": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    "version": 0,
+    "value": "did:key:z6Mk"
+  },
+  "expect": {
+    "error": "label"
+  }
+}

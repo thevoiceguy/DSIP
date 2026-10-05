@@ -1,0 +1,22 @@
+{
+  "vector": "alias-transparency/prefix-root-short-index",
+  "format": 1,
+  "kind": "alias-transparency",
+  "description": "A leaf whose index is not 32 bytes.",
+  "spec_ref": [
+    "T§5"
+  ],
+  "context": {},
+  "input": {
+    "check": "prefix-root",
+    "leaves": [
+      {
+        "index": "00000000000000000000000000000000000000000000000000000000000000",
+        "commitment": "0000000000000000000000000000000000000000000000000000000000000000"
+      }
+    ]
+  },
+  "expect": {
+    "error": "malformed"
+  }
+}

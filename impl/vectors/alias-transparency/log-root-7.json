@@ -1,0 +1,46 @@
+{
+  "vector": "alias-transparency/log-root-7",
+  "format": 1,
+  "kind": "alias-transparency",
+  "description": "A log of 7 entries: left-balanced, hashContent tags 0x00/0x01.",
+  "spec_ref": [
+    "T§5"
+  ],
+  "context": {},
+  "input": {
+    "check": "log-root",
+    "entries": [
+      {
+        "timestamp": 1790000000000,
+        "prefix_root": "709e80c88487a2411e1ee4dfb9f22a861492d20c4765150c0c794abd70f8147c"
+      },
+      {
+        "timestamp": 1790000001000,
+        "prefix_root": "75c8fd04ad916aec3e3d5cb76a452b116b3d4d0912a0a485e9fb8e3d240e210c"
+      },
+      {
+        "timestamp": 1790000002000,
+        "prefix_root": "970bec7483984728e413a0ff65986310f4bbe8fff5f02c58e6064856262d8476"
+      },
+      {
+        "timestamp": 1790000003000,
+        "prefix_root": "99f5eb64687cc7b7794b8be90b374592b85b01a2688a889d2ca6fd73768a6e52"
+      },
+      {
+        "timestamp": 1790000004000,
+        "prefix_root": "2151a2ed168f57d4dde577520ef2ce9104fa145a8ed82eb000a414a19ee733d7"
+      },
+      {
+        "timestamp": 1790000005000,
+        "prefix_root": "348fbb44967377ced7e055fcbee6c17092a342966c8f1f867f5fbf3269bbb845"
+      },
+      {
+        "timestamp": 1790000006000,
+        "prefix_root": "56a42ea06e5f6c892189b3cb763c725f7265743ec82b994e6cefddb930710aea"
+      }
+    ]
+  },
+  "expect": {
+    "root": "33a66f9f87321f1f1ca153e33efb206f36f9bfcb6bcc57c33af245706b593b66"
+  }
+}

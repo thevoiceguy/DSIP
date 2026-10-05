@@ -1,0 +1,20 @@
+{
+  "vector": "alias-transparency/index-bob-v0",
+  "format": 1,
+  "kind": "alias-transparency",
+  "description": "The index of (bob@example.com, 0): the first 32 bytes of beta.",
+  "spec_ref": [
+    "T§5"
+  ],
+  "context": {},
+  "input": {
+    "check": "index",
+    "public_key": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+    "label": "bob@example.com",
+    "version": 0,
+    "proof": "7985067d88bd8144a0de22bd9cf88f89aeaede68ec58760e53672e1ccbaf0846f50fa71f826c336505477b74d36b1e336401c39a4154b91ca1b83f92d20035d301e0e88b0effbff027ed389bea6a0a08"
+  },
+  "expect": {
+    "index": "bf05c9e9a232e3bfe9c2e7d9b9444d4e4476195e9043e59e34da8c555bc1033b"
+  }
+}

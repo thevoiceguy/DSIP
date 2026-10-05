@@ -1,0 +1,20 @@
+{
+  "vector": "alias-transparency/vrf-gamma-not-canonical",
+  "format": 1,
+  "kind": "alias-transparency",
+  "description": "A proof whose Gamma encodes x = 0 with the sign bit set (not canonical, RFC 8032 §5.1.3).",
+  "spec_ref": [
+    "T§5"
+  ],
+  "context": {},
+  "input": {
+    "check": "vrf-verify",
+    "public_key": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+    "alpha": "",
+    "proof": "010000000000000000000000000000000000000000000000000000000000008026f8a57ccaed74ee1b190bed1f479d9727d2d0f9b005a6e456a35d4fb0daab1268a1b0db10836d9826a528ca76567805"
+  },
+  "expect": {
+    "valid": false,
+    "beta": null
+  }
+}

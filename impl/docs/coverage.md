@@ -15,9 +15,17 @@ Profile, `M§n` Messaging Profile, `R§n` RTP/SRTP Media Binding.
 | §3 | dsip-dht/node.rs | — |
 | §3.1 | dsip-events/lib.rs | — |
 | §4 | dsip-dht/node.rs, dsip-mailbox/bin/dsip-msg.rs | — |
+| §4.1 | dsip-kt/lib.rs | — |
 | §4.2.2 | dsip-gateway/host/sip_leg.rs | — |
 | §4.2.6 | dsip-events/lib.rs | — |
-| §5 | dsip-gateway/controller.rs | — |
+| §5 | dsip-gateway/controller.rs, dsip-kt/lib.rs | — |
+| §5.1.3 | dsip-kt/lib.rs | — |
+| §5.2 | dsip-kt/lib.rs | — |
+| §5.3 | dsip-kt/lib.rs | — |
+| §5.4.1.1 | dsip-kt/lib.rs | — |
+| §5.4.4 | dsip-kt/lib.rs | — |
+| §5.4.5 | dsip-kt/lib.rs | — |
+| §5.5 | dsip-kt/lib.rs | — |
 | §6 | dsip-session/lib.rs | — |
 | §6.3 | dsip-cli/console.rs, dsip-core/trust.rs, dsip-gateway/host/media.rs, dsip-gateway/host/sip_leg.rs, dsip-gateway/lib.rs | 9 vector(s): gateway/claims-attestation-a-verified, gateway/downgrade-error-none, gateway/downgrade-error-plain-trunk, gateway/downgrade-inbound-no-attestation, gateway/downgrade-outbound-asserted-srtp, gateway/downgrade-outbound-plain-trunk … |
 | §7 | dsip-media/backend/webrtc_rs.rs, dsip-media/leg.rs, dsip-media/lib.rs | — |
@@ -40,7 +48,7 @@ Profile, `M§n` Messaging Profile, `R§n` RTP/SRTP Media Binding.
 | §10.4 | dsip-cli/console.rs, dsip-cli/hints.rs, dsip-cli/main.rs, dsip-core/hpke.rs, dsip-core/verdict.rs, dsip-core/version.rs, dsip-endpoint/core.rs, dsip-endpoint/verify.rs, dsip-relay/main.rs, dsip-schema/sealed.rs, dsip-schema/semantic.rs, dsip-transport/agent.rs | 26 vector(s): semantic/clear-invite-without-media-rejected, semantic/sealed-aad-input-missing, semantic/sealed-alg-unknown, semantic/sealed-answer-opens-selection-checked, semantic/sealed-answer-selection-not-subset, semantic/sealed-bye-detail-opens … |
 | §11 | dsip-core/envelope.rs, dsip-core/lib.rs, dsip-dht/record.rs, dsip-gateway/lib.rs, dsip-schema/lib.rs, dsip-schema/semantic.rs | — |
 | §11.1 | dsip-core/version.rs | 1 vector(s): payload/invite-version-block-missing-critical |
-| §11.2 | dsip-core/version.rs | 8 vector(s): semantic/sealed-extension-unsupported, semantic/version-compatible, semantic/version-known-profile-among-unknown, semantic/version-major-mismatch, semantic/version-min-core-above-ours, semantic/version-minor-newer-accepted … |
+| §11.2 | dsip-core/version.rs, dsip-kt/lib.rs | 8 vector(s): semantic/sealed-extension-unsupported, semantic/version-compatible, semantic/version-known-profile-among-unknown, semantic/version-major-mismatch, semantic/version-min-core-above-ours, semantic/version-minor-newer-accepted … |
 | §11.3 | dsip-cli/console.rs, dsip-core/version.rs | 5 vector(s): semantic/sealed-extension-unsupported, semantic/version-known-profile-among-unknown, semantic/version-major-mismatch, semantic/version-unknown-critical, semantic/version-unknown-profile |
 | §12 | dsip-cli/console.rs, dsip-endpoint/core.rs, dsip-endpoint/lib.rs, dsip-gateway/controller.rs, dsip-session/lib.rs | — |
 | §12.1 | dsip-core/registry.rs | 3 vector(s): payload/bye-valid, payload/invite-valid, semantic/unknown-message-type |
@@ -74,7 +82,7 @@ Profile, `M§n` Messaging Profile, `R§n` RTP/SRTP Media Binding.
 | §16.3 | dsip-cli/console.rs, dsip-endpoint/core.rs, dsip-endpoint/lib.rs, dsip-gateway/host/dsip_leg.rs, dsip-media/lib.rs, dsip-transport/agent.rs | 2 vector(s): gateway/trace-dtmf-other-about-not-carried, payload/info-webrtc-missing-mid |
 | §16.4 | dsip-broadcast/lib.rs, dsip-broadcast/receiver.rs | 4 vector(s): broadcast/provenance-policy-redistribution-forbidden, broadcast/provenance-policy-transcoding-forbidden, gateway/downgrade-outbound-plain-trunk, payload/invite-policy-bad-value |
 | §17 | dsip-endpoint/core.rs, dsip-transport/agent.rs | — |
-| §17.1 | dsip-gateway/host/media.rs, dsip-media/lib.rs | — |
+| §17.1 | dsip-gateway/host/media.rs, dsip-kt/lib.rs, dsip-media/lib.rs | — |
 | §17.2 | dsip-gateway/host/media.rs | 2 vector(s): gateway/sdp-trunk-g711-opus-to-descriptors, media-binding/offer-plain-rtp-rejected |
 | §18.1 | dsip-cli/console.rs, dsip-core/trust.rs, dsip-endpoint/core.rs, dsip-gateway/lib.rs, dsip-transport/agent.rs, dsip-wasm/lib.rs | 17 vector(s): gateway/claims-attestation-a-verified, gateway/claims-no-identity-header, gateway/claims-orig-mismatch, gateway/claims-signature-failed, gateway/downgrade-inbound-no-attestation, gateway/trace-inbound-answered … |
 | §18.2 | dsip-cli/main.rs, dsip-core/trust.rs, dsip-endpoint/core.rs, dsip-transport/identity.rs | 1 vector(s): trust/tel-caller-with-cnam |
@@ -182,6 +190,9 @@ Profile, `M§n` Messaging Profile, `R§n` RTP/SRTP Media Binding.
 | E§4 | dsip-events/lib.rs | 7 vector(s): device-events/map-clear, device-events/map-first-rule-wins, device-events/map-raise-with-resource, device-events/map-raise-without-severity, device-events/map-resource-varbind-absent, device-events/map-unmatched-is-notify … |
 | E§5 | dsip-events/lib.rs | 10 vector(s): device-events/alarm-ack-then-closed-is-final, device-events/alarm-ack-unknown-ignored, device-events/alarm-ack-without-by, device-events/alarm-clear-unknown-creates-nothing, device-events/alarm-raise-repeat-clear, device-events/alarm-reraise-reopens-and-resets-ack … |
 | E§6 | dsip-events/lib.rs | 8 vector(s): device-events/alarm-unknown-severity-orders-lowest, device-events/escalate-again-after-reopen, device-events/escalate-below-threshold-never, device-events/escalate-cancelled-by-ack, device-events/escalate-cancelled-by-clear, device-events/escalate-order-by-due-then-key … |
+| T§2 | dsip-kt/lib.rs | 13 vector(s): alias-transparency/configuration-05-leaf-key-is-trailing, alias-transparency/configuration-accept, alias-transparency/configuration-accept-lifetime, alias-transparency/configuration-duration-beyond-2p53, alias-transparency/configuration-mode3-refused, alias-transparency/configuration-optional-flag-2 … |
+| T§3 | dsip-kt/lib.rs | 15 vector(s): alias-transparency/alias-a-label-domain, alias-transparency/alias-at-limit, alias-transparency/alias-domain-lowercased, alias-transparency/alias-empty-local, alias-transparency/alias-label-inner-hyphen, alias-transparency/alias-label-leading-hyphen … |
+| T§5 | dsip-kt/lib.rs | 45 vector(s): alias-transparency/commitment-alice-v0, alias-transparency/commitment-alice-v1, alias-transparency/commitment-katie-vector-1, alias-transparency/commitment-label-too-long, alias-transparency/commitment-opening-not-16, alias-transparency/configuration-mode1 … |
 
 ## Headed sections cited by neither a module nor a vector
 
@@ -189,9 +200,10 @@ Numbered headings of each v0.9 document that no `Spec:` line or `spec_ref` names
 not cover its subsections here. Informative and scope sections are expected to appear; a normative one
 is a candidate for the next vector.
 
-- **Core** (`dsip_v_0_9_decentralized_session_initiation_protocol.md`): §1, §3.2, §3.3, §5.1, §5.2, §5.3, §5.4, §5.5, §5.6, §5.7, §6.1, §6.2, §7.1, §7.7, §8, §8.2, §9, §9.1, §9.5, §10.1, §13, §13.4, §13.5, §14, §16, §16.1, §17.3, §17.4, §18, §18.3, §18.4, §19.2, §20, §20.1, §20.2, §20.3, §20.8, §21, §21.1, §21.2, §21.4, §23, §23.1, §23.2, §23.3, §24, §24.1, §24.2, §24.3, §24.4, §25, §25.2, §25.3, §25.4, §28, §29
+- **Core** (`dsip_v_0_9_decentralized_session_initiation_protocol.md`): §1, §3.2, §3.3, §5.1, §5.4, §5.6, §5.7, §6.1, §6.2, §7.1, §7.7, §8, §8.2, §9, §9.1, §9.5, §10.1, §13, §13.4, §13.5, §14, §16, §16.1, §17.3, §17.4, §18, §18.3, §18.4, §19.2, §20, §20.1, §20.2, §20.3, §20.8, §21, §21.1, §21.2, §21.4, §23, §23.1, §23.2, §23.3, §24, §24.1, §24.2, §24.3, §24.4, §25, §25.2, §25.3, §25.4, §28, §29
 - **WebRTC Media Binding** (`dsip-webrtc-media-binding-v0.9.md`): B§3, B§3.2, B§4, B§5.3, B§6, B§9, B§10, B§11
 - **Gateway Profile** (`dsip-gateway-profile-v0.9.md`): G§1, G§2, G§3, G§3.1, G§3.2, G§4, G§4.1, G§4.2, G§6, G§8, G§10, G§11
 - **Messaging Profile** (`dsip-messaging-profile-v0.9.md`): M§2, M§2.1, M§2.2, M§2.3, M§3, M§4, M§4.1, M§6, M§6.10, M§7, M§9.5, M§10.1, M§12.5, M§15, M§15.1, M§15.2, M§15.3, M§15.6, M§18, M§19
 - **RTP/SRTP Media Binding** (`dsip-rtp-srtp-media-binding-v0.9-draft.md`): R§1, R§2, R§3, R§4, R§5, R§6, R§7
 - **Device Events Profile** (`dsip-device-events-profile-v0.9-draft.md`): E§1, E§2, E§7
+- **Alias Transparency Profile** (`dsip-alias-transparency-profile-v0.9-draft.md`): T§1, T§4, T§6

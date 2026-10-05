@@ -1,0 +1,17 @@
+{
+  "vector": "alias-transparency/configuration-duration-beyond-2p53",
+  "format": 1,
+  "kind": "alias-transparency",
+  "description": "A reasonable_monitoring_window above 2^53−1 ms is refused.",
+  "spec_ref": [
+    "T§2"
+  ],
+  "context": {},
+  "input": {
+    "check": "configuration-accept",
+    "bytes": "0002010020ed165424dca4afd4623e37a04e28d59e3e5f7ffe89562aeafbad88c176cbb75f0020d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a000000000000ea600000000005265c00002000000000000000"
+  },
+  "expect": {
+    "error": "malformed"
+  }
+}

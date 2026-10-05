@@ -1,0 +1,18 @@
+{
+  "vector": "alias-transparency/vrf-input-alice-v0",
+  "format": 1,
+  "kind": "alias-transparency",
+  "description": "The draft's example: alice@example.com, version 0.",
+  "spec_ref": [
+    "T§5"
+  ],
+  "context": {},
+  "input": {
+    "check": "vrf-input",
+    "label": "alice@example.com",
+    "version": 0
+  },
+  "expect": {
+    "bytes": "11616c696365406578616d706c652e636f6d00000000"
+  }
+}

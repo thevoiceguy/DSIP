@@ -1,0 +1,17 @@
+{
+  "vector": "alias-transparency/alias-too-long",
+  "format": 1,
+  "kind": "alias-transparency",
+  "description": "T§3: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' → not an alias.",
+  "spec_ref": [
+    "T§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "alias",
+    "alias": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa@example.com"
+  },
+  "expect": {
+    "error": "not-an-alias"
+  }
+}

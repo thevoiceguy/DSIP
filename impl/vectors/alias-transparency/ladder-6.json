@@ -1,0 +1,24 @@
+{
+  "vector": "alias-transparency/ladder-6",
+  "format": 1,
+  "kind": "alias-transparency",
+  "description": "[KT] §5: the base binary ladder for version 6.",
+  "spec_ref": [
+    "T§5"
+  ],
+  "context": {},
+  "input": {
+    "check": "ladder",
+    "version": 6
+  },
+  "expect": {
+    "ladder": [
+      0,
+      1,
+      3,
+      7,
+      5,
+      6
+    ]
+  }
+}

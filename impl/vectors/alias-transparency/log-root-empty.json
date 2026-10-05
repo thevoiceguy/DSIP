@@ -1,0 +1,17 @@
+{
+  "vector": "alias-transparency/log-root-empty",
+  "format": 1,
+  "kind": "alias-transparency",
+  "description": "A log of no entries has no root.",
+  "spec_ref": [
+    "T§5"
+  ],
+  "context": {},
+  "input": {
+    "check": "log-root",
+    "entries": []
+  },
+  "expect": {
+    "error": "malformed"
+  }
+}

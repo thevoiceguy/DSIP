@@ -2391,7 +2391,7 @@ v0.8 is final at tag `poc-v0.8.1`. v0.9 work, decided 2026-10-04 from `impl/docs
 
 - `did:webvh` as a recommended DID method beside `did:web` (§7.2, §8.4; spec-gap 101): resolvers verify the whole log, support v1.0 only, read I-JSON, and reject rollback and fork against the highest `versionId` they have verified. Pinned by the `did-webvh/` vectors.
 - Reachability hints on the BitTorrent Mainline DHT (Pkarr) for `did:key` subjects, in addition to the hints overlay (§8.5; DHT Reachability Hints Profile).
-- Alias transparency: a log that makes an alias provider's `alias → DID` answers auditable (§8.2).
+- Alias transparency: a log that makes an alias provider's `alias → DID` answers auditable (§8.2) — companion profile `v0.9/dsip-alias-transparency-profile-v0.9-draft.md` (cited `T§n`; spec-gap 104), KEYTRANS-shaped with VRF-blinded aliases. Stage 1 (this revision): the profile's choices and the KEYTRANS building blocks, pinned by the `alias-transparency/` vectors and confirmed against the KEYTRANS editor's implementation. Lookup verification, owner monitoring and fork detection follow KEYTRANS -06.
 - A Device Events Profile: signed device alarms and events, gatewayed from SNMP and syslog (companion profile `v0.9/dsip-device-events-profile-v0.9-draft.md`, cited `E§n`; spec-gap 103): RFC 3584 trap translation without the community, an RFC 3877-shaped rule table, an RFC 8632-style alarm list every member computes from the group's order, acknowledgement separate from read receipts, gateway silence, and an escalation trigger run by a member. Pinned by the `device-events/` vectors.
 
 Each item is listed here as it lands, with its spec-gap number.

@@ -1,0 +1,17 @@
+{
+  "vector": "alias-transparency/alias-local-case-kept",
+  "format": 1,
+  "kind": "alias-transparency",
+  "description": "T§3: 'BOB.Smith+x@example.org' → BOB.Smith+x@example.org.",
+  "spec_ref": [
+    "T§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "alias",
+    "alias": "BOB.Smith+x@example.org"
+  },
+  "expect": {
+    "label": "BOB.Smith+x@example.org"
+  }
+}

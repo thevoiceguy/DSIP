@@ -1,0 +1,21 @@
+{
+  "vector": "alias-transparency/vrf-rfc9381-example-18",
+  "format": 1,
+  "kind": "alias-transparency",
+  "description": "RFC 9381 Appendix B.3 Example 18: the proof verifies and gives beta.",
+  "spec_ref": [
+    "T§2",
+    "T§5"
+  ],
+  "context": {},
+  "input": {
+    "check": "vrf-verify",
+    "public_key": "fc51cd8e6218a1a38da47ed00230f0580816ed13ba3303ac5deb911548908025",
+    "alpha": "af82",
+    "proof": "9bc0f79119cc5604bf02d23b4caede71393cedfbb191434dd016d30177ccbf8096bb474e53895c362d8628ee9f9ea3c0e52c7a5c691b6c18c9979866568add7a2d41b00b05081ed0f58ee5e31b3a970e"
+  },
+  "expect": {
+    "valid": true,
+    "beta": "645427e5d00c62a23fb703732fa5d892940935942101e456ecca7bb217c61c452118fec1219202a0edcf038bb6373241578be7217ba85a2687f7a0310b2df19f"
+  }
+}

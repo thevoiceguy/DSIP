@@ -31,6 +31,7 @@ vectors/
   trust/       The basis-of-verification lines a client shows (§18.1, §6.3) — exact text
   did-webvh/   Resolving a did:webvh v1.0 log for DSIP (§7.2, §8.1, §8.4; v0.9, spec-gap 101)
   device-events/ Device Events Profile draft (E§3–E§6): traps → events → alarms, the alarm list, escalation
+  alias-transparency/ Alias Transparency Profile draft (T§2–T§5): KEYTRANS building blocks, alias normalization
 ```
 
 One vector per file. The vector id is its path relative to `vectors/` without
@@ -862,6 +863,105 @@ Events:
      report `{gateway, "dsip-gateway-silent", "", "major", not cleared}`.
   2. For each alarm with `escalation_due ≤ now`, ordered by due time then key, emit `{"escalate": {key, severity}}`,
      mark it escalated, and set `escalation_due` to `null`.
+
+## Kind: `alias-transparency`
+
+Alias Transparency Profile draft, stage 1 (`v0.9/dsip-alias-transparency-profile-v0.9-draft.md`, cited `T§n`;
+spec-gap 104). These are the KEYTRANS building blocks, following the editors' copy of draft-ietf-keytrans-protocol
+(2026-09-16) and the editor's implementation katie (commit `e1640671`), plus the profile's own rules. Every computed
+value here was confirmed with katie. The editors' copy differs from -05 only in the mode-1 Configuration.
+
+- All binary values are lowercase hex strings, with no prefix.
+- `label` and `value` are strings, used as their UTF-8 bytes.
+- Integers are big-endian in every encoding.
+- `SHA-256` is written `H`, and `‖` is concatenation.
+
+Each vector has `input.check`. The checks and their outputs:
+
+- **`alias`** (`{alias}`, T§3) → `{"label": <normalized>}` or `{"error": "not-an-alias"}`.
+  - Split at the **last** `@` into `local` and `domain`.
+  - `local` is one or more characters, each U+0021–U+007E and not `@`.
+  - `domain` is at least two `.`-separated labels. Each is 1–63 characters of `[A-Za-z0-9-]` and neither begins nor
+    ends with `-`.
+  - The result is `local + "@" + lowercase(domain)`, and must be at most 255 bytes.
+- **`vrf-input`** (`{label, version}`) → `{"bytes"}` = `u8(len(label)) ‖ label ‖ u32(version)`. A label over 255
+  bytes, or a version outside 0–2^32−1, gives `{"error": "vrf-input"}`.
+- **`vrf-verify`** (`{public_key, alpha, proof}`) → `{"valid": true, "beta": <64-byte hex>}` or
+  `{"valid": false, "beta": null}`.
+  - The VRF is ECVRF-EDWARDS25519-SHA512-TAI, RFC 9381 §5.3, with `validate_key = TRUE` (§5.4.5).
+  - Every point (the public key, Gamma, each encode-to-curve candidate) is decoded per RFC 8032 §5.1.3 and must be
+    canonical: `y < p`, and not `x = 0` with the sign bit set. A non-canonical encoding does not decode.
+  - `validate_key` refuses a key whose y-coordinate encoding, with its sign bit cleared, is one of
+    `0, 1, bad_y2, p − bad_y2, p − 1, p, p + 1` (RFC 9381 §5.4.5). For decodable keys this is exactly the low-order
+    points.
+  - encode_to_curve's counter is one byte (0–255). Exhausting it gives no point, and the proof is invalid.
+  - It is invalid when:
+    - the public key does not decode;
+    - the public key is one of the §5.4.5 low-order encodings;
+    - the proof is not 80 bytes;
+    - Gamma does not decode;
+    - `s ≥ q`;
+    - the challenge does not match.
+- **`index`** (`{public_key, label, version, proof}`) → `{"index": beta[0..32]}`, where `beta` is `vrf-verify` over
+  `alpha = VrfInput(label, version)`. A label over 255 bytes, or a version that is not an integer in 0–2^32−1, gives
+  `{"error": "vrf-input"}`. A proof that does not verify gives `{"error": "vrf-invalid"}`.
+- **`commitment`** (`{opening, label, version, value}`) → `{"commitment"}`, computed as:
+  - `HMAC-SHA256(Kc, opening ‖ u8(len(label)) ‖ label ‖ u32(version) ‖ u32(len(value)) ‖ value)`;
+  - `Kc` is the 16 bytes `d821f8790d97709796b4d7903357c3f5`;
+  - `opening` must be 16 bytes, else `{"error": "opening"}`. Otherwise, a label over 255 bytes or a version outside
+    0–2^32−1 gives `{"error": "label"}`.
+- **`commitment-raw`** (`{opening, body}`, any lengths) → `{"commitment": HMAC-SHA256(Kc, opening ‖ body)}`.
+- **`prefix-root`** (`{leaves: [{index, commitment}]}`) → `{"root"}`. The leaves have 32-byte, distinct indexes.
+  - Bit *i* of an index is bit `7 − i mod 8` of byte `⌊i/8⌋`, so the most significant bit comes first.
+  - The tree is the binary trie on these bits, with each leaf only as deep as needed to separate it from all others.
+  - A leaf is `H(0x02 ‖ index ‖ commitment)`.
+  - An internal node at depth *d* is `H(0x03 ‖ left ‖ right)`, where `left` and `right` are the subtrees of leaves
+    whose bit *d* is 0 and 1. An empty side is 32 zero bytes.
+  - With one leaf, the root is that leaf.
+  - An empty list, an index or commitment that is not 32 bytes, or duplicate indexes, gives
+    `{"error": "malformed"}`.
+- **`prefix-parent`** (`{left, right}`, each hex or `null`) → `{"hash": H(0x03 ‖ left ‖ right)}`, where `null` is
+  32 zero bytes.
+- **`log-root`** (`{entries: [{timestamp, prefix_root}]}`, one or more) → `{"root"}`.
+  - Leaf *j*'s value is `H(u64(timestamp) ‖ prefix_root)`.
+  - For entries `[lo, hi)` with more than one entry, let *k* be the largest power of two less than `hi − lo`. The
+    value is `H(tag(L) ‖ L ‖ tag(R) ‖ R)` over `[lo, lo+k)` and `[lo+k, hi)`, where `tag` is `0x00` for a single
+    leaf and `0x01` for a computed parent.
+  - With one entry, the root is that leaf's value. No entries gives `{"error": "malformed"}`.
+- **`configuration`** (`{config}`; members other than those named below are ignored) → `{"bytes"}`, encoded in
+  this order:
+  1. `u16(ciphersuite)`;
+  2. `u8(mode)`;
+  3. twice `u16(len(key)) ‖ key`, for `signature_public_key` and `vrf_public_key`. This is the editors' copy: mode 1
+     has no `leaf_public_key`, unlike -05;
+  4. `u64` each of `max_ahead`, `max_behind` and `reasonable_monitoring_window`;
+  5. `maximum_lifetime` as `0x00` when null, otherwise `0x01 ‖ u64(value)`.
+- **`configuration-accept`** (`{bytes}`) parses that layout and applies T§2. Checks run in this order:
+  1. a ciphersuite other than 2 → `{"error": "unsupported-suite"}`;
+  2. a mode other than 1 → `{"error": "unsupported-mode"}`;
+  3. any of these → `{"error": "malformed"}`:
+     - the input runs out;
+     - the presence byte is not 0 or 1;
+     - there are trailing bytes;
+     - a key is not 32 bytes;
+     - a `u64` above 2^53−1.
+
+  On success the output is `{"config": {signature_public_key, vrf_public_key, max_ahead, max_behind,
+  reasonable_monitoring_window, maximum_lifetime}}`, with keys as hex and `maximum_lifetime` an integer or null.
+- **`tree-head`** (`{configuration, tree_size, root, signature}`) → `{"valid"}`. It is true iff the configuration is
+  accepted as above and the signature is a valid Ed25519 signature by its `signature_public_key` over
+  `configuration ‖ u64(tree_size) ‖ root`. A configuration that is not accepted gives that error object instead.
+- **`search-tree`** (`{n}`, n ≥ 1) → `{"root", "frontier"}`.
+  - `root = 2^⌊log2 n⌋ − 1`.
+  - `level(x)` is the number of trailing 1 bits of *x*.
+  - `left(x) = x XOR 2^(level(x)−1)`.
+  - `right(x)` is computed by setting `x ← x XOR (3 · 2^(level(x)−1))`, then replacing *x* with `left(x)` while
+    `x ≥ n`.
+  - The frontier is `[root]`, extended by `right(last)` until it reaches `n − 1`.
+- **`ladder`** (`{version}`) → `{"ladder"}`, the base binary ladder.
+  - Append `2^i − 1` for `i = 0, 1, …` until a value exceeds `version`.
+  - Then binary-search between the last two: repeatedly append `mid = ⌊(lo + hi)/2⌋` while `lo + 1 < hi`, setting
+    `lo = mid` if `mid ≤ version` and `hi = mid` otherwise.
 
 ## Spec-gap list (Impl decisions these vectors encode)
 
