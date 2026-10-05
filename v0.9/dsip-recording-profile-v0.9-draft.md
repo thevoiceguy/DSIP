@@ -92,13 +92,17 @@ A conversation is **recorded** while any member leaf's delegation (M§6.2) carri
   and the recorder device;
 - MUST NOT send content or receipts into it until the user has accepted, for this conversation, every recorder
   device present. A new recorder asks again; one that leaves asks nothing. Declining is leaving the conversation
-  (M§7);
+  (M§7). A recorder device of the member's **own** identity needs no acceptance from that member: it is that
+  identity's own recording, which its owner already knows of;
 - MUST treat **content** from a recorder leaf as it treats content from an unauthenticated leaf (M§6.2): not
   rendered, not archived. A recorder is receive-only, and can never speak for the person whose device it is. Its
   handshake messages (Update commits renewing its delegation, M§6.2) are processed as usual.
 
-A recorder device is added like any device (M§12.3), and removed or revoked like any delegation (§7.4–§7.5). When it
-leaves, the conversation stops being recorded and the client renders that.
+A recorder device is added like any device (M§12.3), with one difference: it joins the identity's conversations,
+**never its personal group**. It therefore receives no archive key (M§12.1) and records only what is sent while it is
+a visible member, which is exactly what was disclosed. Earlier history stays out of its reach. It is removed or
+revoked like any delegation (§7.4–§7.5). When it leaves, the conversation stops being recorded and the client renders
+that.
 
 ## C§6 The recorder leg (calls)
 

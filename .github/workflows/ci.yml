@@ -129,6 +129,13 @@ jobs:
         # a "recorder" without dsip.record is refused before any media.
         run: timeout 300 bash demos/recorder-leg-demo.sh | tail -16
         working-directory: impl
+      - name: a recorder device in an E2EE conversation (Recording Profile draft, C§5)
+        # Self-verifying: a recorder device of Bob's identity (dsip.record) joins the conversation, never his personal
+        # group, so nothing sent before it joined reaches it; Alice cannot send until she accepts, Bob (recorded
+        # himself) need not; the recorder cannot send, and a misbehaving one is dropped by both members; it archives
+        # what was sent while disclosed; removing it ends the recording for everyone.
+        run: timeout 300 bash demos/recorder-device-demo.sh | tail -16
+        working-directory: impl
       - name: reachability hints on Pkarr (v0.9 draft)
         # Self-verifying: Bob publishes _dsip records signed by his did:key to two Pkarr relays (local stand-ins of the
         # HTTP API); Alice, knowing only his did:key, rejects a hostile relay's forged newer packet and calls him through
