@@ -1,0 +1,17 @@
+{
+  "vector": "alias-transparency/alias-domain-lowercased",
+  "format": 1,
+  "kind": "alias-transparency",
+  "description": "T§3: 'Alice@Example.COM' → Alice@example.com.",
+  "spec_ref": [
+    "T§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "alias",
+    "alias": "Alice@Example.COM"
+  },
+  "expect": {
+    "label": "Alice@example.com"
+  }
+}

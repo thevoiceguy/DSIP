@@ -1,0 +1,20 @@
+{
+  "vector": "alias-transparency/vrf-s-not-reduced",
+  "format": 1,
+  "kind": "alias-transparency",
+  "description": "A proof whose scalar s is not below the group order is refused (RFC 9381 §5.4.4).",
+  "spec_ref": [
+    "T§5"
+  ],
+  "context": {},
+  "input": {
+    "check": "vrf-verify",
+    "public_key": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+    "alpha": "",
+    "proof": "8657106690b5526245a92b003bb079ccd1a92130477671f6fc01ad16f26f723f26f8a57ccaed74ee1b190bed1f479d97ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+  },
+  "expect": {
+    "valid": false,
+    "beta": null
+  }
+}

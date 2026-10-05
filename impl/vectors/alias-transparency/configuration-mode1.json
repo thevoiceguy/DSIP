@@ -1,0 +1,26 @@
+{
+  "vector": "alias-transparency/configuration-mode1",
+  "format": 1,
+  "kind": "alias-transparency",
+  "description": "A mode-1 Configuration, encoded by hand from [KT] §11.2 (editors' copy: no leaf key).",
+  "spec_ref": [
+    "T§5"
+  ],
+  "context": {},
+  "input": {
+    "check": "configuration",
+    "config": {
+      "ciphersuite": 2,
+      "mode": 1,
+      "signature_public_key": "ed165424dca4afd4623e37a04e28d59e3e5f7ffe89562aeafbad88c176cbb75f",
+      "vrf_public_key": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+      "max_ahead": 60000,
+      "max_behind": 86400000,
+      "reasonable_monitoring_window": 3600000,
+      "maximum_lifetime": null
+    }
+  },
+  "expect": {
+    "bytes": "0002010020ed165424dca4afd4623e37a04e28d59e3e5f7ffe89562aeafbad88c176cbb75f0020d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a000000000000ea600000000005265c00000000000036ee8000"
+  }
+}

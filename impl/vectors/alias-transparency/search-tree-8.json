@@ -1,0 +1,20 @@
+{
+  "vector": "alias-transparency/search-tree-8",
+  "format": 1,
+  "kind": "alias-transparency",
+  "description": "[KT] §4.1 / Appendix A: n=8.",
+  "spec_ref": [
+    "T§5"
+  ],
+  "context": {},
+  "input": {
+    "check": "search-tree",
+    "n": 8
+  },
+  "expect": {
+    "root": 7,
+    "frontier": [
+      7
+    ]
+  }
+}

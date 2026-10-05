@@ -10,6 +10,7 @@ import { Authority, Subscriber, type BroadcastContext } from "./broadcast-state.
 import { Candidates, Renegotiation, checkAnswer, checkOffer, dtlsRoles, oneAnswer } from "./binding.js";
 import { verifyPublication, type Capabilities } from "./broadcast.js";
 import { verifyHint } from "./dht.js";
+import { runAliasTransparency } from "./kt/alias-transparency.js";
 import { resolveWebvh, type WebvhInput } from "./did/webvh.js";
 import { runDeviceEvents } from "./events/device-events.js";
 import { Endpoint, type EndpointContext } from "./endpoint.js";
@@ -59,6 +60,7 @@ const RUNNERS: Record<string, (v: Vector) => Json | undefined> = {
   "media-binding": (v) => mediaBinding(v),
   "did-webvh": (v) => resolveWebvh(v.input as unknown as WebvhInput),
   "device-events": (v) => runDeviceEvents(v.context ?? {}, v.input),
+  "alias-transparency": (v) => runAliasTransparency(v.input),
   gateway: (v) => gateway(v),
   messaging: (v) => messaging(v),
   trust: (v) =>

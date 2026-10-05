@@ -21,8 +21,8 @@ CRATES = IMPL / "crates"
 VECTORS = IMPL / "vectors"
 SPEC = IMPL.parent / "v0.9"
 # `§n` = Core section; a letter prefix names a v0.9 companion document: `B§n` WebRTC Media Binding,
-# `G§n` Gateway Profile, `M§n` Messaging Profile, `R§n` RTP/SRTP Media Binding, `E§n` Device Events Profile.
-SECTION_RE = re.compile(r"([BEGMR]?)§(\d+(?:\.\d+)*)")
+# `G§n` Gateway Profile, `M§n` Messaging Profile, `R§n` RTP/SRTP Media Binding, `E§n` Device Events Profile, `T§n` Alias Transparency.
+SECTION_RE = re.compile(r"([BEGMRT]?)§(\d+(?:\.\d+)*)")
 DOCS = {
     "": ("Core", "dsip_v_0_9_decentralized_session_initiation_protocol.md", re.compile(r"^#{2,4} (\d+(?:\.\d+)*)[. ]")),
     "B": ("WebRTC Media Binding", "dsip-webrtc-media-binding-v0.9.md", re.compile(r"^#{2,4} (\d+(?:\.\d+)*)[. ]")),
@@ -30,6 +30,7 @@ DOCS = {
     "M": ("Messaging Profile", "dsip-messaging-profile-v0.9.md", re.compile(r"^#{2,4} M§(\d+(?:\.\d+)*)")),
     "R": ("RTP/SRTP Media Binding", "dsip-rtp-srtp-media-binding-v0.9-draft.md", re.compile(r"^#{2,4} R§(\d+(?:\.\d+)*)")),
     "E": ("Device Events Profile", "dsip-device-events-profile-v0.9-draft.md", re.compile(r"^#{2,4} E§(\d+(?:\.\d+)*)")),
+    "T": ("Alias Transparency Profile", "dsip-alias-transparency-profile-v0.9-draft.md", re.compile(r"^#{2,4} T§(\d+(?:\.\d+)*)")),
 }
 DOC_ORDER = {p: i for i, p in enumerate(DOCS)}
 
@@ -84,7 +85,7 @@ def main() -> int:
         return 0
 
     def split(s):
-        return (s[0], s[1:]) if s[:1] in "BEGMR" else ("", s)
+        return (s[0], s[1:]) if s[:1] in "BEGMRT" else ("", s)
 
     def key(s):
         doc, num = split(s)

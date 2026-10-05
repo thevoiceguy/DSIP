@@ -1,0 +1,22 @@
+{
+  "vector": "alias-transparency/log-root-1",
+  "format": 1,
+  "kind": "alias-transparency",
+  "description": "A log of 1 entries: left-balanced, hashContent tags 0x00/0x01.",
+  "spec_ref": [
+    "T§5"
+  ],
+  "context": {},
+  "input": {
+    "check": "log-root",
+    "entries": [
+      {
+        "timestamp": 1790000000000,
+        "prefix_root": "709e80c88487a2411e1ee4dfb9f22a861492d20c4765150c0c794abd70f8147c"
+      }
+    ]
+  },
+  "expect": {
+    "root": "d2a904a0a3e79824a47b36d3bdb05a88c37d332ba55b8424c6923a84d767ef59"
+  }
+}

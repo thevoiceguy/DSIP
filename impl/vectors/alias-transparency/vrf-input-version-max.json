@@ -1,0 +1,18 @@
+{
+  "vector": "alias-transparency/vrf-input-version-max",
+  "format": 1,
+  "kind": "alias-transparency",
+  "description": "Version 2^32−1.",
+  "spec_ref": [
+    "T§5"
+  ],
+  "context": {},
+  "input": {
+    "check": "vrf-input",
+    "label": "a@b.c",
+    "version": 4294967295
+  },
+  "expect": {
+    "bytes": "056140622e63ffffffff"
+  }
+}

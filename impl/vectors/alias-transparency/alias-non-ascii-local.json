@@ -1,0 +1,17 @@
+{
+  "vector": "alias-transparency/alias-non-ascii-local",
+  "format": 1,
+  "kind": "alias-transparency",
+  "description": "T§3: 'élise@example.com' → not an alias.",
+  "spec_ref": [
+    "T§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "alias",
+    "alias": "élise@example.com"
+  },
+  "expect": {
+    "error": "not-an-alias"
+  }
+}

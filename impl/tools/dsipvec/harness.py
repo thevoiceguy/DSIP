@@ -18,6 +18,7 @@ from . import gateway as GATEWAY
 from . import trust as TRUST
 from . import webvh as WEBVH
 from . import events as EVENTS
+from . import kt as KT
 from . import messaging as MESSAGING
 from .verdict import Verdict
 
@@ -224,6 +225,8 @@ def run_vector(v: dict) -> Result:
             actual = TRUST.run(v)
         elif kind == "messaging":
             actual = MESSAGING.run(v)
+        elif kind == "alias-transparency":
+            actual = KT.run(v)
         elif kind == "device-events":
             actual = EVENTS.run(v)
         elif kind == "did-webvh":

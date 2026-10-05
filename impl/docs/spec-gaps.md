@@ -2441,6 +2441,70 @@ escalation agent member") — written into `v0.9/dsip-device-events-profile-v0.9
   informs acknowledged after `accepted`.
 - Flap hold-down is left to gateway configuration.
 
+## 104. T§2–T§5 / core §8.1–§8.2 — alias transparency: what DSIP adopts of KEYTRANS, and when
+
+**Status: decided 2026-10-04 (user: "KEYTRANS-shaped, blinded"; "stage it") — written into
+`v0.9/dsip-alias-transparency-profile-v0.9-draft.md`; stage 1 pinned by `impl/vectors/alias-transparency/`.**
+
+**Gap.** §8.2 aliases (`alice@example.com → DID`) are the one place a provider can silently substitute someone's
+identity. IETF KEYTRANS solves this, but it is a working-group draft whose lookup-proof format is changing:
+- the editors' copy is not wire-compatible with -05;
+- open issue #51 records an interoperability failure over `PrefixProof` contents.
+
+**Choices made.**
+1. **Shape:** KEYTRANS-shaped, with VRF-blinded labels, as a DSIP profile that tracks the draft. Rejected:
+   - CT-style public log: it enumerates a provider's users;
+   - adopting KEYTRANS verbatim: the draft is still moving.
+2. **Staged.** Stage 1 is now: the profile choices and the building blocks, which are stable. Stage 2 follows -06:
+   - lookup verification;
+   - owner monitoring;
+   - fork detection via `DistinguishedHead` in DSIP signalling;
+   - credentials, in introductions.
+3. **One suite, one mode:** `KT_128_SHA256_Ed25519` only, and `contactMonitoring` only.
+4. **`validate_key = TRUE`.** KEYTRANS states no choice, and RFC 9381 §5.3 requires one.
+5. **Canonical point decoding** (RFC 8032 §5.1.3) everywhere, and a one-byte encode-to-curve counter. Found by the
+   second implementation's notes.
+6. **Alias normalization (T§3)**, which §8.1 never defined:
+   - split at the last `@`;
+   - a printable-ASCII local part, case kept;
+   - LDH domain labels, lowercased;
+   - at most 255 bytes.
+
+   Internationalized local parts are deferred, because Unicode normalization tables differ across implementations.
+7. **Discovery:** a `DSIPAliasLog` service in the provider's `did:web` document, holding the TLS-encoded
+   Configuration.
+   - The Configuration's signing key must be one of that DID's verification methods.
+   - The Configuration is pinned on first use; a change is a log migration.
+8. **KT bytes are carried raw**, never re-wrapped in DSIP envelopes, so any KEYTRANS implementation can verify them.
+9. **Configuration integers above 2^53−1 are refused**, so they survive JSON in every language.
+
+**Evidence.**
+- RFC 9381 Appendix B.3 Examples 16–18 are vectors.
+- katie's commitment test vector is reproduced.
+- The draft's own search-tree and ladder examples are vectors.
+- Every computed hash and signature was confirmed with **katie**, the KEYTRANS editor's Go implementation (commit
+  `e1640671`): indexes, commitments, prefix and log roots, the Configuration and tree heads.
+
+**Findings for the KEYTRANS working group** (the user to send):
+1. **Mode-1 Configuration.** -05 §11.2 gives contactMonitoring a `leaf_public_key`. The editors' copy removed it
+   (commit `b97f81d`, 2026-07-28), and katie follows the editors. Implementations of -05 and of the editors' copy
+   compute different `TreeHeadTBS` bytes, so their signatures don't verify across them. DSIP follows the editors'
+   copy.
+2. **The -05 → editors' copy change to vector-length semantics** (element counts).
+3. **`PrefixProof.elements` for `nonInclusionParent`** (#51), and the change to its depth.
+4. **The empty prefix-tree root** is unspecified.
+5. **`Kc`** is called a "hex-encoded string" but is used as raw bytes (katie agrees with raw bytes).
+6. **The VRF `validate_key` choice** is unstated, as are canonical point decoding and the counter bound.
+7. **Editorial:**
+   - a stray `UpdateRequest request;` in -05 §15.1;
+   - [KTA] -09 §7 cites the RMW as "[PROTO] §7.1"; in -05 it is §6.1.
+
+**Open (stage 2).**
+- Lookups, monitoring and fork detection.
+- Anti-enumeration at the query endpoint: identical answers for "no such alias" and "not permitted", plus rate
+  limits.
+- Credentials in introductions.
+
 ## Already-flagged (schema README / plan §11)
 
 - §15.3 codec example uses bare strings; §16.2 defines objects (schemas follow §16.2).

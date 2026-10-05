@@ -1,0 +1,26 @@
+{
+  "vector": "alias-transparency/prefix-root-duplicate-index",
+  "format": 1,
+  "kind": "alias-transparency",
+  "description": "Two leaves with the same index.",
+  "spec_ref": [
+    "T§5"
+  ],
+  "context": {},
+  "input": {
+    "check": "prefix-root",
+    "leaves": [
+      {
+        "index": "d8763fedb802cc7c208b386ce3a67c02f3bf5b1267b2cd3802559187a5c78b8f",
+        "commitment": "788c47c67347455b0705fd702a53ec24e21652a88e7c8ac8af7ac406958e99c9"
+      },
+      {
+        "index": "d8763fedb802cc7c208b386ce3a67c02f3bf5b1267b2cd3802559187a5c78b8f",
+        "commitment": "788c47c67347455b0705fd702a53ec24e21652a88e7c8ac8af7ac406958e99c9"
+      }
+    ]
+  },
+  "expect": {
+    "error": "malformed"
+  }
+}

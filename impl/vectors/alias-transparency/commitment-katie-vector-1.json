@@ -1,0 +1,18 @@
+{
+  "vector": "alias-transparency/commitment-katie-vector-1",
+  "format": 1,
+  "kind": "alias-transparency",
+  "description": "katie's commitment test: HMAC-SHA256(Kc, opening ‖ empty body) — Kc is the 16 raw bytes.",
+  "spec_ref": [
+    "T§5"
+  ],
+  "context": {},
+  "input": {
+    "check": "commitment-raw",
+    "opening": "000102030405060708090a0b0c0d0e0f",
+    "body": ""
+  },
+  "expect": {
+    "commitment": "51dde6316662100215a7cc1878113d416ec25d9443310989e0672bac6e8ea9da"
+  }
+}

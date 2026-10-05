@@ -1,0 +1,17 @@
+{
+  "vector": "alias-transparency/alias-label-inner-hyphen",
+  "format": 1,
+  "kind": "alias-transparency",
+  "description": "T§3: 'alice@x-y.example.com' → alice@x-y.example.com.",
+  "spec_ref": [
+    "T§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "alias",
+    "alias": "alice@x-y.example.com"
+  },
+  "expect": {
+    "label": "alice@x-y.example.com"
+  }
+}
