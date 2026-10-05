@@ -24,7 +24,7 @@ Profile, `M§n` Messaging Profile, `R§n` RTP/SRTP Media Binding.
 | §4.2.7 | dsip-events/ber.rs | — |
 | §4.3 | dsip-mailbox/bin/dsip-msg.rs | — |
 | §4.3.1 | dsip-mailbox/bin/dsip-msg.rs | — |
-| §5 | dsip-gateway/controller.rs, dsip-kt/lib.rs, dsip-mailbox/bin/dsip-msg.rs, dsip-recording/lib.rs | 7 vector(s): recording/conversation-member-content-rendered, recording/conversation-not-recorded, recording/conversation-recorded-accepted, recording/conversation-recorded-not-accepted, recording/conversation-recorder-content-not-rendered, recording/conversation-second-recorder-asks-again … |
+| §5 | dsip-core/delegation.rs, dsip-gateway/controller.rs, dsip-kt/lib.rs, dsip-mailbox/bin/dsip-msg.rs, dsip-messaging/mls_wire.rs, dsip-recording/lib.rs | 7 vector(s): recording/conversation-member-content-rendered, recording/conversation-not-recorded, recording/conversation-recorded-accepted, recording/conversation-recorded-not-accepted, recording/conversation-recorder-content-not-rendered, recording/conversation-second-recorder-asks-again … |
 | §5.1.3 | dsip-kt/lib.rs | — |
 | §5.2 | dsip-kt/lib.rs | — |
 | §5.3 | dsip-kt/lib.rs | — |

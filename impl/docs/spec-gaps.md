@@ -2779,8 +2779,23 @@ at an endpoint the organisation controls (research track C). Without a disclosur
   - a counterparty who never accepted contributes 0 frames;
   - a "recorder" without `dsip.record` is refused before any media (`bye policy.blocked`).
 
+**Recorder devices in messaging (2026-10-05).**
+- A leaf's delegated capabilities are now part of `LeafIdentity` (`is_recorder`).
+- `dsip-msg --recorder` delegates `dsip.record`. It sends no content or receipts, discloses nothing, and archives
+  what it receives to `recorder-archive.jsonl`.
+- Members run `dsip_recording::conversation` over the authenticated leaves:
+  - they render a conversation becoming recorded, or no longer recorded;
+  - they refuse to send content or receipts before `accept-recording` (`decline-recording` leaves);
+  - they drop anything a recorder leaf sends.
+- **Choice made (Impl, now in C§5):** a recorder of a member's own identity needs no acceptance from that member.
+- **Choice made (Impl, now in C§5):** a recorder device joins conversations, never its identity's personal group.
+  So it gets no archive key and records only what was sent while it was disclosed. Without this, the multi-device
+  path would have handed it the whole history, including messages sent before anyone was told.
+- `demos/recorder-device-demo.sh` (in CI) covers all of this, including a misbehaving recorder whose message both
+  members drop.
+
 **Not done yet.**
-- `dsip-msg` recorder devices (C§5) and their demo.
+- Persisting a counterparty's acceptance across devices of the same identity. Today it is per device.
 - Whether a party's `policy.recording: forbidden` should also be enforced by its relay. It is not: a relay never
   sees media and cannot know.
 
