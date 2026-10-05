@@ -100,6 +100,13 @@ jobs:
         # held for an outsider; an introduction between outsiders dropped silently.
         run: timeout 300 bash demos/private-relay-demo.sh | tail -12
         working-directory: impl
+      - name: device events alongside SNMP (v0.9 draft)
+        # Self-verifying: real SNMPv1/v2c traps → dsip-trapd → signed device events in an MLS alarm group → the same
+        # alarm list on every member; a repeat pages nobody; an acknowledged alarm does not escalate; an unacknowledged
+        # critical one makes the escalation agent call the on-call phone over a relay; a silent gateway raises its own
+        # alarm; the community string never leaves the gateway.
+        run: timeout 300 bash demos/device-events-demo.sh | tail -30
+        working-directory: impl
       - name: messaging over the wire (two mailboxes, federated hub, real MLS)
         # Self-verifying: fails unless the MLS-encrypted text arrives live, after a disconnect, after a
         # device restart, after a crash between processing and commit (SQLite device state), and a

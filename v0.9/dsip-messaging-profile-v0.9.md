@@ -1048,6 +1048,8 @@ A `content` object:
 | `file` | `blob`, `name` |
 | `contact` | `did`, optional `display_name`, `contact_token` (§19.4) |
 | `location` | `lat_e7`, `lon_e7` (integer degrees × 10⁷, per §10.3), optional `accuracy_m` |
+| `device-event` | `event` (v0.9, Device Events Profile E§5): a device's alarm or event, signed by its gateway |
+| `alarm-ack` | `alarm` (`{resource, type, qualifier}`), `state` (`ack` or `closed`) (v0.9, E§5) |
 
 An unknown kind that carries a `blob` MUST be offered as a file. Otherwise it MUST be rendered as
 an "unsupported message" placeholder, never silently dropped.

@@ -17,10 +17,14 @@ const OBJECTS: Record<string, string> = {
 /** Spec: M§12, M§13.3 — objects that would disclose the identity's own state to a peer anywhere else. */
 const PERSONAL_ONLY = ["archive-key", "call-event"];
 
-/** Spec: M§8.2 — registry `dsip-content-kind` → the body members the kind MUST carry. */
+/**
+ * Registry `dsip-content-kind` → the body members the kind MUST carry.
+ * Spec: M§8.2, E§5 (v0.9 adds `device-event` and `alarm-ack` for the Device Events Profile)
+ */
 const KIND_BODY: Record<string, string[]> = {
   text: ["text"], audio: ["blob", "duration_ms"], video: ["blob", "duration_ms"], image: ["blob"],
   file: ["blob", "name"], contact: ["did"], location: ["lat_e7", "lon_e7"],
+  "device-event": ["event"], "alarm-ack": ["alarm", "state"],
 };
 /** Spec: M§8.2 — registry `dsip-content-purpose`. */
 const PURPOSES = ["message", "voice-message", "video-message", "voicemail", "attachment", "reaction", "callback-request"];
