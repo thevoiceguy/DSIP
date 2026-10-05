@@ -2566,10 +2566,30 @@ DSIP also adds:
 - Probing the second implementation's notes pinned: label-by-label name matching, framing checked before content,
   the 2^53 bound, and non-hex payloads as `malformed`.
 
+**Network (2026-10-05).**
+- `dsip answer --publish-pkarr --pkarr-relay <url>` builds and signs the `_dsip` packet
+  (`dsip_core::pkarr::build_payload`, with a round-trip unit test through the reader) and re-signs at 2/3 of the
+  TTL. `dsip call --pkarr-relay <url>` asks every relay, reads each answer offline and takes the highest seq (§8.3).
+- Relays only (Pkarr's HTTP `PUT/GET /<z32>`), since a relay writes to the Mainline DHT itself. Direct DHT access
+  (the mainline crate) is not done.
+- **Interoperability:** the real `pkarr-relay` (v8.1.0 source, `--testnet`: a 10-node Mainline DHT on localhost,
+  nothing public) accepted 4 successive publishes, with its own signature and packet parsing. It served them back,
+  the Python reader accepted the bytes, and a call was completed through it.
+- **Demo** (`demos/pkarr-demo.sh`, in CI, against local stand-ins of the HTTP API): a hostile relay's forged newer
+  packet is rejected (`signature`), the call reaches the real relay, the seq rises across re-publishes, and another
+  application's record in the zone survives.
+- **Choice (Impl, open for the profile):** "keep the zone's other records" cannot always be done byte for byte. A
+  record whose rdata holds names (CNAME, SVCB, MX, …) may carry compression pointers into the old packet. The
+  publisher keeps TXT, A and AAAA records verbatim and reports how many others it dropped. It ignores a previous
+  packet that does not verify under its own key, so a hostile relay cannot push its seq. The profile should say
+  whether a publisher must re-encode such records (expand their names) or may drop them.
+- **Choice (Impl):** the timestamp is max(clock, previous + 1). After a clock step back that signs ahead of the
+  clock, which the profile forbids, but publishing below the held seq is refused everywhere. The profile could
+  name this case.
+
 **Open.**
 - Option (b), for multi-device identities.
-- A publisher and resolver over the network: the Rust side would use the pkarr and mainline crates (relays, DHT);
-  browsers are relay-only.
+- Direct Mainline DHT access (no relay) on the Rust side; browsers are relay-only.
 
 ## 106. M§8.4 "Fetching" — a device whose blob fetch finds nothing
 
