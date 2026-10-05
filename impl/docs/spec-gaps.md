@@ -2799,3 +2799,39 @@ at an endpoint the organisation controls (research track C). Without a disclosur
 - Whether a party's `policy.recording: forbidden` should also be enforced by its relay. It is not: a relay never
   sees media and cannot know.
 
+## 108. M§7.2 / Recording Profile C§5 — every device of an identity in a new conversation; a recorder never stands in
+
+**Found (2026-10-05)** by testing whether conversations created after a recorder device exists pick it up. Neither
+direction did:
+- **Alice creates a conversation with Bob.** Bob's mailbox happened to hand out his **recorder's** KeyPackage. The
+  conversation was Alice plus Bob's recorder; Bob's phone never joined.
+- **Bob creates one.** Only his phone and Alice joined, so the conversation was not recorded at all.
+
+**Cause: an implementation bug, not the spec.** M§5.5 has a fetch return one KeyPackage per device, and M§7.2 has the
+creator add "its own other devices and the peer's devices in one commit". `dsip-msg` added only the first KeyPackage
+it was given, and never its own other devices. A second ordinary device, such as a laptop, missed new conversations
+the same way.
+
+**Spec gap (recording-specific).** With every device added, a recorder joins every new conversation of its identity,
+as it should. But if only the recorder had KeyPackages left, a conversation could hold the person's recorder without
+the person.
+
+**Decided (with the user).** C§5 now says:
+- an adder adds a recorder device only together with at least one other device of that identity, unless that
+  identity is the adder's own (the person is then present through the adding device);
+- otherwise the identity is not added (`recorder-only`);
+- the personal group never takes a recorder.
+
+The rule is pinned by `recording/add-devices-*` (9 vectors, three-way parity). The second implementation's agent
+found an ambiguity in the first wording (the adder's own identity), and the `self_identity` input settled it.
+
+**Implemented.**
+- `CommitOp::Add` carries every selected KeyPackage in one commit.
+- `create` adds the peer's devices and the creator's own other devices.
+- `add` and the successor re-add take every device of the peer.
+- All of these go through `dsip_recording::add_devices`.
+
+**Demo.** `demos/recorder-device-demo.sh` now creates a conversation from each side after the recorder exists:
+- both include the recorder, and Alice is told each is recorded;
+- 19 messaging demos pass with every-device adds.
+

@@ -1,0 +1,52 @@
+{
+  "vector": "recording/add-devices-all-devices-with-recorder",
+  "format": 1,
+  "kind": "recording",
+  "description": "Every device of the identity is added, the recorder included, so a new conversation is recorded too.",
+  "spec_ref": [
+    "C§5",
+    "M§7.2"
+  ],
+  "context": {},
+  "input": {
+    "check": "add-devices",
+    "target": "did:web:acme.example:bob",
+    "self_identity": "did:web:alice.example",
+    "self_device": "did:key:z6MkAlicePhone",
+    "purpose": "conversation",
+    "key_packages": [
+      {
+        "device": "did:key:z6MkBobPhone",
+        "identity": "did:web:acme.example:bob",
+        "capabilities": [
+          "dsip.signaling",
+          "dsip.messaging"
+        ]
+      },
+      {
+        "device": "did:key:z6MkBobRec",
+        "identity": "did:web:acme.example:bob",
+        "capabilities": [
+          "dsip.signaling",
+          "dsip.messaging",
+          "dsip.record"
+        ]
+      },
+      {
+        "device": "did:key:z6MkBobLaptop",
+        "identity": "did:web:acme.example:bob",
+        "capabilities": [
+          "dsip.signaling",
+          "dsip.messaging"
+        ]
+      }
+    ]
+  },
+  "expect": {
+    "add": [
+      "did:key:z6MkBobPhone",
+      "did:key:z6MkBobRec",
+      "did:key:z6MkBobLaptop"
+    ]
+  }
+}

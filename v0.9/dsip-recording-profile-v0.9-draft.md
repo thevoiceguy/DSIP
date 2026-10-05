@@ -98,6 +98,13 @@ A conversation is **recorded** while any member leaf's delegation (M§6.2) carri
   rendered, not archived. A recorder is receive-only, and can never speak for the person whose device it is. Its
   handshake messages (Update commits renewing its delegation, M§6.2) are processed as usual.
 
+**A recorder never stands in for the person.** When a device adds an identity to a conversation, it adds every device
+that the identity's KeyPackage directory returns (M§5.5, M§7.2), recorder devices included. So a conversation created
+after a recorder exists is recorded too, whichever side creates it. It adds a recorder device only together with at
+least one of that identity's other devices, unless that identity is the adder's own (the person is then present
+through the adding device). If only recorder devices are available, the identity is not added (`recorder-only`). Otherwise a conversation could hold the person's recorder without the person. The rule is pinned by
+`check: "add-devices"` in `impl/vectors/README.md`.
+
 A recorder device is added like any device (M§12.3), with one difference: it joins the identity's conversations,
 **never its personal group**. It therefore receives no archive key (M§12.1) and records only what is sent while it is
 a visible member, which is exactly what was disclosed. Earlier history stays out of its reach. It is removed or

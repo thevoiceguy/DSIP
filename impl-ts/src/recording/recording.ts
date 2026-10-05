@@ -227,8 +227,48 @@ export function checkRecordingSession(input: JsonObject): JsonObject {
 }
 
 /**
- * Runner for kind `recording`: a consent trace (`input.steps`), or `input.check` of `conversation` or
- * `recording-session`.
+ * The devices a device adds for an identity, given what its KeyPackage directory returned: every
+ * device of `target` except `self_device` (first entry per device, in input order), never a recorder
+ * for the `personal` group; refused `no-key-packages` when none remains and `recorder-only` when every
+ * remaining device is a recorder and `target` is not `self_identity`.
+ *
+ * Spec: C§5 (an identity is added with every device its KeyPackage directory returns, recorders
+ * included, but a recorder only together with at least one of that identity's other devices; a
+ * recorder never joins the personal group; when the identity is the adder's own, the person is
+ * present through the adding device, so its recorder alone is added), M§5.5, M§7.2.
+ * Spec: the README fixes the order: the personal-group filter applies before both refusals, so a
+ * personal group offered only a recorder is `no-key-packages`.
+ * Impl: an entry with no `capabilities` array is not a recorder; a missing `self_identity` matches no
+ * `target`.
+ */
+export function checkAddDevices(input: JsonObject): JsonObject {
+  const target = input["target"];
+  const self = input["self_device"];
+  const selfIdentity = input["self_identity"];
+  const personal = input["purpose"] === "personal";
+  const kps = (input["key_packages"] as JsonObject[] | undefined) ?? [];
+  const isRecorder = (k: JsonObject): boolean =>
+    Array.isArray(k["capabilities"]) && (k["capabilities"] as Json[]).includes(RECORD_CAPABILITY);
+  const seen = new Set<string>();
+  const candidates: JsonObject[] = [];
+  for (const k of kps) {
+    if (k["identity"] !== target || k["device"] === self) continue;
+    const d = String(k["device"]);
+    if (seen.has(d)) continue;
+    seen.add(d);
+    candidates.push(k);
+  }
+  // Spec: C§5, a recorder device joins conversations, never the personal group.
+  const remaining = personal ? candidates.filter((k) => !isRecorder(k)) : candidates;
+  if (remaining.length === 0) return { refused: "no-key-packages" };
+  // Spec: C§5, a recorder never stands in for the person, unless the adder is that person.
+  if (remaining.every(isRecorder) && (selfIdentity === undefined || target !== selfIdentity)) return { refused: "recorder-only" };
+  return { add: remaining.map((k) => String(k["device"])) };
+}
+
+/**
+ * Runner for kind `recording`: a consent trace (`input.steps`), or `input.check` of `conversation`,
+ * `recording-session` or `add-devices`.
  *
  * Spec: C§4, C§5, C§6.
  */
@@ -242,6 +282,8 @@ export function runRecording(context: JsonObject, input: JsonObject): Json {
       return checkConversation(input);
     case "recording-session":
       return checkRecordingSession(input);
+    case "add-devices":
+      return checkAddDevices(input);
     default:
       throw new Error(`unknown recording check ${String(input["check"])}`);
   }

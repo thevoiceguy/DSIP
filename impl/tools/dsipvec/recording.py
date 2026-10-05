@@ -128,5 +128,24 @@ def run(v: dict):
         return conversation(i)
     if i.get("check") == "recording-session":
         return recording_session(i)
+    if i.get("check") == "add-devices":
+        return add_devices(i)
     m = Consent(v["context"])
     return [{"emit": m.step(st["event"]), **m.snapshot()} for st in i["steps"]]
+
+
+def add_devices(i: dict) -> dict:
+    """C§5, M§5.5, M§7.2: the devices to add for an identity from its KeyPackage directory's answer."""
+    seen, cands = set(), []
+    for k in i["key_packages"]:
+        if k["identity"] != i["target"] or k["device"] == i.get("self_device") or k["device"] in seen:
+            continue
+        seen.add(k["device"])
+        cands.append(k)
+    if i["purpose"] == "personal":
+        cands = [k for k in cands if "dsip.record" not in k.get("capabilities", [])]
+    if not cands:
+        return {"refused": "no-key-packages"}
+    if all("dsip.record" in k.get("capabilities", []) for k in cands) and i["target"] != i.get("self_identity"):
+        return {"refused": "recorder-only"}
+    return {"add": [k["device"] for k in cands]}

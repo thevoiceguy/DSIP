@@ -242,5 +242,39 @@ def session_vectors() -> list[dict]:
     return out
 
 
+def add_devices_vectors() -> list[dict]:
+    out = []
+    R = ["C§5", "M§7.2"]
+    ALICE_PHONE = {"device": "did:key:z6MkAlicePhone", "identity": "did:web:alice.example", "capabilities": ["dsip.signaling", "dsip.messaging"]}
+    BOB_PHONE = {"device": "did:key:z6MkBobPhone", "identity": BOB, "capabilities": ["dsip.signaling", "dsip.messaging"]}
+    BOB_LAPTOP = {"device": "did:key:z6MkBobLaptop", "identity": BOB, "capabilities": ["dsip.signaling", "dsip.messaging"]}
+    BOB_REC = {"device": "did:key:z6MkBobRec", "identity": BOB, "capabilities": ["dsip.signaling", "dsip.messaging", "dsip.record"]}
+
+    def av(vid, desc, inp, want):
+        out.append(rv(f"add-devices-{vid}", desc, R, {"check": "add-devices", **inp}, want))
+    def conv(kps, self_device="did:key:z6MkAlicePhone", target=BOB, purpose="conversation"):
+        me = BOB if "Bob" in self_device else "did:web:alice.example"
+        return {"target": target, "self_identity": me, "self_device": self_device, "purpose": purpose, "key_packages": kps}
+    av("all-devices-with-recorder", "Every device of the identity is added, the recorder included, so a new conversation is recorded too.",
+       conv([BOB_PHONE, BOB_REC, BOB_LAPTOP]), {"add": ["did:key:z6MkBobPhone", "did:key:z6MkBobRec", "did:key:z6MkBobLaptop"]})
+    av("recorder-only", "Only the recorder has KeyPackages: the identity is not added — a recorder never stands in for the person.",
+       conv([BOB_REC]), {"refused": "recorder-only"})
+    av("own-other-devices", "The creator adds its own other devices, the recorder included, never itself.",
+       conv([BOB_PHONE, BOB_LAPTOP, BOB_REC], self_device="did:key:z6MkBobPhone"), {"add": ["did:key:z6MkBobLaptop", "did:key:z6MkBobRec"]})
+    av("own-only-recorder-left", "Besides itself the creator's identity has only its recorder: it is added — the person is "
+       "present through the creating device.", conv([BOB_PHONE, BOB_REC], self_device="did:key:z6MkBobPhone"),
+       {"add": ["did:key:z6MkBobRec"]})
+    av("personal-never-recorder", "The personal group never takes a recorder device.",
+       conv([BOB_PHONE, BOB_REC, BOB_LAPTOP], self_device="did:key:z6MkBobPhone", purpose="personal"), {"add": ["did:key:z6MkBobLaptop"]})
+    av("personal-only-recorder", "For the personal group a lone recorder leaves nothing to add.",
+       conv([BOB_PHONE, BOB_REC], self_device="did:key:z6MkBobPhone", purpose="personal"), {"refused": "no-key-packages"})
+    av("none", "No KeyPackage at all.", conv([]), {"refused": "no-key-packages"})
+    av("other-identity-ignored", "Entries for another identity are not candidates.", conv([ALICE_PHONE, BOB_PHONE]),
+       {"add": ["did:key:z6MkBobPhone"]})
+    av("duplicate-device-once", "A device with two KeyPackages (one-time and last resort) is added once.",
+       conv([BOB_PHONE, BOB_PHONE, BOB_LAPTOP]), {"add": ["did:key:z6MkBobPhone", "did:key:z6MkBobLaptop"]})
+    return out
+
+
 def vectors() -> list[dict]:
-    return consent_vectors() + conversation_vectors() + session_vectors()
+    return consent_vectors() + conversation_vectors() + session_vectors() + add_devices_vectors()
