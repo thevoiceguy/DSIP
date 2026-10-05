@@ -7,7 +7,7 @@
 **Editor:** James Ferris
 **Date:** October 2026
 **Supersedes:** Draft v0.7
-**Companion documents:** WebRTC Media Binding 1.0 (`dsip-webrtc-media-binding-v0.9.md`); Gateway Profile 1.0 (`dsip-gateway-profile-v0.9.md`); Messaging Profile 1.0 (`dsip-messaging-profile-v0.9.md`, with its schema set `dsip-messaging-schemas-draft/`); RTP/SRTP Media Binding (draft, `dsip-rtp-srtp-media-binding-v0.9-draft.md`); DHT Hints Profile (draft, `dsip-dht-hints-profile-v0.9-draft.md`); JSON Schema set v0.8 (`dsip-schemas-v0.9-draft/`); conformance vectors (`impl/vectors/`, 737 vectors, Rust/Python parity)
+**Companion documents:** WebRTC Media Binding 1.0 (`dsip-webrtc-media-binding-v0.9.md`); Gateway Profile 1.0 (`dsip-gateway-profile-v0.9.md`); Messaging Profile 1.0 (`dsip-messaging-profile-v0.9.md`, with its schema set `dsip-messaging-schemas-draft/`); RTP/SRTP Media Binding (draft, `dsip-rtp-srtp-media-binding-v0.9-draft.md`); DHT Hints Profile (draft, `dsip-dht-hints-profile-v0.9-draft.md`); Recording Profile (draft, `dsip-recording-profile-v0.9-draft.md`); JSON Schema set v0.8 (`dsip-schemas-v0.9-draft/`); conformance vectors (`impl/vectors/`, 737 vectors, Rust/Python parity)
 
 ---
 
@@ -1407,6 +1407,7 @@ The "valid on" column governs the four session message types, `reject`, `cancel`
 | `policy.first-contact-required` | Unknown identity must complete the first-contact mechanism (§19.4) before inviting | reject |
 | `policy.blocked` | Organizational or relay policy refused the session | reject, cancel |
 | `policy.terminated` | Session terminated by policy authority (e.g., organizational compliance) | bye |
+| `policy.recording-declined` | A party declined to be recorded (Recording Profile C§4, draft) | reject, bye |
 | `policy.rate-limited` | Sender exceeded a policy rate limit; `retry_after` SHOULD be present | reject, error |
 | `policy.subscription-lifetime` | `subscribe.expires_in` exceeds the per-event cap (§9.3); the cap SHOULD appear in `detail` | error |
 
@@ -1572,6 +1573,8 @@ Policy is negotiated alongside media.
 ```
 
 Policy statements do not magically enforce behavior. They provide signed declarations that clients, gateways, relays, and applications can enforce or display.
+
+`policy.recording` states what a party accepts **from the other side**: `allowed`, `consent-required` (the default) or `forbidden`. That a party **is** recording is a different statement, its signed `recording` declaration. The Recording Profile (draft) defines it, with what a counterparty's client must render and when it must ask for acceptance (C§3–C§4).
 
 ---
 
@@ -2162,7 +2165,8 @@ DSIP needs registries for:
 - Info data namespaces (`dsip-info-about`, §12.12)
 - Subscription event classes (`dsip-subscription-event`: `presence`, `publication`; §9.3)
 - Grant scopes (`dsip-grant-scope`: `dsip.invite`, `dsip.subscribe`, `dsip.message`; §19.4)
-- Delegation capabilities (`dsip-delegation-capability`: `dsip.signaling`, `dsip.media.interactive`, `dsip.messaging`; §7.4)
+- Delegation capabilities (`dsip-delegation-capability`: `dsip.signaling`, `dsip.media.interactive`, `dsip.messaging`; §7.4; `dsip.record`, Recording Profile C§1, draft)
+- Recording states and purposes (`dsip-recording-state`: `on`, `paused`, `off`; `dsip-recording-purpose`: `compliance`, `quality`, `personal`; Recording Profile C§7, draft)
 - Delegation-revocation reasons (`dsip-revocation-reason`: `lost`, `compromised`, `retired`, `policy`; §7.4)
 - DID service types (`DSIPSignaling`, §13.2; `DSIPMailbox`, Messaging Profile)
 - Credential claim types (`tel`, Gateway Profile)
@@ -2193,6 +2197,7 @@ DSIP Gateway Profile 1.0
 DSIP Messaging Profile 1.0
 DSIP Mailbox 1.0
 DSIP DHT Hints Profile 1.0 (draft)
+DSIP Recording Profile (draft)
 ```
 
 (The v0.6 "Broadcast Provenance Extension" is gone: provenance is a core message of the Verified Broadcast Profile since v0.7.)

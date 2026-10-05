@@ -1,0 +1,57 @@
+{
+  "vector": "recording/policy-never-declines",
+  "format": 1,
+  "kind": "recording",
+  "description": "A standing policy of never (or policy.recording forbidden): rendered and declined at once.",
+  "spec_ref": [
+    "C§4"
+  ],
+  "context": {
+    "role": "callee",
+    "accept": "never"
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "received": {
+            "type": "invite",
+            "recording": {
+              "state": "on",
+              "recorder": "did:web:rec.acme.example",
+              "purpose": "compliance"
+            }
+          }
+        }
+      }
+    ]
+  },
+  "expect": [
+    {
+      "emit": [
+        {
+          "render": {
+            "state": "on",
+            "recorder": "did:web:rec.acme.example",
+            "purpose": "compliance"
+          }
+        },
+        {
+          "send": {
+            "type": "reject",
+            "reason": "policy.recording-declined"
+          }
+        }
+      ],
+      "disclosure": {
+        "state": "on",
+        "recorder": "did:web:rec.acme.example",
+        "purpose": "compliance"
+      },
+      "pending": false,
+      "hold_media": false,
+      "accepted": [],
+      "ended": "policy.recording-declined"
+    }
+  ]
+}

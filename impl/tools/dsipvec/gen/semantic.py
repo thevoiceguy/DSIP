@@ -62,10 +62,22 @@ def vectors() -> list[dict]:
     out.append(sv("reason-not-valid-on-type", "user.hangup is registered for bye only; on reject it is accepted with a warning (Impl, spec-gap 10).",
                   ["§15.4"], {**rej, "reason": "user.hangup"},
                   accept(effective={"reason": "user.hangup", "fallback": "none"}, warnings=["reason-not-valid-on-type"])))
+    # Recording Profile (draft, C§4, C§7): the reason a party declines to be recorded
+    out.append(sv("reason-recording-declined", "policy.recording-declined is registered for reject and bye (Recording Profile C§7).",
+                  ["§15.4", "C§4"], {**rej, "reason": "policy.recording-declined"},
+                  accept(effective={"reason": "policy.recording-declined", "fallback": "none"})))
+    out.append(sv("recording-declaration-valid", "An invite declaring its sender's recording, with the recorder (C§3).",
+                  ["C§3"], {**inv, "recording": {"state": "on", "recorder": "did:web:rec.acme.example", "purpose": "compliance"}},
+                  accept()))
+    out.append(sv("recording-declaration-without-recorder", "A declaration that is not off must name its recorder (C§3).",
+                  ["C§3"], {**inv, "recording": {"state": "paused"}}, reject("schema-invalid")))
     err_mbx = {"dsip": F.VERSION, "type": "error", "id": uid("errm"), "from": "did:web:mbx.example.com", "to": BPH,
                "reason": "mailbox.commit-conflict", "issued_at": NOW + 5, "expires_at": NOW + 35}
     out.append(sv("reason-mailbox-registered", "mailbox is a core reason category (v0.8, spec-gap 38); its tokens are registered for error.",
                   ["§15.1", "§15.4"], err_mbx, accept(effective={"reason": "mailbox.commit-conflict", "fallback": "none"})))
+    out.append(sv("reason-recording-declined-on-error", "policy.recording-declined on an error is outside its valid-on column: "
+                  "accepted with a warning (spec-gap 10).", ["§15.4", "C§7"], {**err_mbx, "reason": "policy.recording-declined"},
+                  accept(effective={"reason": "policy.recording-declined", "fallback": "none"}, warnings=["reason-not-valid-on-type"])))
     out.append(sv("reason-mailbox-unknown-condition", "An unregistered mailbox condition falls back by category, not to session.failed.",
                   ["§15.1", "§15.3"], {**err_mbx, "reason": "mailbox.archive-full"},
                   accept(effective={"reason": "mailbox.archive-full", "fallback": "category"})))

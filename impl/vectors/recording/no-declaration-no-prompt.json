@@ -1,0 +1,66 @@
+{
+  "vector": "recording/no-declaration-no-prompt",
+  "format": 1,
+  "kind": "recording",
+  "description": "No declaration: nothing to render, nothing held, answering proceeds.",
+  "spec_ref": [
+    "C§4"
+  ],
+  "context": {
+    "role": "callee",
+    "accept": "ask"
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "received": {
+            "type": "invite"
+          }
+        }
+      },
+      {
+        "event": {
+          "local": "answer"
+        }
+      },
+      {
+        "event": {
+          "local": "decline"
+        }
+      }
+    ]
+  },
+  "expect": [
+    {
+      "emit": [],
+      "disclosure": null,
+      "pending": false,
+      "hold_media": false,
+      "accepted": [],
+      "ended": null
+    },
+    {
+      "emit": [
+        {
+          "send": {
+            "type": "answer"
+          }
+        }
+      ],
+      "disclosure": null,
+      "pending": false,
+      "hold_media": false,
+      "accepted": [],
+      "ended": null
+    },
+    {
+      "emit": [],
+      "disclosure": null,
+      "pending": false,
+      "hold_media": false,
+      "accepted": [],
+      "ended": null
+    }
+  ]
+}

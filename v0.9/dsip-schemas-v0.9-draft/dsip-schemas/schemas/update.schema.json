@@ -51,6 +51,9 @@
     "policy": {
       "$ref": "#/$defs/policy"
     },
+    "recording": {
+      "$ref": "#/$defs/recording"
+    },
     "sealed": {
       "type": "object",
       "description": "Extension sealed-body/1.0 (spec 10.4): the type's sealable fields, sealed with HPKE to the addressee identity's X25519 key agreement key. The plaintext is a JSON object of sealable fields only, padded with spaces to a multiple of 256 bytes. A payload with sealed lists sealed-body/1.0 in dsip.extensions and dsip.critical. A sealed field never also appears in clear (receiver check after opening).",
@@ -241,6 +244,104 @@
         "pattern": "^[a-z][a-z0-9-]*$"
       },
       "description": "Registered policy keys to registered policy values (spec 14.4). Registry membership is a semantic check."
+    },
+    "recording": {
+      "type": "object",
+      "properties": {
+        "state": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$",
+          "description": "Registered (dsip-recording-state): on, paused, off. Membership is a semantic check."
+        },
+        "recorder": {
+          "$ref": "#/$defs/did",
+          "description": "The recorder's identity (Recording Profile C\u00a73, C\u00a76); a claim, rendered."
+        },
+        "purpose": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$",
+          "description": "Registered (dsip-recording-purpose): compliance, quality, personal; open."
+        }
+      },
+      "required": [
+        "state"
+      ],
+      "additionalProperties": false,
+      "if": {
+        "properties": {
+          "state": {
+            "not": {
+              "const": "off"
+            }
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "state",
+          "recorder"
+        ]
+      },
+      "description": "The sender's recording declaration (Recording Profile C\u00a73, draft): shaped like SIPREC a=record."
+    },
+    "recordingSession": {
+      "type": "object",
+      "properties": {
+        "of": {
+          "$ref": "#/$defs/ulid",
+          "description": "The recorded session's id."
+        },
+        "participants": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "properties": {
+              "identity": {
+                "$ref": "#/$defs/did"
+              },
+              "role": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9-]*$",
+                "description": "self or peer."
+              }
+            },
+            "required": [
+              "identity",
+              "role"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "streams": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "properties": {
+              "media": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "participant": {
+                "$ref": "#/$defs/did"
+              }
+            },
+            "required": [
+              "media",
+              "participant"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "of",
+        "participants",
+        "streams"
+      ],
+      "additionalProperties": false,
+      "description": "Metadata of a recording session (Recording Profile C\u00a76, draft): shaped like RFC 7865."
     },
     "identityInfo": {
       "type": "object",

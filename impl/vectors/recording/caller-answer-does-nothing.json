@@ -1,0 +1,68 @@
+{
+  "vector": "recording/caller-answer-does-nothing",
+  "format": 1,
+  "kind": "recording",
+  "description": "A caller has nothing to answer: local answer emits nothing.",
+  "spec_ref": [
+    "C§4"
+  ],
+  "context": {
+    "role": "caller",
+    "accept": "ask"
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "received": {
+            "type": "answer",
+            "recording": {
+              "state": "on",
+              "recorder": "did:web:rec.acme.example",
+              "purpose": "compliance"
+            }
+          }
+        }
+      },
+      {
+        "event": {
+          "local": "answer"
+        }
+      }
+    ]
+  },
+  "expect": [
+    {
+      "emit": [
+        {
+          "render": {
+            "state": "on",
+            "recorder": "did:web:rec.acme.example",
+            "purpose": "compliance"
+          }
+        }
+      ],
+      "disclosure": {
+        "state": "on",
+        "recorder": "did:web:rec.acme.example",
+        "purpose": "compliance"
+      },
+      "pending": true,
+      "hold_media": true,
+      "accepted": [],
+      "ended": null
+    },
+    {
+      "emit": [],
+      "disclosure": {
+        "state": "on",
+        "recorder": "did:web:rec.acme.example",
+        "purpose": "compliance"
+      },
+      "pending": true,
+      "hold_media": true,
+      "accepted": [],
+      "ended": null
+    }
+  ]
+}

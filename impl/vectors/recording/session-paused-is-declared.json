@@ -1,0 +1,64 @@
+{
+  "vector": "recording/session-paused-is-declared",
+  "format": 1,
+  "kind": "recording",
+  "description": "A paused declaration is still a declaration (the leg's media is then inactive).",
+  "spec_ref": [
+    "C§6"
+  ],
+  "context": {},
+  "input": {
+    "check": "recording-session",
+    "declared": {
+      "session": "01J9ZRECRD0000000000000001",
+      "state": "paused",
+      "recorder": "did:web:rec.acme.example"
+    },
+    "recorder": {
+      "identity": "did:web:rec.acme.example",
+      "capabilities": [
+        "dsip.signaling",
+        "dsip.media.interactive",
+        "dsip.record"
+      ]
+    },
+    "offer": {
+      "media": [
+        {
+          "type": "audio",
+          "direction": "sendonly"
+        },
+        {
+          "type": "audio",
+          "direction": "sendonly"
+        }
+      ],
+      "recording_session": {
+        "of": "01J9ZRECRD0000000000000001",
+        "participants": [
+          {
+            "identity": "did:web:acme.example:bob",
+            "role": "self"
+          },
+          {
+            "identity": "did:web:carol.example",
+            "role": "peer"
+          }
+        ],
+        "streams": [
+          {
+            "media": 0,
+            "participant": "did:web:acme.example:bob"
+          },
+          {
+            "media": 1,
+            "participant": "did:web:carol.example"
+          }
+        ]
+      }
+    }
+  },
+  "expect": {
+    "ok": true
+  }
+}

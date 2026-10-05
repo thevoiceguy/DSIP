@@ -1,0 +1,48 @@
+{
+  "vector": "recording/purpose-absent",
+  "format": 1,
+  "kind": "recording",
+  "description": "Without a purpose the render carries none.",
+  "spec_ref": [
+    "C§4"
+  ],
+  "context": {
+    "role": "callee",
+    "accept": "ask"
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "received": {
+            "type": "invite",
+            "recording": {
+              "state": "on",
+              "recorder": "did:web:rec.acme.example"
+            }
+          }
+        }
+      }
+    ]
+  },
+  "expect": [
+    {
+      "emit": [
+        {
+          "render": {
+            "state": "on",
+            "recorder": "did:web:rec.acme.example"
+          }
+        }
+      ],
+      "disclosure": {
+        "state": "on",
+        "recorder": "did:web:rec.acme.example"
+      },
+      "pending": true,
+      "hold_media": true,
+      "accepted": [],
+      "ended": null
+    }
+  ]
+}

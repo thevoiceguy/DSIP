@@ -1,0 +1,51 @@
+{
+  "vector": "recording/unregistered-state-reads-as-on",
+  "format": 1,
+  "kind": "recording",
+  "description": "An unregistered state is rendered as given and treated as on.",
+  "spec_ref": [
+    "C§4"
+  ],
+  "context": {
+    "role": "callee",
+    "accept": "ask"
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "received": {
+            "type": "invite",
+            "recording": {
+              "state": "streaming",
+              "recorder": "did:web:rec.acme.example",
+              "purpose": "compliance"
+            }
+          }
+        }
+      }
+    ]
+  },
+  "expect": [
+    {
+      "emit": [
+        {
+          "render": {
+            "state": "streaming",
+            "recorder": "did:web:rec.acme.example",
+            "purpose": "compliance"
+          }
+        }
+      ],
+      "disclosure": {
+        "state": "streaming",
+        "recorder": "did:web:rec.acme.example",
+        "purpose": "compliance"
+      },
+      "pending": true,
+      "hold_media": true,
+      "accepted": [],
+      "ended": null
+    }
+  ]
+}

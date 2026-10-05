@@ -1,0 +1,103 @@
+{
+  "vector": "recording/decline-after-accepting",
+  "format": 1,
+  "kind": "recording",
+  "description": "A party may decline at any time, even after accepting.",
+  "spec_ref": [
+    "C§4"
+  ],
+  "context": {
+    "role": "caller",
+    "accept": "ask"
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "received": {
+            "type": "answer",
+            "recording": {
+              "state": "on",
+              "recorder": "did:web:rec.acme.example",
+              "purpose": "compliance"
+            }
+          }
+        }
+      },
+      {
+        "event": {
+          "local": "accept"
+        }
+      },
+      {
+        "event": {
+          "local": "decline"
+        }
+      }
+    ]
+  },
+  "expect": [
+    {
+      "emit": [
+        {
+          "render": {
+            "state": "on",
+            "recorder": "did:web:rec.acme.example",
+            "purpose": "compliance"
+          }
+        }
+      ],
+      "disclosure": {
+        "state": "on",
+        "recorder": "did:web:rec.acme.example",
+        "purpose": "compliance"
+      },
+      "pending": true,
+      "hold_media": true,
+      "accepted": [],
+      "ended": null
+    },
+    {
+      "emit": [
+        {
+          "accepted": {
+            "recorder": "did:web:rec.acme.example",
+            "by": "user"
+          }
+        }
+      ],
+      "disclosure": {
+        "state": "on",
+        "recorder": "did:web:rec.acme.example",
+        "purpose": "compliance"
+      },
+      "pending": false,
+      "hold_media": false,
+      "accepted": [
+        "did:web:rec.acme.example"
+      ],
+      "ended": null
+    },
+    {
+      "emit": [
+        {
+          "send": {
+            "type": "bye",
+            "reason": "policy.recording-declined"
+          }
+        }
+      ],
+      "disclosure": {
+        "state": "on",
+        "recorder": "did:web:rec.acme.example",
+        "purpose": "compliance"
+      },
+      "pending": false,
+      "hold_media": false,
+      "accepted": [
+        "did:web:rec.acme.example"
+      ],
+      "ended": "policy.recording-declined"
+    }
+  ]
+}

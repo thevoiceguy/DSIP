@@ -1,0 +1,51 @@
+{
+  "vector": "semantic/reason-recording-declined-on-error",
+  "format": 1,
+  "kind": "semantic",
+  "description": "policy.recording-declined on an error is outside its valid-on column: accepted with a warning (spec-gap 10).",
+  "spec_ref": [
+    "§15.4",
+    "C§7"
+  ],
+  "context": {
+    "now": 1760000000,
+    "supported": {
+      "core": "1.0",
+      "profiles": [
+        "interactive-media/1.0",
+        "verified-broadcast/1.0"
+      ],
+      "extensions": []
+    }
+  },
+  "input": {
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "interactive-media/1.0"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "error",
+      "id": "01K742SG0074QPH1VG3B6KVTMB",
+      "from": "did:web:mbx.example.com",
+      "to": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+      "reason": "policy.recording-declined",
+      "issued_at": 1760000005,
+      "expires_at": 1760000035
+    }
+  },
+  "expect": {
+    "verdict": "accept",
+    "effective": {
+      "reason": "policy.recording-declined",
+      "fallback": "none"
+    },
+    "warnings": [
+      "reason-not-valid-on-type"
+    ]
+  }
+}

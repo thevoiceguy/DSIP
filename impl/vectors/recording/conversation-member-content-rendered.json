@@ -1,0 +1,53 @@
+{
+  "vector": "recording/conversation-member-content-rendered",
+  "format": 1,
+  "kind": "recording",
+  "description": "Bob's own device speaks for Bob.",
+  "spec_ref": [
+    "C§5"
+  ],
+  "context": {},
+  "input": {
+    "check": "conversation",
+    "leaves": [
+      {
+        "device": "did:key:z6MkAlice1",
+        "subject": "did:web:alice.example",
+        "capabilities": [
+          "dsip.signaling",
+          "dsip.messaging"
+        ]
+      },
+      {
+        "device": "did:key:z6MkBob1",
+        "subject": "did:web:acme.example:bob",
+        "capabilities": [
+          "dsip.signaling",
+          "dsip.messaging"
+        ]
+      },
+      {
+        "device": "did:key:z6MkBobRec",
+        "subject": "did:web:acme.example:bob",
+        "capabilities": [
+          "dsip.signaling",
+          "dsip.messaging",
+          "dsip.record"
+        ]
+      }
+    ],
+    "accepted": [],
+    "sender": "did:key:z6MkBob1"
+  },
+  "expect": {
+    "recorded": true,
+    "recorders": [
+      {
+        "device": "did:key:z6MkBobRec",
+        "subject": "did:web:acme.example:bob"
+      }
+    ],
+    "may_send": false,
+    "render_sender": true
+  }
+}

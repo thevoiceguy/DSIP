@@ -31,6 +31,7 @@ vectors/
   trust/       The basis-of-verification lines a client shows (§18.1, §6.3) — exact text
   did-webvh/   Resolving a did:webvh v1.0 log for DSIP (§7.2, §8.1, §8.4; v0.9, spec-gap 101)
   device-events/ Device Events Profile draft (E§3–E§6): traps → events → alarms, the alarm list, escalation
+  recording/   Recording Profile draft (C§3–C§6): the counterparty's consent, recorded conversations, the recorder leg
   alias-transparency/ Alias Transparency Profile draft (T§2–T§5): KEYTRANS building blocks, alias normalization
   pkarr/       Reachability hints on Pkarr / BEP 44 for did:key subjects (§8.5; DHT Hints Profile §9; spec-gap 105)
 ```
@@ -1030,6 +1031,72 @@ The checks run in this order, and the first failure is the reason:
 10. **`engine-id-mismatch`:** a trap whose engineID is `local.engine_id`, or an inform whose engineID is not.
 
 `report` is false for every reason not named above. **`advance: n`** sets `now += n` and emits nothing.
+
+## Kind: `recording`
+
+Recording Profile draft (`v0.9/dsip-recording-profile-v0.9-draft.md`, cited `C§n`; spec-gap 107). Three shapes:
+consent traces (C§4), `check: "conversation"` (C§5) and `check: "recording-session"` (C§6).
+
+**Consent traces** model one counterparty's client in one call. The context is
+`{role: "caller" | "callee", accept: "ask" | "always" | "never"}`. Each step's expect is
+`{"emit": [...], "disclosure", "pending", "hold_media", "accepted", "ended"}`:
+
+- `disclosure` is the other side's current declaration, or `null` when it is off;
+- `pending` is whether an acceptance is awaited, and `hold_media` equals it while the session has not ended;
+- `accepted` is the recorders accepted in this session, sorted by code point;
+- `ended` is `null` or the reason the client ended the session.
+
+Events:
+
+- **`received: {type, recording?}`** (`type` is `invite`, `answer` or `update`; any type is processed for either
+  role). Declarations are schema-valid, so one that is not `off` names its recorder. After the client has ended the
+  session, nothing happens. Otherwise:
+  - An `answer` marks the session answered.
+  - A missing `recording` means `{"state": "off"}`.
+  - **`off`:** if `disclosure` is not `null`, emit `{"render": {"state": "off", "recorder": <its recorder>}}`, set it
+    to `null`, and clear `pending`.
+  - **Anything else:** if it differs from `disclosure` in `state`, `recorder` or `purpose`, emit
+    `{"render": {state, recorder, purpose?}}` (`purpose` only when present) and set `disclosure` to it; `disclosure`
+    holds only those three members. Then, whether or not it changed, apply the effective state: `paused` for
+    `paused`, and `on` for `on` and for any unregistered state (the safe reading).
+    - **Effective `paused`:** clear `pending`.
+    - **Effective `on`, recorder already in `accepted`:** clear `pending` (a return to an accepted recorder needs
+      no new acceptance).
+    - **Effective `on`, recorder not accepted:**
+      - `accept: "always"`: add it to `accepted` and emit `{"accepted": {recorder, "by": "policy"}}`;
+      - `"never"`: decline (below);
+      - `"ask"`: set `pending`.
+- **`local: "accept"`.** If `pending`, add the disclosure's recorder to `accepted`, clear `pending`, and emit
+  `{"accepted": {recorder, "by": "user"}}`.
+- **`local: "decline"`.** If the session has not ended and `disclosure` is not `null`, decline.
+- **`local: "answer"`.** For a caller, nothing happens. For a callee: if the session has ended, nothing happens. If `pending`, emit
+  `{"blocked": "awaiting-acceptance"}`. Otherwise mark the session answered and emit `{"send": {"type": "answer"}}`.
+- **Declining** emits `{"send": {"type", "reason": "policy.recording-declined"}}`. The type is `reject` for a callee
+  that has not answered, and `bye` otherwise. Declining sets `ended` to the reason and clears `pending`.
+
+**`check: "conversation"`** (C§5), with `leaves` (`[{device, subject, capabilities}]`), `accepted` (device ids) and
+an optional `sender` (a device id), outputs `{recorded, recorders, may_send}`, plus `render_sender` when `sender` is
+given:
+
+- `recorders` lists the leaves whose `capabilities` include `dsip.record`, as `{device, subject}`, sorted by `device`;
+- `recorded` is whether `recorders` is non-empty;
+- `may_send` is whether every recorder's device is in `accepted` (a recorder that leaves asks nothing new);
+- `render_sender` is false when `sender` is no leaf's device, or its leaf carries `dsip.record`, and true otherwise.
+
+**`check: "recording-session"`** (C§6), with `declared` (`{session, state?, recorder?}`: the recording party's
+declaration in the recorded session), `recorder` (`{identity, capabilities}`: the recorder's verified delegation) and
+`offer` (`{media: [{direction, …}], recording_session}`), outputs `{"ok": true}` or `{"refused": <token>}`. The tokens
+are local results: on any of them the recording party sends no media to the recorder, and it ends a recording session
+it has opened with `bye` and `policy.blocked`. The checks run in this order:
+
+1. `not-declared`: `declared.state` is absent or `off` (an unregistered state counts as declared).
+2. `recorder-mismatch`: `recorder.identity` differs from `declared.recorder`.
+3. `missing-capability`: `recorder.capabilities` lacks `dsip.record`.
+4. `wrong-session`: `recording_session.of` differs from `declared.session`.
+5. `bad-stream-map`: there is no stream, a stream's `media` is not an integer index of `offer.media`, two streams
+   share an index, or a stream's `participant` is not among `recording_session.participants[].identity`. (On the wire
+   §10.3 rejects floats at parse, so a check never meets an index spelled `1.0`; vectors spell none.)
+6. `direction`: a media section that a stream names is not `sendonly` (a missing `direction` is not `sendonly`).
 
 ## Kind: `alias-transparency`
 

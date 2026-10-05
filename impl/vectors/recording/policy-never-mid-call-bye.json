@@ -1,0 +1,72 @@
+{
+  "vector": "recording/policy-never-mid-call-bye",
+  "format": 1,
+  "kind": "recording",
+  "description": "Never, mid-call: the session ends with bye.",
+  "spec_ref": [
+    "C§4"
+  ],
+  "context": {
+    "role": "caller",
+    "accept": "never"
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "received": {
+            "type": "answer"
+          }
+        }
+      },
+      {
+        "event": {
+          "received": {
+            "type": "update",
+            "recording": {
+              "state": "on",
+              "recorder": "did:web:rec.acme.example",
+              "purpose": "compliance"
+            }
+          }
+        }
+      }
+    ]
+  },
+  "expect": [
+    {
+      "emit": [],
+      "disclosure": null,
+      "pending": false,
+      "hold_media": false,
+      "accepted": [],
+      "ended": null
+    },
+    {
+      "emit": [
+        {
+          "render": {
+            "state": "on",
+            "recorder": "did:web:rec.acme.example",
+            "purpose": "compliance"
+          }
+        },
+        {
+          "send": {
+            "type": "bye",
+            "reason": "policy.recording-declined"
+          }
+        }
+      ],
+      "disclosure": {
+        "state": "on",
+        "recorder": "did:web:rec.acme.example",
+        "purpose": "compliance"
+      },
+      "pending": false,
+      "hold_media": false,
+      "accepted": [],
+      "ended": "policy.recording-declined"
+    }
+  ]
+}

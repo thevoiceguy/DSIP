@@ -26,7 +26,7 @@ impl/               PoC Cargo workspace (living code; tracks spec versions via
                     git tags poc-v0.6, poc-v0.7, poc-v0.8, poc-v0.8.1, …, never via folder placement)
 impl/vectors/       Language-neutral JSON test vectors (envelope/ payload/
                     semantic/ state/ transport/ dht/ broadcast/ media-binding/
-                    gateway/ trust/ messaging/)
+                    gateway/ trust/ messaging/ device-events/ recording/ …)
 impl/tools/         Python: vector generator + reference harness (dsipvec/), parity.py
                     (Rust/Python), parity_ts.py (Python/TypeScript), fuzz.py (differential
                     fuzzing of all three), spec_lint.py
@@ -166,6 +166,7 @@ pip installs in this environment need `--break-system-packages`.
 | R§n | RTP/SRTP Media Binding, draft (`v0.9/dsip-rtp-srtp-media-binding-v0.9-draft.md`) — cite as `R§n` |
 | T§n | Alias Transparency Profile, draft (`v0.9/dsip-alias-transparency-profile-v0.9-draft.md`) — cite as `T§n` |
 | E§n | Device Events Profile, draft (`v0.9/dsip-device-events-profile-v0.9-draft.md`) — cite as `E§n` |
+| C§n | Recording Profile, draft (`v0.9/dsip-recording-profile-v0.9-draft.md`) — cite as `C§n` |
 | — | DHT Reachability Hints Profile, draft (`v0.9/dsip-dht-hints-profile-v0.9-draft.md`) — no prefix of its own; cite core §8.3 / §8.5 |
 
 ## Semantic checks (post-schema, must-implement)
