@@ -2757,8 +2757,30 @@ at an endpoint the organisation controls (research track C). Without a disclosur
   - a standing `never` policy declines at once;
   - recording begun mid-call by `update` and declined ends with `bye policy.recording-declined`.
 
+**The recorder leg (2026-10-05).**
+- `dsip recorder` is a recorder service. It answers only invites carrying `recording_session` (otherwise `reject
+  policy.blocked`), records each stream to Ogg/Opus, and keeps the metadata.
+- The recording party's console, with `--record-device <second device>`, forks the call from that device once media
+  flows:
+  - one `sendonly` recording session per voice;
+  - the Opus is forwarded unchanged through taps on the call leg and a `Feed` source;
+  - before any media, it runs `dsip_recording::recording_session` with the recorder's verified delegation
+    (`peer_has_capability`).
+- Supporting changes:
+  - `identity init --capability` for extra delegated capabilities;
+  - an invite patch for direction and metadata;
+  - the answer selection maps an offered `sendonly` to `recvonly` and vice versa (§14.2 subset rule; it used to copy
+    the direction).
+- **Choices made (Impl), now in C§6:**
+  - one recording session per stream (C§6 now says "one or more");
+  - `paused` holds the legs' media rather than renegotiating them to `inactive` (C§6 now allows either).
+- `demos/recorder-leg-demo.sh` (in CI; forge and webrtc-rs both pass):
+  - a call yields two files, one per voice, plus metadata;
+  - a counterparty who never accepted contributes 0 frames;
+  - a "recorder" without `dsip.record` is refused before any media (`bye policy.blocked`).
+
 **Not done yet.**
-- The recorder leg's media fork (C§6), `dsip-msg` recorder devices (C§5), and their demos.
+- `dsip-msg` recorder devices (C§5) and their demo.
 - Whether a party's `policy.recording: forbidden` should also be enforced by its relay. It is not: a relay never
   sees media and cannot know.
 

@@ -102,8 +102,10 @@ leaves, the conversation stops being recorded and the client renders that.
 
 ## C§6 The recorder leg (calls)
 
-The recording party records a call by opening a **recording session** to its recorder: an ordinary DSIP session
-(§12) whose `invite` carries `recording_session` metadata, shaped like RFC 7865's:
+The recording party records a call by opening one or more **recording sessions** to its recorder. Each is an ordinary
+DSIP session (§12) whose `invite` carries `recording_session` metadata, shaped like RFC 7865's. A session may carry
+every stream, or one each; the recorder correlates them by `of`, as a SIPREC recorder correlates recording sessions
+of one communication session. It may open them from any of its devices.
 
 ```json
 "recording_session": {
@@ -124,8 +126,8 @@ The recording party records a call by opening a **recording session** to its rec
 - The recording party sends a counterparty's media to the recorder only after that counterparty's acceptance is
   evident: the callee answered an `invite` that declared recording, or the caller did not end the session on seeing
   the declaration (C§4). It sends its own media from the moment it declares `on`.
-- `paused` sets the recording session's media `inactive` through `update`. `off`, or the recorded session's end,
-  ends it with `bye` (`user.hangup`).
+- During `paused` the recording party sends no media on the recording sessions. It MAY also renegotiate them to
+  `inactive` through `update`. `off`, or the recorded session's end, ends them with `bye` (`user.hangup`).
 - The recording leg is end-to-end between the recording party and the recorder (DTLS-SRTP, B§). It is at least as
   strong as the recorded session, as RFC 7866 §12 requires. No relay and no third party sees media.
 
