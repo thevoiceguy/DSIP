@@ -9,14 +9,14 @@ Profile, `M§n` Messaging Profile, `R§n` RTP/SRTP Media Binding.
 
 | § | implementing modules | covering vectors |
 |---|---|---|
-| §1 | dsip-recording/lib.rs | — |
+| §1 | dsip-cli/main.rs, dsip-cli/recorder.rs, dsip-recording/lib.rs, dsip-transport/identity.rs | — |
 | §2 | dsip-cli/main.rs, dsip-core/lib.rs, dsip-recording/lib.rs | — |
 | §2.1.2 | dsip-messaging/mls_wire.rs | — |
 | §2.2 | dsip-core/webvh.rs, dsip-mailbox/bin/dsip-msg.rs | — |
 | §3 | dsip-cli/console.rs, dsip-cli/main.rs, dsip-dht/node.rs, dsip-endpoint/core.rs, dsip-events/ber.rs, dsip-transport/agent.rs | 2 vector(s): semantic/recording-declaration-valid, semantic/recording-declaration-without-recorder |
 | §3.1 | dsip-events/lib.rs, dsip-events/usm.rs | — |
 | §3.2 | dsip-events/usm.rs | — |
-| §4 | dsip-cli/console.rs, dsip-cli/main.rs, dsip-core/registry.rs, dsip-dht/node.rs, dsip-events/usm.rs, dsip-mailbox/bin/dsip-msg.rs, dsip-media/backend/forge.rs, dsip-media/backend/webrtc_rs.rs, dsip-media/leg.rs, dsip-recording/lib.rs, dsip-session/event.rs | 23 vector(s): recording/callee-answered-then-declines-bye, recording/callee-declines-with-reject, recording/callee-must-accept-before-answering, recording/caller-answer-does-nothing, recording/caller-declines-with-bye, recording/caller-holds-media-after-recorded-answer … |
+| §4 | dsip-cli/console.rs, dsip-cli/main.rs, dsip-cli/record_fork.rs, dsip-core/registry.rs, dsip-dht/node.rs, dsip-events/usm.rs, dsip-mailbox/bin/dsip-msg.rs, dsip-media/backend/forge.rs, dsip-media/backend/webrtc_rs.rs, dsip-media/leg.rs, dsip-recording/lib.rs, dsip-session/event.rs | 23 vector(s): recording/callee-answered-then-declines-bye, recording/callee-declines-with-reject, recording/callee-must-accept-before-answering, recording/caller-answer-does-nothing, recording/caller-declines-with-bye, recording/caller-holds-media-after-recorded-answer … |
 | §4.1 | dsip-kt/lib.rs | — |
 | §4.1.6 | dsip-events/ber.rs | — |
 | §4.2.2 | dsip-gateway/host/sip_leg.rs | — |
@@ -32,7 +32,7 @@ Profile, `M§n` Messaging Profile, `R§n` RTP/SRTP Media Binding.
 | §5.4.4 | dsip-kt/lib.rs | — |
 | §5.4.5 | dsip-kt/lib.rs | — |
 | §5.5 | dsip-kt/lib.rs | — |
-| §6 | dsip-recording/lib.rs, dsip-session/lib.rs | 16 vector(s): recording/session-direction, recording/session-direction-missing, recording/session-media-not-integer, recording/session-missing-capability, recording/session-no-streams, recording/session-not-declared … |
+| §6 | dsip-cli/console.rs, dsip-cli/main.rs, dsip-cli/record_fork.rs, dsip-cli/recorder.rs, dsip-endpoint/core.rs, dsip-media/backend/webrtc_rs.rs, dsip-media/leg.rs, dsip-media/source.rs, dsip-recording/lib.rs, dsip-session/lib.rs, dsip-transport/agent.rs | 16 vector(s): recording/session-direction, recording/session-direction-missing, recording/session-media-not-integer, recording/session-missing-capability, recording/session-no-streams, recording/session-not-declared … |
 | §6.3 | dsip-cli/console.rs, dsip-core/trust.rs, dsip-gateway/host/media.rs, dsip-gateway/host/sip_leg.rs, dsip-gateway/lib.rs | 9 vector(s): gateway/claims-attestation-a-verified, gateway/downgrade-error-none, gateway/downgrade-error-plain-trunk, gateway/downgrade-inbound-no-attestation, gateway/downgrade-outbound-asserted-srtp, gateway/downgrade-outbound-plain-trunk … |
 | §7 | dsip-cli/main.rs, dsip-media/backend/webrtc_rs.rs, dsip-media/leg.rs, dsip-media/lib.rs, dsip-recording/lib.rs | 1 vector(s): semantic/reason-recording-declined-on-error |
 | §7.1.3 | dsip-core/hpke.rs | — |

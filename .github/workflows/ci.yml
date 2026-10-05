@@ -122,6 +122,13 @@ jobs:
         # mid-call by update and declined ends with bye policy.recording-declined.
         run: timeout 300 bash demos/recording-consent-demo.sh | tail -14
         working-directory: impl
+      - name: the recorder leg (Recording Profile draft, C§6)
+        # Self-verifying: from a second device of Bob's identity, one sendonly recording session per voice to the
+        # declared recorder (checked for dsip.record first), Opus forwarded unchanged end to end; the recorder keeps one
+        # Ogg/Opus file per voice and RFC 7865-shaped metadata; a counterparty who never accepted contributes 0 frames;
+        # a "recorder" without dsip.record is refused before any media.
+        run: timeout 300 bash demos/recorder-leg-demo.sh | tail -16
+        working-directory: impl
       - name: reachability hints on Pkarr (v0.9 draft)
         # Self-verifying: Bob publishes _dsip records signed by his did:key to two Pkarr relays (local stand-ins of the
         # HTTP API); Alice, knowing only his did:key, rejects a hostile relay's forged newer packet and calls him through
