@@ -1,0 +1,45 @@
+{
+  "vector": "device-events/holddown-off",
+  "format": 1,
+  "kind": "device-events",
+  "description": "hold_s 0: every clear is deposited at once.",
+  "spec_ref": [
+    "E§4"
+  ],
+  "context": {
+    "component": "holddown",
+    "now": 1000,
+    "hold_s": 0
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "report": {
+            "resource": "192.0.2.7/3",
+            "type": "link-down",
+            "qualifier": "",
+            "severity": null,
+            "cleared": true
+          }
+        }
+      }
+    ]
+  },
+  "expect": [
+    {
+      "emit": [
+        {
+          "deposit": {
+            "resource": "192.0.2.7/3",
+            "type": "link-down",
+            "qualifier": "",
+            "severity": null,
+            "cleared": true
+          }
+        }
+      ],
+      "held": []
+    }
+  ]
+}

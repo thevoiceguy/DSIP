@@ -1032,6 +1032,20 @@ The checks run in this order, and the first failure is the reason:
 
 `report` is false for every reason not named above. **`advance: n`** sets `now += n` and emits nothing.
 
+**Hold-down traces** (`context.component: "holddown"`, E§4) have context `{component, now, hold_s}`. Each step's
+expect is `{"emit": [...], "held": [...]}`. `held` lists the held clears, sorted by key, each as `{key, due}`.
+- **`report: {resource, type, qualifier?, severity, cleared}`** (a missing `qualifier` is `""`):
+  - **A cleared report:**
+    - with `hold_s` 0, it emits `{"deposit": report}`;
+    - with a clear already held for the key, it changes nothing;
+    - otherwise the clear is held, `due = now + hold_s`, and it emits nothing.
+  - **A report that is not cleared:** a held clear for its key is dropped. The report emits `{"deposit": report}`.
+  - The emitted `report` is the step's, every field kept, with `qualifier` added when missing.
+- Keys sort element by element by code point.
+- **`event: {...}`** (an event with no alarm) emits `{"deposit": event}`.
+- **`advance: n`** sets `now += n`, then deposits each held clear with `due ≤ now`, ordered by `due` then key, emitting
+  `{"deposit": report}` for each and removing it.
+
 ## Kind: `recording`
 
 Recording Profile draft (`v0.9/dsip-recording-profile-v0.9-draft.md`, cited `C§n`; spec-gap 107). Three shapes:

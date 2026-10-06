@@ -1,0 +1,105 @@
+{
+  "vector": "device-events/holddown-second-clear-keeps-time",
+  "format": 1,
+  "kind": "device-events",
+  "description": "A second clear while one is held changes nothing.",
+  "spec_ref": [
+    "E§4"
+  ],
+  "context": {
+    "component": "holddown",
+    "now": 1000,
+    "hold_s": 5
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "report": {
+            "resource": "192.0.2.7/3",
+            "type": "link-down",
+            "qualifier": "",
+            "severity": null,
+            "cleared": true
+          }
+        }
+      },
+      {
+        "event": {
+          "advance": 3
+        }
+      },
+      {
+        "event": {
+          "report": {
+            "resource": "192.0.2.7/3",
+            "type": "link-down",
+            "qualifier": "",
+            "severity": null,
+            "cleared": true
+          }
+        }
+      },
+      {
+        "event": {
+          "advance": 2
+        }
+      }
+    ]
+  },
+  "expect": [
+    {
+      "emit": [],
+      "held": [
+        {
+          "key": [
+            "192.0.2.7/3",
+            "link-down",
+            ""
+          ],
+          "due": 1005
+        }
+      ]
+    },
+    {
+      "emit": [],
+      "held": [
+        {
+          "key": [
+            "192.0.2.7/3",
+            "link-down",
+            ""
+          ],
+          "due": 1005
+        }
+      ]
+    },
+    {
+      "emit": [],
+      "held": [
+        {
+          "key": [
+            "192.0.2.7/3",
+            "link-down",
+            ""
+          ],
+          "due": 1005
+        }
+      ]
+    },
+    {
+      "emit": [
+        {
+          "deposit": {
+            "resource": "192.0.2.7/3",
+            "type": "link-down",
+            "qualifier": "",
+            "severity": null,
+            "cleared": true
+          }
+        }
+      ],
+      "held": []
+    }
+  ]
+}

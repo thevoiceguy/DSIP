@@ -1,0 +1,68 @@
+{
+  "vector": "device-events/holddown-events-pass",
+  "format": 1,
+  "kind": "device-events",
+  "description": "Events with no alarm, and severity changes, are deposited at once.",
+  "spec_ref": [
+    "E§4"
+  ],
+  "context": {
+    "component": "holddown",
+    "now": 1000,
+    "hold_s": 5
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "event": {
+            "source": {
+              "address": "192.0.2.7",
+              "basis": "syslog-udp"
+            }
+          }
+        }
+      },
+      {
+        "event": {
+          "report": {
+            "resource": "192.0.2.7/3",
+            "type": "link-down",
+            "qualifier": "",
+            "severity": "critical",
+            "cleared": false
+          }
+        }
+      }
+    ]
+  },
+  "expect": [
+    {
+      "emit": [
+        {
+          "deposit": {
+            "source": {
+              "address": "192.0.2.7",
+              "basis": "syslog-udp"
+            }
+          }
+        }
+      ],
+      "held": []
+    },
+    {
+      "emit": [
+        {
+          "deposit": {
+            "resource": "192.0.2.7/3",
+            "type": "link-down",
+            "qualifier": "",
+            "severity": "critical",
+            "cleared": false
+          }
+        }
+      ],
+      "held": []
+    }
+  ]
+}

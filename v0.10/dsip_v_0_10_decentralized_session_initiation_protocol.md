@@ -2439,6 +2439,8 @@ v0.9 is final at tag `poc-v0.9`. Each v0.10 item is listed here as it lands, wit
 - Multi-device identities on Pkarr (DHT Reachability Hints Profile §9.1; spec-gap 105 option (b)): the identity key
   signs a pointer to its devices, valid up to 7 days, and each device publishes its own hint with its delegation, so
   the identity key can stay offline. Revocation is bounded, not immediate, and the profile states the bound.
+- Device Events (spec-gap 103): an optional gateway hold-down that delays clears, so a flapping link is one alarm
+  (E§4); and an optional `source.name`, the gateway's name for a verified device identity (E§2).
 
 ---
 

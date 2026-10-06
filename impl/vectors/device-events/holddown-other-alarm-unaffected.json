@@ -1,0 +1,164 @@
+{
+  "vector": "device-events/holddown-other-alarm-unaffected",
+  "format": 1,
+  "kind": "device-events",
+  "description": "A raise of another alarm does not cancel a held clear; due clears come out in due order.",
+  "spec_ref": [
+    "E§4"
+  ],
+  "context": {
+    "component": "holddown",
+    "now": 1000,
+    "hold_s": 5
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "report": {
+            "resource": "192.0.2.7/3",
+            "type": "link-down",
+            "qualifier": "",
+            "severity": null,
+            "cleared": true
+          }
+        }
+      },
+      {
+        "event": {
+          "advance": 1
+        }
+      },
+      {
+        "event": {
+          "report": {
+            "resource": "192.0.2.7/1",
+            "type": "link-down",
+            "qualifier": "",
+            "severity": null,
+            "cleared": true
+          }
+        }
+      },
+      {
+        "event": {
+          "report": {
+            "resource": "192.0.2.7/2",
+            "type": "link-down",
+            "qualifier": "",
+            "severity": "major",
+            "cleared": false
+          }
+        }
+      },
+      {
+        "event": {
+          "advance": 10
+        }
+      }
+    ]
+  },
+  "expect": [
+    {
+      "emit": [],
+      "held": [
+        {
+          "key": [
+            "192.0.2.7/3",
+            "link-down",
+            ""
+          ],
+          "due": 1005
+        }
+      ]
+    },
+    {
+      "emit": [],
+      "held": [
+        {
+          "key": [
+            "192.0.2.7/3",
+            "link-down",
+            ""
+          ],
+          "due": 1005
+        }
+      ]
+    },
+    {
+      "emit": [],
+      "held": [
+        {
+          "key": [
+            "192.0.2.7/1",
+            "link-down",
+            ""
+          ],
+          "due": 1006
+        },
+        {
+          "key": [
+            "192.0.2.7/3",
+            "link-down",
+            ""
+          ],
+          "due": 1005
+        }
+      ]
+    },
+    {
+      "emit": [
+        {
+          "deposit": {
+            "resource": "192.0.2.7/2",
+            "type": "link-down",
+            "qualifier": "",
+            "severity": "major",
+            "cleared": false
+          }
+        }
+      ],
+      "held": [
+        {
+          "key": [
+            "192.0.2.7/1",
+            "link-down",
+            ""
+          ],
+          "due": 1006
+        },
+        {
+          "key": [
+            "192.0.2.7/3",
+            "link-down",
+            ""
+          ],
+          "due": 1005
+        }
+      ]
+    },
+    {
+      "emit": [
+        {
+          "deposit": {
+            "resource": "192.0.2.7/3",
+            "type": "link-down",
+            "qualifier": "",
+            "severity": null,
+            "cleared": true
+          }
+        },
+        {
+          "deposit": {
+            "resource": "192.0.2.7/1",
+            "type": "link-down",
+            "qualifier": "",
+            "severity": null,
+            "cleared": true
+          }
+        }
+      ],
+      "held": []
+    }
+  ]
+}

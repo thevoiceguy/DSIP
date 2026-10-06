@@ -1,0 +1,106 @@
+{
+  "vector": "device-events/holddown-same-due-key-order",
+  "format": 1,
+  "kind": "device-events",
+  "description": "Clears due at the same time come out in key order (code points); a report's other fields pass through untouched.",
+  "spec_ref": [
+    "E§4"
+  ],
+  "context": {
+    "component": "holddown",
+    "now": 1000,
+    "hold_s": 5
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "report": {
+            "resource": "192.0.2.7/9",
+            "type": "link-down",
+            "qualifier": "",
+            "severity": null,
+            "cleared": true,
+            "text": "port 9"
+          }
+        }
+      },
+      {
+        "event": {
+          "report": {
+            "resource": "192.0.2.7/10",
+            "type": "link-down",
+            "qualifier": "",
+            "severity": null,
+            "cleared": true
+          }
+        }
+      },
+      {
+        "event": {
+          "advance": 5
+        }
+      }
+    ]
+  },
+  "expect": [
+    {
+      "emit": [],
+      "held": [
+        {
+          "key": [
+            "192.0.2.7/9",
+            "link-down",
+            ""
+          ],
+          "due": 1005
+        }
+      ]
+    },
+    {
+      "emit": [],
+      "held": [
+        {
+          "key": [
+            "192.0.2.7/10",
+            "link-down",
+            ""
+          ],
+          "due": 1005
+        },
+        {
+          "key": [
+            "192.0.2.7/9",
+            "link-down",
+            ""
+          ],
+          "due": 1005
+        }
+      ]
+    },
+    {
+      "emit": [
+        {
+          "deposit": {
+            "resource": "192.0.2.7/10",
+            "type": "link-down",
+            "qualifier": "",
+            "severity": null,
+            "cleared": true
+          }
+        },
+        {
+          "deposit": {
+            "resource": "192.0.2.7/9",
+            "type": "link-down",
+            "qualifier": "",
+            "severity": null,
+            "cleared": true,
+            "text": "port 9"
+          }
+        }
+      ],
+      "held": []
+    }
+  ]
+}
