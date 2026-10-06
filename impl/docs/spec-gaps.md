@@ -2576,10 +2576,24 @@ The gateway (`dsip-msg`):
   one implementation), so the demo's signer is `demos/syslog_sign_send.py`.
 - **Upstream reports 12 and 13** draft RFC 5848 errata: FRAG's encoding, and the example's MPI bit count.
 
+**Gap detection from signed syslog (v0.11, E§3).**
+- **Opt-in** per signer (`gaps: true`), because RFC 5848 §4.2.3 expects gaps when a signer splits its messages
+  across collectors.
+- **Two gap kinds, per Signature Group:**
+  - numbers no verified block covered: a block's FMN past the group's `covered`;
+  - numbers signed but never arrived: a waiting hash expires.
+- **Reporting:** each gap is a gateway event (`syslog_gap`, E§5) raising `(<signer>, dsip-syslog-gap,
+  "<app>/<sg>/<spri>")`, warning. Later gaps re-raise it, so it is one counted alarm. A session's end drops its
+  `covered`, waiting hashes and numbers.
+- **Vectors:** `syslog-sign-gap-*` (11), three-way. The second implementation's two open readings were pinned: a
+  run's identity comes from its lowest number's block, and `covered` resets with the session. The second of these was
+  a real divergence, since Python and Rust kept `covered`.
+- **Fuzzing:** the `syslog-sign` target now randomizes `gaps`; 4,000 probes found no divergence.
+- **Demo:** `device-events-syslog-sign-demo.sh` shows both kinds raising one alarm.
+
 **Open.**
 - DTLS for SNMP (RFC 6353 over UDP).
 - Key blob types N, P and U for signed syslog.
-- Gap detection from signed message numbers.
 
 ## 104. T§2–T§5 / core §8.1–§8.2 — alias transparency: what DSIP adopts of KEYTRANS, and when
 

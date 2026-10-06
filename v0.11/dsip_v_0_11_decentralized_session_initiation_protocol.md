@@ -2455,6 +2455,10 @@ reference implementation and the independent TypeScript implementation agree on 
 
 v0.10 is final at tag `poc-v0.10`. Each v0.11 item is listed here as it lands, with its spec-gap number.
 
+- Device Events (spec-gap 103): gap detection from signed syslog (E§3). A gateway configured to receive all of a
+  signer's messages reports the message numbers that no Signature Block covered, or that were signed but never
+  arrived. It raises the new alarm type `dsip-syslog-gap` (E§7), from a gateway event carrying `syslog_gap` (E§5).
+
 ---
 
 ## Appendix B: Emergency Services and Regulated Profiles

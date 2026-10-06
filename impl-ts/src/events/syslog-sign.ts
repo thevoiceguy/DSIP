@@ -4,8 +4,11 @@
  * messages they sign, and messages from a configured signer are held until a verified Signature
  * Block lists them or the hold runs out.
  *
- * Spec: E§2 (`syslog-signed` basis and its `signed` object), E§3 ("Signed syslog"); RFC 5848,
- * FIPS 186 (DSA). The exact inputs, outputs and order of checks are the vectors README's,
+ * Gap detection (v0.11), per signer with `gaps: true`, reports numbers never covered by a
+ * Signature Block and signed hashes whose message never arrived.
+ *
+ * Spec: E§2 (`syslog-signed` basis and its `signed` object), E§3 ("Signed syslog", "Gaps"), E§5
+ * (the gap's `syslog_gap` object); RFC 5848, FIPS 186 (DSA). The exact inputs, outputs and order of checks are the vectors README's,
  * "Signed syslog traces" (`context.component: "syslog-sign"`); messages are parsed as
  * `check: "syslog"` does.
  */
@@ -194,6 +197,51 @@ const hash = (alg: string, b: Uint8Array): Buffer => createHash(alg).update(b).d
 const sha256hex = (b: Uint8Array): string => createHash("sha256").update(b).digest("hex");
 const asciiLower = (s: string): string => s.replace(/[A-Z]/g, (c) => c.toLowerCase());
 
+/**
+ * Compares two strings by Unicode code point (not UTF-16 code unit). Spec: none (infrastructure)
+ */
+function cmpCodePoints(a: string, b: string): number {
+  const x = [...a];
+  const y = [...b];
+  for (let i = 0; i < Math.min(x.length, y.length); i++) {
+    const d = x[i]!.codePointAt(0)! - y[i]!.codePointAt(0)!;
+    if (d !== 0) return d;
+  }
+  return x.length - y.length;
+}
+
+/** Compares two group sort keys field by field. Spec: E§3 ("Gaps"); README "Gaps" (group order) */
+function cmpOrder(a: (string | number)[], b: (string | number)[]): number {
+  for (let i = 0; i < a.length; i++) {
+    const x = a[i]!;
+    const y = b[i]!;
+    const d = typeof x === "number" ? x - (y as number) : cmpCodePoints(x, y as string);
+    if (d !== 0) return d;
+  }
+  return 0;
+}
+
+/**
+ * A `{"gap"}` emit: the Signature Block message's hostname, APP-NAME and PROCID, the session's
+ * RSID, the group's SG and SPRI, and the lost range `from`…`to`.
+ *
+ * Spec: E§3 ("Gaps"), E§5 (`event.syslog_gap: {hostname, app_name, procid, rsid, sg, spri, from, to}`).
+ */
+function gapEmit(id: JsonObject, from: number, to: number): JsonObject {
+  return {
+    gap: {
+      hostname: id["hostname"]!,
+      app_name: id["app_name"]!,
+      procid: id["procid"]!,
+      rsid: id["rsid"]!,
+      sg: id["sg"]!,
+      spri: id["spri"]!,
+      from,
+      to,
+    },
+  };
+}
+
 /** A configured signer. Spec: E§3 ("Signers are configured") */
 interface Signer {
   hostname: string;
@@ -201,6 +249,8 @@ interface Signer {
   keyBytes: Buffer;
   keySha256: string;
   dsa: DsaKey | null;
+  /** Gap detection is on for this signer (v0.11; off by default). Spec: E§3 ("Gaps") */
+  gaps: boolean;
 }
 
 /** A held message. Spec: E§3 ("Holding") */
@@ -220,12 +270,27 @@ interface Waiting {
   due: number;
   signed: JsonObject;
   group: Set<number>;
+  /** Report this hash's number as lost when its wait ends (the signer has `gaps: true`). */
+  gaps: boolean;
+  /** The group's sort key for gap order (README "Gaps"). */
+  order: (string | number)[];
+}
+
+/**
+ * A Signature Group's state: its authenticated numbers and `covered`, the highest number any of
+ * its verified Signature Blocks covered (0 before the first).
+ *
+ * Spec: E§3 ("Gaps"); RFC 5848 §4.2.3 (Signature Groups).
+ */
+interface Group {
+  auth: Set<number>;
+  covered: number;
 }
 
 /** A reboot session: its established payload and its groups' authenticated numbers. Spec: E§3 */
 interface Session {
   payload: Buffer | null;
-  groups: Map<string, Set<number>>;
+  groups: Map<string, Group>;
   /** Fragments being assembled: `TPBL` and the stored (INDEX, bytes). */
   tpbl: number | null;
   frags: { index: number; bytes: Buffer }[];
@@ -393,7 +458,14 @@ export class SyslogSignCollector {
       } else if (type === "C") {
         dsa = certDsaKey(keyBytes);
       }
-      this.signers.push({ hostname: s["hostname"] as string, type, keyBytes, keySha256: sha256hex(keyBytes), dsa });
+      this.signers.push({
+        hostname: s["hostname"] as string,
+        type,
+        keyBytes,
+        keySha256: sha256hex(keyBytes),
+        dsa,
+        gaps: s["gaps"] === true,
+      });
     }
   }
 
@@ -420,7 +492,16 @@ export class SyslogSignCollector {
 
   /**
    * `advance`: `now += n`; held messages due are deposited unsigned in arrival order; waiting
-   * hashes due are dropped silently. Spec: E§3 ("Holding")
+   * hashes due are dropped. For a signer with `gaps: true` each dropped hash's number is lost, and
+   * the lost numbers are emitted as gaps after the deposits.
+   *
+   * Spec: E§3 ("Holding"; "Gaps": signed, never arrived — consecutive numbers lost together are
+   * one gap).
+   * README: lost numbers are sorted by group then number, a group ordered by hostname (lowercase),
+   * APP-NAME, PROCID (by code point, `-` as ""), RSID, SG, SPRI; runs of consecutive numbers in
+   * one group become one gap each.
+   * Impl: a run's `hostname`, `app_name` and `procid` are its first (lowest) number's Signature
+   * Block message's; the README names the block per number, not per run.
    */
   private advance(n: number, emit: Json[]): void {
     this.now += n;
@@ -430,7 +511,22 @@ export class SyslogSignCollector {
       else keep.push(h);
     }
     this.held = keep;
+    const lost = this.waiting.filter((w) => w.due <= this.now && w.gaps);
     this.waiting = this.waiting.filter((w) => w.due > this.now);
+    lost.sort((a, b) => cmpOrder(a.order, b.order) || a.number - b.number);
+    let run: { w: Waiting; to: number } | null = null;
+    const flush = (): void => {
+      if (run !== null) emit.push(gapEmit(run.w.signed, run.w.number, run.to));
+    };
+    for (const w of lost) {
+      if (run !== null && run.w.groupKey === w.groupKey && w.number === run.to + 1) {
+        run.to = w.number;
+        continue;
+      }
+      flush();
+      run = { w, to: w.number };
+    }
+    flush();
   }
 
   /**
@@ -537,7 +633,10 @@ export class SyslogSignCollector {
     if (sess.payload !== null) {
       const pl = sess.payload;
       if (tpbl === pl.length && pl.subarray(index - 1, index - 1 + frag.length).equals(frag)) return;
-      // README: ending the session drops its authenticated numbers and its waiting hashes
+      // README: ending the session drops its authenticated numbers and its waiting hashes; the
+      // dropped hashes are not gaps (E§3). Impl: `covered` goes with the groups, so a session
+      // re-established under the same key starts its groups afresh (its first block reports
+      // nothing before it).
       sess.payload = null;
       sess.groups = new Map();
       sess.tpbl = null;
@@ -589,6 +688,14 @@ export class SyslogSignCollector {
    *
    * Spec: E§3 ("Signature Blocks", "Holding"); RFC 5848 §4.2.6–§4.2.7.
    * A message matched later by a waiting hash makes that number authenticated (README).
+   *
+   * Gaps (v0.11), for a signer with `gaps: true`: when the group's `covered` > 0 and FMN >
+   * `covered` + 1, a gap `covered + 1 … FMN − 1` is emitted first, before the block's deposits.
+   * Then `covered` becomes the greater of itself and FMN + CNT − 1.
+   * Spec: E§3 ("Gaps": never covered; a group's first block reports nothing before it).
+   * README: `covered` counts the block's whole range (CNT hashes), including numbers already
+   * authenticated; only a verified block of an established session reaches here, so refused
+   * blocks (and `no-session` ones) count nothing.
    */
   private signature(block: Block, sessKey: string, signer: Signer, parsed: JsonObject, rsid: number, alg: string): void {
     const sess = this.sessions.get(sessKey);
@@ -597,13 +704,35 @@ export class SyslogSignCollector {
     const spri = Number(block.params.get("SPRI"));
     const fmn = Number(block.params.get("FMN"));
     const gk = JSON.stringify([sg, spri]);
-    let group = sess.groups.get(gk);
-    if (group === undefined) {
-      group = new Set();
-      sess.groups.set(gk, group);
+    let g = sess.groups.get(gk);
+    if (g === undefined) {
+      g = { auth: new Set(), covered: 0 };
+      sess.groups.set(gk, g);
     }
+    const group = g.auth;
     const groupKey = sessKey + gk;
     const hashes = block.params.get("HB")!.split(" ").map((t) => Buffer.from(t, "base64"));
+    const blockId: JsonObject = {
+      hostname: parsed["hostname"] as string,
+      app_name: parsed["app_name"] as string | null,
+      procid: parsed["procid"] as string | null,
+      rsid,
+      sg,
+      spri,
+    };
+    if (signer.gaps && g.covered > 0 && fmn > g.covered + 1) {
+      this.pending.push(gapEmit(blockId, g.covered + 1, fmn - 1));
+    }
+    g.covered = Math.max(g.covered, fmn + hashes.length - 1);
+    // README "Gaps": a group orders by hostname (lowercase), APP-NAME, PROCID, then RSID, SG, SPRI
+    const order = [
+      asciiLower(parsed["hostname"] as string),
+      (parsed["app_name"] as string | null) ?? "",
+      (parsed["procid"] as string | null) ?? "",
+      rsid,
+      sg,
+      spri,
+    ];
     hashes.forEach((h, i) => {
       const n = fmn + i;
       if (group!.has(n)) return;
@@ -626,7 +755,18 @@ export class SyslogSignCollector {
         return;
       }
       if (this.waiting.some((w) => w.groupKey === groupKey && w.number === n)) return;
-      this.waiting.push({ sessKey, groupKey, number: n, alg, hash: h, due: this.now + this.holdS, signed, group: group! });
+      this.waiting.push({
+        sessKey,
+        groupKey,
+        number: n,
+        alg,
+        hash: h,
+        due: this.now + this.holdS,
+        signed,
+        group: group!,
+        gaps: signer.gaps,
+        order,
+      });
     });
   }
 }

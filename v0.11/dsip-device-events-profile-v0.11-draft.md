@@ -197,6 +197,18 @@ element `ssign` or `ssign-cert`. The basis is `syslog-signed`.
     was verified.
   - A signed hash whose message has not arrived waits `H` seconds for it.
   - Block messages are never deposited.
+- **Gaps** (v0.11). Signed message numbers reveal lost messages, so a gateway that receives **every** message a signer
+  sends MAY be configured to report gaps for it. It is off by default: when a signer splits its messages across
+  collectors, gaps are expected (RFC 5848 §4.2.3). For each Signature Group (session, SG, SPRI):
+  - **Never covered.** A verified Signature Block whose first number lies past the highest number earlier blocks
+    covered reports the numbers in between. The group's first block reports nothing before it, since the gateway may
+    have started late.
+  - **Signed, never arrived.** A signed hash whose message has not arrived when its wait (`H`) ends reports its
+    number. Consecutive numbers lost together are one gap.
+
+  Each gap is a gateway event (below) raising the alarm `(<signer HOSTNAME>, dsip-syslog-gap,
+  "<APP-NAME>/<SG>/<SPRI>")`, severity `warning`. A later gap in the same group re-raises it, so members count
+  repeats (E§5). Waiting hashes dropped when a session ends are not gaps.
 - The rules, and each refusal's token, are the README's `syslog-sign` traces.
 
 **Syslog** (RFC 5424 and its transports) is carried as its fields. Its severity maps to an alarm severity through a
@@ -295,6 +307,10 @@ the `device-events/holddown-*` traces.
 
 A gateway's own liveness is a `device-event` with `event.heartbeat: {"interval_s": n}` and no `raw`.
 
+A signed-syslog gap (E§3, v0.11) is a `device-event` with `event.source: {"address": <the signer's address>,
+"basis": "gateway"}` and `event.syslog_gap: {hostname, app_name, procid, rsid, sg, spri, from, to}`, and no `raw`.
+Its `alarm` is the one E§3 names, with `text` "messages `from`–`to` lost".
+
 Every member computes the same **alarm list** by applying the group's content in hub `seq` order (M§6.5) to the
 machine below. Its transitions are the `device-events/` traces, and `impl/vectors/README.md` states them exactly.
 
@@ -346,5 +362,6 @@ the NOC's mailbox.
 
 - `dsip-delegation-capability`: `dsip.events`.
 - `dsip-device-event-basis`: the E§2 table.
-- `dsip-alarm-type`: shape `[a-z][a-z0-9-]*`, open. The profile registers `dsip-gateway-silent`.
+- `dsip-alarm-type`: shape `[a-z][a-z0-9-]*`, open. The profile registers `dsip-gateway-silent` and, in v0.11,
+  `dsip-syslog-gap` (E§3).
 - `dsip-alarm-severity`: `indeterminate`, `warning`, `minor`, `major`, `critical`.

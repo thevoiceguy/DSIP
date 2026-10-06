@@ -71,8 +71,11 @@ class Key:
         n = load_der_x509_certificate(der).public_key().public_numbers().parameter_numbers
         return cls(n.p, n.q, n.g, CERT_X, "C", der)
 
-    def signer(self, hostname: str) -> dict:
-        return {"hostname": hostname, "type": self.kind, "key": base64.b64encode(self.blob).decode()}
+    def signer(self, hostname: str, gaps: bool = False) -> dict:
+        s = {"hostname": hostname, "type": self.kind, "key": base64.b64encode(self.blob).decode()}
+        if gaps:
+            s["gaps"] = True
+        return s
 
     @property
     def sha256(self) -> str:
@@ -289,6 +292,65 @@ def vectors() -> list[dict]:
         (recv(sig(K1, [], ver="0112", cnt=2, hb="AAAA  AAAA")), st([ref("ssign", "malformed-block")]))])
     t("two-block-elements", "A message with both elements: the first names the block, which is malformed.", ctx(S1), [
         (recv(sig(K1, [m1], extra_sd='[ssign-cert VER="0111"]')), st([ref("ssign", "malformed-block")]))])
+    # --- gap detection (v0.11) ----------------------------------------------------------------------------------
+    SG1 = K1.signer("sw1.example", gaps=True)
+    m4, m5, m6 = msg("port 4 down"), msg("port 5 down"), msg("port 6 down")
+    gap = lambda a, b, rsid=1, sg=0, spri=0: {"gap": {"hostname": "sw1.example", "app_name": "syslogd", "procid": "77",  # noqa: E731
+                                                       "rsid": rsid, "sg": sg, "spri": spri, "from": a, "to": b}}
+    t("gap-never-covered", "A Signature Block starting past what earlier blocks covered: the numbers between are a gap.",
+      ctx(SG1), [(recv(cert(K1)), st([session()])),
+                 (recv(m1), st([], [sha(m1)])), (recv(sig(K1, [m1])), st([dep(m1, claim(1))])),
+                 (recv(m4), st([], [sha(m4)])),
+                 (recv(sig(K1, [m4], fmn=4)), st([gap(2, 3), dep(m4, claim(4))]))])
+    t("gap-first-block-reports-nothing", "A group's first block reports nothing before it (the collector may have started late).",
+      ctx(SG1), [(recv(cert(K1)), st([session()])), (recv(m4), st([], [sha(m4)])),
+                 (recv(sig(K1, [m4], fmn=4)), st([dep(m4, claim(4))]))])
+    t("gap-overlap-is-not-a-gap", "Overlapping and contiguous blocks report no gap.", ctx(SG1), [
+        (recv(cert(K1)), st([session()])),
+        (recv(sig(K1, [m1, m2])), st([], waiting=2)),
+        (recv(sig(K1, [m2, m3], fmn=2)), st([], waiting=3)),
+        (recv(sig(K1, [m4], fmn=4)), st([], waiting=4))])
+    t("gap-signed-never-arrived", "Signed hashes whose messages never come: lost numbers, merged into runs.", ctx(SG1), [
+        (recv(cert(K1)), st([session()])),
+        (recv(m2), st([], [sha(m2)])),
+        (recv(sig(K1, [m1, m2, m3, m4, m5])), st([dep(m2, claim(2))], waiting=4)),
+        (recv(m4), st([dep(m4, claim(4))], waiting=3)),
+        ({"advance": 10}, st([gap(1, 1), gap(3, 3), gap(5, 5)]))])
+    t("gap-runs-merge", "Consecutive lost numbers in one group are one gap.", ctx(SG1), [
+        (recv(cert(K1)), st([session()])),
+        (recv(sig(K1, [m1, m2, m3])), st([], waiting=3)),
+        ({"advance": 10}, st([gap(1, 3)]))])
+    t("gap-groups-ordered", "Lost numbers in two groups: one gap each, SPRI 13 before 14.", ctx(SG1), [
+        (recv(cert(K1)), st([session()])),
+        (recv(sig(K1, [m2], sg=1, spri=14)), st([], waiting=1)),
+        (recv(sig(K1, [m1], sg=1, spri=13)), st([], waiting=2)),
+        ({"advance": 10}, st([gap(1, 1, sg=1, spri=13), gap(1, 1, sg=1, spri=14)]))])
+    t("gap-after-deposits", "In one advance, expired held messages are deposited before the gaps.", ctx(SG1), [
+        (recv(cert(K1)), st([session()])),
+        (recv(m6), st([], [sha(m6)])),
+        (recv(sig(K1, [m1])), st([], [sha(m6)], waiting=1)),
+        ({"advance": 10}, st([dep(m6), gap(1, 1)]))])
+    t("gap-off-by-default", "Without gaps: true, nothing is reported.", ctx(S1), [
+        (recv(cert(K1)), st([session()])),
+        (recv(sig(K1, [m1])), st([], waiting=1)),
+        (recv(sig(K1, [m4], fmn=4)), st([], waiting=2)),
+        ({"advance": 10}, st([]))])
+    t("gap-session-end-drops-silently", "Waiting hashes dropped when a session ends are not gaps.", ctx(SG1), [
+        (recv(cert(K1, rsid=0)), st([session(rsid=0)])),
+        (recv(sig(K1, [m1], rsid=0)), st([], waiting=1)),
+        (recv(cert(K1, rsid=0, pay=p_new0, index=12, flen=8)), st([])),
+        ({"advance": 10}, st([]))])
+    t("gap-session-end-resets-covered", "A new payload (an RSID 0 reboot) ends the session: numbers start again, so the "
+      "new session's blocks are measured afresh.", ctx(SG1), [
+          (recv(cert(K1, rsid=0)), st([session(rsid=0)])),
+          (recv(sig(K1, [m1, m2, m3, m4, m5], rsid=0)), st([], waiting=5)),
+          (recv(cert(K1, rsid=0, pay=p_new0)), st([session(rsid=0)])),
+          (recv(sig(K1, [m1], rsid=0)), st([], waiting=1)),
+          (recv(sig(K1, [m4], rsid=0, fmn=4)), st([gap(2, 3, rsid=0)], waiting=2))])
+    t("gap-refused-block-reports-nothing", "A refused block (bad signature) is not counted.", ctx(SG1), [
+        (recv(cert(K1)), st([session()])),
+        (recv(m1), st([], [sha(m1)])), (recv(sig(K1, [m1])), st([dep(m1, claim(1))])),
+        (recv(sig(K1, [m4], fmn=4, sign_with=K2)), st([ref("ssign", "bad-signature")]))])
     pay = payload(K1)
     half = len(pay) // 2
     t("fragments-reassembled", "A payload in two Certificate Blocks, the second first.", ctx(S1), [
