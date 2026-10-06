@@ -1,0 +1,152 @@
+# Upstream reports — ready to send
+
+Findings from implementing did:webvh (spec-gaps 101–102) and KEYTRANS (spec-gaps 104), rechecked on 2026-10-05
+against the current texts:
+- the did:webvh v1.0 spec as of `7e39c70`;
+- `didwebvh-ts` 2.8.0 (the latest on npm) and `didwebvh-rs` 0.8.0 (the latest on crates.io);
+- `draft-ietf-keytrans-protocol` -05, and the editors' copy at `a214b15`.
+
+Findings already fixed upstream are listed at the end and are **not** to be sent. Each report links to a vector in
+`https://github.com/thevoiceguy/DSIP/tree/main/impl/vectors`, so it can be reproduced.
+
+---
+
+## did:webvh — specification (github.com/decentralized-identity/didwebvh)
+
+### 1. Log entries may carry properties that no signature covers
+
+**Title:** Log entry: unknown properties are dropped before hashing, so they are covered by no signature
+
+The spec lists a log entry's properties (`versionId`, `versionTime`, `parameters`, `state`, `proof`), but never says
+an entry MUST NOT have others. Both reference libraries strip unknown entry properties before computing the entry
+hash and verifying the proof. As a result, a property added **after** the entry was hashed and signed resolves as
+valid in `didwebvh-rs` 0.8.0 and `didwebvh-ts` 2.8.0, and its content is covered by no signature. A consumer that
+reads the raw log, or a later spec version that gives a new property meaning, would trust unsigned data.
+
+**Reproduce:** the vector `did-webvh/unknown-entry-key.json` is a valid log with one extra entry key.
+
+**Suggest:** "A log entry MUST NOT contain properties other than these five. A resolver MUST reject a log
+containing one." This mirrors the existing rule for unknown `method` values.
+
+### 2. I-JSON is not required, but JCS assumes it
+
+**Title:** Require I-JSON (RFC 7493) for log entries: JCS (RFC 8785) is undefined outside it
+
+Entry hashes and Data Integrity proofs use JCS, and RFC 8785 is defined only for I-JSON input. The method never
+requires I-JSON, so implementations disagree on logs that fall outside it:
+- integers beyond 2^53, which some parsers round;
+- duplicate member names, where implementations keep the first or the last;
+- lone surrogates in strings;
+- `-0`.
+
+Different implementations then compute different hashes for the same bytes.
+
+**Reproduce:** the `did-webvh/ijson-*.json` vectors (`ijson-duplicate-name`, `ijson-integer-beyond-max-safe`,
+`ijson-lone-surrogate`, `ijson-minus-zero`).
+
+**Suggest:** "The log file, every entry, and the witness file MUST be I-JSON (RFC 7493). A resolver MUST reject
+input that is not."
+
+### 3. `schemas/v1.0/log_entry.json` disagrees with the prose
+
+**Title:** log_entry.json: minItems contradicts the prose; proof shape; invalid "type": "date-time"
+
+- `updateKeys`, `nextKeyHashes` and `watchers` have `minItems: 1`. But the prose uses `[]`: an empty `updateKeys` to
+  deactivate, and an empty `nextKeyHashes` to end pre-rotation. A schema-validating resolver rejects valid logs.
+- `proof` is accepted as a single object, where the prose requires an array.
+- `"type": "date-time"` (lines 11 and 264) is not valid JSON Schema. It should be `"type": "string", "format":
+  "date-time"`.
+
+### 4. Smaller inconsistencies
+
+**Title:** v1.0 editorial: monotonicity wording, examples, value types
+
+- The security section says `versionTime` must move forward by "one second"; the normative text says "strictly
+  greater".
+- A `nextKeyHashes` example still uses the legacy base32 form.
+- The metadata `ttl` and `witness.threshold` are specified as strings, while implementations emit integers.
+- `portable: false` together with a move in the same entry is not addressed.
+- Leading zeros in the `versionId` number, and fractional seconds in `versionTime`, are neither allowed nor forbidden.
+
+---
+
+## didwebvh-rs (github.com/decentralized-identity/didwebvh-rs)
+
+### 5. Accepts an unknown `method` version, and unsigned extra entry keys
+
+**Title:** 0.8.0 accepts `method: "did:webvh:9.9"` and log entries with extra keys
+
+- The spec says unrecognised `method` values are rejected and never silently downgraded (its own negative example is
+  `did:webvh:99.0`). 0.8.0 resolves a log whose first entry has `parameters.method: "did:webvh:9.9"`. Reproduce with
+  the vector `did-webvh/method-unknown.json`, which expects a rejection.
+- 0.8.0 also resolves a log entry carrying a key beyond the five defined ones (report 1).
+
+---
+
+## didwebvh-ts (github.com/decentralized-identity/didwebvh-ts)
+
+### 6. The published package predates the June hardening
+
+**Title:** Publish 3.0.0: npm's 2.8.0 accepts logs the current spec rejects
+
+The latest version on npm, 2.8.0, accepts each of the following, all of which the current spec rejects. Where a
+DSIP vector reproduces one, it is named:
+- an entry after deactivation (`entry-after-deactivation`);
+- a portable move without `alsoKnownAs`;
+- an empty `proof` array;
+- an omitted `nextKeyHashes` under pre-rotation (`pre-rotation-omits-nexthashes`);
+- unknown parameters (`unknown-parameter`);
+- extra entry keys (`unknown-entry-key`).
+
+The repository is at 3.0.0, which is not published to npm, so anyone installing from npm gets 2.8.0. We have not
+tested 3.0.0 against these cases.
+
+---
+
+## KEYTRANS — protocol draft (github.com/ietf-wg-keytrans/draft-protocol, or keytrans@ietf.org)
+
+### 7. The root of an empty prefix tree is unspecified
+
+**Title:** Define the prefix-tree root value when the tree is empty
+
+The prefix tree's root is defined in terms of its children, but neither -05 nor the current editors' copy says what
+the root value is when the tree holds no search keys (for example, before any label is inserted). Implementations
+must pick something (all zeros, an empty hash, or absent), and if they pick differently they compute different
+`TreeHeadTBS` values. Suggest defining it explicitly.
+
+### 8. `Kc` wording
+
+**Title:** Kc: "the byte sequence equal to the hex-encoded string" is ambiguous
+
+The cipher-suite text defines `Kc` as "the byte sequence equal to the hex-encoded string
+`d821f8790d97709796b4d7903357c3f5`". That can be read as the 16 bytes that string encodes, or as the 32 ASCII bytes
+of the string. The independent implementation `katie`, and ours, use the 16 decoded bytes. Suggest: "the 16 bytes
+whose hexadecimal encoding is …".
+
+### 9. VRF details that change outputs
+
+**Title:** State the ECVRF validate_key choice, point decoding, and TAI counter bound
+
+The suites use ECVRF-P256-SHA256-TAI and ECVRF-EDWARDS25519-SHA512-TAI (RFC 9381). RFC 9381 leaves choices that
+can change whether a proof verifies:
+- whether `ECVRF_verify` runs with `validate_key` (rejecting low-order public keys);
+- whether point decoding must be canonical.
+
+Two conforming implementations can therefore disagree on the same proof. Suggest fixing both for KT.
+
+### 10. Comment on issue #51 (PrefixProof parsing)
+
+The current editors' copy now defines the `depth` of a `nonInclusionParent` result as the depth of the missing
+(stand-in) leaf, not of its parent. That looks like it settles the depth half of #51. Is the question of which
+`elements` such a proof carries now settled too, or still open? (A question to ask, not a finding to assert.)
+
+---
+
+## Already fixed upstream (not to be sent)
+
+- **KEYTRANS Mode-1 `leaf_public_key`.** The editors' copy keeps it only for third-party management (commit
+  `b97f81d`).
+- **KEYTRANS vector-length semantics.** The editors' copy now says lengths count elements.
+- **KEYTRANS stray `UpdateRequest request;`.** It is gone from the editors' copy.
+- **did:webvh unknown `method` values.** The spec now rejects them explicitly, with the negative example
+  `did:webvh:99.0`; only the library behaviour (report 5) remains.

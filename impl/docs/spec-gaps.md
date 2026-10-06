@@ -2372,7 +2372,9 @@ which versions it supports and how strictly it reads the log, so that three impl
 
 ## 102. did:webvh v1.0 (upstream) — findings to report to the DIF working group
 
-**Status: draft, for the user to send upstream.** Found while implementing spec-gap 101. These are not DSIP spec
+**Status: draft, for the user to send upstream.** The texts are in `impl/docs/upstream-reports.md`, rechecked on
+2026-10-05: reports 1–6. Item 2's spec half is fixed upstream (the spec now rejects unknown `method` values with its
+own negative example); the library half remains. Found while implementing spec-gap 101. These are not DSIP spec
 issues; DSIP's resolution is pinned either way.
 
 1. **Unknown entry properties are dropped before hashing by both reference libraries.** An entry with an extra key
@@ -2559,7 +2561,13 @@ identity. IETF KEYTRANS solves this, but it is a working-group draft whose looku
 - Every computed hash and signature was confirmed with **katie**, the KEYTRANS editor's Go implementation (commit
   `e1640671`): indexes, commitments, prefix and log roots, the Configuration and tree heads.
 
-**Findings for the KEYTRANS working group** (the user to send):
+**Findings for the KEYTRANS working group** (the user to send). The texts are in `impl/docs/upstream-reports.md`,
+rechecked on 2026-10-05 against the editors' copy at `a214b15`:
+- **Fixed upstream since:** items 1 (`leaf_public_key`), 2 (vector lengths) and 7's stray `UpdateRequest`.
+- **Partly settled:** item 3 (the `nonInclusionParent` depth is now defined), sent as a question on #51.
+- **Still open, sent as reports 7–9:** items 4 (empty root), 5 (`Kc`) and 6 (the VRF).
+
+The original list:
 1. **Mode-1 Configuration.** -05 §11.2 gives contactMonitoring a `leaf_public_key`. The editors' copy removed it
    (commit `b97f81d`, 2026-07-28), and katie follows the editors. Implementations of -05 and of the editors' copy
    compute different `TreeHeadTBS` bytes, so their signatures don't verify across them. DSIP follows the editors'
