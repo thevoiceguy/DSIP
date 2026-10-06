@@ -2431,7 +2431,8 @@ No wire-format change: `dsip.core` stays `1.0`, and every addition is an optiona
 
 ### A.7 From v0.9 to v0.10
 
-v0.9 is final at tag `poc-v0.9`. Each v0.10 item is listed here as it lands, with its spec-gap number.
+v0.9 is final at tag `poc-v0.9`. v0.10 completes work v0.9 left open: the multi-device and device-events items its
+spec-gaps listed, and recording acceptance across a person's devices. Each item names its spec-gap.
 
 - Recording acceptance is the person's, not one device's (Recording Profile C§5; spec-gap 107): the device on which
   the user accepts sends a `recording-acceptance` object to the identity's personal group, and every device of the
@@ -2445,6 +2446,10 @@ v0.9 is final at tag `poc-v0.9`. Each v0.10 item is listed here as it lands, wit
   It covers RFC 6353's certificate-to-name table, framing, RFC 5343 discovery and the inform Response (E§3).
 - Device Events (spec-gap 103): signed syslog (RFC 5848), basis `syslog-signed`. A configured signer's messages are
   held until a verified Signature Block lists them, or are deposited with their transport's basis (E§3).
+
+No wire-format change: `dsip.core` stays `1.0`, and every addition is a new optional field, object, registry value
+or profile section. Every item is pinned by the v0.10 conformance suite (1,539 vectors; the Python harness, the Rust
+reference implementation and the independent TypeScript implementation agree on every one).
 
 ---
 
