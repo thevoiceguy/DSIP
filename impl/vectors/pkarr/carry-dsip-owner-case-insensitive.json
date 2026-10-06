@@ -1,0 +1,18 @@
+{
+  "vector": "pkarr/carry-dsip-owner-case-insensitive",
+  "format": 1,
+  "kind": "pkarr",
+  "description": "An owner of _DSIP.<zone> is the DSIP name too, whatever its case.",
+  "spec_ref": [
+    "§8.5"
+  ],
+  "context": {},
+  "input": {
+    "check": "carry",
+    "zone": "916kgx85jbgytip7in9ghxj4srdm9jyaawi1io86m5g8m9fhjaty",
+    "dns": "000084000000000200000000055f64736970343931366b677838356a62677974697037696e396768786a347372646d396a796161776931696f38366d3567386d3966686a61747900001000010000012c00261c7572693d7773733a2f2f72656c61792e6578616d706c652f6473697008623d77732f312e30055f44534950c012001000010000012c0004036f6c64"
+  },
+  "expect": {
+    "keep": []
+  }
+}

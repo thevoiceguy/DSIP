@@ -3,9 +3,10 @@
  * `did:key` subjects whose identity key is also their Pkarr key.
  *
  * Spec: §8.5, §8.3 (v0.9: Pkarr beside the hints overlay; DHT Reachability Hints Profile); BEP 44
- * (mutable items, the signed buffer); RFC 1035 §4.1 (the DNS message), §4.1.4 (compression), §3.3.14 (TXT).
+ * (mutable items, the signed buffer); RFC 1035 §4.1 (the DNS message), §4.1.4 (compression), §3.3.14 (TXT);
+ * DHT Hints Profile §9 (the Pkarr carrier: reading, carrying the zone's other records, the next `ts`); RFC 3597 §4.
  * Impl: the step order, the reason tokens and the `_dsip` TXT record format are the vectors README's
- * ("Kind: `pkarr`"); the profile has no Pkarr section yet (spec-gap 105).
+ * ("Kind: `pkarr`"), which the profile's §9 defers to (spec-gap 105).
  */
 import type { Json, JsonObject } from "../did.js";
 import { ed25519FromMultibase, utf8Decode } from "../encoding.js";
@@ -88,6 +89,8 @@ interface RR {
   cls: number;
   ttl: number;
   rdata: Buffer;
+  /** Offset of `rdata` in the message, so names inside it can follow pointers (RFC 1035 §4.1.4). */
+  rdStart: number;
 }
 
 /** A failure inside the DNS parser: the message is `malformed`. */
@@ -158,6 +161,7 @@ function parseAnswers(msg: Buffer): RR[] {
         cls: msg.readUInt16BE(end + 2),
         ttl: msg.readUInt32BE(end + 4),
         rdata: msg.subarray(end + 10, rdEnd),
+        rdStart: end + 10,
       });
     }
     pos = rdEnd;
@@ -299,6 +303,111 @@ export function select(did: string, payloadHex: Json | undefined, heldHex: Json 
   return { winner: "held", conflict: same ? "none" : "same-seq-live" };
 }
 
+/** Labels to uncompressed wire form: length-prefixed labels, then a zero byte (RFC 1035 §3.1). */
+function wireName(labels: Buffer[]): Buffer {
+  const parts: Buffer[] = [];
+  for (const l of labels) parts.push(Buffer.from([l.length]), l);
+  parts.push(Buffer.from([0]));
+  return Buffer.concat(parts);
+}
+
+/**
+ * The layout of the RFC 1035 types whose rdata may hold compressed names, as RFC 3597 §4 lists them:
+ * `n` is a name, a number is that many fixed bytes.
+ *
+ * Spec: DHT Hints Profile §9 (Publishing: "the names inside the record data are expanded"); RFC 3597 §4;
+ * RFC 1035 §3.3 (NS, MD, MF, CNAME, SOA, MB, MG, MR, PTR, MINFO, MX).
+ */
+const COMPRESSIBLE: ReadonlyMap<number, ReadonlyArray<"n" | number>> = new Map<number, Array<"n" | number>>([
+  [2, ["n"]], // NS
+  [3, ["n"]], // MD
+  [4, ["n"]], // MF
+  [5, ["n"]], // CNAME
+  [6, ["n", "n", 20]], // SOA: MNAME, RNAME, SERIAL REFRESH RETRY EXPIRE MINIMUM
+  [7, ["n"]], // MB
+  [8, ["n"]], // MG
+  [9, ["n"]], // MR
+  [12, ["n"]], // PTR
+  [14, ["n", "n"]], // MINFO
+  [15, [2, "n"]], // MX: PREFERENCE, EXCHANGE
+]);
+
+/**
+ * Re-encode one carried record's rdata with every name in it expanded.
+ *
+ * Spec: DHT Hints Profile §9; RFC 3597 §4. Impl (vectors README, `check: "carry"`): the rdata must hold
+ * exactly the type's layout; every inline name byte (labels, the zero byte or the pointer) lies inside the
+ * rdata, while a pointer may target anywhere earlier in the message under the backward-only rule of the
+ * owner names; anything else is malformed. Every other type is returned as it is.
+ */
+function expandRdata(msg: Buffer, rr: RR): Buffer {
+  const layout = COMPRESSIBLE.get(rr.type);
+  if (!layout) return rr.rdata;
+  const rdEnd = rr.rdStart + rr.rdata.length;
+  const parts: Buffer[] = [];
+  let pos = rr.rdStart;
+  for (const field of layout) {
+    if (field === "n") {
+      const { labels, end } = readName(msg, pos);
+      if (end > rdEnd) throw new Malformed();
+      parts.push(wireName(labels));
+      pos = end;
+    } else {
+      if (pos + field > rdEnd) throw new Malformed();
+      parts.push(msg.subarray(pos, pos + field));
+      pos += field;
+    }
+  }
+  if (pos !== rdEnd) throw new Malformed();
+  return Buffer.concat(parts);
+}
+
+/**
+ * The records a publisher carries over from its previous packet: every IN answer outside `_dsip.<zone>`,
+ * in message order, owner names uncompressed (case kept) and names inside rdata expanded.
+ *
+ * Spec: DHT Hints Profile §9 (Publishing: "Keep the zone's other records"); RFC 1035 §4.1; RFC 3597 §4.
+ * Impl (vectors README, `check: "carry"`; spec-gap 105): only answer records; class exactly 1; the `_dsip`
+ * owner is compared label by label, ASCII case-insensitively, whatever the type; the excluded records'
+ * rdata is not inspected; any parse failure anywhere in the message is `malformed`.
+ */
+export function carry(zone: string, dnsHex: Json | undefined): Json {
+  const dns = fromHex(dnsHex);
+  if (!dns) return { error: "malformed" };
+  const zoneLower = asciiLower(Buffer.from(zone, "latin1"));
+  const keep: JsonObject[] = [];
+  try {
+    for (const rr of parseAnswers(dns)) {
+      if (rr.cls !== 1 || isDsipName(rr.labels, zoneLower)) continue;
+      keep.push({
+        name: wireName(rr.labels).toString("hex"),
+        type: rr.type,
+        ttl: rr.ttl,
+        rdata: expandRdata(dns, rr).toString("hex"),
+      });
+    }
+  } catch (e) {
+    if (e instanceof Malformed) return { error: "malformed" };
+    throw e;
+  }
+  return { keep };
+}
+
+/**
+ * The timestamp a publisher signs: `max(clock, previous + 1)` µs, or the clock with no previous packet.
+ *
+ * Spec: DHT Hints Profile §9 (Publishing: never sign ahead of the clock except after it steps backwards,
+ * since a lower `seq` is refused everywhere); §8.3 (the higher sequence number wins).
+ * Impl (vectors README, `check: "next-ts"`; spec-gap 105): a result above 2^53−1, which every reader
+ * refuses (`check: "hint"` step 4), is `{"error": "exhausted"}`: nothing is signed.
+ */
+export function nextTs(clock: number, previous: number | undefined): Json {
+  const c = BigInt(clock);
+  const next = previous === undefined ? c : BigInt(previous) + 1n > c ? BigInt(previous) + 1n : c;
+  if (next > TS_MAX) return { error: "exhausted" };
+  return { ts: Number(next) };
+}
+
 /** Kind `pkarr`: dispatch on `input.check`. Spec: §8.5; README "Kind: `pkarr`" */
 export function runPkarr(input: JsonObject): Json | undefined {
   switch (input["check"]) {
@@ -322,6 +431,10 @@ export function runPkarr(input: JsonObject): Json | undefined {
       const out = z32Decode(input["z32"] as string);
       return Buffer.isBuffer(out) ? { key: out.toString("hex") } : out;
     }
+    case "carry":
+      return carry(input["zone"] as string, input["dns"]);
+    case "next-ts":
+      return nextTs(input["clock"] as number, input["previous"] as number | undefined);
     default:
       return undefined;
   }

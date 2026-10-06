@@ -1,0 +1,18 @@
+{
+  "vector": "pkarr/carry-not-hex",
+  "format": 1,
+  "kind": "pkarr",
+  "description": "dns that is not hex is malformed.",
+  "spec_ref": [
+    "§8.5"
+  ],
+  "context": {},
+  "input": {
+    "check": "carry",
+    "zone": "916kgx85jbgytip7in9ghxj4srdm9jyaawi1io86m5g8m9fhjaty",
+    "dns": "zz"
+  },
+  "expect": {
+    "error": "malformed"
+  }
+}
