@@ -943,6 +943,100 @@ Events:
 - **`advance: n`.** Sets `now += n`, then removes every `answered` key whose remembered-until time is `≤ now`.
   `pending` keys never expire. Advance emits nothing.
 
+**Signed syslog traces** (`context.component: "syslog-sign"`, E§3, v0.10; RFC 5848) model a gateway's collector.
+
+**Context:** `{component, now, hold_s, signers: [{hostname, type: "C" | "K", key}]}`.
+- `key` is base64: the certificate's DER for `C`, or the four MPIs p, q, g, y for `K`.
+- The key's `key_sha256` is the SHA-256 of those decoded bytes, in hex.
+- Hostnames compare without case (ASCII).
+
+**Steps:**
+- `{receive: {message}}`, where `message` is hex: one whole syslog message.
+- `{advance: n}`.
+
+Each step's expect is `{"emit": [...], "held": [...], "waiting": n}`:
+- `held` is the held messages' `sha256` values, in arrival order;
+- `waiting` is the number of signed hashes waiting for their message.
+
+The **emits** are:
+- `{"deposit": {"sha256", "signed"}}`, where `sha256` is the message's SHA-256 in hex, and `signed` is `null` or E§2's
+  object;
+- `{"session": {hostname, app_name, procid, rsid, key_sha256}}`;
+- `{"refused": {"block": "ssign" | "ssign-cert", "reason"}}`.
+
+**Classifying a received message.** It is parsed as `check: "syslog"` does.
+1. **Not RFC 5424, or its HOSTNAME is `-`.** It is deposited at once, unsigned.
+2. **A block:** an SD element whose id is `ssign` or `ssign-cert`; the first such element names the block. It is
+   never deposited; see below.
+3. **Otherwise, with a configured signer's HOSTNAME.** It is held until `now + hold_s`.
+   - When a waiting signed hash matches it, it is deposited signed at once, that waiting entry is removed, and its
+     number becomes authenticated. Match on the waiting entry's hash algorithm; when several match, the earliest
+     added wins.
+4. **Otherwise.** It is deposited at once, unsigned.
+
+**A block** is checked in this order, and the first failure is its `reason`.
+
+1. **`malformed-block`.**
+   - **The element.** It is the message's only SD element, and its parameters are exactly, in order:
+     - `ssign`: `VER RSID SG SPRI GBC FMN CNT HB SIGN`;
+     - `ssign-cert`: `VER RSID SG SPRI TPBL INDEX FLEN FRAG SIGN`.
+   - **Numbers.** Decimal with no leading zeros (`0` alone is allowed):
+     - `RSID`, `GBC` and `FMN`: at most 10 digits, with `FMN` ≥ 1;
+     - `SG`: 0–3;
+     - `SPRI`: 0–191;
+     - `CNT`: 1–99;
+     - `TPBL` and `INDEX`: at most 8 digits, each ≥ 1;
+     - `FLEN`: at most 4 digits, ≥ 1.
+   - **`VER`** is 4 characters.
+   - **`SIGN`** is padded base64 that decodes to exactly two MPIs. Each MPI is a 2-byte big-endian bit count, then
+     ⌈bits/8⌉ bytes. The count is not checked against the value.
+   - **`HB`** is `CNT` non-empty padded-base64 tokens separated by single spaces. When `VER` is supported, each
+     decodes to the hash's size (20 or 32 bytes).
+   - **Padded base64** throughout is RFC 4648's alphabet with `=` padding, its length a multiple of 4. Non-zero
+     unused bits in the last character are accepted (RFC 4648 §3.5).
+   - **`FRAG`'s** length in bytes, after RFC 5424 unescaping, equals `FLEN`, and `INDEX + FLEN − 1 ≤ TPBL`.
+2. **`unsupported-version`.** `VER` is not `0111` or `0121`.
+3. **`unknown-signer`.** No signer has this HOSTNAME.
+4. **`bad-signature`.**
+   - **The signed bytes** are the message with ` SIGN="<value>"` removed. That text ends just before the element's
+     closing `]`. The element starts with the `[` after the sixth space of the message, and closes at the first `]`
+     outside a quoted value (inside quotes, `\` escapes the next byte). Anything else is `malformed-block`.
+   - **The verification** is DSA with the signer's key and the version's hash, digest truncated to q's bit length as
+     FIPS 186 does. `r` and `s` must be in 1…q−1.
+5. **`old-session`.** `RSID` > 0, and it is below the highest `RSID` of an established session of this signer
+   (HOSTNAME, APP-NAME). A rebooted signer may take a new PROCID, but keeps its APP-NAME (RFC 5848 §4.1).
+
+**Then, a Certificate Block** for session (hostname as configured, APP-NAME, PROCID, RSID):
+- **Established session.** A fragment whose `TPBL` is the established payload's length, and whose bytes equal the
+  payload's at `INDEX`, is ignored, emitting nothing. Any other fragment ends the session, dropping its authenticated numbers and its waiting hashes, and
+  assembly starts anew with this fragment. The `old-session` floor stays: it counts every RSID ever established.
+- **Assembling.**
+  - A `TPBL` different from the stored fragments' is `fragment-mismatch`, and so are bytes that disagree with a stored
+    fragment where they overlap. The fragment is dropped.
+  - Otherwise it is stored. When the stored fragments cover bytes 1…`TPBL`, the payload is assembled and the stored
+    fragments cleared.
+- **The assembled payload** must be three fields separated by single spaces: a non-empty timestamp (not
+  interpreted), `C` or `K`, and padded
+  base64 decoding to the signer's configured type and key bytes. Otherwise it is `payload-mismatch`. When it is
+  right, `{"session"}` is emitted, with the Certificate Block message's HOSTNAME, and the session is established.
+
+**Then, a Signature Block:**
+- **Session.** Without an established session (hostname as configured, APP-NAME, PROCID, RSID), the block is
+  `no-session`.
+- **Hashes.** Otherwise, hash `i` (from 0) is message number `FMN + i` in the group (session, SG, SPRI), and the
+  hashes are handled in order:
+  - a number already authenticated in the group is skipped;
+  - else the earliest held message with that hash under the version's algorithm is deposited signed, and the number
+    becomes authenticated;
+  - else, unless that (group, number) is already waiting, the hash waits until `now + hold_s`.
+
+**`advance`** adds `n` to `now`. Then:
+- held messages with due ≤ `now` are deposited unsigned, in arrival order;
+- waiting hashes with due ≤ `now` are dropped silently.
+
+**A deposited message's `signed`** is `{hostname, app_name, procid, rsid, sg, spri, message_number, key_sha256}`.
+`hostname`, `app_name` and `procid` are the Signature Block message's, and the numbers are JSON integers.
+
 **SNMPv3 over TLS** (E§3, v0.10) has three stateless checks.
 
 **`check: "tsm-name"`**, with `certificate` and `table`, outputs `{"security_name", "row"}` (the row's `id`) or

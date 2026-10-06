@@ -36,6 +36,7 @@ devices (SNMP SET, NETCONF); standardized vendor mapping content.
   | `snmpv3-auth` | SNMPv3, `authNoPriv` |
   | `snmpv3-authpriv` | SNMPv3, `authPriv` |
   | `snmpv3-tls` | SNMPv3 over TLS (RFC 6353) with the Transport Security Model (RFC 5591), the device's certificate verified (v0.10) |
+  | `syslog-signed` | syslog signed by its originator (RFC 5848), the Signature Block verified against the signer's configured key (v0.10) |
   | `syslog-tls` | syslog over TLS (RFC 5425), the device's certificate verified |
   | `syslog-udp` | syslog over UDP (RFC 5426), unauthenticated |
   | `gateway` | raised by the gateway itself (e.g. its own state) |
@@ -49,6 +50,9 @@ devices (SNMP SET, NETCONF); standardized vendor mapping content.
   - `syslog-tls`: `"certificate_sha256": "<hex>"`, the SHA-256 of the device's verified leaf certificate.
   - `snmpv3-tls`: `"certificate_sha256"` as for `syslog-tls`, and `"tsm": {"security_name": "<name>"}`, the name
     the certificate mapped to (E§3).
+  - `syslog-signed`: `"signed": {hostname, app_name, procid, rsid, sg, spri, message_number, key_sha256}`. These are
+    the signer and reboot session, the Signature Group, the message's number in that group, and the SHA-256 of the
+    signer's configured key (E§3). When the message came over TLS, `certificate_sha256` is carried as well.
   - Optionally `"name"` (v0.10): the name the gateway's configuration gives that certificate (or, for other
     authenticated bases, that identity). It is the gateway's claim, rendered beside the fingerprint, and absent when
     the gateway has none. A member MUST NOT render it without the identity it names.
@@ -164,6 +168,36 @@ reason tokens are those of `impl/vectors/README.md` (component `snmpv3`):
   a Response-PDU with the inform's `msgID`, request-id, varbinds, contextEngineID and contextName, and its `msgFlags`
   without the reportable bit. `msgSecurityModel` is 4, `securityParameters` is empty, and the error status and
   index are 0.
+
+**Signed syslog** (v0.10; RFC 5848, syslog-sign). A signer sends RFC 5424 messages, then **Signature Blocks**
+listing the messages' hashes, and **Certificate Blocks** carrying its key. These are syslog messages with an SD
+element `ssign` or `ssign-cert`. The basis is `syslog-signed`.
+
+- **Signers are configured.** Each signer is a HOSTNAME (compared without case) with its key: a PKIX certificate
+  holding a DSA key (key blob type `C`) or a raw DSA key (type `K`, the four OpenPGP MPIs p, q, g, y). RFC 5848
+  §5.2.2 (b) calls this end-entity matching. Since the key is known in advance, every block is authenticated on
+  arrival, including each Certificate Block fragment. Key blob types `N`, `P` and `U` are not supported.
+- **Versions.** `0111` (SHA-1) and `0121` (SHA-256), both with OpenPGP DSA, the only scheme RFC 5848 defines. A
+  signature is DSA (FIPS 186) over the message digested with the version's hash. `r` and `s` are two OpenPGP MPIs,
+  each a 2-byte bit count and then ⌈bits/8⌉ bytes. The bit count gives only the length: the RFC's own example
+  declares 160 bits for a 159-bit `r`.
+- **The signed bytes** are the block message with ` SIGN="…"` removed. The block's SD element MUST be the message's
+  only one, so ` SIGN="…"` is the last thing before its `]`. The signed bytes start at `<` and end at the end of the
+  message.
+- **A Certificate Block's FRAG is the payload text itself**, as RFC 5848's example carries it, despite its field
+  table. The payload is `timestamp SP type SP base64(key blob)`. When the fragments cover the whole payload, it MUST
+  name the signer's configured key; then the **session** (HOSTNAME, APP-NAME, PROCID, RSID) is established.
+- **Signature Blocks** are processed only for an established session. No block is accepted for an RSID below the
+  highest one established for the same HOSTNAME and APP-NAME (a rebooted signer may take a new PROCID, RFC 5848
+  §4.1). `RSID` 0, which cannot be ordered, is excepted. Each hash is numbered from FMN. A number
+  already authenticated in its Signature Group is a duplicate and is ignored.
+- **Holding.** A message whose HOSTNAME is a configured signer's is held for up to `H` seconds (default 10).
+  - When a verified Signature Block lists its hash, the message is deposited with basis `syslog-signed`.
+  - When `H` passes first, it is deposited with its transport's basis, as without signing. Nothing claims more than
+    was verified.
+  - A signed hash whose message has not arrived waits `H` seconds for it.
+  - Block messages are never deposited.
+- The rules, and each refusal's token, are the README's `syslog-sign` traces.
 
 **Syslog** (RFC 5424 and its transports) is carried as its fields. Its severity maps to an alarm severity through a
 table the gateway MAY override per rule. By default:

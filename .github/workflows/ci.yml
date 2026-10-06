@@ -121,6 +121,12 @@ jobs:
         # answered once stored; a certificate no row names, and a client without one, are refused.
         run: timeout 300 bash demos/device-events-snmp-tls-demo.sh | tail -22
         working-directory: impl
+      - name: device events from signed syslog (Device Events Profile draft E§3, RFC 5848)
+        # Self-verifying: a fragmented Certificate Block establishes the session; two held messages become
+        # syslog-signed events when their Signature Block verifies; an unsigned message from the signer's host and one
+        # listed by a foreign key are deposited as syslog-udp after the hold.
+        run: timeout 300 bash demos/device-events-syslog-sign-demo.sh | tail -20
+        working-directory: impl
       - name: recording disclosure and consent (Recording Profile draft)
         # Self-verifying, four calls over a relay with real media: a callee's recorded answer makes the caller hold all
         # audio (0 frames sent) until acceptance; a callee never answers a recorded invite before acceptance and its

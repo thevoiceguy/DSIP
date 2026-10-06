@@ -1,0 +1,46 @@
+{
+  "vector": "device-events/syslog-sign-unsupported-version",
+  "format": 1,
+  "kind": "device-events",
+  "description": "VER 0112: a well-formed version this profile does not support.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {
+    "component": "syslog-sign",
+    "now": 1000,
+    "hold_s": 10,
+    "signers": [
+      {
+        "hostname": "sw1.example",
+        "type": "K",
+        "key": "BACsLMZNCV2NUAwe4RAeAnSQuvv2KS51SnHFAaWJNU2XVDYvW1LjmJgg4vKvQPo3HEOD+2hEkt1zcXADe03u5pmHoWy5FGiyCbglYxJkUJJrQqlTSS6vID9yhsmEnh07w3pOsxmb4qYo0uWQrAAenBweVMlBgV3ZA5IMA8xq8l+i8wCgkWJjCjfLar7s+0X3HVrRroyARv8EAIYoxofh9mN8n821BTTuQnz5hp40d6Z3UudKePu2di5Mx3GFelwnV0Qh5mSs0YkuHJg0mcXyUAoeYry5X6482fUxbm+gOHVmYSDtBmZEB8PTEt8Os8aedWgKEt/E4dT+Hmod4omECLteLXxtScTMgDXyC+bSBMjRRCaeWhHrYYdYA/9jFDPkuxRdVhJOf04AE1FLukvSdpnypNo/bp9JGpBXgMqUdTY35kqWA2OSGiUaR1MPR7pMUcc+hLxn6qnzP5IjKUeSZopy+P6IA/FRQy0UVKBXX3hjHDtvqCKoiPZTkgqU7yKrCausPxWc/2Ldo2PnMjGfqhU6hxvVCu4lTEaTQQ=="
+      }
+    ]
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "receive": {
+            "message": "3c3131303e3120323032362d31302d30365431323a30303a30315a207377312e6578616d706c65207379736c6f6764203737202d205b737369676e205645523d22303131322220525349443d2231222053473d22302220535052493d223022204742433d22302220464d4e3d22312220434e543d2231222048423d22374e5045627a4735517a742f4b3872554f4f7634385532584f75413d22205349474e3d22414a3479783265315963772f4f6351486f6a706468364c4d594c72362b67436665486c4f665136666370493334426f654647376d5378534b6e376f3d225d"
+          }
+        }
+      }
+    ]
+  },
+  "expect": [
+    {
+      "emit": [
+        {
+          "refused": {
+            "block": "ssign",
+            "reason": "unsupported-version"
+          }
+        }
+      ],
+      "held": [],
+      "waiting": 0
+    }
+  ]
+}

@@ -646,6 +646,36 @@ def gen_tsm_name(r: random.Random):
     return "device-events", "tsm-name", {}, {"certificate": cert, "table": table}
 
 
+def gen_syslog_sign(r: random.Random):
+    """A syslog-sign collector trace: fragments, messages, overlapping/tampered/foreign blocks, clock advances (E§3)."""
+    from dsipvec.gen import syslog_sign as g
+    msgs = [g.msg(f"port {i} down") for i in range(5)] + [g.msg("x", host="pc.example")]
+    pay = g.payload(g.K1)
+    steps = []
+    for _ in range(r.randint(3, 12)):
+        x = r.random()
+        rsid = r.choice([0, 1, 1, 1, 2])
+        if x < 0.2:
+            cut = r.randint(1, len(pay) - 1)
+            idx, fl = r.choice([(1, None), (1, cut), (cut + 1, None)])
+            m = g.cert(g.K1, rsid=rsid, pay=pay if r.random() < 0.9 else g.payload(g.K1, ts="2026-10-06T13:00:00Z"),
+                       index=idx, flen=fl, procid=r.choice(["77", "77", "99"]), sign_with=g.K2 if r.random() < 0.1 else None)
+        elif x < 0.45:
+            m = r.choice(msgs)
+        elif x < 0.75:
+            k = r.randint(1, 4)
+            m = g.sig(g.K1, [r.choice(msgs) for _ in range(k)], rsid=rsid, fmn=r.randint(1, 4), sg=r.choice([0, 0, 1]),
+                      spri=r.choice([0, 13]), ver=r.choice(["0111", "0111", "0121"]), sign_with=g.K2 if r.random() < 0.1 else None)
+        else:
+            steps.append({"advance": r.choice([1, 5, 9, 10, 11])})
+            continue
+        if r.random() < 0.15:
+            m = mutate(r, m, b' "=[]0123456789ABab+/')
+        steps.append({"receive": {"message": m.hex()}})
+    ctx = {"component": "syslog-sign", "now": 1000, "hold_s": 10, "signers": [g.K1.signer("sw1.example")]}
+    return "device-events", None, ctx, steps
+
+
 def gen_recording(r: random.Random):
     """A counterparty's consent trace (Recording Profile C§4): declarations, accepts, declines, answers in any order."""
     recs = ["did:web:rec.acme.example", "did:web:rec2.acme.example"]
@@ -678,7 +708,7 @@ def gen_recording(r: random.Random):
 
 TARGETS = {
     "syslog": gen_syslog, "snmpv3": gen_snmpv3, "recording": gen_recording,
-    "tsm": gen_tsm, "tls-frames": gen_tls_frames, "tsm-name": gen_tsm_name,
+    "tsm": gen_tsm, "tls-frames": gen_tls_frames, "tsm-name": gen_tsm_name, "syslog-sign": gen_syslog_sign,
     "gap": gen_gap, "commit-retry": gen_commit_retry, "hub-outage": gen_hub_outage, "resume": gen_resume, "history": gen_history,
     "successor": gen_successor, "client": gen_client, "hub": gen_hub, "mailbox": gen_mailbox, "endpoint": gen_endpoint,
     "relay": gen_relay, "deposit-fields": gen_deposit_fields, "gateway-reason": gen_gateway_reason,

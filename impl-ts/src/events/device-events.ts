@@ -12,6 +12,7 @@ import type { Json, JsonObject } from "../did.js";
 import { mapSyslog, parseSyslog } from "./syslog.js";
 import { UsmReceiver, usmKey } from "./usm.js";
 import { tlsFrames, tsmName, tsmReceive } from "./tsm.js";
+import { SyslogSignCollector } from "./syslog-sign.js";
 
 /** One varbind, as carried. Spec: E§3 */
 export interface Varbind {
@@ -531,7 +532,8 @@ export class HoldDown {
  * `{emit, alarms}` per step, or an inform trace (`context.component: "informs"`) returning one
  * `{emit, informs}` per step, or an SNMPv3 trace (`context.component: "snmpv3"`) returning one
  * `{emit, engines}` per step, or a hold-down trace (`context.component: "holddown"`) returning one
- * `{emit, held}` per step; the stateless checks include `syslog`, `usm-key` and SNMPv3 over TLS's `tsm-name`,
+ * `{emit, held}` per step, or a signed syslog trace (`context.component: "syslog-sign"`) returning one
+ * `{emit, held, waiting}` per step; the stateless checks include `syslog`, `usm-key` and SNMPv3 over TLS's `tsm-name`,
  * `tls-frames` and `tsm`. Spec: E§3–E§6
  */
 export function runDeviceEvents(context: JsonObject, input: JsonObject): Json {
@@ -546,6 +548,10 @@ export function runDeviceEvents(context: JsonObject, input: JsonObject): Json {
   if (Array.isArray(input["steps"]) && context["component"] === "holddown") {
     const hd = new HoldDown(context);
     return (input["steps"] as JsonObject[]).map((s) => hd.step(s["event"] as JsonObject));
+  }
+  if (Array.isArray(input["steps"]) && context["component"] === "syslog-sign") {
+    const c = new SyslogSignCollector(context);
+    return (input["steps"] as JsonObject[]).map((s) => c.step(s["event"] as JsonObject));
   }
   if (Array.isArray(input["steps"])) {
     const list = new AlarmList(context);

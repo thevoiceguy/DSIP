@@ -2549,8 +2549,37 @@ The gateway (`dsip-msg`):
 - **Demo:** `demos/device-events-snmp-tls-demo.sh` (in CI) uses net-snmp 5.9.5.2. 5.9.4, as shipped by Debian trixie
   and Ubuntu 24.04, caps its TLS client at TLS 1.0 and cannot connect; upstream report 11 asks for the backport.
 
+**Signed syslog (v0.10, E§3; RFC 5848). Decided with the user 2026-10-06: "Hold, then deposit once".**
+- **Basis and holding:** basis `syslog-signed`, with claim `signed` {hostname, app_name, procid, rsid, sg, spri,
+  message_number, key_sha256}. A configured signer's messages are held up to `H` s (default 10); unsigned in time,
+  they are deposited with their transport's basis.
+- **What is pinned where RFC 5848 is loose or contradicts itself:**
+  - **Keys:** configured per HOSTNAME (types C and K; §5.2.2 b end-entity matching), so every block, including each
+    fragment, is authenticated on arrival.
+  - **Versions:** `0111` and `0121` with OpenPGP DSA; the MPI bit count is only a length.
+  - **The block** is the message's only SD element, which locates the signed bytes.
+  - **FRAG** is the payload text (the example, against the table).
+  - **Replays:** `old-session` per (HOSTNAME, APP-NAME).
+  - **RSID 0:** a different payload resets the session.
+- **Vectors:** `syslog-sign-*` (51), three-way, including RFC 5848's two examples verbatim, which verify. Python
+  (OpenSSL) and Rust (RustCrypto `dsa`) agreed at first run. The second implementation verifies DSA with its own
+  BigInt FIPS 186 code.
+- **The new `syslog-sign` fuzz target found two real divergences:**
+  - an unescaped `]` inside a quoted value: Python and Rust took the first `]` as the element's end;
+  - waiting hashes when a session ends: the second implementation kept them.
+
+  Both are fixed and pinned with vectors, along with five of its other readings. Afterwards 3,000 random probes showed
+  no divergence.
+- **Gateway:** `dsip-msg --syslog-signers`, `--syslog-sign-hold`; the transport of a held message is remembered for
+  its unsigned deposit.
+- **Demo:** `demos/device-events-syslog-sign-demo.sh` (in CI). No packaged signer exists (NetBSD's syslogd is the
+  one implementation), so the demo's signer is `demos/syslog_sign_send.py`.
+- **Upstream reports 12 and 13** draft RFC 5848 errata: FRAG's encoding, and the example's MPI bit count.
+
 **Open.**
-- Signed syslog (RFC 5848). DTLS for SNMP (RFC 6353 over UDP).
+- DTLS for SNMP (RFC 6353 over UDP).
+- Key blob types N, P and U for signed syslog.
+- Gap detection from signed message numbers.
 
 ## 104. T§2–T§5 / core §8.1–§8.2 — alias transparency: what DSIP adopts of KEYTRANS, and when
 
