@@ -22,13 +22,13 @@ jobs:
       - run: pip install jsonschema
       - name: regenerate schemas and diff
         run: |
-          python3 v0.10/dsip-schemas-v0.10-draft/dsip-schemas/generate_schemas.py v0.10/dsip-schemas-v0.10-draft/dsip-schemas/schemas
-          git diff --exit-code -- v0.10/dsip-schemas-v0.10-draft/dsip-schemas/schemas
-      - run: python3 v0.10/dsip-schemas-v0.10-draft/dsip-schemas/validate_samples.py
-      - name: regenerate Messaging Profile schemas (v0.10) and diff
+          python3 v0.11/dsip-schemas-v0.11-draft/dsip-schemas/generate_schemas.py v0.11/dsip-schemas-v0.11-draft/dsip-schemas/schemas
+          git diff --exit-code -- v0.11/dsip-schemas-v0.11-draft/dsip-schemas/schemas
+      - run: python3 v0.11/dsip-schemas-v0.11-draft/dsip-schemas/validate_samples.py
+      - name: regenerate Messaging Profile schemas (v0.11) and diff
         run: |
-          python3 v0.10/dsip-messaging-schemas-draft/generate_schemas.py v0.10/dsip-messaging-schemas-draft/schemas
-          git diff --exit-code -- v0.10/dsip-messaging-schemas-draft/schemas
+          python3 v0.11/dsip-messaging-schemas-draft/generate_schemas.py v0.11/dsip-messaging-schemas-draft/schemas
+          git diff --exit-code -- v0.11/dsip-messaging-schemas-draft/schemas
 
   vectors:
     name: vectors regenerate cleanly + Python harness

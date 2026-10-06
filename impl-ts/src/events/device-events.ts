@@ -3,7 +3,7 @@
  * signed events, events become alarms, every member computes the same alarm list, and an
  * escalation agent pages when an alarm stays unacknowledged.
  *
- * Spec: E§3, E§4, E§5, E§6 (`v0.10/dsip-device-events-profile-v0.10-draft.md`); RFC 3584 §3.1
+ * Spec: E§3, E§4, E§5, E§6 (`v0.11/dsip-device-events-profile-v0.11-draft.md`); RFC 3584 §3.1
  * (v1 → v2 translation), RFC 3416 §4.2.6–§4.2.7 (the first two varbinds), RFC 8632 §3.1 (alarm
  * as state, operator state apart from resource state). The exact output shapes, orderings and
  * timer rules are the vectors README's, "Kind: `device-events`".
