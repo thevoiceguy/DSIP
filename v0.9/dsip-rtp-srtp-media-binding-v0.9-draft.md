@@ -1,6 +1,6 @@
 # DSIP RTP/SRTP Media Binding 1.0 — `transport:rtp`
 
-**Status:** DRAFT, companion document to DSIP (staged for v0.8). Normative for the `transport:rtp`
+**Status:** DRAFT, companion document to DSIP v0.9. Normative for the `transport:rtp`
 media transport binding, used by the Gateway Profile toward SIP/PSTN trunks. **Conformance:** the
 SDP-mapping and reason vectors that exercise it are in `impl/vectors/gateway/` (G§6); a dedicated
 `media-binding-rtp/` category is added when the binding lands in code (plan G5 follow-on).

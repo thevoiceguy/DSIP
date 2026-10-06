@@ -1,6 +1,7 @@
 # Draft: DSIP Recording Profile (`recording/0.1`)
 
-Status: draft for v0.9, from `impl/docs/v0.9-research.md` track C and spec-gap 107. Cited as `C§n`.
+**Status:** DRAFT, companion profile to DSIP v0.9. Cite as `C§n`. Decided 2026-10-05 from `impl/docs/v0.9-research.md`
+track C (spec-gaps 107, 108).
 
 Compliance recording under end-to-end encryption happens **at endpoints the organisation controls, and it is
 disclosed**. It never happens by decrypting at relays, by key escrow, or through a lawful-intercept interface (§3).

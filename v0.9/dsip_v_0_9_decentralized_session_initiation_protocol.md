@@ -6,8 +6,8 @@
 **Status:** Design Proposal
 **Editor:** James Ferris
 **Date:** October 2026
-**Supersedes:** Draft v0.7
-**Companion documents:** WebRTC Media Binding 1.0 (`dsip-webrtc-media-binding-v0.9.md`); Gateway Profile 1.0 (`dsip-gateway-profile-v0.9.md`); Messaging Profile 1.0 (`dsip-messaging-profile-v0.9.md`, with its schema set `dsip-messaging-schemas-draft/`); RTP/SRTP Media Binding (draft, `dsip-rtp-srtp-media-binding-v0.9-draft.md`); DHT Hints Profile (draft, `dsip-dht-hints-profile-v0.9-draft.md`); Recording Profile (draft, `dsip-recording-profile-v0.9-draft.md`); JSON Schema set v0.8 (`dsip-schemas-v0.9-draft/`); conformance vectors (`impl/vectors/`, 737 vectors, Rust/Python parity)
+**Supersedes:** v0.8
+**Companion documents:** WebRTC Media Binding 1.0 (`dsip-webrtc-media-binding-v0.9.md`); Gateway Profile 1.0 (`dsip-gateway-profile-v0.9.md`); Messaging Profile 1.0 (`dsip-messaging-profile-v0.9.md`, with its schema set `dsip-messaging-schemas-draft/`); RTP/SRTP Media Binding (draft, `dsip-rtp-srtp-media-binding-v0.9-draft.md`); DHT Hints Profile (draft, `dsip-dht-hints-profile-v0.9-draft.md`); Alias Transparency Profile (draft, `dsip-alias-transparency-profile-v0.9-draft.md`); Device Events Profile (draft, `dsip-device-events-profile-v0.9-draft.md`); Recording Profile (draft, `dsip-recording-profile-v0.9-draft.md`); JSON Schema set v0.9 (`dsip-schemas-v0.9-draft/`); conformance vectors (`impl/vectors/`, 1,385 vectors on which the Python harness, the Rust reference implementation and the independent TypeScript implementation agree)
 
 ---
 
@@ -2178,7 +2178,8 @@ DSIP needs registries for:
 - Info data namespaces (`dsip-info-about`, §12.12)
 - Subscription event classes (`dsip-subscription-event`: `presence`, `publication`; §9.3)
 - Grant scopes (`dsip-grant-scope`: `dsip.invite`, `dsip.subscribe`, `dsip.message`; §19.4)
-- Delegation capabilities (`dsip-delegation-capability`: `dsip.signaling`, `dsip.media.interactive`, `dsip.messaging`; §7.4; `dsip.record`, Recording Profile C§1, draft)
+- Delegation capabilities (`dsip-delegation-capability`: `dsip.signaling`, `dsip.media.interactive`, `dsip.messaging`; §7.4; `dsip.events`, Device Events Profile E§2, draft; `dsip.record`, Recording Profile C§1, draft)
+- The Device Events Profile's own registries (device-event basis, alarm type, alarm severity; E§7, draft)
 - Recording states and purposes (`dsip-recording-state`: `on`, `paused`, `off`; `dsip-recording-purpose`: `compliance`, `quality`, `personal`; Recording Profile C§7, draft)
 - Delegation-revocation reasons (`dsip-revocation-reason`: `lost`, `compromised`, `retired`, `policy`; §7.4)
 - DID service types (`DSIPSignaling`, §13.2; `DSIPMailbox`, Messaging Profile)
@@ -2210,7 +2211,9 @@ DSIP Gateway Profile 1.0
 DSIP Messaging Profile 1.0
 DSIP Mailbox 1.0
 DSIP DHT Hints Profile 1.0 (draft)
-DSIP Recording Profile (draft)
+DSIP Alias Transparency Profile 0.1 (draft, stage 1)
+DSIP Device Events Profile 0.1 (draft)
+DSIP Recording Profile 0.1 (draft)
 ```
 
 (The v0.6 "Broadcast Provenance Extension" is gone: provenance is a core message of the Verified Broadcast Profile since v0.7.)
@@ -2410,9 +2413,19 @@ v0.8 is final at tag `poc-v0.8.1`. v0.9 work, decided 2026-10-04 from `impl/docs
 - `did:webvh` as a recommended DID method beside `did:web` (§7.2, §8.4; spec-gap 101): resolvers verify the whole log, support v1.0 only, read I-JSON, and reject rollback and fork against the highest `versionId` they have verified. Pinned by the `did-webvh/` vectors.
 - Reachability hints on the BitTorrent Mainline DHT (Pkarr) for `did:key` subjects, in addition to the hints overlay (§8.5; DHT Reachability Hints Profile §9; spec-gap 105): compact `_dsip` TXT records signed by the identity key, with a signed expiry of the timestamp plus the smallest TTL (≤ 3600 s), the checks Pkarr omits, and §8.3 conflicts. Pinned by the `pkarr/` vectors and confirmed against the pkarr crate.
 - Alias transparency: a log that makes an alias provider's `alias → DID` answers auditable (§8.2) — companion profile `v0.9/dsip-alias-transparency-profile-v0.9-draft.md` (cited `T§n`; spec-gap 104), KEYTRANS-shaped with VRF-blinded aliases. Stage 1 (this revision): the profile's choices and the KEYTRANS building blocks, pinned by the `alias-transparency/` vectors and confirmed against the KEYTRANS editor's implementation. Lookup verification, owner monitoring and fork detection follow KEYTRANS -06.
-- A Device Events Profile: signed device alarms and events, gatewayed from SNMP and syslog (companion profile `v0.9/dsip-device-events-profile-v0.9-draft.md`, cited `E§n`; spec-gap 103): RFC 3584 trap translation without the community, an RFC 3877-shaped rule table, an RFC 8632-style alarm list every member computes from the group's order, acknowledgement separate from read receipts, gateway silence, and an escalation trigger run by a member. Pinned by the `device-events/` vectors.
+- A Device Events Profile: signed device alarms and events, gatewayed from SNMP and syslog (companion profile `v0.9/dsip-device-events-profile-v0.9-draft.md`, cited `E§n`; spec-gap 103): RFC 3584 trap translation without the community, an RFC 3877-shaped rule table, an RFC 8632-style alarm list every member computes from the group's order, acknowledgement separate from read receipts, gateway silence, and an escalation trigger run by a member. Later in the revision: SNMPv2c informs answered only once the hub has stored the event; SNMPv3 with USM (RFC 3414 order, HMAC-SHA-2, AES-128; `noAuthNoPriv` and DES refused); syslog over UDP and TLS (RFC 5424 and RFC 3164) with its rules; and the identity an authenticated basis adds to the claim (E§2). Pinned by the `device-events/` vectors.
+- Reachability hints on Pkarr, publishing (DHT Reachability Hints Profile §9; spec-gap 105): a publisher carries every record another application put in its zone, re-encoding the names in the RFC 1035 types RFC 3597 §4 lets compress; and it signs `max(clock, previous + 1)`, the one case signed ahead of the clock being a clock stepped back. Hints travel through Pkarr relays and the Mainline DHT directly. Pinned by the `pkarr/` vectors.
+- A Recording Profile for compliance recording under end-to-end encryption (companion profile `v0.9/dsip-recording-profile-v0.9-draft.md`, cited `C§n`; spec-gaps 107, 108). Recording happens at endpoints the organisation controls, and is disclosed:
+  - a signed `recording` declaration on `invite`, `answer` and `update` (§16.4 now separates that declaration from the `policy.recording` preference) and `recording_session` metadata on `invite` — the first core schema additions since v0.8, both optional;
+  - a counterparty's client renders the declaration and acts only after acceptance; declining is the new reason `policy.recording-declined` (§15.4);
+  - the delegation capability `dsip.record` (§24.2) marks a recorder device, which is receive-only, joins conversations but never its identity's personal group, and never stands in for the person;
+  - a recorder leg forks a call's media to the declared recorder, end to end.
 
-Each item is listed here as it lands, with its spec-gap number.
+  Pinned by the `recording/` vectors and four `semantic/` ones.
+- A note on pairwise identities and `did:peer` (§19.4; research decision 5): a pairwise `did:key` per contact today; `did:peer` deferred until DSIP has a pairwise rotation message.
+- The Messaging Profile, revised in place (its Appendix M-B): a device whose blob fetch finds nothing tries again (M§8.4; spec-gap 106).
+
+No wire-format change: `dsip.core` stays `1.0`, and every addition is an optional field, a new registry value or a companion profile. Every item is pinned by the v0.9 conformance suite (1,385 vectors; the Python harness, the Rust reference implementation and the independent TypeScript implementation agree on every one).
 
 ---
 
