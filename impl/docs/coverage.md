@@ -9,14 +9,13 @@ Profile, `M§n` Messaging Profile, `R§n` RTP/SRTP Media Binding.
 
 | § | implementing modules | covering vectors |
 |---|---|---|
-| §1 | dsip-cli/main.rs, dsip-cli/recorder.rs, dsip-recording/lib.rs, dsip-transport/identity.rs | — |
-| §2 | dsip-cli/main.rs, dsip-core/lib.rs, dsip-recording/lib.rs | — |
+| §2 | dsip-cli/main.rs, dsip-core/lib.rs | — |
 | §2.1.2 | dsip-messaging/mls_wire.rs | — |
 | §2.2 | dsip-core/webvh.rs, dsip-mailbox/bin/dsip-msg.rs | — |
-| §3 | dsip-cli/console.rs, dsip-cli/main.rs, dsip-dht/node.rs, dsip-endpoint/core.rs, dsip-events/ber.rs, dsip-transport/agent.rs | 2 vector(s): semantic/recording-declaration-valid, semantic/recording-declaration-without-recorder |
+| §3 | dsip-dht/node.rs, dsip-events/ber.rs | — |
 | §3.1 | dsip-events/lib.rs, dsip-events/usm.rs | — |
 | §3.2 | dsip-events/usm.rs | — |
-| §4 | dsip-cli/console.rs, dsip-cli/main.rs, dsip-cli/record_fork.rs, dsip-core/pkarr.rs, dsip-core/registry.rs, dsip-dht/node.rs, dsip-events/usm.rs, dsip-mailbox/bin/dsip-msg.rs, dsip-media/backend/forge.rs, dsip-media/backend/webrtc_rs.rs, dsip-media/leg.rs, dsip-recording/lib.rs, dsip-session/event.rs | 23 vector(s): recording/callee-answered-then-declines-bye, recording/callee-declines-with-reject, recording/callee-must-accept-before-answering, recording/caller-answer-does-nothing, recording/caller-declines-with-bye, recording/caller-holds-media-after-recorded-answer … |
+| §4 | dsip-core/pkarr.rs, dsip-dht/node.rs, dsip-events/usm.rs, dsip-mailbox/bin/dsip-msg.rs | — |
 | §4.1 | dsip-kt/lib.rs | — |
 | §4.1.6 | dsip-events/ber.rs | — |
 | §4.2.2 | dsip-gateway/host/sip_leg.rs | — |
@@ -24,7 +23,7 @@ Profile, `M§n` Messaging Profile, `R§n` RTP/SRTP Media Binding.
 | §4.2.7 | dsip-events/ber.rs | — |
 | §4.3 | dsip-mailbox/bin/dsip-msg.rs | — |
 | §4.3.1 | dsip-mailbox/bin/dsip-msg.rs | — |
-| §5 | dsip-core/delegation.rs, dsip-gateway/controller.rs, dsip-kt/lib.rs, dsip-mailbox/bin/dsip-msg.rs, dsip-messaging/mls_wire.rs, dsip-recording/lib.rs | 16 vector(s): recording/add-devices-all-devices-with-recorder, recording/add-devices-duplicate-device-once, recording/add-devices-none, recording/add-devices-other-identity-ignored, recording/add-devices-own-only-recorder-left, recording/add-devices-own-other-devices … |
+| §5 | dsip-gateway/controller.rs, dsip-kt/lib.rs, dsip-mailbox/bin/dsip-msg.rs | — |
 | §5.1.3 | dsip-kt/lib.rs | — |
 | §5.2 | dsip-kt/lib.rs | — |
 | §5.3 | dsip-kt/lib.rs | — |
@@ -32,9 +31,9 @@ Profile, `M§n` Messaging Profile, `R§n` RTP/SRTP Media Binding.
 | §5.4.4 | dsip-kt/lib.rs | — |
 | §5.4.5 | dsip-kt/lib.rs | — |
 | §5.5 | dsip-kt/lib.rs | — |
-| §6 | dsip-cli/console.rs, dsip-cli/main.rs, dsip-cli/record_fork.rs, dsip-cli/recorder.rs, dsip-endpoint/core.rs, dsip-media/backend/webrtc_rs.rs, dsip-media/leg.rs, dsip-media/source.rs, dsip-recording/lib.rs, dsip-session/lib.rs, dsip-transport/agent.rs | 16 vector(s): recording/session-direction, recording/session-direction-missing, recording/session-media-not-integer, recording/session-missing-capability, recording/session-no-streams, recording/session-not-declared … |
+| §6 | dsip-session/lib.rs | — |
 | §6.3 | dsip-cli/console.rs, dsip-core/trust.rs, dsip-gateway/host/media.rs, dsip-gateway/host/sip_leg.rs, dsip-gateway/lib.rs | 9 vector(s): gateway/claims-attestation-a-verified, gateway/downgrade-error-none, gateway/downgrade-error-plain-trunk, gateway/downgrade-inbound-no-attestation, gateway/downgrade-outbound-asserted-srtp, gateway/downgrade-outbound-plain-trunk … |
-| §7 | dsip-cli/main.rs, dsip-media/backend/webrtc_rs.rs, dsip-media/leg.rs, dsip-media/lib.rs, dsip-recording/lib.rs | 1 vector(s): semantic/reason-recording-declined-on-error |
+| §7 | dsip-media/backend/webrtc_rs.rs, dsip-media/leg.rs, dsip-media/lib.rs | — |
 | §7.1.3 | dsip-core/hpke.rs | — |
 | §7.2 | dsip-cli/main.rs, dsip-core/did.rs, dsip-core/hpke.rs, dsip-core/keys.rs, dsip-core/lib.rs, dsip-core/webvh.rs, dsip-endpoint/core.rs, dsip-relay/main.rs, dsip-transport/lib.rs, dsip-transport/resolver.rs | 69 vector(s): did-webvh/cache-at-latest-resolves, did-webvh/cache-behind-advances, did-webvh/cache-malformed-is-absent, did-webvh/carries-dsip-document-properties, did-webvh/create-resolves, did-webvh/deactivated … |
 | §7.3 | dsip-core/keys.rs, dsip-transport/identity.rs | — |
@@ -201,17 +200,25 @@ Profile, `M§n` Messaging Profile, `R§n` RTP/SRTP Media Binding.
 | T§2 | dsip-kt/lib.rs | 13 vector(s): alias-transparency/configuration-05-leaf-key-is-trailing, alias-transparency/configuration-accept, alias-transparency/configuration-accept-lifetime, alias-transparency/configuration-duration-beyond-2p53, alias-transparency/configuration-mode3-refused, alias-transparency/configuration-optional-flag-2 … |
 | T§3 | dsip-kt/lib.rs | 15 vector(s): alias-transparency/alias-a-label-domain, alias-transparency/alias-at-limit, alias-transparency/alias-domain-lowercased, alias-transparency/alias-empty-local, alias-transparency/alias-label-inner-hyphen, alias-transparency/alias-label-leading-hyphen … |
 | T§5 | dsip-kt/lib.rs | 45 vector(s): alias-transparency/commitment-alice-v0, alias-transparency/commitment-alice-v1, alias-transparency/commitment-katie-vector-1, alias-transparency/commitment-label-too-long, alias-transparency/commitment-opening-not-16, alias-transparency/configuration-mode1 … |
+| C§1 | dsip-cli/main.rs, dsip-cli/recorder.rs, dsip-recording/lib.rs, dsip-transport/identity.rs | — |
+| C§2 | dsip-recording/lib.rs | — |
+| C§3 | dsip-cli/console.rs, dsip-cli/main.rs, dsip-endpoint/core.rs, dsip-transport/agent.rs | 2 vector(s): semantic/recording-declaration-valid, semantic/recording-declaration-without-recorder |
+| C§4 | dsip-cli/console.rs, dsip-cli/main.rs, dsip-cli/record_fork.rs, dsip-core/registry.rs, dsip-media/backend/forge.rs, dsip-media/backend/webrtc_rs.rs, dsip-media/leg.rs, dsip-recording/lib.rs, dsip-session/event.rs | 23 vector(s): recording/callee-answered-then-declines-bye, recording/callee-declines-with-reject, recording/callee-must-accept-before-answering, recording/caller-answer-does-nothing, recording/caller-declines-with-bye, recording/caller-holds-media-after-recorded-answer … |
+| C§5 | dsip-core/delegation.rs, dsip-mailbox/bin/dsip-msg.rs, dsip-messaging/mls_wire.rs, dsip-recording/lib.rs | 16 vector(s): recording/add-devices-all-devices-with-recorder, recording/add-devices-duplicate-device-once, recording/add-devices-none, recording/add-devices-other-identity-ignored, recording/add-devices-own-only-recorder-left, recording/add-devices-own-other-devices … |
+| C§6 | dsip-cli/console.rs, dsip-cli/main.rs, dsip-cli/record_fork.rs, dsip-cli/recorder.rs, dsip-endpoint/core.rs, dsip-media/backend/webrtc_rs.rs, dsip-media/leg.rs, dsip-media/source.rs, dsip-recording/lib.rs, dsip-transport/agent.rs | 16 vector(s): recording/session-direction, recording/session-direction-missing, recording/session-media-not-integer, recording/session-missing-capability, recording/session-no-streams, recording/session-not-declared … |
+| C§7 | dsip-cli/main.rs, dsip-recording/lib.rs | 1 vector(s): semantic/reason-recording-declined-on-error |
 
 ## Headed sections cited by neither a module nor a vector
 
-Numbered headings of each v0.9 document that no `Spec:` line or `spec_ref` names. A parent cited does
+Numbered headings of each v0.10 document that no `Spec:` line or `spec_ref` names. A parent cited does
 not cover its subsections here. Informative and scope sections are expected to appear; a normative one
 is a candidate for the next vector.
 
-- **Core** (`dsip_v_0_9_decentralized_session_initiation_protocol.md`): §3.3, §5.1, §5.4, §5.6, §5.7, §6.1, §6.2, §7.1, §7.7, §8, §8.2, §9.1, §9.5, §10.1, §13, §13.4, §13.5, §14, §16, §16.1, §17.3, §17.4, §18, §18.3, §18.4, §19.2, §20, §20.1, §20.2, §20.3, §20.8, §21, §21.1, §21.2, §21.4, §23, §23.1, §23.2, §23.3, §24, §24.1, §24.2, §24.3, §24.4, §25, §25.2, §25.3, §25.4, §28, §29
-- **WebRTC Media Binding** (`dsip-webrtc-media-binding-v0.9.md`): B§3, B§3.2, B§4, B§5.3, B§6, B§9, B§10, B§11
-- **Gateway Profile** (`dsip-gateway-profile-v0.9.md`): G§1, G§2, G§3, G§3.1, G§3.2, G§4, G§4.1, G§4.2, G§6, G§8, G§10, G§11
-- **Messaging Profile** (`dsip-messaging-profile-v0.9.md`): M§2, M§2.1, M§2.2, M§2.3, M§3, M§4, M§4.1, M§6, M§6.10, M§7, M§9.5, M§10.1, M§12.5, M§15, M§15.1, M§15.2, M§15.3, M§15.6, M§18, M§19
-- **RTP/SRTP Media Binding** (`dsip-rtp-srtp-media-binding-v0.9-draft.md`): R§1, R§2, R§3, R§4, R§5, R§6, R§7
-- **Device Events Profile** (`dsip-device-events-profile-v0.9-draft.md`): E§1, E§7
-- **Alias Transparency Profile** (`dsip-alias-transparency-profile-v0.9-draft.md`): T§1, T§4, T§6
+- **Core** (`dsip_v_0_10_decentralized_session_initiation_protocol.md`): §1, §3.3, §5.1, §5.4, §5.6, §5.7, §6.1, §6.2, §7.1, §7.7, §8, §8.2, §9.1, §9.5, §10.1, §13, §13.4, §13.5, §14, §16, §16.1, §17.3, §17.4, §18, §18.3, §18.4, §19.2, §20, §20.1, §20.2, §20.3, §20.8, §21, §21.1, §21.2, §21.4, §23, §23.1, §23.2, §23.3, §24, §24.1, §24.2, §24.3, §24.4, §25, §25.2, §25.3, §25.4, §28, §29
+- **WebRTC Media Binding** (`dsip-webrtc-media-binding-v0.10.md`): B§3, B§3.2, B§4, B§5.3, B§6, B§9, B§10, B§11
+- **Gateway Profile** (`dsip-gateway-profile-v0.10.md`): G§1, G§2, G§3, G§3.1, G§3.2, G§4, G§4.1, G§4.2, G§6, G§8, G§10, G§11
+- **Messaging Profile** (`dsip-messaging-profile-v0.10.md`): M§2, M§2.1, M§2.2, M§2.3, M§3, M§4, M§4.1, M§6, M§6.10, M§7, M§9.5, M§10.1, M§12.5, M§15, M§15.1, M§15.2, M§15.3, M§15.6, M§18, M§19
+- **RTP/SRTP Media Binding** (`dsip-rtp-srtp-media-binding-v0.10-draft.md`): R§1, R§2, R§3, R§4, R§5, R§6, R§7
+- **Device Events Profile** (`dsip-device-events-profile-v0.10-draft.md`): E§1, E§7
+- **Alias Transparency Profile** (`dsip-alias-transparency-profile-v0.10-draft.md`): T§1, T§4, T§6
+- **Recording Profile** (`dsip-recording-profile-v0.10-draft.md`): C§8

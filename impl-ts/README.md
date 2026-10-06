@@ -4,14 +4,14 @@ A TypeScript implementation of DSIP, measured against the conformance vectors in
 It exists to test the project's second purpose: that the vector suite, not the Rust code, is the
 contract (`../impl/docs/dsip_poc_dev_plan.md`).
 
-**Tracks:** DSIP v0.9. Node ≥ 20. One runtime dependency (`ajv`, JSON Schema 2020-12); Ed25519 is `node:crypto`.
+**Tracks:** DSIP v0.10. Node ≥ 20. One runtime dependency (`ajv`, JSON Schema 2020-12); Ed25519 is `node:crypto`.
 
 ## The independence rule
 
 This code is written from three sources only:
 
-1. the spec text in `../v0.9/`,
-2. the JSON Schemas in `../v0.9/` (loaded in place at start-up, never copied),
+1. the spec text in `../v0.10/`,
+2. the JSON Schemas in `../v0.10/` (loaded in place at start-up, never copied),
 3. `../impl/vectors/README.md` and the vectors themselves.
 
 It is **never** written by reading `../impl/crates/` or the verdict logic in `../impl/tools/dsipvec/`.
