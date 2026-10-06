@@ -1286,6 +1286,37 @@ that buffer.
 - Decoding requires exactly 52 alphabet characters (else `malformed`) and zero padding bits (else
   `non-canonical`).
 
+**`check: "devices"`** (§9.1, multi-device identities; spec-gap 105 option (b)) resolves an identity's pointer and its
+devices' hints. The input is `{did, payload, devices: {device_did: payload}, now, revocations?}`, where `devices`
+holds the payloads fetched from each listed device's zone and `revocations` holds compact `delegation-revocation`
+envelopes. The output is `{"outcome": "devices", seq, expires_at, devices: [...]}` or
+`{"outcome": "rejected", reason}`.
+
+**The pointer** (`payload`, under `did`) goes through steps 1–5 of `check: "hint"`, with their reasons. Then:
+- **Records.** Only TXT records of class exactly 1, whose owner is exactly the two labels `_dsip-devices` and the
+  zone (compared without case), are used, in message order. A record whose data does not split into
+  character-strings is `malformed`.
+- **Each record** must hold exactly one string starting `dev=`, whose value (read as UTF-8, invalid bytes replaced)
+  is a `did:key` by step 1's rule. Otherwise the reason is `bad-pointer`, checked record by record before the rules
+  below. Other strings are ignored.
+- **None** gives `no-devices`.
+- **A TTL above 604,800** gives `ttl-too-long`.
+- **Expiry.** `expires_at` is the timestamp's seconds plus the smallest TTL; when `now ≥ expires_at`, `expired`.
+
+The devices are the listed DIDs in record order, a repeated one (same text) kept once; every record's TTL counts
+toward the smallest. Entries of `devices` the pointer does not list are ignored. Each entry of `devices`, in that order, is
+`{device, outcome: "hint", endpoints, expires_at}` or `{device, outcome: "rejected", reason}`. The checks run in this
+order:
+1. `unavailable`: `devices` has no payload for it, or `null`.
+2. Its payload read as `check: "hint"` under the device's DID; a failure gives that reason.
+3. `delegation-missing`: no `_dsip-delegation.<z32(device)>` TXT record of class 1. `delegation-invalid`: more than
+   one; data that does not split into character-strings; or strings whose concatenation is not three `.`-separated
+   parts.
+4. The delegation verified as §7.4 for `(did, device)` at `now`, with `revocations`. The reason is the verifier's:
+   `delegation-invalid`, `delegation-capability`, `delegation-expired` or `delegation-revoked`.
+5. Otherwise the device's `endpoints` are its hint's, and its `expires_at` is the earlier of the hint's and the
+   delegation's.
+
 **`check: "carry"`** (DHT Hints Profile §9 publishing, "keep the zone's other records"; spec-gap 105) is the records a
 publisher carries over from its previous packet. The input is `{zone, dns}`: the zone's z-base-32 key, and the
 previous packet's DNS message, already verified. The output is `{"keep": [{name, type, ttl, rdata}]}`, in message
@@ -1294,8 +1325,8 @@ order, or `{"error": "malformed"}`:
 - **Parsing.** `dns` (hex; hex that does not decode is `malformed`) parses as for `check: "hint"`: the whole message,
   every section, and a failure anywhere is `malformed`, with no partial `keep`.
 - **Which records.** Only the answer records are carried (Pkarr puts a zone's records there), minus those of class
-  other than exactly IN (1), and those whose owner is exactly the two labels `_dsip` and `zone`, of any type, compared
-  ASCII case-insensitively (the publisher replaces those). Records outside the zone are carried. An excluded record's
+  other than exactly IN (1), and those whose owner is exactly two labels, `_dsip`, `_dsip-devices` or
+  `_dsip-delegation` then `zone`, of any type, compared ASCII case-insensitively (the publisher replaces those; §9.1). Records outside the zone are carried. An excluded record's
   rdata is not examined beyond its length.
 - **`name`** is the owner name in uncompressed wire form (length-prefixed labels, then a zero byte), as hex. Label
   bytes keep their case.

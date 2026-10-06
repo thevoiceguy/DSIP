@@ -1,0 +1,22 @@
+{
+  "vector": "pkarr/devices-pointer-expired",
+  "format": 1,
+  "kind": "pkarr",
+  "description": "An expired pointer.",
+  "spec_ref": [
+    "§8.5",
+    "§7.4"
+  ],
+  "context": {},
+  "input": {
+    "check": "devices",
+    "did": "did:key:z6MkwTqcmDUwWJfByWHX5ehMGDYrSoBd8jXdsZPjVAbVPrjB",
+    "payload": "678a73a54f0ee3685b3ca9fb31845b97c2d03a2de200de0323b4511f69b5f71816dfb2fd4dfb14cd90b1e7b988949c3c053f307f03e6688fc171c4a435b3110500065bfed69259000000840000000001000000000d5f647369702d64657669636573343931366b677838356a62677974697037696e396768786a347372646d396a796161776931696f38366d3567386d3966686a61747900001000010000001e003d3c6465763d6469643a6b65793a7a364d6b7678546436534b575a4d753733473373647553527155736371457373674d4c3967667a5a63567a4d48433376",
+    "devices": {},
+    "now": 1790000000
+  },
+  "expect": {
+    "outcome": "rejected",
+    "reason": "expired"
+  }
+}

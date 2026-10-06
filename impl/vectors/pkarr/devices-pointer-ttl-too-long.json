@@ -1,0 +1,22 @@
+{
+  "vector": "pkarr/devices-pointer-ttl-too-long",
+  "format": 1,
+  "kind": "pkarr",
+  "description": "A pointer TTL above 604,800 s.",
+  "spec_ref": [
+    "§8.5",
+    "§7.4"
+  ],
+  "context": {},
+  "input": {
+    "check": "devices",
+    "did": "did:key:z6MkwTqcmDUwWJfByWHX5ehMGDYrSoBd8jXdsZPjVAbVPrjB",
+    "payload": "4ea1da72e9e6b3884ac37548eec5291ad0a44fd9fe230c0960b668e4181f210bc6e1a98ac3e66700d5c78c9bf66e8ee6b343bcc173eef80fe4a1782fc415030400065bfed69259000000840000000001000000000d5f647369702d64657669636573343931366b677838356a62677974697037696e396768786a347372646d396a796161776931696f38366d3567386d3966686a617479000010000100093a81003d3c6465763d6469643a6b65793a7a364d6b7678546436534b575a4d753733473373647553527155736371457373674d4c3967667a5a63567a4d48433376",
+    "devices": {},
+    "now": 1790000000
+  },
+  "expect": {
+    "outcome": "rejected",
+    "reason": "ttl-too-long"
+  }
+}

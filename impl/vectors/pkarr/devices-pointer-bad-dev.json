@@ -1,0 +1,22 @@
+{
+  "vector": "pkarr/devices-pointer-bad-dev",
+  "format": 1,
+  "kind": "pkarr",
+  "description": "A dev= value that is not a did:key.",
+  "spec_ref": [
+    "§8.5",
+    "§7.4"
+  ],
+  "context": {},
+  "input": {
+    "check": "devices",
+    "did": "did:key:z6MkwTqcmDUwWJfByWHX5ehMGDYrSoBd8jXdsZPjVAbVPrjB",
+    "payload": "6cfa46d0666317d195e11121ce9939e3d059046b98ca1e63b36a43add78d4af1d0a417d9d33bbcdeade4eeec05b40aca0b236ba395b143cdd7b2753b3721c70e00065bfed69259000000840000000001000000000d5f647369702d64657669636573343931366b677838356a62677974697037696e396768786a347372646d396a796161776931696f38366d3567386d3966686a61747900001000010000012c001a196465763d6469643a7765623a70686f6e652e6578616d706c65",
+    "devices": {},
+    "now": 1790000000
+  },
+  "expect": {
+    "outcome": "rejected",
+    "reason": "bad-pointer"
+  }
+}

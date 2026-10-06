@@ -142,6 +142,12 @@ jobs:
         # the honest one; Bob re-signs before expiry with a rising seq and keeps another application's record in his zone.
         run: timeout 120 bash demos/pkarr-demo.sh | tail -16
         working-directory: impl
+      - name: reachability hints on Pkarr for a multi-device identity (DHT Hints §9.1)
+        # Self-verifying: one identity-signed pointer to two devices; each device publishes its own zone with its
+        # delegation (device key only); Bob, knowing only the identity did:key, reaches the phone on R1, and after the
+        # phone's hint lapses, the laptop on R2.
+        run: timeout 180 bash demos/pkarr-multidevice-demo.sh | tail -16
+        working-directory: impl
       - name: reachability hints on the Mainline DHT directly (v0.9 draft)
         # Self-verifying, on a local 10-node Mainline testnet (nothing public): Bob puts his signed _dsip packet as a
         # BEP 44 item with no relay in his path; Alice gets it from the DHT, rejects a hostile relay's forgery, and

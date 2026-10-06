@@ -154,8 +154,8 @@ def endpoint(strings: list[bytes]) -> dict:
 
 # --- reading a hint ----------------------------------------------------------------------------
 
-def read(did: str, payload: bytes, now: int) -> dict:
-    """A relay payload (signature ‖ timestamp ‖ DNS packet) for `did` → the hint, or Reject."""
+def _open(did: str, payload: bytes, now: int):
+    """Steps 1–5 of `check: "hint"`: the DID's key, the timestamp and the parsed records, or Reject."""
     pub = did_key_public(did)
     if payload is None or not 72 <= len(payload) <= 1072:
         raise Reject("malformed")
@@ -166,9 +166,15 @@ def read(did: str, payload: bytes, now: int) -> dict:
         raise Reject("malformed")
     if ts > (now + FUTURE_TOLERANCE_S) * 1_000_000:
         raise Reject("future")
+    return pub, ts, parse_dns(dns)
+
+
+def read(did: str, payload: bytes, now: int) -> dict:
+    """A relay payload (signature ‖ timestamp ‖ DNS packet) for `did` → the hint, or Reject."""
+    pub, ts, records = _open(did, payload, now)
     owner = (b"_dsip", z32_encode(pub).encode())
     eps, ttls = [], []
-    for name, rtype, rclass, ttl, rdata in parse_dns(dns):
+    for name, rtype, rclass, ttl, rdata in records:
         if name != owner or rtype != TXT or rclass != IN:
             continue  # another record of this key's zone (or outside it): not DSIP's
         eps.append(endpoint(txt_strings(rdata)))
@@ -214,6 +220,8 @@ def run(v: dict):
         if c == "bep44-verify":
             m = bep44_signable(i["seq"], h(i["value"]), h(i["salt"]) if i.get("salt") else b"")
             return {"valid": ed25519_verify(h(i["public_key"]), m, h(i["signature"]))}
+        if c == "devices":
+            return devices(i)
         if c == "carry":
             try:
                 return carry(i["zone"], h(i["dns"]))
@@ -276,7 +284,8 @@ def carry(zone: str, dns: bytes) -> dict:
     for _ in range(qd):
         _, off = _expand(dns, off, len(dns))
         off += 4
-    dsip_owner = b"\x05_dsip" + bytes([len(zone)]) + zone.encode() + b"\x00"
+    owners = [bytes([len(lb)]) + lb + bytes([len(zone)]) + zone.encode() + b"\x00"
+              for lb in (b"_dsip", b"_dsip-devices", b"_dsip-delegation")]
     keep = []
     for i in range(an + ns + ar):
         name, off = _expand(dns, off, len(dns))
@@ -288,7 +297,7 @@ def carry(zone: str, dns: bytes) -> dict:
         if re_ > len(dns):
             raise Reject("malformed")
         off = re_
-        if i >= an or rclass != 1 or name.lower() == dsip_owner.lower():
+        if i >= an or rclass != 1 or any(name.lower() == o.lower() for o in owners):
             continue
         layout = NAME_RDATA.get(rtype)
         if layout is None:
@@ -312,3 +321,82 @@ def carry(zone: str, dns: bytes) -> dict:
     if off != len(dns):
         raise Reject("malformed")
     return {"keep": keep}
+
+
+# --- multi-device identities: a pointer and device zones (§9.1; spec-gap 105 option (b)) --------------------------
+
+POINTER_MAX_TTL = 604_800
+
+
+def read_pointer(did: str, payload: bytes, now: int) -> dict:
+    pub, ts, records = _open(did, payload, now)
+    owner = (b"_dsip-devices", z32_encode(pub).encode())
+    devs, ttls = [], []
+    for name, rtype, rclass, ttl, rdata in records:
+        if name != owner or rtype != TXT or rclass != IN:
+            continue
+        vals = []
+        for s in txt_strings(rdata):
+            t = s.decode("utf-8", errors="replace")
+            if t.startswith("dev="):
+                vals.append(t[4:])
+        if len(vals) != 1:
+            raise Reject("bad-pointer")
+        try:
+            did_key_public(vals[0])
+        except Reject:
+            raise Reject("bad-pointer")
+        if vals[0] not in devs:
+            devs.append(vals[0])
+        ttls.append(ttl)
+    if not ttls:
+        raise Reject("no-devices")
+    if max(ttls) > POINTER_MAX_TTL:
+        raise Reject("ttl-too-long")
+    expires = ts // 1_000_000 + min(ttls)
+    if now >= expires:
+        raise Reject("expired")
+    return {"seq": ts, "expires_at": expires, "devices": devs}
+
+
+def devices(i: dict) -> dict:
+    from .envelope import Context, verify_delegation
+    did, now = i["did"], i["now"]
+    ptr = read_pointer(did, unhex(i["payload"]), now)
+    out = []
+    for dev in ptr["devices"]:
+        def rej(reason):
+            out.append({"device": dev, "outcome": "rejected", "reason": reason})
+        raw = (i.get("devices") or {}).get(dev)
+        if raw is None:
+            rej("unavailable")
+            continue
+        payload = unhex(raw)
+        try:
+            hint = read(dev, payload, now)
+        except Reject as r:
+            rej(r.reason)
+            continue
+        owner = (b"_dsip-delegation", z32_encode(did_key_public(dev)).encode())
+        _, _, records = _open(dev, payload, now)
+        dl = [rd for (n, t_, c, _, rd) in records if n == owner and t_ == TXT and c == IN]
+        if not dl:
+            rej("delegation-missing")
+            continue
+        try:
+            parts = b"".join(txt_strings(dl[0])).decode("ascii", errors="replace").split(".") if len(dl) == 1 else []
+        except Reject:
+            parts = []
+        if len(parts) != 3:
+            rej("delegation-invalid")
+            continue
+        deleg = {"protected": parts[0], "payload": parts[1], "signature": parts[2]}
+        v = verify_delegation(deleg, did, dev, Context(now=now, revocations=list(i.get("revocations") or [])))
+        if v.verdict != "accept":
+            rej(v.code)
+            continue
+        import base64, json as _json
+        p = _json.loads(base64.urlsafe_b64decode(parts[1] + "=" * (-len(parts[1]) % 4)))
+        out.append({"device": dev, "outcome": "hint", "endpoints": hint["endpoints"],
+                    "expires_at": min(hint["expires_at"], p["expires_at"])})
+    return {"outcome": "devices", "seq": ptr["seq"], "expires_at": ptr["expires_at"], "devices": out}
