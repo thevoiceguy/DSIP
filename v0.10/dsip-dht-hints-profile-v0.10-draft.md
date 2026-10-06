@@ -160,3 +160,32 @@ document and is shown as hint-sourced.
 
 **Privacy.** As §6, plus the relays: a relay sees the client's address and which key it looks up.
 
+### 9.1 Multi-device identities (v0.10; spec-gap 105 option (b))
+
+An identity whose key stays offline still publishes on Pkarr. The identity key signs a long-lived **pointer** naming
+its devices, and each device signs its **own** hint in its own zone, carrying the delegation that makes it the
+identity's.
+
+**Pointer** (in the identity's zone, signed by the identity key):
+- TXT records named `_dsip-devices.<z32(identity key)>`, one per device. Each has exactly one `dev=` character-string
+  whose value is the device's `did:key`; unknown keys are ignored.
+- Each TTL is at most 604,800 s (7 days). The pointer expires at its signed timestamp plus the smallest of those
+  TTLs.
+- It may share the zone with the identity's own `_dsip` records (§9): readers of §9 ignore it.
+
+**Device hint** (in the device's zone, signed by the device key):
+- the `_dsip` records of §9, read exactly as §9 says, so the 3,600 s cap applies;
+- exactly one TXT record named `_dsip-delegation.<z32(device key)>`. Its character-strings, concatenated in order, are
+  the compact delegation (§7.4) from the identity to the device.
+
+**Reading.** A reader resolves the pointer, then each device it lists, in order, as `impl/vectors/README.md`
+specifies (`check: "devices"`). A device counts only if its hint reads as §9 and its delegation verifies (§7.4:
+signed by the identity, naming this device, with `dsip.signaling`, live, not revoked by any revocation the reader
+holds). The device's hint is usable until the earlier of its own expiry and its delegation's.
+
+**Revocation is bounded, not immediate.** A revoked device stops counting as soon as the reader holds the revocation
+(§7.4). A reader that does not hold it can still reach that device until one of three things happens: the device's
+delegation expires, its hourly hint lapses (a revoked device can still sign one), or the identity re-signs the
+pointer without it, at most 7 days later. Short delegation lifetimes tighten this bound. A hint never carries
+authority (§8.1), so a stale device costs at most a failed attempt to reach it, never trust.
+

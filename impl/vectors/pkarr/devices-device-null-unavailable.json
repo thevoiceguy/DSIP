@@ -1,0 +1,32 @@
+{
+  "vector": "pkarr/devices-device-null-unavailable",
+  "format": 1,
+  "kind": "pkarr",
+  "description": "A device whose payload is null is unavailable.",
+  "spec_ref": [
+    "§8.5",
+    "§7.4"
+  ],
+  "context": {},
+  "input": {
+    "check": "devices",
+    "did": "did:key:z6MkwTqcmDUwWJfByWHX5ehMGDYrSoBd8jXdsZPjVAbVPrjB",
+    "payload": "4034fb02ab914bb76509ba14e732fee4f0a617a28be83e55e8dc43e54d3cc96a7db0254a5fdc82a302b73968bfb8303e113c6baae4f71be94435c539a4ea0e0700065bfed69259000000840000000001000000000d5f647369702d64657669636573343931366b677838356a62677974697037696e396768786a347372646d396a796161776931696f38366d3567386d3966686a617479000010000100015180003d3c6465763d6469643a6b65793a7a364d6b7678546436534b575a4d753733473373647553527155736371457373674d4c3967667a5a63567a4d48433376",
+    "devices": {
+      "did:key:z6MkvxTd6SKWZMu73G3sduSRqUscqEssgML9gfzZcVzMHC3v": null
+    },
+    "now": 1790000000
+  },
+  "expect": {
+    "outcome": "devices",
+    "seq": 1789999940000000,
+    "expires_at": 1790086340,
+    "devices": [
+      {
+        "device": "did:key:z6MkvxTd6SKWZMu73G3sduSRqUscqEssgML9gfzZcVzMHC3v",
+        "outcome": "rejected",
+        "reason": "unavailable"
+      }
+    ]
+  }
+}

@@ -235,6 +235,23 @@ export function delegationSubject(candidate: Json, device: string, capability: s
 }
 
 /**
+ * Verify one delegation from `identity` to `device` for `dsip.signaling` at `ctx.now`, with the
+ * revocations `ctx` holds, and give its `expires_at`.
+ *
+ * Spec: §7.4 (signed directly by the identity, naming this device, with `dsip.signaling`, live, not
+ * revoked); DHT Hints Profile §9.1 (a device's Pkarr hint carries its delegation).
+ * Impl: a delegation that names another pair is `delegation-invalid`, as a presented one is in `bind`.
+ */
+export function verifyDelegation(candidate: Json, device: string, identity: string, ctx: ReceiverContext): { expires_at: number } | Reject {
+  const verdict = checkDelegation(candidate, device, identity, ctx.did_documents ?? {}, ctx);
+  if (verdict === "unrelated") return reject("delegation-invalid");
+  if (verdict !== "bound") return verdict;
+  // bound: the payload decoded and `expires_at` is a number (checkDelegation)
+  const decoded = decodePayload(b64urlDecode(asEnvelope(candidate)!.payload)!);
+  return { expires_at: (decoded as { ok: true; value: JsonObject }).value["expires_at"] as number };
+}
+
+/**
  * Verify a received envelope: stages 1–14, first failure wins.
  *
  * `frame`, when given, is the exact text frame the envelope arrived in (§13.2 size cap).

@@ -2668,8 +2668,24 @@ DSIP also adds:
   the DHT with no relay in his path, and Alice gets it from the DHT while a hostile relay's forgery is rejected. The
   seq rises over 3 puts, and a fresh node finds the newest packet after Bob left.
 
+**Option (b), multi-device identities (v0.10, decided with the user 2026-10-06).**
+- **Pointer:** the identity key signs `_dsip-devices` records (`dev=<did:key>`, TTL up to 604,800 s).
+- **Device zone:** each device signs its own zone: the `_dsip` endpoint records (3,600 s cap) and one
+  `_dsip-delegation` record holding the compact delegation. Readers resolve pointer → devices, in order, and verify
+  each delegation as §7.4 does (§9.1).
+- **Revocation is bounded, not immediate,** and the profile says so: by the delegation's expiry, the hourly hint, or
+  the pointer's re-signing (7 days at most).
+- **Vectors:** `pkarr/devices-*` (20) and `pkarr/carry-dsip-devices-and-delegation-replaced`, three-way.
+- **The second implementation's twelve readings** were checked against Python and Rust. Ten matched and are now
+  pinned in the README. Two were real divergences: a `null` payload (Rust) and an unsplittable delegation record
+  (Python), now fixed and vectored.
+- **Code:** `dsip_core::pkarr::{build_pointer_payload, build_device_payload, read_pointer, read_device}`; `dsip
+  pkarr-pointer`; `dsip answer --publish-pkarr --pkarr-device`. Discovery falls back to the pointer when the identity
+  zone has no `_dsip` hint.
+- **Demo:** `demos/pkarr-multidevice-demo.sh` (in CI): one identity-signed pointer; the phone reached on R1; then, with
+  the phone gone, the laptop on R2. Devices publish with their own keys only.
+
 **Open.**
-- Option (b), for multi-device identities.
 - Browsers are relay-only (no UDP).
 
 ## 106. M§8.4 "Fetching" — a device whose blob fetch finds nothing

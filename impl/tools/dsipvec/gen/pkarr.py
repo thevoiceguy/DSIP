@@ -215,6 +215,7 @@ def vectors() -> list[dict]:
     out.append(pv("z32-bad-length", "51 characters.", {"check": "z32-decode", "z32": "47pjoycnsrfmxikm95jh13y88e8qnhzu5kungjpxyepgt7a8krp"},
                   rejected("malformed"), ["§8.5"]))
     out += carry_vectors()
+    out += devices_vectors()
     return out
 
 
@@ -267,6 +268,10 @@ def carry_vectors() -> list[dict]:
        hdr(2) + dsip_rr + _rr(ptr_zone, 65280, b"\xc0\x12opaque"), {"keep": [keep(z, 65280, b"\xc0\x12opaque")]})
     cv("dsip-owner-case-insensitive", "An owner of _DSIP.<zone> is the DSIP name too, whatever its case.",
        hdr(2) + dsip_rr + _rr(b"\x05_DSIP" + ptr_zone, 16, txt("old")), {"keep": []})
+    cv("dsip-devices-and-delegation-replaced", "The _dsip-devices and _dsip-delegation records are the publisher's to "
+       "replace too (§9.1); a deeper name under them is not.",
+       hdr(4) + dsip_rr + _rr(b"\x0d_dsip-devices" + ptr_zone, 16, txt("dev=x")) + _rr(b"\x10_dsip-delegation" + ptr_zone, 16, txt("y"))
+       + _rr(b"\x01x\x0d_dsip-devices" + ptr_zone, 16, iroh), {"keep": [keep(f"x._dsip-devices.{z}", 16, iroh)]})
     cv("class-not-in-skipped", "A record of class CH (3) is not carried.",
        hdr(2) + dsip_rr + _rr(b"\x05_iroh" + ptr_zone, 16, iroh, rclass=3), {"keep": []})
     cv("case-kept", "Label bytes keep their case in the carried name.",
@@ -289,4 +294,111 @@ def carry_vectors() -> list[dict]:
                       R, {}, {"check": "next-ts", "clock": TS, "previous": 2**53 - 1}, {"error": "exhausted"}))
     out.append(vector("pkarr/carry-not-hex", "pkarr", "dns that is not hex is malformed.", R, {},
                       {"check": "carry", "zone": z32_encode(K.public), "dns": "zz"}, {"error": "malformed"}))
+    return out
+
+
+# --- multi-device identities: pointer + device zones (§9.1; spec-gap 105 option (b)) ---------------------------
+
+def devices_vectors() -> list[dict]:
+    from .. import envelope as E
+    from .. import fixtures as F
+    out = []
+    R = ["§8.5", "§7.4"]
+    z = z32_encode(K.public)
+    PHONE, LAPTOP = keypair_from_seed_name("pkarr-alice-phone"), keypair_from_seed_name("pkarr-alice-laptop")
+    dphone, dlaptop = did_key(PHONE.public), did_key(LAPTOP.public)
+    hdr = lambda n: struct.pack("!HHHHHH", 0, 0x8400, 0, n, 0, 0)  # noqa: E731
+
+    def signed_by(key, dns_msg, ts=TS):
+        return (key.sign(bep44_signable(ts, dns_msg)) + struct.pack("!Q", ts) + dns_msg).hex()
+
+    def pointer(devs, ttl=86_400, ts=TS, signer=None):
+        recs = b"".join(_rr(_wire(f"_dsip-devices.{z}"), 16, txt(f"dev={d}"), ttl=ttl) for d in devs)
+        return signed_by(signer or K, hdr(len(devs)) + recs, ts)
+
+    def compact(d):
+        return f"{d['protected']}.{d['payload']}.{d['signature']}"
+
+    def deleg(dev_did, **kw):
+        return compact(F.make_delegation(K, DID, dev_did, issued_at=kw.pop("issued_at", NOW - 86_400),
+                                         expires_at=kw.pop("expires_at", NOW + 30 * 86_400), signer_kid=K.kid, **kw))
+
+    def device_payload(key, uri, delegation=None, extra_deleg=0, ttl=1800, signer=None):
+        dz = z32_encode(key.public)
+        recs = [_rr(_wire(f"_dsip.{dz}"), 16, txt(f"uri={uri}", "b=ws/1.0"), ttl=ttl)]
+        if delegation is not None:
+            b = delegation.encode()
+            strings = b"".join(bytes([len(b[i:i + 255])]) + b[i:i + 255] for i in range(0, len(b), 255))
+            recs.append(_rr(_wire(f"_dsip-delegation.{dz}"), 16, strings, ttl=ttl))
+            for _ in range(extra_deleg):  # a short second record: two full delegations would not fit in 1,000 bytes
+                recs.append(_rr(_wire(f"_dsip-delegation.{dz}"), 16, txt("x"), ttl=ttl))
+        return signed_by(signer or key, hdr(len(recs)) + b"".join(recs))
+
+    def dv(vid, desc, payload, devs, want, revocations=None, now=NOW):
+        inp = {"check": "devices", "did": DID, "payload": payload, "devices": devs, "now": now}
+        if revocations is not None:
+            inp["revocations"] = revocations
+        out.append(vector(f"pkarr/devices-{vid}", "pkarr", desc, R, {}, inp, want))
+
+    P_URI, L_URI = "wss://relay-a.example/dsip", "wss://relay-b.example/dsip"
+    ep = lambda u: [{"uri": u, "bindings": ["ws/1.0"]}]  # noqa: E731
+    hint_exp = TS // 1_000_000 + 1800
+    ptr_exp = TS // 1_000_000 + 86_400
+    ok = lambda d, u, exp=hint_exp: {"device": d, "outcome": "hint", "endpoints": ep(u), "expires_at": exp}  # noqa: E731
+    rejected = lambda d, r: {"device": d, "outcome": "rejected", "reason": r}  # noqa: E731
+    both = {dphone: device_payload(PHONE, P_URI, deleg(dphone)), dlaptop: device_payload(LAPTOP, L_URI, deleg(dlaptop))}
+    head = {"outcome": "devices", "seq": TS, "expires_at": ptr_exp}
+
+    dv("two-devices", "The identity's pointer names two devices; each device's own hint, with its delegation, gives its relay.",
+       pointer([dphone, dlaptop]), both, {**head, "devices": [ok(dphone, P_URI), ok(dlaptop, L_URI)]})
+    dv("pointer-seven-days", "A pointer may live 7 days (604,800 s): the identity key stays offline.",
+       pointer([dphone], ttl=604_800), {dphone: both[dphone]},
+       {**head, "expires_at": TS // 1_000_000 + 604_800, "devices": [ok(dphone, P_URI)]})
+    dv("delegation-expires-first", "A device is usable until the earlier of its hint's expiry and its delegation's.",
+       pointer([dphone]), {dphone: device_payload(PHONE, P_URI, deleg(dphone, expires_at=NOW + 100))},
+       {**head, "devices": [ok(dphone, P_URI, NOW + 100)]})
+    dv("device-unavailable", "No payload could be fetched for a listed device.", pointer([dphone, dlaptop]), {dphone: both[dphone]},
+       {**head, "devices": [ok(dphone, P_URI), rejected(dlaptop, "unavailable")]})
+    dv("device-hint-bad-signature", "A device zone not signed by that device's key.", pointer([dphone]),
+       {dphone: device_payload(PHONE, P_URI, deleg(dphone), signer=LAPTOP)}, {**head, "devices": [rejected(dphone, "signature")]})
+    dv("delegation-missing", "A device hint without its delegation record.", pointer([dphone]),
+       {dphone: device_payload(PHONE, P_URI)}, {**head, "devices": [rejected(dphone, "delegation-missing")]})
+    dv("delegation-twice", "Two delegation records (the second a short one, so the packet still fits).", pointer([dphone]),
+       {dphone: device_payload(PHONE, P_URI, deleg(dphone), extra_deleg=1)}, {**head, "devices": [rejected(dphone, "delegation-invalid")]})
+    dv("delegation-for-another-device", "The phone's zone carries the laptop's delegation.", pointer([dphone]),
+       {dphone: device_payload(PHONE, P_URI, deleg(dlaptop))}, {**head, "devices": [rejected(dphone, "delegation-invalid")]})
+    foreign = compact(F.make_delegation(OTHER, DID, dphone, signer_kid=OTHER.kid))
+    dv("delegation-not-by-identity", "A delegation signed by another key than the identity's.", pointer([dphone]),
+       {dphone: device_payload(PHONE, P_URI, foreign)}, {**head, "devices": [rejected(dphone, "delegation-invalid")]})
+    dv("delegation-no-signaling", "A delegation without dsip.signaling.", pointer([dphone]),
+       {dphone: device_payload(PHONE, P_URI, deleg(dphone, capabilities=("dsip.messaging",)))},
+       {**head, "devices": [rejected(dphone, "delegation-capability")]})
+    dv("delegation-expired", "An expired delegation.", pointer([dphone]),
+       {dphone: device_payload(PHONE, P_URI, deleg(dphone, issued_at=NOW - 90 * 86_400, expires_at=NOW - 1))},
+       {**head, "devices": [rejected(dphone, "delegation-expired")]})
+    rev = E.sign({"dsip": F.VERSION, "type": "delegation-revocation", "id": "01M3S8JR0000000000000REVK1", "from": DID, "subject": DID,
+                  "device": dlaptop, "revoked_at": NOW - 60, "reason": "lost", "issued_at": NOW - 60, "expires_at": NOW + 240}, K, K.kid)
+    dv("device-revoked", "A revocation the reader holds stops the laptop counting, though the pointer still lists it (§9.1: "
+       "bounded, not immediate).", pointer([dphone, dlaptop]), both,
+       {**head, "devices": [ok(dphone, P_URI), rejected(dlaptop, "delegation-revoked")]}, revocations=[compact(rev)])
+    dv("device-null-unavailable", "A device whose payload is null is unavailable.", pointer([dphone]), {dphone: None},
+       {**head, "devices": [rejected(dphone, "unavailable")]})
+    dz = z32_encode(PHONE.public)
+    broken = signed_by(PHONE, hdr(2) + _rr(_wire(f"_dsip.{dz}"), 16, txt(f"uri={P_URI}", "b=ws/1.0"))
+                       + _rr(_wire(f"_dsip-delegation.{dz}"), 16, b"\x09abc"))
+    dv("delegation-record-unsplittable", "A delegation record whose data does not split into character-strings: that device "
+       "is delegation-invalid, the others still resolve.", pointer([dphone, dlaptop]), {dphone: broken, dlaptop: both[dlaptop]},
+       {**head, "devices": [rejected(dphone, "delegation-invalid"), ok(dlaptop, L_URI)]})
+    dv("duplicate-listed-once", "A device listed twice is resolved once.", pointer([dphone, dphone]), {dphone: both[dphone]},
+       {**head, "devices": [ok(dphone, P_URI)]})
+    for vid, desc, payload, want in [
+        ("pointer-signature", "A pointer not signed by the identity key.", pointer([dphone], signer=OTHER), "signature"),
+        ("pointer-ttl-too-long", "A pointer TTL above 604,800 s.", pointer([dphone], ttl=604_801), "ttl-too-long"),
+        ("pointer-expired", "An expired pointer.", pointer([dphone], ttl=30), "expired"),
+        ("pointer-bad-dev", "A dev= value that is not a did:key.", signed_by(K, hdr(1) + _rr(_wire(f"_dsip-devices.{z}"), 16,
+         txt("dev=did:web:phone.example"))), "bad-pointer"),
+        ("pointer-none", "A zone with no _dsip-devices records.", signed_by(K, hdr(1) + _rr(_wire(f"_dsip.{z}"), 16,
+         txt("uri=wss://relay.example/dsip", "b=ws/1.0"))), "no-devices"),
+    ]:
+        dv(vid, desc, payload, {}, {"outcome": "rejected", "reason": want})
     return out

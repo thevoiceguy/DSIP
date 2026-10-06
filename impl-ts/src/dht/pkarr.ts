@@ -4,19 +4,22 @@
  *
  * Spec: §8.5, §8.3 (v0.9: Pkarr beside the hints overlay; DHT Reachability Hints Profile); BEP 44
  * (mutable items, the signed buffer); RFC 1035 §4.1 (the DNS message), §4.1.4 (compression), §3.3.14 (TXT);
- * DHT Hints Profile §9 (the Pkarr carrier: reading, carrying the zone's other records, the next `ts`); RFC 3597 §4.
+ * DHT Hints Profile §9 (the Pkarr carrier: reading, carrying the zone's other records, the next `ts`), §9.1
+ * (multi-device identities: the pointer, device hints and their delegations; §7.4); RFC 3597 §4.
  * Impl: the step order, the reason tokens and the `_dsip` TXT record format are the vectors README's
  * ("Kind: `pkarr`"), which the profile's §9 defers to (spec-gap 105).
  */
 import type { Json, JsonObject } from "../did.js";
 import { ed25519FromMultibase, utf8Decode } from "../encoding.js";
-import { ed25519Verify } from "../envelope.js";
+import { ed25519Verify, verifyDelegation, type ReceiverContext } from "../envelope.js";
 
 const Z32 = "ybndrfg8ejkmcpqxot1uwisza345h769";
 /** Impl: `ts` stays exact as a JSON number (BEP 44 allows up to 2^63−1; spec-gap 105). */
 const TS_MAX = (1n << 53n) - 1n;
 /** Spec: §12.9 — a hint's lifetime cap, 3,600 s (spec-gap 96). */
 const MAX_TTL = 3600;
+/** Spec: DHT Hints Profile §9.1 — a device pointer's TTL cap, 604,800 s (7 days). */
+const MAX_POINTER_TTL = 604800;
 
 type Rejected = { outcome: "rejected"; reason: string };
 const rejected = (reason: string): Rejected => ({ outcome: "rejected", reason });
@@ -183,7 +186,34 @@ function asciiLower(label: Buffer): string {
  * holding a `.` byte never matches (spec finding: the README says "as dotted labels").
  */
 function isDsipName(labels: Buffer[], z32: string): boolean {
-  return labels.length === 2 && asciiLower(labels[0]!) === "_dsip" && asciiLower(labels[1]!) === z32;
+  return isZoneName(labels, "_dsip", z32);
+}
+
+/**
+ * True when the owner name is exactly the two labels `<first>.<z32>`, ASCII case-insensitively.
+ *
+ * Spec: DHT Hints Profile §9, §9.1 (`_dsip`, `_dsip-devices`, `_dsip-delegation` under the key's zone).
+ */
+function isZoneName(labels: Buffer[], first: string, z32: string): boolean {
+  return labels.length === 2 && asciiLower(labels[0]!) === first && asciiLower(labels[1]!) === z32;
+}
+
+/** The owner names a DSIP publisher replaces in its zone. Spec: DHT Hints Profile §9, §9.1 */
+const DSIP_OWNERS = ["_dsip", "_dsip-devices", "_dsip-delegation"];
+
+/**
+ * TXT rdata as its character-strings (RFC 1035 §3.3.14); throws `Malformed` unless they consume it exactly.
+ */
+function characterStrings(rdata: Buffer): Buffer[] {
+  const strings: Buffer[] = [];
+  let pos = 0;
+  while (pos < rdata.length) {
+    const len = rdata[pos]!;
+    if (pos + 1 + len > rdata.length) throw new Malformed();
+    strings.push(rdata.subarray(pos + 1, pos + 1 + len));
+    pos += 1 + len;
+  }
+  return strings;
 }
 
 /**
@@ -194,14 +224,7 @@ function isDsipName(labels: Buffer[], z32: string): boolean {
  * more `b` in order, at most one `svc`; unknown keys are ignored; keys are case-sensitive (spec-gap 105).
  */
 function endpointOf(rdata: Buffer): JsonObject | Rejected {
-  const strings: Buffer[] = [];
-  let pos = 0;
-  while (pos < rdata.length) {
-    const len = rdata[pos]!;
-    if (pos + 1 + len > rdata.length) throw new Malformed();
-    strings.push(rdata.subarray(pos + 1, pos + 1 + len));
-    pos += 1 + len;
-  }
+  const strings = characterStrings(rdata);
   const uris: string[] = [];
   const bindings: string[] = [];
   const services: string[] = [];
@@ -244,6 +267,26 @@ interface Hint {
  * smallest DSIP record TTL, which must be ≤ 3,600 s. The first failing README step gives the reason.
  */
 export function readHint(did: string, payloadHex: Json | undefined, now: number): Hint | Rejected {
+  const opened = openPayload(did, payloadHex, now);
+  if ("outcome" in opened) return opened;
+  return hintOf(did, opened, now);
+}
+
+/** A Pkarr payload past steps 1–5: its key, zone name, signed timestamp and DNS answers. */
+interface Opened {
+  key: Buffer;
+  z32: string;
+  ts: bigint;
+  answers: RR[];
+}
+
+/**
+ * Steps 1–5 of the README's `check: "hint"`: the `did:key`, the payload size, the BEP 44 signature,
+ * the timestamp, and the DNS message.
+ *
+ * Spec: §8.5; DHT Hints Profile §9 (Reading, 1–5), shared by the pointer of §9.1.
+ */
+function openPayload(did: string, payloadHex: Json | undefined, now: number): Opened | Rejected {
   // 1. did:key with an Ed25519 key
   const key = did.startsWith("did:key:") ? ed25519FromMultibase(did.slice("did:key:".length)) : null;
   if (!key) return rejected("not-did-key");
@@ -258,12 +301,25 @@ export function readHint(did: string, payloadHex: Json | undefined, now: number)
   // 4. the timestamp
   if (ts > TS_MAX) return rejected("malformed");
   if (ts > (BigInt(now) + 300n) * 1_000_000n) return rejected("future");
-  // 5–6. the DNS message, then the DSIP records among its answers
-  const z32 = z32Encode(key);
+  // 5. the DNS message
+  let answers: RR[];
+  try {
+    answers = parseAnswers(dns);
+  } catch (e) {
+    if (e instanceof Malformed) return rejected("malformed");
+    throw e;
+  }
+  return { key, z32: z32Encode(key), ts, answers };
+}
+
+/** Steps 6–9 of the README's `check: "hint"` over an opened payload. Spec: DHT Hints Profile §9 */
+function hintOf(did: string, opened: Opened, now: number): Hint | Rejected {
+  const { z32, ts, answers } = opened;
+  // 6. the DSIP records among the answers
   const endpoints: JsonObject[] = [];
   const ttls: number[] = [];
   try {
-    for (const rr of parseAnswers(dns)) {
+    for (const rr of answers) {
       if (rr.type !== 16 || rr.cls !== 1 || !isDsipName(rr.labels, z32)) continue;
       const endpoint = endpointOf(rr.rdata);
       if ("outcome" in endpoint) return endpoint as Rejected;
@@ -366,9 +422,10 @@ function expandRdata(msg: Buffer, rr: RR): Buffer {
  * The records a publisher carries over from its previous packet: every IN answer outside `_dsip.<zone>`,
  * in message order, owner names uncompressed (case kept) and names inside rdata expanded.
  *
- * Spec: DHT Hints Profile §9 (Publishing: "Keep the zone's other records"); RFC 1035 §4.1; RFC 3597 §4.
- * Impl (vectors README, `check: "carry"`; spec-gap 105): only answer records; class exactly 1; the `_dsip`
- * owner is compared label by label, ASCII case-insensitively, whatever the type; the excluded records'
+ * Spec: DHT Hints Profile §9 (Publishing: "Keep the zone's other records"), §9.1; RFC 1035 §4.1; RFC 3597 §4.
+ * Impl (vectors README, `check: "carry"`; spec-gap 105): only answer records; class exactly 1; the owners
+ * `_dsip`, `_dsip-devices` and `_dsip-delegation` `.<zone>` (§9.1), which the publisher replaces, are compared
+ * label by label, ASCII case-insensitively, whatever the type; the excluded records'
  * rdata is not inspected; any parse failure anywhere in the message is `malformed`.
  */
 export function carry(zone: string, dnsHex: Json | undefined): Json {
@@ -378,7 +435,7 @@ export function carry(zone: string, dnsHex: Json | undefined): Json {
   const keep: JsonObject[] = [];
   try {
     for (const rr of parseAnswers(dns)) {
-      if (rr.cls !== 1 || isDsipName(rr.labels, zoneLower)) continue;
+      if (rr.cls !== 1 || DSIP_OWNERS.some((first) => isZoneName(rr.labels, first, zoneLower))) continue;
       keep.push({
         name: wireName(rr.labels).toString("hex"),
         type: rr.type,
@@ -408,6 +465,103 @@ export function nextTs(clock: number, previous: number | undefined): Json {
   return { ts: Number(next) };
 }
 
+/** A did:key whose base58btc multibase decodes to an Ed25519 key (the README's `check: "hint"` step 1). */
+function isEd25519DidKey(text: string): boolean {
+  return text.startsWith("did:key:") && ed25519FromMultibase(text.slice("did:key:".length)) !== null;
+}
+
+/**
+ * A compact DSIP-JOSE envelope: three non-empty base64url segments joined by `.`.
+ *
+ * Impl (vectors README, `check: "devices"` step 3): the concatenated character-strings must be this, else
+ * `delegation-invalid`; whether the segments decode and verify is the §7.4 verifier's.
+ */
+function compactEnvelope(bytes: Buffer): string | null {
+  const text = bytes.toString("latin1");
+  return /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(text) ? text : null;
+}
+
+/**
+ * Resolve a multi-device identity on Pkarr: the identity-signed pointer, then each listed device's own
+ * hint and the delegation it carries.
+ *
+ * Spec: DHT Hints Profile §9.1 (the pointer's `_dsip-devices` records and 7-day cap; the device hint with
+ * its `_dsip-delegation` record; a device counts only if its hint reads as §9 and its delegation verifies,
+ * and is usable until the earlier expiry); §7.4 (the delegation and its revocations); §8.1 (hints only).
+ * Impl (vectors README, `check: "devices"`; spec-gap 105): the pointer passes steps 1–5 of `check: "hint"`;
+ * a TXT string is `dev=` by its leading bytes and other strings are ignored even if not UTF-8; a pointer
+ * record whose rdata does not frame as character-strings is `malformed`, as in step 6; devices are listed
+ * in record order, a repeated DID (exact text) once; a device whose `devices` entry is absent or null is
+ * `unavailable`; a delegation record that does not frame, or whose strings concatenated are not a compact
+ * envelope, is `delegation-invalid`; expiries are whole seconds, the pointer's `⌊ts / 10^6⌋ + min(TTL)`.
+ */
+export function resolveDevices(
+  did: string,
+  payloadHex: Json | undefined,
+  payloads: JsonObject,
+  now: number,
+  revocations: Json[],
+): Json {
+  const opened = openPayload(did, payloadHex, now);
+  if ("outcome" in opened) return opened;
+  const listed: string[] = [];
+  const ttls: number[] = [];
+  try {
+    for (const rr of opened.answers) {
+      if (rr.type !== 16 || rr.cls !== 1 || !isZoneName(rr.labels, "_dsip-devices", opened.z32)) continue;
+      const devs = characterStrings(rr.rdata).filter((s) => s.subarray(0, 4).toString("latin1") === "dev=");
+      const value = devs.length === 1 ? utf8Decode(devs[0]!.subarray(4)) : null;
+      if (value === null || !isEd25519DidKey(value)) return rejected("bad-pointer");
+      if (!listed.includes(value)) listed.push(value);
+      ttls.push(rr.ttl);
+    }
+  } catch (e) {
+    if (e instanceof Malformed) return rejected("malformed");
+    throw e;
+  }
+  if (ttls.length === 0) return rejected("no-devices");
+  if (ttls.some((t) => t > MAX_POINTER_TTL)) return rejected("ttl-too-long");
+  const expiresAt = Number(opened.ts / 1_000_000n) + Math.min(...ttls);
+  if (now >= expiresAt) return rejected("expired");
+
+  const ctx = { now, revocations } as ReceiverContext;
+  const devices: JsonObject[] = listed.map((device) => {
+    const out = (rest: JsonObject): JsonObject => ({ device, ...rest });
+    const payload = payloads[device];
+    // 1. nothing fetched for it
+    if (payload === undefined || payload === null) return out(rejected("unavailable"));
+    // 2. its own hint, under its own key
+    const dev = openPayload(device, payload, now);
+    if ("outcome" in dev) return out(dev);
+    const hint = hintOf(device, dev, now);
+    if (hint.outcome === "rejected") return out(hint);
+    // 3. exactly one delegation record, whose strings make a compact envelope
+    const records = dev.answers.filter(
+      (rr) => rr.type === 16 && rr.cls === 1 && isZoneName(rr.labels, "_dsip-delegation", dev.z32),
+    );
+    if (records.length === 0) return out(rejected("delegation-missing"));
+    if (records.length > 1) return out(rejected("delegation-invalid"));
+    let compact: string | null;
+    try {
+      compact = compactEnvelope(Buffer.concat(characterStrings(records[0]!.rdata)));
+    } catch (e) {
+      if (!(e instanceof Malformed)) throw e;
+      compact = null;
+    }
+    if (compact === null) return out(rejected("delegation-invalid"));
+    // 4. §7.4 for (identity, device) at now, with the revocations held
+    const bound = verifyDelegation(compact, device, did, ctx);
+    if ("verdict" in bound) return out(rejected(bound.code));
+    // 5. usable until the earlier expiry
+    return out({
+      outcome: "hint",
+      endpoints: hint.endpoints,
+      expires_at: Math.min(hint.expires_at, bound.expires_at),
+    });
+  });
+  return { outcome: "devices", seq: Number(opened.ts), expires_at: expiresAt, devices };
+}
+
 /** Kind `pkarr`: dispatch on `input.check`. Spec: §8.5; README "Kind: `pkarr`" */
 export function runPkarr(input: JsonObject): Json | undefined {
   switch (input["check"]) {
@@ -433,6 +587,14 @@ export function runPkarr(input: JsonObject): Json | undefined {
     }
     case "carry":
       return carry(input["zone"] as string, input["dns"]);
+    case "devices":
+      return resolveDevices(
+        input["did"] as string,
+        input["payload"],
+        (input["devices"] ?? {}) as JsonObject,
+        input["now"] as number,
+        Array.isArray(input["revocations"]) ? input["revocations"] : [],
+      );
     case "next-ts":
       return nextTs(input["clock"] as number, input["previous"] as number | undefined);
     default:
