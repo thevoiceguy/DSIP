@@ -6,7 +6,7 @@ pins it, and the Python harness, the Rust reference implementation and an indepe
 implementation agree on every one; the reference implementation runs it over the wire on real MLS and HPKE
 (`impl/crates/dsip-messaging`, `dsip-mls`, `dsip-mailbox`), and every disagreement found on the way
 was resolved explicitly as a spec-gap (31–57, `impl/docs/spec-gaps.md`) whose disposition this text
-now states. Later findings revised it in place (Appendix M-B). Where the profile relies on the core, it relies on core v0.8 (delegation capabilities
+now states. Later findings revised it in place (Appendix M-B). Where the profile relies on the core, it relies on core v0.9 (delegation capabilities
 and revocation, §7.4; sealed introductions, §19.4; the `mailbox` reason category, §15).
 **Profile identifier:** `messaging/1.0`. **Conformance pieces:** `DSIP Messaging Profile 1.0`
 (clients) and `DSIP Mailbox 1.0` (mailbox and hub services) — M§18.
@@ -1793,7 +1793,7 @@ MLS itself is tested with the IETF MLS interoperability test vectors, not re-spe
 4. The tablet syncs from `null`. Archive records give it every conversation back to the retention
    horizon, and MLS items give it everything from its join onward.
 
-## Appendix M-B: Revisions within v0.8
+## Appendix M-B: Revisions in place (v0.8, v0.9)
 
 Each was found by the reference implementation, the second implementation or the differential fuzzer, pinned by
 vectors, and marked in place with its spec-gap number (`impl/docs/spec-gaps.md`).
@@ -1819,3 +1819,10 @@ vectors, and marked in place with its spec-gap number (`impl/docs/spec-gaps.md`)
 | 91 | M§6.6, M§12.2 | what a pending group's expiry drops |
 | 92 | M§6.6 | which cursor a redelivery carries |
 | 99 | M§4.4, M§5.6, M§9.3, M§9.4 | storage limits: `accepted` means durably stored, what `quota_bytes` counts, `507` for blobs, a hub's storage refusal as an outage |
+
+Within v0.9:
+
+| spec-gap | where | what |
+|---|---|---|
+| 106 | M§8.4 | a device whose blob fetch finds nothing keeps the content shown and tries again |
+
