@@ -2433,6 +2433,10 @@ No wire-format change: `dsip.core` stays `1.0`, and every addition is an optiona
 
 v0.9 is final at tag `poc-v0.9`. Each v0.10 item is listed here as it lands, with its spec-gap number.
 
+- Recording acceptance is the person's, not one device's (Recording Profile C§5; spec-gap 107): the device on which
+  the user accepts sends a `recording-acceptance` object to the identity's personal group, and every device of the
+  identity applies it. The object is registered in M§8.1; older devices ignore it as an unknown object.
+
 ---
 
 ## Appendix B: Emergency Services and Regulated Profiles

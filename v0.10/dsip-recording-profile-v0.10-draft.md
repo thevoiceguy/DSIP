@@ -99,6 +99,20 @@ A conversation is **recorded** while any member leaf's delegation (M§6.2) carri
   rendered, not archived. A recorder is receive-only, and can never speak for the person whose device it is. Its
   handshake messages (Update commits renewing its delegation, M§6.2) are processed as usual.
 
+**Acceptance is the person's, not one device's (v0.10).** A device on which the user accepts tells the identity's
+other devices. It sends a `recording-acceptance` object to the identity's personal group (M§8.1):
+
+```json
+{"object": "recording-acceptance", "conversation": "01J…", "recorders": ["did:key:…"], "accepted_at": 1790000000}
+```
+
+- `conversation` names the recorded conversation, and `recorders` lists the recorder devices accepted (at least one).
+- The object travels only in the personal group, like `archive-key`: it would tell the conversation's other members
+  nothing they may know.
+- Each device of the identity accepts the union of its own acceptances and those in its personal group for that
+  conversation.
+- An acceptance is never withdrawn by this object; declining is still leaving the conversation (M§7).
+
 **A recorder never stands in for the person.** When a device adds an identity to a conversation, it adds every device
 that the identity's KeyPackage directory returns (M§5.5, M§7.2), recorder devices included. So a conversation created
 after a recorder exists is recorded too, whichever side creates it. It adds a recorder device only together with at

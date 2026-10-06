@@ -1,0 +1,29 @@
+{
+  "vector": "messaging/recording-acceptance-in-personal-group",
+  "format": 1,
+  "kind": "messaging",
+  "description": "A recording acceptance travels in the personal group, to the identity's other devices (Recording Profile C§5).",
+  "spec_ref": [
+    "C§5",
+    "M§8.1"
+  ],
+  "context": {
+    "conversation": "01K742SG00AX1F6HVTRWBW227R",
+    "conversation_kind": "personal",
+    "leaf_identity": "did:web:alice.example"
+  },
+  "input": {
+    "check": "object",
+    "object": {
+      "object": "recording-acceptance",
+      "conversation": "01K742SG00ZSRJ9GDPGPFQEDHG",
+      "recorders": [
+        "did:key:z6MkBobRecorder"
+      ],
+      "accepted_at": 1760000000
+    }
+  },
+  "expect": {
+    "verdict": "accept"
+  }
+}

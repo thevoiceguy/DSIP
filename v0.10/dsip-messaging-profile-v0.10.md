@@ -1008,6 +1008,7 @@ only, no floats). Its `object` member discriminates:
 | `receipt` | delivered / read / played | M§10 |
 | `archive-key` | a new archive key, personal group only | M§12 |
 | `call-event` | call history, personal group only | M§13.3 |
+| `recording-acceptance` | the user's acceptance of a recorded conversation, personal group only (v0.10) | Recording Profile C§5 |
 
 An unknown `object` MUST be ignored (not rendered, not an error).
 
@@ -1261,9 +1262,10 @@ ignore it for other kinds. It is identity-level, sent at most once per target, a
   as with silence in §19.4.
 - When read receipts are off, the client still sends its `read` watermark, but **only to its
   personal group**, so the identity's own devices stay in sync without disclosure. (spec-gap 52) Such a
-  `read` receipt names the conversation it describes in `conversation`; it is the one object exempt
-  from M§8.1's rule that `conversation` equals the carrying group's, and receiving devices apply it to
-  that conversation.
+  `read` receipt names the conversation it describes in `conversation`. It is exempt from M§8.1's rule
+  that `conversation` equals the carrying group's, and receiving devices apply it to that conversation.
+  The other object so exempt is `recording-acceptance` (Recording Profile C§5, v0.10), which travels
+  only in the personal group and names the recorded conversation.
 
 ## M§11 Ephemeral activity
 
@@ -1793,7 +1795,7 @@ MLS itself is tested with the IETF MLS interoperability test vectors, not re-spe
 4. The tablet syncs from `null`. Archive records give it every conversation back to the retention
    horizon, and MLS items give it everything from its join onward.
 
-## Appendix M-B: Revisions in place (v0.8, v0.9)
+## Appendix M-B: Revisions in place (v0.8, v0.9, v0.10)
 
 Each was found by the reference implementation, the second implementation or the differential fuzzer, pinned by
 vectors, and marked in place with its spec-gap number (`impl/docs/spec-gaps.md`).
@@ -1825,4 +1827,10 @@ Within v0.9:
 | spec-gap | where | what |
 |---|---|---|
 | 106 | M§8.4 | a device whose blob fetch finds nothing keeps the content shown and tries again |
+
+Within v0.10:
+
+| spec-gap | where | what |
+|---|---|---|
+| 107 | M§8.1, M§10.5 | the `recording-acceptance` object (Recording Profile C§5): personal group only, naming the recorded conversation |
 

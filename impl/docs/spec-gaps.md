@@ -2812,8 +2812,18 @@ at an endpoint the organisation controls (research track C). Without a disclosur
 - `demos/recorder-device-demo.sh` (in CI) covers all of this, including a misbehaving recorder whose message both
   members drop.
 
-**Not done yet.**
-- Persisting a counterparty's acceptance across devices of the same identity. Today it is per device.
+**Acceptance across devices (v0.10, 2026-10-06).**
+- Acceptance is now the person's, not one device's. The device on which the user accepts sends a
+  `recording-acceptance` object (`{conversation, recorders, accepted_at}`) to the identity's personal group. Every
+  device of the identity applies the union with its own acceptances (C§5, M§8.1 table).
+- Vectors: `messaging/recording-acceptance-*` (3), three-way.
+- **The second implementation's agent found a text contradiction.** M§10.5 called the private read watermark "the
+  one object exempt" from M§8.1's `conversation` rule, yet the new object names the recorded conversation too. M§10.5
+  now names both, and the vectors README states that `sender-mismatch` and `conversation-mismatch` apply to `content`,
+  `receipt` and `activity` only, as all three implementations already did.
+- `dsip-msg`: `accept-recording` shares the acceptance, and a sibling's acceptance is applied on receipt.
+- The recorder-device demo now adds a laptop for Alice. Told of the recording, the laptop can't send until Alice
+  accepts on her phone; the acceptance then reaches the laptop through her personal group, and it sends.
 - Whether a party's `policy.recording: forbidden` should also be enforced by its relay. It is not: a relay never
   sees media and cannot know.
 
