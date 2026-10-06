@@ -672,7 +672,7 @@ def gen_syslog_sign(r: random.Random):
         if r.random() < 0.15:
             m = mutate(r, m, b' "=[]0123456789ABab+/')
         steps.append({"receive": {"message": m.hex()}})
-    ctx = {"component": "syslog-sign", "now": 1000, "hold_s": 10, "signers": [g.K1.signer("sw1.example")]}
+    ctx = {"component": "syslog-sign", "now": 1000, "hold_s": 10, "signers": [g.K1.signer("sw1.example", gaps=r.random() < 0.6)]}
     return "device-events", None, ctx, steps
 
 

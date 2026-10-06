@@ -102,6 +102,7 @@ class Collector:
         self.sessions: dict[tuple, bytes] = {}   # session -> payload
         self.highest: dict[tuple, int] = {}      # (host, app) -> highest established RSID
         self.authed: set[tuple] = set()          # (group, number)
+        self.covered: dict[tuple, int] = {}      # group -> highest number covered (gap detection)
 
     # --- a block -------------------------------------------------------------------------------
 
@@ -179,6 +180,7 @@ class Collector:
             del self.sessions[session]
             self.authed = {a for a in self.authed if a[0][0] != session}
             self.waiting = [w for w in self.waiting if w["group"][0] != session]
+            self.covered = {g: c for g, c in self.covered.items() if g[0] != session}
         st = self.frags.get(session)
         if st is not None:
             if st["tpbl"] != f["TPBL"] or any(st["bytes"].get(f["INDEX"] - 1 + i, c) != c for i, c in enumerate(frag)):
@@ -208,6 +210,13 @@ class Collector:
             return refused("no-session")
         group = (session, f["SG"], f["SPRI"])
         out = []
+        if signer.get("gaps"):
+            cov = self.covered.get(group, 0)
+            if cov > 0 and f["FMN"] > cov + 1:
+                out.append({"gap": {"hostname": sl["hostname"], "app_name": sl["app_name"], "procid": sl["procid"],
+                                    "rsid": session[3], "sg": f["SG"], "spri": f["SPRI"], "from": cov + 1,
+                                    "to": f["FMN"] - 1}})
+            self.covered[group] = max(cov, f["FMN"] + len(hb) - 1)
         for i, h in enumerate(hb):
             n = f["FMN"] + i
             if (group, n) in self.authed:
@@ -251,7 +260,22 @@ class Collector:
         self.now += n
         out = [{"deposit": {"sha256": m["sha256"], "signed": None}} for m in self.held if m["due"] <= self.now]
         self.held = [m for m in self.held if m["due"] > self.now]
+        lost = [w for w in self.waiting if w["due"] <= self.now and self.signers[w["group"][0][0]].get("gaps")]
         self.waiting = [w for w in self.waiting if w["due"] > self.now]
+        lost.sort(key=lambda w: ((w["group"][0][0], w["group"][0][1] or "", w["group"][0][2] or "", w["group"][0][3]),
+                                 w["group"][1], w["group"][2], w["number"]))
+        for w in lost:
+            c = w["claim"]
+            last = out[-1]["gap"] if out and "gap" in out[-1] else None
+            if last is not None and last["_group"] == w["group"] and last["to"] + 1 == w["number"]:
+                last["to"] = w["number"]
+            else:
+                out.append({"gap": {"hostname": c["hostname"], "app_name": c["app_name"], "procid": c["procid"],
+                                    "rsid": c["rsid"], "sg": c["sg"], "spri": c["spri"], "from": w["number"],
+                                    "to": w["number"], "_group": w["group"]}})
+        for o in out:
+            if "gap" in o:
+                o["gap"].pop("_group", None)
         return out
 
     def step(self, ev: dict) -> dict:

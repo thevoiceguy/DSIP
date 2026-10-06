@@ -945,7 +945,8 @@ Events:
 
 **Signed syslog traces** (`context.component: "syslog-sign"`, E§3, v0.10; RFC 5848) model a gateway's collector.
 
-**Context:** `{component, now, hold_s, signers: [{hostname, type: "C" | "K", key}]}`.
+**Context:** `{component, now, hold_s, signers: [{hostname, type: "C" | "K", key, gaps?}]}`. `gaps: true` turns on
+gap detection for that signer (v0.11).
 - `key` is base64: the certificate's DER for `C`, or the four MPIs p, q, g, y for `K`.
 - The key's `key_sha256` is the SHA-256 of those decoded bytes, in hex.
 - Hostnames compare without case (ASCII).
@@ -962,7 +963,8 @@ The **emits** are:
 - `{"deposit": {"sha256", "signed"}}`, where `sha256` is the message's SHA-256 in hex, and `signed` is `null` or E§2's
   object;
 - `{"session": {hostname, app_name, procid, rsid, key_sha256}}`;
-- `{"refused": {"block": "ssign" | "ssign-cert", "reason"}}`.
+- `{"refused": {"block": "ssign" | "ssign-cert", "reason"}}`;
+- `{"gap": {hostname, app_name, procid, rsid, sg, spri, from, to}}`, for signers with `gaps: true` (below).
 
 **Classifying a received message.** It is parsed as `check: "syslog"` does.
 1. **Not RFC 5424, or its HOSTNAME is `-`.** It is deposited at once, unsigned.
@@ -1032,7 +1034,23 @@ The **emits** are:
 
 **`advance`** adds `n` to `now`. Then:
 - held messages with due ≤ `now` are deposited unsigned, in arrival order;
-- waiting hashes with due ≤ `now` are dropped silently.
+- waiting hashes with due ≤ `now` are dropped. For a signer with `gaps: true`, each dropped hash's number is lost: they
+  are emitted as gaps after the deposits.
+
+**Gaps** (v0.11, signers with `gaps: true`). Each group (session, SG, SPRI) keeps `covered`: the highest number any
+of its verified Signature Blocks covered (`FMN + CNT − 1`), 0 before the first.
+- **Never covered.** A verified Signature Block of an established session with `covered` > 0 and `FMN > covered + 1`
+  first emits a gap `from: covered + 1, to: FMN − 1`. Then it is processed as above, and `covered` becomes the
+  greater of `covered` and `FMN + CNT − 1`. A group's first block reports nothing before it: the collector may have
+  started late.
+- **Signed, never arrived.** At `advance`, the lost numbers are sorted by group then number. Here a group's order is
+  its hostname (lowercase), APP-NAME, PROCID (by code point, a `-` field as ""), then RSID, SG and SPRI. Runs of consecutive numbers in
+  one group become one gap each, in that order.
+- A gap's `hostname`, `app_name` and `procid` are the Signature Block message's: for a lost number, the block that
+  listed its hash.
+- Waiting hashes dropped when a session ends are not gaps, and a session's end drops its groups' `covered` with them:
+  the numbers start again.
+- A run takes its `hostname`, `app_name` and `procid` from the block that listed its lowest number.
 
 **A deposited message's `signed`** is `{hostname, app_name, procid, rsid, sg, spri, message_number, key_sha256}`.
 `hostname`, `app_name` and `procid` are the Signature Block message's, and the numbers are JSON integers.
