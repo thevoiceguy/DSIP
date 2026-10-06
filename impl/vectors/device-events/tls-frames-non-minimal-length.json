@@ -1,0 +1,20 @@
+{
+  "vector": "device-events/tls-frames-non-minimal-length",
+  "format": 1,
+  "kind": "device-events",
+  "description": "A long-form length that fits the short form is accepted (BER).",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "tls-frames",
+    "stream": "308103020101"
+  },
+  "expect": {
+    "messages": [
+      "308103020101"
+    ],
+    "pending": ""
+  }
+}

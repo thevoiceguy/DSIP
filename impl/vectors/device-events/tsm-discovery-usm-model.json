@@ -1,0 +1,19 @@
+{
+  "vector": "device-events/tsm-discovery-usm-model",
+  "format": 1,
+  "kind": "device-events",
+  "description": "Discovery under USM over TLS is refused by the model check first.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "tsm",
+    "message": "303d020103300e020107020300ffe304010302010304003026040580000000060400a01b0201050201000201003010300e060a2b060106030a020101000500"
+  },
+  "expect": {
+    "refused": {
+      "reason": "unsupported-security-model"
+    }
+  }
+}

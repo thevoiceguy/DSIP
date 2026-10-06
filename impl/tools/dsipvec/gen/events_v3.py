@@ -457,6 +457,176 @@ def usm_key_vectors() -> list[dict]:
     return out
 
 
+# --- SNMPv3 over TLS (E§3, v0.10): TSM messages, TLS framing, the certificate-to-name table -------------------------
+
+def tsm(pdu=None, flags=0x03, model=4, sec=b"", msg_id=7, max_size=65507, data=None, version=3, sec_tag=0x04,
+        trailing=b"") -> str:
+    """A whole TSM message, hex: securityParameters empty unless given, msgData a plaintext ScopedPDU."""
+    glob = tlv(0x30, bint(msg_id) + bint(max_size) + tlv(0x04, bytes([flags])) + bint(model))
+    d = data if data is not None else (scoped() if pdu is None else pdu)
+    return (tlv(0x30, bint(version) + glob + tlv(sec_tag, sec) + d) + trailing).hex()
+
+
+ENGINE_OID = "1.3.6.1.6.3.10.2.1.1.0"
+LOCAL_ENGINE = bytes.fromhex("8000000006")
+# Captured from net-snmp 5.9.5.2 (Debian forky) over TLS 1.3 with a client certificate:
+#   snmptrap -v 3 --defSecurityModel=tsm -l authPriv tls:… 1234 1.3.6.1.6.3.1.1.5.3 1.3.6.1.2.1.2.2.1.1.3 i 3
+#   snmpinform … (its first message: RFC 5343 discovery, noAuthNoPriv + reportable)
+NETSNMP_TRAP = ("307902010330110204013f3813020300ffe30401030201040400305f041180001f8880e61eda2ed341c56a000000000400a748"
+                "02040e7219ae020100020100303a300e06082b06010201010300430204d23017060a2b06010603010104010006092b06010603"
+                "01010503300f060a2b060102010202010103020103")
+NETSNMP_DISCOVERY = ("3043020103301102043a39be96020300ffe304010402010404003029040580000000060400a01e02040a2c0710020100020100"
+                     "3010300e060a2b060106030a020101000500")
+
+
+def tsm_vectors() -> list[dict]:
+    out = []
+
+    def t(name, desc, msg, expect):
+        out.append(ev(f"tsm-{name}", desc, ["E§3"], {"check": "tsm", "message": msg}, expect))
+    acc_ = lambda vbs=None, inform=None: {"accepted": {"trap": {"version": "v3", "varbinds": STD_OUT if vbs is None else vbs,  # noqa: E731
+                                                                 **({"inform": {"request_id": inform}} if inform is not None else {})}}}
+    rf = lambda r: {"refused": {"reason": r}}  # noqa: E731
+    disc = lambda vbs=None, ctx=LOCAL_ENGINE, rid=5: scoped(tag=0xA0, rid=rid, ctx_engine=ctx,  # noqa: E731
+                                                            vbs=[varbind(ENGINE_OID, b"\x05\x00")] if vbs is None else vbs)
+    t("trap", "A trap under TSM (authPriv flags, empty securityParameters).", tsm(), acc_())
+    t("inform", "An inform under TSM carries its request-id.", tsm(scoped(tag=0xA6, rid=42)), acc_(inform=42))
+    t("netsnmp-trap", "net-snmp 5.9.5.2's trap over TLS (captured).", NETSNMP_TRAP,
+      acc_([{"oid": UP, "type": "TimeTicks", "value": "1234"}, {"oid": TOID, "type": "OBJECT IDENTIFIER", "value": LINKDOWN},
+            {"oid": IFINDEX, "type": "Integer32", "value": "3"}]))
+    t("netsnmp-discovery", "net-snmp 5.9.5.2's RFC 5343 discovery before an inform (captured; noAuthNoPriv, reportable).",
+      NETSNMP_DISCOVERY, {"discovery": {"request_id": 170657552}})
+    t("level-noauth", "noAuthNoPriv flags are accepted: the TLS connection provides authPriv (RFC 5591 §5.2 step 4).",
+      tsm(flags=0x00), acc_())
+    t("level-authnopriv-reportable", "authNoPriv with reportable is accepted.", tsm(flags=0x05), acc_())
+    t("security-parameters-ignored", "securityParameters' content is not read.", tsm(sec=b"\x30\x03\x02\x01\x01junk"), acc_())
+    t("priv-without-auth", "Priv without auth is malformed, as for USM.", tsm(flags=0x02), rf("malformed"))
+    t("encrypted-pdu-malformed", "msgData as an OCTET STRING is malformed: TSM never encrypts in the message.",
+      tsm(data=tlv(0x04, b"\x01\x02\x03")), rf("malformed"))
+    t("security-parameters-not-octet-string", "securityParameters must be an OCTET STRING.", tsm(sec_tag=0x30), rf("malformed"))
+    t("trailing-bytes", "Nothing may follow the message.", tsm(trailing=b"\x00"), rf("malformed"))
+    t("version-v2c", "msgVersion 1 is malformed here.", tsm(version=1), rf("malformed"))
+    t("msg-max-size-small", "msgMaxSize below 484 is malformed.", tsm(max_size=483), rf("malformed"))
+    t("usm-over-tls", "USM (model 3) over TLS is refused.", tsm(model=3), rf("unsupported-security-model"))
+    t("model-zero", "Model 0 is refused.", tsm(model=0), rf("unsupported-security-model"))
+    t("model-before-pdu", "The model is checked before the PDU.", tsm(scoped(tag=0xA2), model=3), rf("unsupported-security-model"))
+    t("response-pdu", "A Response-PDU is not a notification.", tsm(scoped(tag=0xA2)), rf("not-a-notification"))
+    t("get-not-discovery", "A GetRequest with an empty contextEngineID is not discovery.", tsm(disc(ctx=b"")), rf("not-a-notification"))
+    t("discovery", "RFC 5343 discovery: GetRequest, contextEngineID 8000000006, only snmpEngineID.0.", tsm(disc()),
+      {"discovery": {"request_id": 5}})
+    t("discovery-any-value", "Discovery's varbind value may be any valid value.",
+      tsm(disc(vbs=[varbind(ENGINE_OID, bint(0))])), {"discovery": {"request_id": 5}})
+    t("discovery-two-varbinds", "Discovery has exactly one varbind.",
+      tsm(disc(vbs=[varbind(ENGINE_OID, b"\x05\x00"), varbind(UP, b"\x05\x00")])), rf("not-a-notification"))
+    t("discovery-other-oid", "Discovery asks for snmpEngineID.0 only.", tsm(disc(vbs=[varbind(UP, b"\x05\x00")])),
+      rf("not-a-notification"))
+    t("discovery-other-context", "Discovery names RFC 5343's localEngineID, not a real engine.",
+      tsm(disc(ctx=bytes.fromhex(DEV))), rf("not-a-notification"))
+    t("discovery-getnext", "A GetNextRequest is not discovery.", tsm(scoped(tag=0xA1, ctx_engine=LOCAL_ENGINE,
+                                                                              vbs=[varbind(ENGINE_OID, b"\x05\x00")])),
+      rf("not-a-notification"))
+    t("discovery-usm-model", "Discovery under USM over TLS is refused by the model check first.", tsm(disc(), model=3),
+      rf("unsupported-security-model"))
+    return out
+
+
+def tls_frames_vectors() -> list[dict]:
+    out = []
+    a, b = tsm(), tsm(scoped(tag=0xA6, rid=9))
+
+    def f(name, desc, stream, msgs, pending, close=False):
+        e = {"messages": msgs, "pending": pending}
+        if close:
+            e["close"] = True
+        out.append(ev(f"tls-frames-{name}", desc, ["E§3"], {"check": "tls-frames", "stream": stream}, e))
+    f("two", "Two whole messages.", a + b, [a, b], "")
+    f("one-and-a-half", "A partial message waits.", a + b[:20], [a], b[:20])
+    f("empty", "An empty stream.", "", [], "")
+    f("one-byte", "A single byte waits.", "30", [], "30")
+    f("one-stray-byte", "A single byte waits even when it is not 0x30: step 1 comes first.", a + "ff", [a], "ff")
+    f("long-length-incomplete", "A long-form length whose bytes have not all arrived waits.", "3082ff", [], "3082ff")
+    f("not-a-sequence", "A first byte other than 0x30 closes.", "0401aa" + a, [], "0401aa" + a, True)
+    f("indefinite", "The indefinite length closes.", "308002010300", [], "308002010300", True)
+    f("five-length-bytes", "A long form with 5 length bytes closes.", "30850000000003020101", [], "30850000000003020101", True)
+    f("garbage-after", "A message, then something unframeable: the message is taken, then close.", a + "ff00", [a], "ff00", True)
+    f("at-limit-waits", "A header announcing exactly 65,536 bytes in all waits for them.", "3082fffc", [], "3082fffc")
+    f("over-limit", "A header announcing 65,537 bytes in all closes.", "3082fffd", [], "3082fffd", True)
+    f("non-minimal-length", "A long-form length that fits the short form is accepted (BER).", "3081" + "03020101",
+      ["308103020101"], "")
+    f("four-length-bytes", "A long form with 4 length bytes.", "308400000003020101" + "30", ["308400000003020101"], "30")
+    return out
+
+
+def tsm_name_vectors() -> list[dict]:
+    out = []
+    LEAF, CA, OTHER = "ab" * 32, "cd" * 32, "ef" * 32
+    base = {"sha256": LEAF, "chain": [CA], "san": [{"type": "dns", "value": "SW1.Example.NET"}, {"type": "ip", "value": "c0000207"}],
+            "cn": ["sw1"]}
+
+    def n(name, desc, table, expect, cert=None):
+        out.append(ev(f"tsm-name-{name}", desc, ["E§3"], {"check": "tsm-name", "certificate": cert or base, "table": table},
+                      expect))
+    ok = lambda s, row: {"security_name": s, "row": row}  # noqa: E731
+    none = {"error": "no-security-name"}
+    row = lambda i, fp, m, data=None: {"id": i, "fingerprint": fp, "map": m, **({"data": data} if data is not None else {})}  # noqa: E731
+    cert = lambda **kw: {**base, **kw}  # noqa: E731
+    n("specified", "The leaf's fingerprint, map specified.", [row(10, LEAF, "specified", "sw1-core")], ok("sw1-core", 10))
+    n("ca-san-dns", "A CA in the verified path matches; the first dNSName, lowercased.", [row(10, CA, "san-dns")],
+      ok("sw1.example.net", 10))
+    n("ascending-id", "Rows are considered in ascending id, whatever their order.",
+      [row(20, LEAF, "specified", "b"), row(10, LEAF, "specified", "a")], ok("a", 10))
+    n("fingerprint-case", "Fingerprints compare without case.", [row(1, LEAF.upper(), "specified", "x")], ok("x", 1))
+    n("no-match", "No row's fingerprint matches.", [row(1, OTHER, "specified", "x")], none)
+    n("empty-table", "An empty table maps nothing.", [], none)
+    n("unmatched-row-skipped", "A row for another certificate is passed over.",
+      [row(1, OTHER, "specified", "x"), row(2, CA, "specified", "y")], ok("y", 2))
+    n("specified-no-data-next", "specified without data fails; the next row is tried.",
+      [row(1, LEAF, "specified"), row(2, LEAF, "san-dns")], ok("sw1.example.net", 2))
+    n("specified-empty-next", "An empty name fails the row.", [row(1, LEAF, "specified", ""), row(2, LEAF, "specified", "z")], ok("z", 2))
+    n("specified-not-string", "Non-string data fails the row.",
+      [{"id": 1, "fingerprint": LEAF, "map": "specified", "data": 7}, row(2, LEAF, "specified", "z")], ok("z", 2))
+    n("exactly-32", "32 bytes is allowed.", [row(1, LEAF, "specified", "n" * 32)], ok("n" * 32, 1))
+    n("too-long-next", "33 bytes fails the row.", [row(1, LEAF, "specified", "n" * 33), row(2, LEAF, "specified", "s")], ok("s", 2))
+    n("utf8-bytes-counted", "The limit counts UTF-8 bytes: 16 × é is 32 bytes, 17 × é is 34.",
+      [row(1, LEAF, "specified", "é" * 17), row(2, LEAF, "specified", "é" * 16)], ok("é" * 16, 2))
+    n("san-rfc822", "RFC 6353's example: the host part lowercased, the local part kept.",
+      [row(1, LEAF, "san-rfc822")], ok("FooBar@example.com", 1), cert(san=[{"type": "rfc822", "value": "FooBar@Example.COM"}]))
+    n("san-rfc822-last-at", "The host part is after the last @.", [row(1, LEAF, "san-rfc822")], ok("A@B@ex.com", 1),
+      cert(san=[{"type": "rfc822", "value": "A@B@EX.com"}]))
+    n("san-rfc822-no-at", "An rfc822Name without @ fails.", [row(1, LEAF, "san-rfc822")], none,
+      cert(san=[{"type": "rfc822", "value": "nobody"}]))
+    n("san-rfc822-absent-next", "No rfc822Name: the row fails, the next is tried.",
+      [row(1, LEAF, "san-rfc822"), row(2, LEAF, "common-name")], ok("sw1", 2))
+    n("san-dns-ascii-only", "Only A–Z are lowercased.", [row(1, LEAF, "san-dns")], ok("sw1.Éxample", 1),
+      cert(san=[{"type": "dns", "value": "SW1.ÉXAMPLE"}]))
+    n("san-dns-first", "The first dNSName is used.", [row(1, LEAF, "san-dns")], ok("a.example", 1),
+      cert(san=[{"type": "dns", "value": "A.example"}, {"type": "dns", "value": "b.example"}]))
+    n("san-dns-first-only", "Only the first dNSName is tried: when it is too long, the row fails.", [row(1, LEAF, "san-dns")],
+      none, cert(san=[{"type": "dns", "value": "x" * 33}, {"type": "dns", "value": "ok.example"}]))
+    n("san-ip-v4", "An IPv4 address is a dotted quad.", [row(1, LEAF, "san-ip")], ok("192.0.2.7", 1))
+    n("san-ip-v4-no-leading-zeros", "No leading zeros.", [row(1, LEAF, "san-ip")], ok("10.0.0.1", 1),
+      cert(san=[{"type": "ip", "value": "0a000001"}]))
+    n("san-ip-v6", "An IPv6 address is 32 lowercase hex digits.", [row(1, LEAF, "san-ip")],
+      ok("20010db8000000000000000000000001", 1), cert(san=[{"type": "ip", "value": "20010DB8000000000000000000000001"}]))
+    n("san-ip-bad-length", "An address of another length fails.", [row(1, LEAF, "san-ip")], none,
+      cert(san=[{"type": "ip", "value": "c000020700"}]))
+    n("san-any-skips-other-types", "san-any takes the first SAN of the three types.", [row(1, LEAF, "san-any")],
+      ok("192.0.2.7", 1), cert(san=[{"type": "uri", "value": "https://x.example"}, {"type": "ip", "value": "c0000207"},
+                                    {"type": "dns", "value": "sw1.example"}]))
+    n("san-any-rfc822", "san-any maps an rfc822Name as san-rfc822 does.", [row(1, LEAF, "san-any")], ok("Ops@noc.example", 1),
+      cert(san=[{"type": "rfc822", "value": "Ops@NOC.example"}]))
+    n("san-any-first-only", "san-any does not fall through to a later SAN when the first fails.",
+      [row(1, LEAF, "san-any")], none, cert(san=[{"type": "dns", "value": "x" * 33}, {"type": "dns", "value": "ok.example"}]))
+    n("san-any-none", "No SAN of the three types: the row fails.", [row(1, LEAF, "san-any")], none,
+      cert(san=[{"type": "uri", "value": "https://x.example"}]))
+    n("common-name", "The first CommonName.", [row(1, LEAF, "common-name")], ok("sw1", 1), cert(cn=["sw1", "second"]))
+    n("common-name-absent", "No CommonName: the row fails.", [row(1, LEAF, "common-name")], none, cert(cn=[]))
+    n("unknown-map-next", "An unknown map fails the row.", [row(1, LEAF, "san-uri"), row(2, LEAF, "specified", "k")], ok("k", 2))
+    n("ca-not-in-path", "A fingerprint of a CA outside the verified path does not match.",
+      [row(1, CA, "specified", "x")], none, cert(chain=[]))
+    return out
+
+
 # pysnmp 7.1.30: localkey.localize_key(localkey.hash_passphrase("maplesyrup", H), 000000000000000000000002, H)
 ORACLE_SHA2 = {
     "sha224": "0bd8827c6e29f8065e08e09237f177e410f69b90e1782be682075674",

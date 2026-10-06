@@ -1,0 +1,19 @@
+{
+  "vector": "device-events/tsm-msg-max-size-small",
+  "format": 1,
+  "kind": "device-events",
+  "description": "msgMaxSize below 484 is malformed.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "tsm",
+    "message": "3061020103300d020107020201e30401030201040400304b04000400a745020101020100020100303a300e06082b06010201010300430204d23017060a2b06010603010104010006092b0601060301010503300f060a2b060102010202010103020103"
+  },
+  "expect": {
+    "refused": {
+      "reason": "malformed"
+    }
+  }
+}

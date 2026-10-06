@@ -1,0 +1,47 @@
+{
+  "vector": "device-events/tsm-name-san-any-skips-other-types",
+  "format": 1,
+  "kind": "device-events",
+  "description": "san-any takes the first SAN of the three types.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "tsm-name",
+    "certificate": {
+      "sha256": "abababababababababababababababababababababababababababababababab",
+      "chain": [
+        "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
+      ],
+      "san": [
+        {
+          "type": "uri",
+          "value": "https://x.example"
+        },
+        {
+          "type": "ip",
+          "value": "c0000207"
+        },
+        {
+          "type": "dns",
+          "value": "sw1.example"
+        }
+      ],
+      "cn": [
+        "sw1"
+      ]
+    },
+    "table": [
+      {
+        "id": 1,
+        "fingerprint": "abababababababababababababababababababababababababababababababab",
+        "map": "san-any"
+      }
+    ]
+  },
+  "expect": {
+    "security_name": "192.0.2.7",
+    "row": 1
+  }
+}

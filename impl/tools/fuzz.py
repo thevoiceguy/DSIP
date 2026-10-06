@@ -599,6 +599,53 @@ def gen_snmpv3(r: random.Random):
     return "device-events", None, ctx, steps
 
 
+def gen_tsm(r: random.Random):
+    """One message from a TLS connection: mutations of real TSM traps, informs and discovery (E§3, v0.10)."""
+    from dsipvec.gen import events_v3 as g
+    seeds = [bytes.fromhex(x) for x in (g.tsm(), g.tsm(g.scoped(tag=0xA6, rid=9)), g.NETSNMP_TRAP, g.NETSNMP_DISCOVERY,
+                                          g.tsm(model=3), g.tsm(flags=0x02))]
+    d = r.choice(seeds)
+    if r.random() < 0.85:
+        d = mutate(r, d, bytes(range(256)))
+    return "device-events", "tsm", {}, {"message": d.hex()}
+
+
+def gen_tls_frames(r: random.Random):
+    """A TLS byte stream: whole, cut and corrupted TSM messages back to back (E§3 framing)."""
+    from dsipvec.gen import events_v3 as g
+    parts = [bytes.fromhex(g.tsm()), bytes.fromhex(g.NETSNMP_DISCOVERY), b"\x30\x82\xff\xfc", b"\x30\x82\xff\xfd",
+             b"\x30\x80\x00", b"\x30\x84\x00\x00\x00\x01\x05", b"\x30\x85", b"\xff", b"\x30"]
+    s = b"".join(r.choice(parts) for _ in range(r.randint(0, 4)))
+    if r.random() < 0.5 and s:
+        s = s[:r.randint(0, len(s))]
+    return "device-events", "tls-frames", {}, {"stream": s.hex()}
+
+
+def gen_tsm_name(r: random.Random):
+    """RFC 6353's certificate-to-name table: random rows against a random certificate (E§3, v0.10)."""
+    leaf, ca, other = "ab" * 32, "cd" * 32, "ef" * 32
+    values = {"rfc822": ["Ops@NOC.Example", "a@b@EX.com", "nobody", "x" * 30 + "@E.com", ""],
+              "dns": ["SW1.Example.NET", "x" * 33, "ÉX.org", "", "a" * 32],
+              "ip": ["c0000207", "0A000001", "20010db8000000000000000000000001", "c00002", "zz", ""],
+              "uri": ["https://x.example"]}
+    san = [{"type": t, "value": r.choice(values[t])} for t in r.choices(list(values), k=r.randint(0, 4))]
+    if r.random() < 0.1 and san:
+        san[0]["value"] = 7
+    cert = {"sha256": leaf, "chain": r.choice([[ca], [], [ca, other]]), "san": san,
+            "cn": r.choice([[], ["sw1"], ["é" * 17, "b"], [7], ["x" * 32]])}
+    maps = ["specified", "san-rfc822", "san-dns", "san-ip", "san-any", "common-name", "san-uri"]
+    ids = r.sample(range(1, 50), r.randint(0, 5))
+    table = []
+    for i in ids:
+        row = {"id": i, "fingerprint": r.choice([leaf, leaf.upper(), ca, other]), "map": r.choice(maps)}
+        if row["map"] == "specified" or r.random() < 0.2:
+            v = r.choice(["sw1-core", "", "n" * 32, "n" * 33, "é" * 16, 7, None])
+            if v is not None:
+                row["data"] = v
+        table.append(row)
+    return "device-events", "tsm-name", {}, {"certificate": cert, "table": table}
+
+
 def gen_recording(r: random.Random):
     """A counterparty's consent trace (Recording Profile C§4): declarations, accepts, declines, answers in any order."""
     recs = ["did:web:rec.acme.example", "did:web:rec2.acme.example"]
@@ -631,6 +678,7 @@ def gen_recording(r: random.Random):
 
 TARGETS = {
     "syslog": gen_syslog, "snmpv3": gen_snmpv3, "recording": gen_recording,
+    "tsm": gen_tsm, "tls-frames": gen_tls_frames, "tsm-name": gen_tsm_name,
     "gap": gen_gap, "commit-retry": gen_commit_retry, "hub-outage": gen_hub_outage, "resume": gen_resume, "history": gen_history,
     "successor": gen_successor, "client": gen_client, "hub": gen_hub, "mailbox": gen_mailbox, "endpoint": gen_endpoint,
     "relay": gen_relay, "deposit-fields": gen_deposit_fields, "gateway-reason": gen_gateway_reason,

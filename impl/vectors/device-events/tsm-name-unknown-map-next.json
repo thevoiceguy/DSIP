@@ -1,0 +1,49 @@
+{
+  "vector": "device-events/tsm-name-unknown-map-next",
+  "format": 1,
+  "kind": "device-events",
+  "description": "An unknown map fails the row.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "tsm-name",
+    "certificate": {
+      "sha256": "abababababababababababababababababababababababababababababababab",
+      "chain": [
+        "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
+      ],
+      "san": [
+        {
+          "type": "dns",
+          "value": "SW1.Example.NET"
+        },
+        {
+          "type": "ip",
+          "value": "c0000207"
+        }
+      ],
+      "cn": [
+        "sw1"
+      ]
+    },
+    "table": [
+      {
+        "id": 1,
+        "fingerprint": "abababababababababababababababababababababababababababababababab",
+        "map": "san-uri"
+      },
+      {
+        "id": 2,
+        "fingerprint": "abababababababababababababababababababababababababababababababab",
+        "map": "specified",
+        "data": "k"
+      }
+    ]
+  },
+  "expect": {
+    "security_name": "k",
+    "row": 2
+  }
+}

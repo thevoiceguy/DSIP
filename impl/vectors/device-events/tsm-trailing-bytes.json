@@ -1,0 +1,19 @@
+{
+  "vector": "device-events/tsm-trailing-bytes",
+  "format": 1,
+  "kind": "device-events",
+  "description": "Nothing may follow the message.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "tsm",
+    "message": "3062020103300e020107020300ffe30401030201040400304b04000400a745020101020100020100303a300e06082b06010201010300430204d23017060a2b06010603010104010006092b0601060301010503300f060a2b06010201020201010302010300"
+  },
+  "expect": {
+    "refused": {
+      "reason": "malformed"
+    }
+  }
+}

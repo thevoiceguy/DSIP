@@ -1,0 +1,19 @@
+{
+  "vector": "device-events/tsm-discovery-two-varbinds",
+  "format": 1,
+  "kind": "device-events",
+  "description": "Discovery has exactly one varbind.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "tsm",
+    "message": "304b020103300e020107020300ffe304010302010404003034040580000000060400a029020105020100020100301e300e060a2b060106030a020101000500300c06082b060102010103000500"
+  },
+  "expect": {
+    "refused": {
+      "reason": "not-a-notification"
+    }
+  }
+}

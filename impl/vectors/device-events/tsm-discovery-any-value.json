@@ -1,0 +1,19 @@
+{
+  "vector": "device-events/tsm-discovery-any-value",
+  "format": 1,
+  "kind": "device-events",
+  "description": "Discovery's varbind value may be any valid value.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "tsm",
+    "message": "303e020103300e020107020300ffe304010302010404003027040580000000060400a01c0201050201000201003011300f060a2b060106030a02010100020100"
+  },
+  "expect": {
+    "discovery": {
+      "request_id": 5
+    }
+  }
+}

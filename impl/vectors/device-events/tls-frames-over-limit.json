@@ -1,0 +1,19 @@
+{
+  "vector": "device-events/tls-frames-over-limit",
+  "format": 1,
+  "kind": "device-events",
+  "description": "A header announcing 65,537 bytes in all closes.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "tls-frames",
+    "stream": "3082fffd"
+  },
+  "expect": {
+    "messages": [],
+    "pending": "3082fffd",
+    "close": true
+  }
+}

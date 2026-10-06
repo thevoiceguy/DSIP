@@ -1,0 +1,39 @@
+{
+  "vector": "device-events/tsm-name-san-rfc822-last-at",
+  "format": 1,
+  "kind": "device-events",
+  "description": "The host part is after the last @.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "tsm-name",
+    "certificate": {
+      "sha256": "abababababababababababababababababababababababababababababababab",
+      "chain": [
+        "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
+      ],
+      "san": [
+        {
+          "type": "rfc822",
+          "value": "A@B@EX.com"
+        }
+      ],
+      "cn": [
+        "sw1"
+      ]
+    },
+    "table": [
+      {
+        "id": 1,
+        "fingerprint": "abababababababababababababababababababababababababababababababab",
+        "map": "san-rfc822"
+      }
+    ]
+  },
+  "expect": {
+    "security_name": "A@B@ex.com",
+    "row": 1
+  }
+}

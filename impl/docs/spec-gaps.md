@@ -2525,8 +2525,32 @@ The gateway (`dsip-msg`):
   (down, up, down, up) and Ann sees one raise and one clear; sw1 is shown as `name="sw1-core"` beside its
   fingerprint.
 
+**SNMPv3 over TLS (v0.10, E§3; RFC 6353 TLSTM + RFC 5591 TSM).**
+- **Basis and claim:** basis `snmpv3-tls`; the claim carries `certificate_sha256` and `tsm.security_name`.
+- **Transport:** TLS over TCP only (DTLS left open), with a client certificate required.
+- **The name table is pinned where RFC 6353 is loose:**
+  - rows are tried in ascending `id`, matching the leaf or a CA in the verified path;
+  - six maps, with only the first SAN of the type tried;
+  - a name of 1–32 UTF-8 bytes, otherwise the next row;
+  - no name closes the connection.
+- **Framing:** BER self-delimited messages of at most 65,536 bytes; an unframeable stream is closed.
+- **Per message:** `malformed`, `unsupported-security-model` (USM over TLS is refused), then `not-a-notification`. Any
+  `msgFlags` level is accepted.
+- **RFC 5343 discovery is required:** net-snmp's `snmpinform` probes `snmpEngineID.0` in context `8000000006` and
+  gives up without an answer. The answer echoes that context (RFC 3412); only the varbind carries the engine ID. The
+  first draft of E§3 put the engine ID in the context, and net-snmp discarded the Response. The real client caught
+  it, and a unit test now pins it.
+- **Vectors:** `tsm-*`, `tls-frames-*` and `tsm-name-*` (71), three-way. Of the second implementation's fifteen
+  readings, three are now pinned in the README with vectors: first SAN only, IP hex in either case, and a single
+  byte waits. Three new fuzz targets (`tsm`, `tls-frames`, `tsm-name`) ran 9,000 probes with no divergence.
+- **Gateway:** `dsip-msg --snmp-tls-listen/-cert/-key/-ca/-map`. The certificate's fields come from x509-parser; the
+  verified path's CA is matched by issuer against the configured CAs (an `Impl:` note). Informs are remembered by
+  security name.
+- **Demo:** `demos/device-events-snmp-tls-demo.sh` (in CI) uses net-snmp 5.9.5.2. 5.9.4, as shipped by Debian trixie
+  and Ubuntu 24.04, caps its TLS client at TLS 1.0 and cannot connect; upstream report 11 asks for the backport.
+
 **Open.**
-- SNMPv3 over TSM/TLS (RFC 6353), and signed syslog (RFC 5848).
+- Signed syslog (RFC 5848). DTLS for SNMP (RFC 6353 over UDP).
 
 ## 104. T§2–T§5 / core §8.1–§8.2 — alias transparency: what DSIP adopts of KEYTRANS, and when
 

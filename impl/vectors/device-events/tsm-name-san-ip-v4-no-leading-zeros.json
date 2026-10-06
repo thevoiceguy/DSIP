@@ -1,0 +1,39 @@
+{
+  "vector": "device-events/tsm-name-san-ip-v4-no-leading-zeros",
+  "format": 1,
+  "kind": "device-events",
+  "description": "No leading zeros.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "tsm-name",
+    "certificate": {
+      "sha256": "abababababababababababababababababababababababababababababababab",
+      "chain": [
+        "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
+      ],
+      "san": [
+        {
+          "type": "ip",
+          "value": "0a000001"
+        }
+      ],
+      "cn": [
+        "sw1"
+      ]
+    },
+    "table": [
+      {
+        "id": 1,
+        "fingerprint": "abababababababababababababababababababababababababababababababab",
+        "map": "san-ip"
+      }
+    ]
+  },
+  "expect": {
+    "security_name": "10.0.0.1",
+    "row": 1
+  }
+}

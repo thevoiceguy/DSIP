@@ -1,0 +1,18 @@
+{
+  "vector": "device-events/tls-frames-long-length-incomplete",
+  "format": 1,
+  "kind": "device-events",
+  "description": "A long-form length whose bytes have not all arrived waits.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "tls-frames",
+    "stream": "3082ff"
+  },
+  "expect": {
+    "messages": [],
+    "pending": "3082ff"
+  }
+}

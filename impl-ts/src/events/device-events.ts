@@ -11,6 +11,7 @@
 import type { Json, JsonObject } from "../did.js";
 import { mapSyslog, parseSyslog } from "./syslog.js";
 import { UsmReceiver, usmKey } from "./usm.js";
+import { tlsFrames, tsmName, tsmReceive } from "./tsm.js";
 
 /** One varbind, as carried. Spec: E§3 */
 export interface Varbind {
@@ -530,7 +531,8 @@ export class HoldDown {
  * `{emit, alarms}` per step, or an inform trace (`context.component: "informs"`) returning one
  * `{emit, informs}` per step, or an SNMPv3 trace (`context.component: "snmpv3"`) returning one
  * `{emit, engines}` per step, or a hold-down trace (`context.component: "holddown"`) returning one
- * `{emit, held}` per step; the stateless checks include `syslog` and `usm-key`. Spec: E§3–E§6
+ * `{emit, held}` per step; the stateless checks include `syslog`, `usm-key` and SNMPv3 over TLS's `tsm-name`,
+ * `tls-frames` and `tsm`. Spec: E§3–E§6
  */
 export function runDeviceEvents(context: JsonObject, input: JsonObject): Json {
   if (Array.isArray(input["steps"]) && context["component"] === "informs") {
@@ -558,6 +560,12 @@ export function runDeviceEvents(context: JsonObject, input: JsonObject): Json {
       return parseSyslog(Buffer.from(input["datagram"] as string, "hex"));
     case "usm-key":
       return usmKey(input);
+    case "tsm-name":
+      return tsmName(input["certificate"] as JsonObject, input["table"] as JsonObject[]);
+    case "tls-frames":
+      return tlsFrames(Buffer.from(input["stream"] as string, "hex"));
+    case "tsm":
+      return tsmReceive(Buffer.from(input["message"] as string, "hex"));
     case "map": {
       const raw = input["raw"] as JsonObject;
       if ("syslog" in raw) {

@@ -142,6 +142,29 @@ The current editors' copy now defines the `depth` of a `nonInclusionParent` resu
 
 ---
 
+## net-snmp in Debian trixie and Ubuntu 24.04 (bugs.debian.org, package net-snmp; Launchpad, net-snmp)
+
+### 11. The `tls:` transport cannot connect: backport upstream commit 8570eb2b
+
+**Title:** net-snmp 5.9.4: TLS client capped at TLS 1.0, so snmptrap/snmpget over `tls:` always fail
+
+Found 2026-10-06 while testing SNMP over TLS (RFC 6353). net-snmp 5.9.4's `snmpTLSTCPDomain.c` calls
+`SSL_CTX_set_max_proto_version(ctx, TLS1_VERSION)` on the client side. OpenSSL 3 at its default security level
+refuses TLS 1.0, so the client sends a fatal `protocol_version` alert (`15 03 03 00 02 02 46`) before any
+ClientHello. snmptrap then reports `tlstcp: failed to ssl_connect` and `Unknown host`.
+
+Upstream fixed this in 5.9.5 with commit `8570eb2b40dd342fb4e2e2f0a34fe0eef400079a` ("Allow TLS protocols higher
+than TLS10", 2 lines). Debian forky and sid already ship 5.9.5.2. Trixie (5.9.4+dfsg-2+deb13u1) and Ubuntu noble
+(5.9.4+dfsg-1.1ubuntu3.2) do not.
+
+**Reproduce:** run any TLS server that requires a client certificate, then
+`snmptrap -v 3 --defSecurityModel=tsm -l authPriv -T localCert=… -T trustCert=… tls:host:10162 …`.
+The server sees only the alert.
+
+**Suggest:** a stable update that cherry-picks `8570eb2b`.
+
+---
+
 ## Already fixed upstream (not to be sent)
 
 - **KEYTRANS Mode-1 `leaf_public_key`.** The editors' copy keeps it only for third-party management (commit

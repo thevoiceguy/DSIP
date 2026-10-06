@@ -1,0 +1,44 @@
+{
+  "vector": "device-events/tsm-name-fingerprint-case",
+  "format": 1,
+  "kind": "device-events",
+  "description": "Fingerprints compare without case.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "tsm-name",
+    "certificate": {
+      "sha256": "abababababababababababababababababababababababababababababababab",
+      "chain": [
+        "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
+      ],
+      "san": [
+        {
+          "type": "dns",
+          "value": "SW1.Example.NET"
+        },
+        {
+          "type": "ip",
+          "value": "c0000207"
+        }
+      ],
+      "cn": [
+        "sw1"
+      ]
+    },
+    "table": [
+      {
+        "id": 1,
+        "fingerprint": "ABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABAB",
+        "map": "specified",
+        "data": "x"
+      }
+    ]
+  },
+  "expect": {
+    "security_name": "x",
+    "row": 1
+  }
+}

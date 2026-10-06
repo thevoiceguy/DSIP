@@ -1,0 +1,43 @@
+{
+  "vector": "device-events/tsm-name-ca-san-dns",
+  "format": 1,
+  "kind": "device-events",
+  "description": "A CA in the verified path matches; the first dNSName, lowercased.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "tsm-name",
+    "certificate": {
+      "sha256": "abababababababababababababababababababababababababababababababab",
+      "chain": [
+        "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
+      ],
+      "san": [
+        {
+          "type": "dns",
+          "value": "SW1.Example.NET"
+        },
+        {
+          "type": "ip",
+          "value": "c0000207"
+        }
+      ],
+      "cn": [
+        "sw1"
+      ]
+    },
+    "table": [
+      {
+        "id": 10,
+        "fingerprint": "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
+        "map": "san-dns"
+      }
+    ]
+  },
+  "expect": {
+    "security_name": "sw1.example.net",
+    "row": 10
+  }
+}

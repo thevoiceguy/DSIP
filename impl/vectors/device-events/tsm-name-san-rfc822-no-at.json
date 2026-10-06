@@ -1,0 +1,38 @@
+{
+  "vector": "device-events/tsm-name-san-rfc822-no-at",
+  "format": 1,
+  "kind": "device-events",
+  "description": "An rfc822Name without @ fails.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "tsm-name",
+    "certificate": {
+      "sha256": "abababababababababababababababababababababababababababababababab",
+      "chain": [
+        "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
+      ],
+      "san": [
+        {
+          "type": "rfc822",
+          "value": "nobody"
+        }
+      ],
+      "cn": [
+        "sw1"
+      ]
+    },
+    "table": [
+      {
+        "id": 1,
+        "fingerprint": "abababababababababababababababababababababababababababababababab",
+        "map": "san-rfc822"
+      }
+    ]
+  },
+  "expect": {
+    "error": "no-security-name"
+  }
+}

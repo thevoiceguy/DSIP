@@ -943,6 +943,58 @@ Events:
 - **`advance: n`.** Sets `now += n`, then removes every `answered` key whose remembered-until time is `≤ now`.
   `pending` keys never expire. Advance emits nothing.
 
+**SNMPv3 over TLS** (E§3, v0.10) has three stateless checks.
+
+**`check: "tsm-name"`**, with `certificate` and `table`, outputs `{"security_name", "row"}` (the row's `id`) or
+`{"error": "no-security-name"}`.
+- **`certificate`** is `{sha256, chain: [sha256...], san: [{type, value}...], cn: [...]}`:
+  - `chain` lists the verified path's CA certificates;
+  - each SAN `type` is `rfc822`, `dns`, `ip` or any other token. An `ip` value is the address bytes in hex, of either
+    case; the others are text. A value or CN that is not a string fails its map;
+  - `cn` is the subject's CommonName values, in order.
+- **`table`** rows are `{id, fingerprint, map, data?}`, in any order. They are considered in ascending `id` (no two
+  share one). A row matches when `fingerprint`, compared without case, equals `sha256` or an entry of `chain`.
+- **Maps.** A matched row's map gives the name, or fails:
+  - `specified`: `data`, which fails when it is missing or not a string.
+  - `san-rfc822`: the first `rfc822` SAN. The part after its last `@` has A–Z lowercased; with no `@`, it fails.
+  - `san-dns`: the first `dns` SAN, with A–Z lowercased.
+  - `san-ip`: the first `ip` SAN. 4 bytes give a dotted quad of decimals with no leading zeros; 16 bytes give 32
+    lowercase hex digits. Any other length fails.
+  - `san-any`: the first SAN whose type is `rfc822`, `dns` or `ip`, mapped as that type.
+  - `common-name`: `cn[0]`.
+  - Any other map fails, as does a map whose SAN or CN is absent.
+- **Length.** A name that is empty or longer than 32 bytes of UTF-8 fails the row. Failing passes to the next
+  matching row. Only the first SAN of the map's type (or types, for `san-any`) is tried; when it fails, later SANs
+  are not.
+
+**`check: "tls-frames"`**, with `stream` (hex), splits a TLS byte stream into messages. It outputs `{"messages":
+[hex...], "pending": hex}`, adding `"close": true` when it stops at an item it cannot frame. From the head of the
+stream, repeatedly:
+1. Fewer than 2 bytes left: they are `pending`.
+2. A first byte other than `0x30`: close.
+3. A length byte `0x80`, or `0x85`–`0xff`: close.
+4. For `0x81`–`0x84`, too few length bytes present: the rest is `pending`.
+5. A total size (tag, length and content) over 65,536: close.
+6. Fewer bytes present than the total: the rest is `pending`.
+7. Otherwise the message is taken, and splitting continues after it.
+
+`pending` is `""` when nothing is left, and it is the unread rest of the stream after a close. A single byte waits
+even when it is not `0x30` (step 1 comes first); a second byte decides.
+
+**`check: "tsm"`**, with `message` (hex), outputs one of:
+- `{"accepted": {"trap": {"version": "v3", "varbinds": [...], "inform"?: {"request_id"}}}}`;
+- `{"discovery": {"request_id"}}`, for RFC 5343 discovery: a PDU with tag `0xA0`, contextEngineID `8000000006`,
+  and exactly one varbind, whose OID is `1.3.6.1.6.3.10.2.1.1.0` (its value is any valid value);
+- `{"refused": {"reason"}}`.
+
+The checks run in this order:
+1. **`malformed`.** SNMPv3 traces' step 1, with two changes. `securityParameters` is any OCTET STRING, and its content
+   is not read. `msgData` is a ScopedPDU whatever the flags say, so an OCTET STRING there is malformed.
+2. **`unsupported-security-model`.** `msgSecurityModel` ≠ 4.
+3. **`not-a-notification`.** The PDU's tag is not `0xA7` (trap) or `0xA6` (inform), and it is not discovery.
+
+There are no other checks: the TLS connection authenticated the sender.
+
 **SNMPv3 traces** (`context.component: "snmpv3"`, E§3) model a gateway's USM receiver (RFC 3414 §3.2).
 
 The context is `{component, now, local: {engine_id, boots, time}, users: [...]}`. `local.time` is the gateway's

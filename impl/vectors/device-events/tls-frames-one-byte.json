@@ -1,0 +1,18 @@
+{
+  "vector": "device-events/tls-frames-one-byte",
+  "format": 1,
+  "kind": "device-events",
+  "description": "A single byte waits.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "tls-frames",
+    "stream": "30"
+  },
+  "expect": {
+    "messages": [],
+    "pending": "30"
+  }
+}
