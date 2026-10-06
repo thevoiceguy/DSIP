@@ -19,24 +19,27 @@ from pathlib import Path
 IMPL = Path(__file__).resolve().parents[1]
 CRATES = IMPL / "crates"
 VECTORS = IMPL / "vectors"
-SPEC = IMPL.parent / "v0.9"
-# `§n` = Core section; a letter prefix names a v0.9 companion document: `B§n` WebRTC Media Binding,
+SPEC = IMPL.parent / "v0.10"
+# `§n` = Core section; a letter prefix names a v0.10 companion document: `B§n` WebRTC Media Binding,
 # `G§n` Gateway Profile, `M§n` Messaging Profile, `R§n` RTP/SRTP Media Binding, `E§n` Device Events Profile, `T§n` Alias Transparency.
-SECTION_RE = re.compile(r"([BEGMRT]?)§(\d+(?:\.\d+)*)")
+SECTION_RE = None  # built from DOCS below, so every companion prefix is recognised
 DOCS = {
-    "": ("Core", "dsip_v_0_9_decentralized_session_initiation_protocol.md", re.compile(r"^#{2,4} (\d+(?:\.\d+)*)[. ]")),
-    "B": ("WebRTC Media Binding", "dsip-webrtc-media-binding-v0.9.md", re.compile(r"^#{2,4} (\d+(?:\.\d+)*)[. ]")),
-    "G": ("Gateway Profile", "dsip-gateway-profile-v0.9.md", re.compile(r"^#{2,4} G§(\d+(?:\.\d+)*)")),
-    "M": ("Messaging Profile", "dsip-messaging-profile-v0.9.md", re.compile(r"^#{2,4} M§(\d+(?:\.\d+)*)")),
-    "R": ("RTP/SRTP Media Binding", "dsip-rtp-srtp-media-binding-v0.9-draft.md", re.compile(r"^#{2,4} R§(\d+(?:\.\d+)*)")),
-    "E": ("Device Events Profile", "dsip-device-events-profile-v0.9-draft.md", re.compile(r"^#{2,4} E§(\d+(?:\.\d+)*)")),
-    "T": ("Alias Transparency Profile", "dsip-alias-transparency-profile-v0.9-draft.md", re.compile(r"^#{2,4} T§(\d+(?:\.\d+)*)")),
+    "": ("Core", "dsip_v_0_10_decentralized_session_initiation_protocol.md", re.compile(r"^#{2,4} (\d+(?:\.\d+)*)[. ]")),
+    "B": ("WebRTC Media Binding", "dsip-webrtc-media-binding-v0.10.md", re.compile(r"^#{2,4} (\d+(?:\.\d+)*)[. ]")),
+    "G": ("Gateway Profile", "dsip-gateway-profile-v0.10.md", re.compile(r"^#{2,4} G§(\d+(?:\.\d+)*)")),
+    "M": ("Messaging Profile", "dsip-messaging-profile-v0.10.md", re.compile(r"^#{2,4} M§(\d+(?:\.\d+)*)")),
+    "R": ("RTP/SRTP Media Binding", "dsip-rtp-srtp-media-binding-v0.10-draft.md", re.compile(r"^#{2,4} R§(\d+(?:\.\d+)*)")),
+    "E": ("Device Events Profile", "dsip-device-events-profile-v0.10-draft.md", re.compile(r"^#{2,4} E§(\d+(?:\.\d+)*)")),
+    "T": ("Alias Transparency Profile", "dsip-alias-transparency-profile-v0.10-draft.md", re.compile(r"^#{2,4} T§(\d+(?:\.\d+)*)")),
+    "C": ("Recording Profile", "dsip-recording-profile-v0.10-draft.md", re.compile(r"^#{2,4} C§(\d+(?:\.\d+)*)")),
 }
 DOC_ORDER = {p: i for i, p in enumerate(DOCS)}
+PREFIXES = "".join(p for p in DOCS if p)
+SECTION_RE = re.compile(r"([" + PREFIXES + r"]?)§(\d+(?:\.\d+)*)")
 
 
 def headed_sections(prefix: str) -> list[str]:
-    """Every numbered section heading of a v0.9 document, as `prefix+number`."""
+    """Every numbered section heading of a v0.10 document, as `prefix+number`."""
     _, name, heading = DOCS[prefix]
     path = SPEC / name
     if not path.exists():
@@ -85,7 +88,7 @@ def main() -> int:
         return 0
 
     def split(s):
-        return (s[0], s[1:]) if s[:1] in "BEGMRT" else ("", s)
+        return (s[0], s[1:]) if s[:1] and s[:1] in PREFIXES else ("", s)
 
     def key(s):
         doc, num = split(s)
@@ -108,7 +111,7 @@ def main() -> int:
         vtxt = f"{len(vecs)} vector(s): " + ", ".join(sorted(vecs)[:6]) + (" …" if len(vecs) > 6 else "") if vecs else "—"
         out.append(f"| {label(sec)} | {mods} | {vtxt} |")
     out += ["", "## Headed sections cited by neither a module nor a vector", "",
-            "Numbered headings of each v0.9 document that no `Spec:` line or `spec_ref` names. A parent cited does",
+            "Numbered headings of each v0.10 document that no `Spec:` line or `spec_ref` names. A parent cited does",
             "not cover its subsections here. Informative and scope sections are expected to appear; a normative one",
             "is a candidate for the next vector.", ""]
     for prefix, (title, name, _) in DOCS.items():

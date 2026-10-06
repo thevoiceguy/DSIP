@@ -2,7 +2,7 @@
   "name": "dsip-ts",
   "version": "0.9.0",
   "private": true,
-  "description": "Second DSIP implementation, written from the v0.9 spec and the conformance vectors only",
+  "description": "Second DSIP implementation, written from the v0.10 spec and the conformance vectors only",
   "type": "module",
   "engines": { "node": ">=20" },
   "scripts": {
