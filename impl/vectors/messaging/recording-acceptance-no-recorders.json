@@ -1,0 +1,27 @@
+{
+  "vector": "messaging/recording-acceptance-no-recorders",
+  "format": 1,
+  "kind": "messaging",
+  "description": "An acceptance must name at least one recorder.",
+  "spec_ref": [
+    "C§5"
+  ],
+  "context": {
+    "conversation": "01K742SG00AX1F6HVTRWBW227R",
+    "conversation_kind": "personal",
+    "leaf_identity": "did:web:alice.example"
+  },
+  "input": {
+    "check": "object",
+    "object": {
+      "object": "recording-acceptance",
+      "conversation": "01K742SG00ZSRJ9GDPGPFQEDHG",
+      "recorders": [],
+      "accepted_at": 1760000000
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "schema-invalid"
+  }
+}

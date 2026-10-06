@@ -39,7 +39,7 @@ HANDOVER_WAIT_S = 300          # M§7.4 (spec-gap 71): how long a mailbox holds 
 
 MESSAGE_SCHEMAS = ["deposit", "accepted", "sync", "items", "key-packages", "key-package-fetch", "blob-put",
                    "mailbox-config"]
-OBJECT_SCHEMAS = ["content", "receipt", "activity", "archive-key", "call-event", "archive-record"]
+OBJECT_SCHEMAS = ["content", "receipt", "activity", "archive-key", "call-event", "archive-record", "recording-acceptance"]
 MESSAGING_PROFILE = "messaging/1.0"
 
 # Registries (M§17). Membership is checked here; the schemas only check token shape.
@@ -180,7 +180,7 @@ def check_object(o: dict, ctx: dict) -> dict:
     if name in ("content", "receipt"):
         if abs(U.timestamp_ms(o["id"]) // 1000 - o["sent_at"]) > ULID_TOLERANCE_S:
             return reject("ulid-sent-at-mismatch")
-    if name in ("archive-key", "call-event") and ctx.get("conversation_kind") != "personal":  # M§12.1, M§13.3
+    if name in ("archive-key", "call-event", "recording-acceptance") and ctx.get("conversation_kind") != "personal":  # M§12.1, M§13.3, C§5
         return reject("personal-group-only")
     if name == "content":
         return check_content(o)

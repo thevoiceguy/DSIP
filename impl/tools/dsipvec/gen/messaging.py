@@ -275,6 +275,13 @@ def object_vectors():
       ctx={**OBJ_CTX, "conversation_kind": "personal"})
     o("archive-key-outside-personal-group-refused", "An archive key in a direct conversation would disclose it to the peer.",
       ["M§12.1"], ak, reject("personal-group-only"))
+    ra = {"object": "recording-acceptance", "conversation": uid("rec-conv"), "recorders": ["did:key:z6MkBobRecorder"], "accepted_at": NOW}
+    o("recording-acceptance-in-personal-group", "A recording acceptance travels in the personal group, to the identity's "
+      "other devices (Recording Profile C§5).", ["C§5", "M§8.1"], ra, accept(), ctx={**OBJ_CTX, "conversation_kind": "personal"})
+    o("recording-acceptance-outside-personal-group-refused", "A recording acceptance outside the personal group is refused.",
+      ["C§5", "M§8.1"], ra, reject("personal-group-only"))
+    o("recording-acceptance-no-recorders", "An acceptance must name at least one recorder.", ["C§5"],
+      {**ra, "recorders": []}, reject("schema-invalid"), ctx={**OBJ_CTX, "conversation_kind": "personal"})
     rd = {"object": "receipt", "id": uid("rp1"), "conversation": uid("other-conv"), "sender": ALICE, "sent_at": NOW,
           "kind": "read", "through": uid("m1")}
     o("receipt-read-in-personal-group-names-its-conversation",

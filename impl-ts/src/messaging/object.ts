@@ -3,7 +3,8 @@
  *
  * Spec: M§8.1 (objects, sender/conversation/ULID rules), M§8.2 (kind and purpose, with fallback),
  * M§10 (receipts), M§10.5 (the personal-group read watermark, spec-gap 52), M§11.1 (activity),
- * M§12 / M§13.3 (archive keys and call events live in the personal group only), §10.3 (no floats).
+ * M§12 / M§13.3 (archive keys and call events live in the personal group only), C§5 (recording acceptances
+ * too, v0.10), §10.3 (no floats).
  */
 import type { Json, JsonObject } from "../did.js";
 import { ulidSeconds } from "../encoding.js";
@@ -13,9 +14,10 @@ import { messagingSchemas } from "./schemas.js";
 /** Spec: M§8.1 — object discriminator → schema; anything else is ignored. */
 const OBJECTS: Record<string, string> = {
   content: "content", receipt: "receipt", activity: "activity", "archive-key": "archive-key", "call-event": "call-event",
+  "recording-acceptance": "recording-acceptance",
 };
-/** Spec: M§12, M§13.3 — objects that would disclose the identity's own state to a peer anywhere else. */
-const PERSONAL_ONLY = ["archive-key", "call-event"];
+/** Spec: M§12, M§13.3, C§5 — objects that would disclose the identity's own state to a peer anywhere else. */
+const PERSONAL_ONLY = ["archive-key", "call-event", "recording-acceptance"];
 
 /**
  * Registry `dsip-content-kind` → the body members the kind MUST carry.
@@ -61,7 +63,11 @@ export function checkObject(object: JsonObject, ctx: ObjectContext): Verdict {
   // M§8.1: the sender is the MLS leaf's identity, or the object is unauthenticated
   if ("sender" in object && object["sender"] !== ctx.leaf_identity) return reject("sender-mismatch");
   // M§10.5 (spec-gap 52): the one exemption — an undisclosed read watermark in the personal group
-  const exempt = ctx.conversation_kind === "personal" && object["object"] === "receipt" && object["kind"] === "read";
+  // C§5: a recording acceptance's `conversation` names the recorded conversation, never the carrying group.
+  // Impl: exempt wherever it arrives, so one sent outside the personal group still reports
+  // `personal-group-only` (vectors README pipeline); M§10.5 still calls the read watermark "the one" exemption.
+  const exempt = (ctx.conversation_kind === "personal" && object["object"] === "receipt" && object["kind"] === "read") ||
+    object["object"] === "recording-acceptance";
   if ("conversation" in object && object["conversation"] !== ctx.conversation && !exempt) return reject("conversation-mismatch");
   if (typeof object["id"] === "string" && typeof object["sent_at"] === "number") {
     const at = ulidSeconds(object["id"]);

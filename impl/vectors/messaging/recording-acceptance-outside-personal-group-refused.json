@@ -1,0 +1,30 @@
+{
+  "vector": "messaging/recording-acceptance-outside-personal-group-refused",
+  "format": 1,
+  "kind": "messaging",
+  "description": "A recording acceptance outside the personal group is refused.",
+  "spec_ref": [
+    "C§5",
+    "M§8.1"
+  ],
+  "context": {
+    "conversation": "01K742SG00AX1F6HVTRWBW227R",
+    "conversation_kind": "direct",
+    "leaf_identity": "did:web:alice.example"
+  },
+  "input": {
+    "check": "object",
+    "object": {
+      "object": "recording-acceptance",
+      "conversation": "01K742SG00ZSRJ9GDPGPFQEDHG",
+      "recorders": [
+        "did:key:z6MkBobRecorder"
+      ],
+      "accepted_at": 1760000000
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "personal-group-only"
+  }
+}

@@ -317,6 +317,12 @@ OBJECTS = {
         "outcome": {"$ref": "#/$defs/token"},
         "at": {"$ref": "#/$defs/timestamp"},
     }, ["session", "peer", "direction", "outcome", "at"], "Call history synchronized across own devices (M§13.3)."),
+    "recording-acceptance": content_object("recording-acceptance", {
+        "conversation": {"$ref": "#/$defs/ulid"},
+        "recorders": {"type": "array", "minItems": 1, "uniqueItems": True, "items": {"$ref": "#/$defs/did"}},
+        "accepted_at": {"$ref": "#/$defs/timestamp"},
+    }, ["conversation", "recorders", "accepted_at"],
+        "The user's acceptance of a recorded conversation, personal group only (Recording Profile C§5, v0.10)."),
     "archive-record": content_object("archive-record", {
         "conversation": {"$ref": "#/$defs/ulid"},
         "group": {"$ref": "#/$defs/b64url"},
