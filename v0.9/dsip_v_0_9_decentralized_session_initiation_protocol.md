@@ -1874,6 +1874,19 @@ An `invite` from an identity holding no grant (and matching no other allow polic
 
 Introductions MUST NOT be rendered as calls, ring the device, or appear in call history. They belong in a distinct requests surface the user reviews deliberately. The entire design collapses if a spammer can make a phone buzz by sending introductions.
 
+#### Pairwise identities and `did:peer` (note, v0.9)
+
+This note is informative.
+
+Introductions and grants work by identity, so a party that wants its contacts unable to correlate it can already use a **pairwise identity**: a fresh `did:key` for each contact, introduced and granted like any other. Nothing in this section changes for that.
+
+`did:peer` (DIF Peer DID Method, v1.0 Draft) is designed for exactly this case: identifiers exchanged between two parties, with no third party and no public resolution. Its variants 2 and 4 carry keys and services inline (4 in a short form resolvable only by a peer that has seen the long form). It is not among the §7.2 methods, for two reasons:
+
+- **Rotation.** Peer DIDs cannot be updated: rotating a key means moving to a new DID. DSIP's `key-rotation` record (§7.5) assumes an identifier that persists across keys. Supporting `did:peer` therefore needs a pairwise rotation message, signed by the old key, that tells the one counterparty the new DID.
+- **Contacts, not discovery.** A pairwise DID helps the parties that already share it, never a stranger looking someone up (§8).
+
+Full support is deferred: registration in §7.2, delegation from a `did:peer` subject, and that pairwise rotation message. Until then, a pairwise `did:key` gives the same unlinkability, at the cost of no rotation.
+
 ---
 
 ## 20. Security Threat Model
