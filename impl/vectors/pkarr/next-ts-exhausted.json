@@ -1,0 +1,18 @@
+{
+  "vector": "pkarr/next-ts-exhausted",
+  "format": 1,
+  "kind": "pkarr",
+  "description": "previous + 1 would exceed 2^53−1, which every reader rejects: sign nothing.",
+  "spec_ref": [
+    "§8.5"
+  ],
+  "context": {},
+  "input": {
+    "check": "next-ts",
+    "clock": 1789999940000000,
+    "previous": 9007199254740991
+  },
+  "expect": {
+    "error": "exhausted"
+  }
+}

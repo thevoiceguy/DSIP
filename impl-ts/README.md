@@ -32,7 +32,7 @@ python3 ../impl/tools/parity_ts.py       # Python harness vs this implementation
 
 ## Coverage
 
-**Every vector: 1367 of 1367**, no kind skipped. Python/TypeScript parity compares actual with actual on all of them.
+**Every vector: 1385 of 1385**, no kind skipped. Python/TypeScript parity compares actual with actual on all of them.
 
 | Kind | Vectors | Modules |
 |---|---|---|
@@ -45,7 +45,7 @@ python3 ../impl/tools/parity_ts.py       # Python harness vs this implementation
 | `did-webvh` | 67 | `did/webvh.ts` (log verification, restricted JCS, I-JSON), `encoding.ts` |
 | `device-events` | 142 | `events/device-events.ts` (trap translation, syslog table, rule mapping; the alarm-list and escalation machine; inform deduplication), `events/syslog.ts` (RFC 5424 / RFC 3164 datagram parsing, syslog rules), `events/usm.ts` (SNMPv3 USM: key localization, BER, the RFC 3414 §3.2 receiver with HMAC-SHA-2 and AES-128-CFB, the engine cache) |
 | `alias-transparency` | 70 | `kt/alias-transparency.ts` (alias normalization, VrfInput, commitments, prefix and log trees, Configuration, tree head, search tree, ladder), `kt/vrf.ts` (ECVRF-EDWARDS25519-SHA512-TAI verify on BigInt Edwards25519 arithmetic; RFC 9381 Examples 16–18 are vectors) |
-| `pkarr` | 40 | `dht/pkarr.ts` (Pkarr relay payloads for `did:key` hints: BEP 44 signed buffer, RFC 1035 parsing with backward-only compression pointers, `_dsip` TXT endpoints, z-base-32, §8.3 selection), `envelope.ts` (Ed25519) |
+| `pkarr` | 58 | `dht/pkarr.ts` (Pkarr relay payloads for `did:key` hints: BEP 44 signed buffer, RFC 1035 parsing with backward-only compression pointers, `_dsip` TXT endpoints, z-base-32, §8.3 selection; publishing: the records carried over with rdata names expanded per RFC 3597 §4, the next `ts`), `envelope.ts` (Ed25519) |
 | `recording` | 53 | `recording/recording.ts` (the counterparty's consent machine for calls: disclosure, acceptance per session and recorder, held answer and media, decline by `reject` or `bye`; the recorder device in conversations; the recording party's checks on its recorder leg) |
 
 What this is not: a product. It has no transport, no MLS library and no storage — it is the protocol's *decisions*,

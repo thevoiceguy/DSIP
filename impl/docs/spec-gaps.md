@@ -2636,14 +2636,24 @@ DSIP also adds:
 - **Demo** (`demos/pkarr-demo.sh`, in CI, against local stand-ins of the HTTP API): a hostile relay's forged newer
   packet is rejected (`signature`), the call reaches the real relay, the seq rises across re-publishes, and another
   application's record in the zone survives.
-- **Choice (Impl, open for the profile):** "keep the zone's other records" cannot always be done byte for byte. A
-  record whose rdata holds names (CNAME, SVCB, MX, …) may carry compression pointers into the old packet. The
-  publisher keeps TXT, A and AAAA records verbatim and reports how many others it dropped. It ignores a previous
-  packet that does not verify under its own key, so a hostile relay cannot push its seq. The profile should say
-  whether a publisher must re-encode such records (expand their names) or may drop them.
-- **Choice (Impl):** the timestamp is max(clock, previous + 1). After a clock step back that signs ahead of the
-  clock, which the profile forbids, but publishing below the held seq is refused everywhere. The profile could
-  name this case.
+- **Decided (with the user, 2026-10-05): re-encode, never drop.** The publisher used to keep only TXT, A and AAAA.
+  Now every IN record outside `_dsip` is carried:
+  - names inside the rdata of the RFC 1035 types that RFC 3597 §4 lets compress are expanded;
+  - every other type is copied as is, since RFC 3597 forbids compression in it, so SVCB and SRV are verbatim.
+
+  It still ignores a previous packet that does not verify under its own key, so a hostile relay cannot push its
+  seq. Pinned by `pkarr/carry-*` (12 vectors).
+- **Decided (with the user, 2026-10-05): previous + 1, stated.** The timestamp is max(clock, previous + 1), and the
+  profile names a clock stepped back as the one case signed ahead of the clock. A result above 2^53−1 (which readers
+  reject) is not signed. Pinned by `pkarr/next-ts-*` (5 vectors).
+- **The second implementation's questions,** settled in the README:
+  - an excluded record's rdata is not examined;
+  - which bytes of a name in rdata count as "in place";
+  - the pointer rule inside rdata;
+  - names keep their case;
+  - the `_dsip` exclusion covers any type and exactly two labels, with class exactly IN;
+  - only answer records are carried;
+  - `dns` that is not hex is `malformed` (a vector), and the exhaustion case above.
 
 **Mainline directly (2026-10-05).**
 - `--mainline [--mainline-bootstrap host:port,…]` on `dsip answer`, `dsip call` and `dsip resolve` runs a Mainline

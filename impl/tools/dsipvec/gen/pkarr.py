@@ -214,4 +214,79 @@ def vectors() -> list[dict]:
                   {"check": "z32-decode", "z32": "47pjoycnsrfmxikm95jh13y88e8qnhzu5kungjpxyepgt7a8krpb"}, rejected("non-canonical"), ["§8.5"]))
     out.append(pv("z32-bad-length", "51 characters.", {"check": "z32-decode", "z32": "47pjoycnsrfmxikm95jh13y88e8qnhzu5kungjpxyepgt7a8krp"},
                   rejected("malformed"), ["§8.5"]))
+    out += carry_vectors()
+    return out
+
+
+# --- publishing: carry and next-ts (spec-gap 105, decided 2026-10-05) ------------------------------------------
+
+def _wire(name: str) -> bytes:
+    return b"".join(bytes([len(x)]) + x.encode() for x in name.split(".") if x) + b"\x00"
+
+
+def _rr(owner: bytes, rtype: int, rdata: bytes, ttl: int = 300, rclass: int = 1) -> bytes:
+    return owner + struct.pack("!HHIH", rtype, rclass, ttl, len(rdata)) + rdata
+
+
+def carry_vectors() -> list[dict]:
+    """`check: "carry"`: expectations written from the records placed in each message."""
+    out = []
+    z = z32_encode(K.public)
+    R = ["§8.5"]
+    hdr = lambda n: struct.pack("!HHHHHH", 0, 0x8400, 0, n, 0, 0)  # noqa: E731
+    dsip_owner = _wire(f"_dsip.{z}")
+    zone_at = 12 + 6  # the zone label inside the first record's owner, which always starts at offset 12
+    ptr_zone = struct.pack("!H", 0xC000 | zone_at)
+    dsip_rr = _rr(dsip_owner, 16, txt("uri=wss://relay.example/dsip", "b=ws/1.0"))
+
+    def cv(vid, desc, dns: bytes, want):
+        out.append(vector(f"pkarr/carry-{vid}", "pkarr", desc, R, {}, {"check": "carry", "zone": z, "dns": dns.hex()}, want))
+
+    def keep(name: str, rtype: int, rdata: bytes, ttl: int = 300):
+        return {"name": _wire(name).hex(), "type": rtype, "ttl": ttl, "rdata": rdata.hex()}
+
+    iroh = txt("relay=https://iroh.example")
+    a, aaaa = bytes([192, 0, 2, 7]), bytes(15) + b"\x01"
+    cv("verbatim-and-dsip-replaced", "TXT, A and AAAA are kept as they are; the _dsip records are the publisher's to replace.",
+       hdr(4) + dsip_rr + _rr(b"\x05_iroh" + ptr_zone, 16, iroh) + _rr(ptr_zone, 1, a) + _rr(ptr_zone, 28, aaaa),
+       {"keep": [keep(f"_iroh.{z}", 16, iroh), keep(z, 1, a), keep(z, 28, aaaa)]})
+    cv("cname-expanded", "A CNAME whose target is compressed into the zone name is re-encoded with the name expanded.",
+       hdr(2) + dsip_rr + _rr(b"\x03www" + ptr_zone, 5, b"\x04edge" + ptr_zone),
+       {"keep": [keep(f"www.{z}", 5, _wire(f"edge.{z}"))]})
+    cv("mx-expanded", "MX: the preference is kept, the exchange name expanded.",
+       hdr(2) + dsip_rr + _rr(ptr_zone, 15, b"\x00\x0a\x04mail" + ptr_zone),
+       {"keep": [keep(z, 15, b"\x00\x0a" + _wire(f"mail.{z}"))]})
+    soa_tail = struct.pack("!IIIII", 1, 7200, 3600, 1209600, 300)
+    cv("soa-expanded", "SOA: both names expanded, the 20 bytes of counters kept.",
+       hdr(2) + dsip_rr + _rr(ptr_zone, 6, b"\x02ns" + ptr_zone + b"\x0ahostmaster" + ptr_zone + soa_tail),
+       {"keep": [keep(z, 6, _wire(f"ns.{z}") + _wire(f"hostmaster.{z}") + soa_tail)]})
+    svcb = b"\x00\x01" + _wire(f"svc.{z}") + b"\x00\x01\x00\x03\x02h2"
+    cv("svcb-verbatim", "SVCB is not an RFC 1035 type: compression is forbidden in it (RFC 3597 §4), so it is copied as is.",
+       hdr(2) + dsip_rr + _rr(ptr_zone, 64, svcb), {"keep": [keep(z, 64, svcb)]})
+    cv("unknown-type-verbatim", "A private-use type is copied as is.",
+       hdr(2) + dsip_rr + _rr(ptr_zone, 65280, b"\xc0\x12opaque"), {"keep": [keep(z, 65280, b"\xc0\x12opaque")]})
+    cv("dsip-owner-case-insensitive", "An owner of _DSIP.<zone> is the DSIP name too, whatever its case.",
+       hdr(2) + dsip_rr + _rr(b"\x05_DSIP" + ptr_zone, 16, txt("old")), {"keep": []})
+    cv("class-not-in-skipped", "A record of class CH (3) is not carried.",
+       hdr(2) + dsip_rr + _rr(b"\x05_iroh" + ptr_zone, 16, iroh, rclass=3), {"keep": []})
+    cv("case-kept", "Label bytes keep their case in the carried name.",
+       hdr(2) + dsip_rr + _rr(b"\x03WwW" + ptr_zone, 1, a), {"keep": [keep(f"WwW.{z}", 1, a)]})
+    cv("rdata-pointer-forward", "A name in a CNAME's rdata pointing forward is malformed.",
+       hdr(2) + dsip_rr + _rr(ptr_zone, 5, b"\xc3\xff"), {"error": "malformed"})
+    cv("rdata-trailing-bytes", "A CNAME rdata holding more than its one name is malformed.",
+       hdr(2) + dsip_rr + _rr(ptr_zone, 5, b"\x04edge" + ptr_zone + b"\x00"), {"error": "malformed"})
+    cv("rdata-name-past-rdlength", "A CNAME's inline name running past its rdlength is malformed.",
+       hdr(2) + dsip_rr + _rr(ptr_zone, 5, b"\x04edg"), {"error": "malformed"})
+
+    def tv(vid, desc, inp, want):
+        out.append(vector(f"pkarr/next-ts-{vid}", "pkarr", desc, R, {}, {"check": "next-ts", **inp}, {"ts": want}))
+    tv("clock-ahead", "The clock is past the previous timestamp: sign the clock.", {"clock": TS + 10, "previous": TS}, TS + 10)
+    tv("clock-stepped-back", "The clock stepped back: previous + 1, ahead of the clock — the one case allowed.",
+       {"clock": TS - 5_000_000, "previous": TS}, TS + 1)
+    tv("clock-equal", "Equal to the previous timestamp: previous + 1.", {"clock": TS, "previous": TS}, TS + 1)
+    tv("first", "No previous packet: the clock.", {"clock": TS}, TS)
+    out.append(vector("pkarr/next-ts-exhausted", "pkarr", "previous + 1 would exceed 2^53−1, which every reader rejects: sign nothing.",
+                      R, {}, {"check": "next-ts", "clock": TS, "previous": 2**53 - 1}, {"error": "exhausted"}))
+    out.append(vector("pkarr/carry-not-hex", "pkarr", "dns that is not hex is malformed.", R, {},
+                      {"check": "carry", "zone": z32_encode(K.public), "dns": "zz"}, {"error": "malformed"}))
     return out

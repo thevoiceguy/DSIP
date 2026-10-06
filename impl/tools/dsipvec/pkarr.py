@@ -214,6 +214,14 @@ def run(v: dict):
         if c == "bep44-verify":
             m = bep44_signable(i["seq"], h(i["value"]), h(i["salt"]) if i.get("salt") else b"")
             return {"valid": ed25519_verify(h(i["public_key"]), m, h(i["signature"]))}
+        if c == "carry":
+            try:
+                return carry(i["zone"], h(i["dns"]))
+            except (Reject, ValueError):
+                return {"error": "malformed"}
+        if c == "next-ts":
+            ts = max(i["clock"], i["previous"] + 1) if "previous" in i else i["clock"]
+            return {"error": "exhausted"} if ts > 2**53 - 1 else {"ts": ts}
         if c == "z32-encode":
             return {"z32": z32_encode(h(i["key"]))}
         if c == "z32-decode":
@@ -221,3 +229,86 @@ def run(v: dict):
     except Reject as r:
         return {"outcome": "rejected", "reason": r.reason}
     raise KeyError(c)
+
+
+# --- publishing: carrying the zone's other records (DHT Hints Profile §9; spec-gap 105) -------------
+
+# RFC 3597 §4: compression may occur in these RFC 1035 types only; their rdata layouts as (names before, fixed after)
+NAME_RDATA = {2: "n", 3: "n", 4: "n", 5: "n", 7: "n", 8: "n", 9: "n", 12: "n", 6: "nn20", 14: "nn", 15: "2n"}
+
+
+def _expand(pkt: bytes, off: int, limit: int) -> tuple[bytes, int]:
+    """The name at `off` in uncompressed wire form (case kept); inline bytes must end by `limit`. → (wire, next)."""
+    out, end, start = bytearray(), None, off
+    while True:
+        if off >= len(pkt) or (end is None and off >= limit):
+            raise Reject("malformed")
+        n = pkt[off]
+        if n & 0xC0 == 0xC0:
+            if off + 1 >= len(pkt) or (end is None and off + 1 >= limit):
+                raise Reject("malformed")
+            ptr = ((n & 0x3F) << 8) | pkt[off + 1]
+            if ptr >= start:
+                raise Reject("malformed")
+            if end is None:
+                end = off + 2
+            off = start = ptr
+            continue
+        if n & 0xC0:
+            raise Reject("malformed")
+        if n == 0:
+            out.append(0)
+            nxt = end if end is not None else off + 1
+            if nxt > limit:
+                raise Reject("malformed")
+            return bytes(out), nxt
+        if off + 1 + n > len(pkt) or (end is None and off + 1 + n > limit):
+            raise Reject("malformed")
+        out += pkt[off:off + 1 + n]
+        off += 1 + n
+
+
+def carry(zone: str, dns: bytes) -> dict:
+    if len(dns) < 12:
+        raise Reject("malformed")
+    qd, an, ns, ar = struct.unpack("!HHHH", dns[4:12])
+    off = 12
+    for _ in range(qd):
+        _, off = _expand(dns, off, len(dns))
+        off += 4
+    dsip_owner = b"\x05_dsip" + bytes([len(zone)]) + zone.encode() + b"\x00"
+    keep = []
+    for i in range(an + ns + ar):
+        name, off = _expand(dns, off, len(dns))
+        if off + 10 > len(dns):
+            raise Reject("malformed")
+        rtype, rclass, ttl, rdlen = struct.unpack("!HHIH", dns[off:off + 10])
+        off += 10
+        rs, re_ = off, off + rdlen
+        if re_ > len(dns):
+            raise Reject("malformed")
+        off = re_
+        if i >= an or rclass != 1 or name.lower() == dsip_owner.lower():
+            continue
+        layout = NAME_RDATA.get(rtype)
+        if layout is None:
+            rdata = dns[rs:re_]
+        else:
+            out, p = bytearray(), rs
+            for part in ("n", "n") if layout == "nn" else ("n", "n", "20") if layout == "nn20" else ("2", "n") if layout == "2n" else ("n",):
+                if part == "n":
+                    w, p = _expand(dns, p, re_)
+                    out += w
+                else:
+                    k = int(part)
+                    if p + k > re_:
+                        raise Reject("malformed")
+                    out += dns[p:p + k]
+                    p += k
+            if p != re_:
+                raise Reject("malformed")
+            rdata = bytes(out)
+        keep.append({"name": name.hex(), "type": rtype, "ttl": ttl, "rdata": rdata.hex()})
+    if off != len(dns):
+        raise Reject("malformed")
+    return {"keep": keep}

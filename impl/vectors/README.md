@@ -1286,6 +1286,38 @@ that buffer.
 - Decoding requires exactly 52 alphabet characters (else `malformed`) and zero padding bits (else
   `non-canonical`).
 
+**`check: "carry"`** (DHT Hints Profile §9 publishing, "keep the zone's other records"; spec-gap 105) is the records a
+publisher carries over from its previous packet. The input is `{zone, dns}`: the zone's z-base-32 key, and the
+previous packet's DNS message, already verified. The output is `{"keep": [{name, type, ttl, rdata}]}`, in message
+order, or `{"error": "malformed"}`:
+
+- **Parsing.** `dns` (hex; hex that does not decode is `malformed`) parses as for `check: "hint"`: the whole message,
+  every section, and a failure anywhere is `malformed`, with no partial `keep`.
+- **Which records.** Only the answer records are carried (Pkarr puts a zone's records there), minus those of class
+  other than exactly IN (1), and those whose owner is exactly the two labels `_dsip` and `zone`, of any type, compared
+  ASCII case-insensitively (the publisher replaces those). Records outside the zone are carried. An excluded record's
+  rdata is not examined beyond its length.
+- **`name`** is the owner name in uncompressed wire form (length-prefixed labels, then a zero byte), as hex. Label
+  bytes keep their case.
+- **Re-encoding.** Names inside `rdata` are expanded to the same uncompressed form for exactly the RFC 1035 types in
+  which RFC 3597 §4 allows compression:
+  - NS (2), MD (3), MF (4), CNAME (5), MB (7), MG (8), MR (9) and PTR (12): one name;
+  - SOA (6): two names, then exactly 20 bytes;
+  - MINFO (14): two names;
+  - MX (15): 2 bytes, then a name.
+
+  Each such `rdata` must hold exactly that, else `malformed`. Every byte a name occupies in place (its labels, its
+  zero byte, or its 2 pointer bytes) must lie inside the `rdata`. A pointer follows the rule for owner names: it
+  points before the start of the stretch it appears in, so it may reach an earlier record or an earlier name in the
+  same `rdata`. Expanded names keep their label bytes' case. Every other type's `rdata` is copied as it is: RFC 3597 §4
+  forbids compression in them.
+
+**`check: "next-ts"`** (DHT Hints Profile §9) is the timestamp a publisher signs. The input is `{clock, previous?}`
+(µs), and the output is `{"ts": max(clock, previous + 1)}`, or `{"ts": clock}` without `previous`. After the clock
+steps backwards, this is ahead of the clock: the one case the profile allows, since a lower `seq` is refused
+everywhere. A result above 2^53−1, which every reader rejects (`check: "hint"` step 4), is `{"error": "exhausted"}`:
+the publisher signs nothing.
+
 ## Spec-gap list (Impl decisions these vectors encode)
 
 Each item has a matching `spec-gap` issue draft in `impl/docs/spec-gaps.md`.

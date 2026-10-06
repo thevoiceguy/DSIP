@@ -1,0 +1,17 @@
+{
+  "vector": "pkarr/next-ts-first",
+  "format": 1,
+  "kind": "pkarr",
+  "description": "No previous packet: the clock.",
+  "spec_ref": [
+    "§8.5"
+  ],
+  "context": {},
+  "input": {
+    "check": "next-ts",
+    "clock": 1789999940000000
+  },
+  "expect": {
+    "ts": 1789999940000000
+  }
+}

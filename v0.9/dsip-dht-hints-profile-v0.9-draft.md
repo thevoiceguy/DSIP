@@ -127,8 +127,17 @@ signed by the key it is stored under.
 - Sign with the identity key over BEP 44's buffer, with no salt.
 - Compress names.
 - Keep the DNS message at most 996 bytes, so the bencoded value stays within BEP 44's 1000.
-- Keep the zone's other records, since the key has one slot shared by every Pkarr use.
-- Never sign a timestamp ahead of the clock: honest nodes then refuse every lower `seq`.
+- Keep the zone's other records, since the key has one slot shared by every Pkarr use. Every IN record outside
+  `_dsip` is carried over:
+  - in the RFC 1035 types in which RFC 3597 §4 allows name compression (NS, CNAME, SOA, PTR, MX, MINFO, and the
+    obsolete MD, MF, MB, MG, MR), the names inside the record data are expanded and the record re-encoded;
+  - every other type is copied byte for byte, since RFC 3597 forbids compression in it.
+
+  Nothing another application published is dropped (`check: "carry"`).
+- Sign `max(clock, previous + 1)` (µs), where `previous` is this key's newest timestamp. Never sign ahead of the clock
+  otherwise: honest nodes then refuse every lower `seq`. The one exception is after the clock steps backwards, when
+  `previous + 1` is ahead of it; a lower `seq` would be refused everywhere (`check: "next-ts"`). A timestamp above
+  2^53−1 µs is never signed, since readers reject it.
 - Re-sign before `expires_at`. Anyone may re-announce the signed bytes, but that never extends a hint.
 - Fetching from Pkarr relays (HTTP `GET /<z32>`) is equivalent to the DHT. A relay can withhold or serve an older
   hint; it cannot forge one.
