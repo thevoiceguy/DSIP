@@ -452,11 +452,85 @@ export class InformTable {
   }
 }
 
+interface HeldClear {
+  key: Key;
+  due: number;
+  /** The clear as it will be deposited (with `qualifier`). */
+  report: JsonObject;
+}
+
+/**
+ * A gateway's clear hold-down: a clear is held for `hold_s` seconds and deposited only if no
+ * raise of the same alarm arrives first, so a flapping link is one alarm with a repeat count.
+ *
+ * Spec: E§4 ("Hold-down"): clears held for `H` seconds (`0` turns it off); a raise for the same
+ * `(resource, type, qualifier)` cancels the held clear and is deposited; a second clear while one
+ * is held changes nothing (the first keeps its time); every other event is deposited at once.
+ * README "Kind: `device-events`", "Hold-down traces": the `{emit, held}` shapes and orderings.
+ * Impl: the deposited report is the step's report as given, with `qualifier` filled in as `""`
+ * when missing (other fields pass through untouched). `held` sorts keys element by element by
+ * code point, as alarm keys do; due clears come out by `due`, then key. With `hold_s` 0 a clear
+ * is deposited at once even if one is held (unreachable: `hold_s` is fixed per trace, so nothing
+ * is ever held). A report with `hold_s` < 0 is treated as off (not exercised by any vector).
+ */
+export class HoldDown {
+  private now: number;
+  private readonly holdS: number;
+  private readonly held = new Map<string, HeldClear>();
+
+  /** A hold-down at `context.now` with `context.hold_s`. */
+  constructor(context: JsonObject) {
+    this.now = isInt(context["now"]) ? context["now"] : 0;
+    this.holdS = isInt(context["hold_s"]) ? context["hold_s"] : 0;
+  }
+
+  /** Apply one event; return `{emit, held}`. Spec: E§4 */
+  step(event: JsonObject): JsonObject {
+    const emit: Json[] = [];
+    if ("report" in event) {
+      const r = event["report"] as JsonObject;
+      const qualifier = typeof r["qualifier"] === "string" ? r["qualifier"] : "";
+      const report: JsonObject = { ...r, qualifier };
+      const key: Key = [r["resource"] as string, r["type"] as string, qualifier];
+      const id = JSON.stringify(key);
+      if (r["cleared"] === true) {
+        if (this.holdS <= 0) {
+          emit.push({ deposit: report });
+        } else if (!this.held.has(id)) {
+          // Spec: E§4 — a second clear while one is held changes nothing.
+          this.held.set(id, { key, due: this.now + this.holdS, report });
+        }
+      } else {
+        // Spec: E§4 — a raise cancels the held clear (members count a repeat) and is deposited.
+        this.held.delete(id);
+        emit.push({ deposit: report });
+      }
+    } else if ("event" in event) {
+      // Spec: E§4 — an event with no alarm is deposited at once.
+      emit.push({ deposit: event["event"] as Json });
+    } else if ("advance" in event) {
+      this.now += event["advance"] as number;
+      const due = [...this.held.entries()]
+        .filter(([, h]) => h.due <= this.now)
+        .sort(([, a], [, b]) => a.due - b.due || cmpKey(a.key, b.key));
+      for (const [id, h] of due) {
+        this.held.delete(id);
+        emit.push({ deposit: h.report });
+      }
+    } else {
+      throw new Error(`unknown hold-down event ${JSON.stringify(event)}`);
+    }
+    const held = [...this.held.values()].sort((a, b) => cmpKey(a.key, b.key)).map((h) => ({ key: h.key, due: h.due }));
+    return { emit, held } as unknown as JsonObject;
+  }
+}
+
 /**
  * The `device-events` vector kind: a stateless check, or an alarm-list trace returning one
  * `{emit, alarms}` per step, or an inform trace (`context.component: "informs"`) returning one
  * `{emit, informs}` per step, or an SNMPv3 trace (`context.component: "snmpv3"`) returning one
- * `{emit, engines}` per step; the stateless checks include `syslog` and `usm-key`. Spec: E§3–E§6
+ * `{emit, engines}` per step, or a hold-down trace (`context.component: "holddown"`) returning one
+ * `{emit, held}` per step; the stateless checks include `syslog` and `usm-key`. Spec: E§3–E§6
  */
 export function runDeviceEvents(context: JsonObject, input: JsonObject): Json {
   if (Array.isArray(input["steps"]) && context["component"] === "informs") {
@@ -466,6 +540,10 @@ export function runDeviceEvents(context: JsonObject, input: JsonObject): Json {
   if (Array.isArray(input["steps"]) && context["component"] === "snmpv3") {
     const usm = new UsmReceiver(context);
     return (input["steps"] as JsonObject[]).map((s) => usm.step(s["event"] as JsonObject));
+  }
+  if (Array.isArray(input["steps"]) && context["component"] === "holddown") {
+    const hd = new HoldDown(context);
+    return (input["steps"] as JsonObject[]).map((s) => hd.step(s["event"] as JsonObject));
   }
   if (Array.isArray(input["steps"])) {
     const list = new AlarmList(context);

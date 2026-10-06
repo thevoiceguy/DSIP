@@ -342,6 +342,61 @@ def vectors() -> list[dict]:
                          ({"advance": 3600}, {"emit": [], "informs": [st(7, "pending")]}),
                          (ok(7), {"emit": [{"respond": {"key": [S, 7]}}], "informs": [st(7, "answered")]}),
                      ]))
+    # --- E§4 hold-down (v0.10): a gateway delays clears ---------------------------------------------------------
+    NOW = 1000
+    HD = {"component": "holddown", "now": NOW, "hold_s": 5}
+    def up(port, sev="major"):
+        return {"report": {"resource": f"192.0.2.7/{port}", "type": "link-down", "qualifier": "", "severity": sev, "cleared": False}}
+    def down(port):
+        return {"report": {"resource": f"192.0.2.7/{port}", "type": "link-down", "qualifier": "", "severity": None, "cleared": True}}
+    dep = lambda e: {"deposit": e["report"]}  # noqa: E731
+    hk = lambda port: [f"192.0.2.7/{port}", "link-down", ""]  # noqa: E731
+    out.append(trace("holddown-flap-is-one-alarm", "A clear and a re-raise within hold_s: the clear is never deposited, the raise "
+                     "is (members count a repeat).", ["E§4"], HD, [
+                         (up(3), {"emit": [dep(up(3))], "held": []}),
+                         (down(3), {"emit": [], "held": [{"key": hk(3), "due": NOW + 5}]}),
+                         ({"advance": 2}, {"emit": [], "held": [{"key": hk(3), "due": NOW + 5}]}),
+                         (up(3), {"emit": [dep(up(3))], "held": []}),
+                         ({"advance": 10}, {"emit": [], "held": []}),
+                     ]))
+    out.append(trace("holddown-clear-that-holds", "A clear that holds for hold_s is deposited when it is due.", ["E§4"], HD, [
+        (down(3), {"emit": [], "held": [{"key": hk(3), "due": NOW + 5}]}),
+        ({"advance": 4}, {"emit": [], "held": [{"key": hk(3), "due": NOW + 5}]}),
+        ({"advance": 1}, {"emit": [dep(down(3))], "held": []}),
+    ]))
+    out.append(trace("holddown-second-clear-keeps-time", "A second clear while one is held changes nothing.", ["E§4"], HD, [
+        (down(3), {"emit": [], "held": [{"key": hk(3), "due": NOW + 5}]}),
+        ({"advance": 3}, {"emit": [], "held": [{"key": hk(3), "due": NOW + 5}]}),
+        (down(3), {"emit": [], "held": [{"key": hk(3), "due": NOW + 5}]}),
+        ({"advance": 2}, {"emit": [dep(down(3))], "held": []}),
+    ]))
+    out.append(trace("holddown-other-alarm-unaffected", "A raise of another alarm does not cancel a held clear; due clears "
+                     "come out in due order.", ["E§4"], HD, [
+                         (down(3), {"emit": [], "held": [{"key": hk(3), "due": NOW + 5}]}),
+                         ({"advance": 1}, {"emit": [], "held": [{"key": hk(3), "due": NOW + 5}]}),
+                         (down(1), {"emit": [], "held": [{"key": hk(1), "due": NOW + 6}, {"key": hk(3), "due": NOW + 5}]}),
+                         (up(2), {"emit": [dep(up(2))], "held": [{"key": hk(1), "due": NOW + 6}, {"key": hk(3), "due": NOW + 5}]}),
+                         ({"advance": 10}, {"emit": [dep(down(3)), dep(down(1))], "held": []}),
+                     ]))
+    out.append(trace("holddown-off", "hold_s 0: every clear is deposited at once.", ["E§4"], {**HD, "hold_s": 0}, [
+        (down(3), {"emit": [dep(down(3))], "held": []}),
+    ]))
+    ev_only = {"event": {"source": {"address": "192.0.2.7", "basis": "syslog-udp"}}}
+    out.append(trace("holddown-events-pass", "Events with no alarm, and severity changes, are deposited at once.", ["E§4"], HD, [
+        (ev_only, {"emit": [{"deposit": ev_only["event"]}], "held": []}),
+        (up(3, "critical"), {"emit": [dep(up(3, "critical"))], "held": []}),
+    ]))
+    out.append(trace("holddown-same-due-key-order", "Clears due at the same time come out in key order (code points); a "
+                     "report's other fields pass through untouched.", ["E§4"], HD, [
+        ({"report": {**down(9)["report"], "text": "port 9"}}, {"emit": [], "held": [{"key": hk(9), "due": NOW + 5}]}),
+        (down(10), {"emit": [], "held": [{"key": hk(10), "due": NOW + 5}, {"key": hk(9), "due": NOW + 5}]}),
+        ({"advance": 5}, {"emit": [dep(down(10)), {"deposit": {**down(9)["report"], "text": "port 9"}}], "held": []}),
+    ]))
+    out.append(trace("holddown-qualifier-default", "A missing qualifier is \"\" in the key and in what is deposited.", ["E§4"], HD, [
+        ({"report": {"resource": "gw", "type": "fan-failed", "severity": "minor", "cleared": False}},
+         {"emit": [{"deposit": {"resource": "gw", "type": "fan-failed", "severity": "minor", "cleared": False, "qualifier": ""}}],
+          "held": []}),
+    ]))
     from . import events_v3  # SNMPv3 (USM) and syslog
     out += events_v3.usm_key_vectors() + events_v3.snmpv3_vectors() + events_v3.syslog_vectors()
     return out

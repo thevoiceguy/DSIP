@@ -2512,10 +2512,21 @@ The gateway (`dsip-msg`):
 - **TLS:** a client with a device certificate gets `syslog-tls` and its fingerprint; one without is refused.
 - No USM password leaves the gateway.
 
+**v0.10, decided with the user 2026-10-06 ("Delay clears").**
+- **Hold-down (E§4):** optional; the gateway delays clears by `H` s (0 = off). A raise of the same alarm while its
+  clear is held cancels the clear, so members count a repeat, and a fast flap stays one alarm. A second clear keeps
+  the first one's time. Events, and anything from an inform (answered only once stored, E§3), pass at once. Members'
+  rules are unchanged.
+- **Vectors:** `device-events/holddown-*` (8 traces), three-way. The second implementation's readings pinned key
+  order (code points) and that other report fields pass through (`holddown-same-due-key-order`).
+- **Certificate names (E§2):** an optional `source.name`, the gateway's configured name for the verified identity.
+  It is a claim, and members render it only beside that identity.
+- **Gateway:** `dsip-msg --hold-down`, `--syslog-tls-names`. In `demos/device-events-v3-syslog-demo.sh`, port 7 flaps
+  (down, up, down, up) and Ann sees one raise and one clear; sw1 is shown as `name="sw1-core"` beside its
+  fingerprint.
+
 **Open.**
-- Mapping a syslog-tls certificate to a named device, beyond its fingerprint (local configuration).
 - SNMPv3 over TSM/TLS (RFC 6353), and signed syslog (RFC 5848).
-- Flap hold-down, left to gateway configuration.
 
 ## 104. T§2–T§5 / core §8.1–§8.2 — alias transparency: what DSIP adopts of KEYTRANS, and when
 

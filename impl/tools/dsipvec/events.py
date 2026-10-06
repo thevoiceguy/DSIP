@@ -263,10 +263,48 @@ class InformTracker:
         return [{"key": list(k), "status": e["status"]} for k, e in sorted(self.informs.items())]
 
 
+class HoldDown:
+    """A gateway's clear hold-down (E§4, v0.10): clears wait `hold_s`; a raise of the same alarm cancels its held clear."""
+
+    def __init__(self, ctx: dict):
+        self.now, self.hold = ctx["now"], ctx["hold_s"]
+        self.held: dict[tuple, tuple] = {}  # key -> (due, report)
+
+    def step(self, ev: dict) -> list:
+        if "report" in ev:
+            r = {**ev["report"], "qualifier": ev["report"].get("qualifier", "")}
+            k = (r["resource"], r["type"], r["qualifier"])
+            if r["cleared"]:
+                if self.hold == 0:
+                    return [{"deposit": r}]
+                if k not in self.held:
+                    self.held[k] = (self.now + self.hold, r)
+                return []
+            self.held.pop(k, None)
+            return [{"deposit": r}]
+        if "event" in ev:
+            return [{"deposit": ev["event"]}]
+        if "advance" in ev:
+            self.now += ev["advance"]
+            due = sorted(((d, k, r) for k, (d, r) in self.held.items() if d <= self.now), key=lambda x: (x[0], list(x[1])))
+            out = []
+            for d, k, r in due:
+                del self.held[k]
+                out.append({"deposit": r})
+            return out
+        raise ValueError(ev)
+
+    def snapshot(self):
+        return [{"key": list(k), "due": d} for k, (d, _) in sorted(self.held.items(), key=lambda kv: list(kv[0]))]
+
+
 def run(v: dict):
     i = v["input"]
     if "check" in i:
         return run_check(i)
+    if v["context"].get("component") == "holddown":
+        m = HoldDown(v["context"])
+        return [{"emit": m.step(st["event"]), "held": m.snapshot()} for st in i["steps"]]
     if v["context"].get("component") == "snmpv3":
         m = events_v3.UsmReceiver(v["context"])
         return [{"emit": m.step(st["event"]), "engines": m.snapshot()} for st in i["steps"]]

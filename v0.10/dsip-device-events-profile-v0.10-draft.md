@@ -46,6 +46,9 @@ devices (SNMP SET, NETCONF); standardized vendor mapping content.
   - `snmpv3-auth`, `snmpv3-authpriv`: `"usm": {"engine_id": "<hex>", "user": "<name>"}`, the authoritative engine
     and the user whose key verified the message;
   - `syslog-tls`: `"certificate_sha256": "<hex>"`, the SHA-256 of the device's verified leaf certificate.
+  - Optionally `"name"` (v0.10): the name the gateway's configuration gives that certificate (or, for other
+    authenticated bases, that identity). It is the gateway's claim, rendered beside the fingerprint, and absent when
+    the gateway has none. A member MUST NOT render it without the identity it names.
 
 ## E§3 From a notification to an event
 
@@ -175,6 +178,19 @@ a trap.
   the first element with that `id` and, in it, the first parameter with that name; otherwise `<source address>`.
 - An unmatched syslog message whose severity the table maps to an alarm severity raises
   `(<source address>, syslog, <app_name or "">)`. Otherwise it is an event with no alarm.
+
+**Hold-down** (optional, v0.10). A gateway MAY damp a flapping alarm by **delaying clears** for `H` seconds (`0`, the
+default, turns it off):
+- A clear is not deposited at once. It is held, and deposited when it has held for `H` seconds.
+- A raise for the same alarm `(resource, type, qualifier)` while its clear is held cancels the clear and is deposited.
+  Members never saw the clear, so they count a repeat (E§5): a link that flaps faster than `H` is one alarm with a
+  count, never a stream of clears and raises.
+- A second clear while one is held changes nothing; the first keeps its time.
+- Every other event, including one with no alarm, is deposited at once. So is an event from an SNMP inform: the
+  inform is answered only once its event is stored (E§3), so its clear is never held.
+
+Members' rules (E§5) are unchanged: hold-down changes only which events a gateway deposits, and when. Its rules are
+the `device-events/holddown-*` traces.
 
 ## E§5 The `device-event` object and the alarm list
 

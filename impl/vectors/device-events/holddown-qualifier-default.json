@@ -1,0 +1,44 @@
+{
+  "vector": "device-events/holddown-qualifier-default",
+  "format": 1,
+  "kind": "device-events",
+  "description": "A missing qualifier is \"\" in the key and in what is deposited.",
+  "spec_ref": [
+    "E§4"
+  ],
+  "context": {
+    "component": "holddown",
+    "now": 1000,
+    "hold_s": 5
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "report": {
+            "resource": "gw",
+            "type": "fan-failed",
+            "severity": "minor",
+            "cleared": false
+          }
+        }
+      }
+    ]
+  },
+  "expect": [
+    {
+      "emit": [
+        {
+          "deposit": {
+            "resource": "gw",
+            "type": "fan-failed",
+            "severity": "minor",
+            "cleared": false,
+            "qualifier": ""
+          }
+        }
+      ],
+      "held": []
+    }
+  ]
+}
