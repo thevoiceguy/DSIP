@@ -2,7 +2,7 @@
 
 ## A Narrow Core for Trusted Real-Time Media Sessions
 
-**Version:** Draft v0.10
+**Version:** v0.10
 **Status:** Design Proposal
 **Editor:** James Ferris
 **Date:** October 2026
@@ -2431,7 +2431,7 @@ No wire-format change: `dsip.core` stays `1.0`, and every addition is an optiona
 
 ### A.7 From v0.9 to v0.10
 
-v0.9 is final at tag `poc-v0.9`. v0.10 completes work v0.9 left open: the multi-device and device-events items its
+v0.9 is final at tag `poc-v0.9`; v0.10 is final at tag `poc-v0.10`. v0.10 completes work v0.9 left open: the multi-device and device-events items its
 spec-gaps listed, and recording acceptance across a person's devices. Each item names its spec-gap.
 
 - Recording acceptance is the person's, not one device's (Recording Profile C§5; spec-gap 107): the device on which

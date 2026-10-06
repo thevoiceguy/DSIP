@@ -1,11 +1,12 @@
-# DSIP v0.10 — draft
+# DSIP v0.10 — final
 
-v0.10 is the current revision, assembled from v0.9 at tag `poc-v0.9`; `../v0.9/` is frozen. Appendix A.7 of
-`dsip_v_0_10_decentralized_session_initiation_protocol.md` lists what v0.10 changes.
+v0.10 is final at tag `poc-v0.10`. It was assembled from v0.9 at tag `poc-v0.9`, and `../v0.9/` is frozen. Appendix
+A.7 of `dsip_v_0_10_decentralized_session_initiation_protocol.md` lists what v0.10 changes. The companion drafts (DHT
+Hints, RTP/SRTP, Alias Transparency stage 1, Device Events, Recording) stay drafts within the final revision.
 
 | document | what | status |
 |---|---|---|
-| `dsip_v_0_10_decentralized_session_initiation_protocol.md` | DSIP core | draft v0.10 (v0.9 text + A.7) |
+| `dsip_v_0_10_decentralized_session_initiation_protocol.md` | DSIP core | v0.10, final (v0.9 text + A.7) |
 | `dsip-schemas-v0.10-draft/` | Core JSON Schema set | generated; unchanged from v0.9 |
 | `dsip-webrtc-media-binding-v0.10.md` | WebRTC Media Binding 1.0 | normative, unchanged |
 | `dsip-gateway-profile-v0.10.md` | Gateway Profile 1.0 | normative, unchanged |
