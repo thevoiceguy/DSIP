@@ -2,7 +2,7 @@
 
 ## A Narrow Core for Trusted Real-Time Media Sessions
 
-**Version:** Draft v0.9
+**Version:** v0.9
 **Status:** Design Proposal
 **Editor:** James Ferris
 **Date:** October 2026
@@ -2408,7 +2408,7 @@ Every item above is pinned by the v0.8 conformance suite (979 vectors; the Pytho
 
 ### A.6 From v0.8 to v0.9
 
-v0.8 is final at tag `poc-v0.8.1`. v0.9 work, decided 2026-10-04 from `impl/docs/v0.9-research.md`:
+v0.8 is final at tag `poc-v0.8.1`; v0.9 is final at tag `poc-v0.9`. v0.9 work, decided 2026-10-04 from `impl/docs/v0.9-research.md`:
 
 - `did:webvh` as a recommended DID method beside `did:web` (§7.2, §8.4; spec-gap 101): resolvers verify the whole log, support v1.0 only, read I-JSON, and reject rollback and fork against the highest `versionId` they have verified. Pinned by the `did-webvh/` vectors.
 - Reachability hints on the BitTorrent Mainline DHT (Pkarr) for `did:key` subjects, in addition to the hints overlay (§8.5; DHT Reachability Hints Profile §9; spec-gap 105): compact `_dsip` TXT records signed by the identity key, with a signed expiry of the timestamp plus the smallest TTL (≤ 3600 s), the checks Pkarr omits, and §8.3 conflicts. Pinned by the `pkarr/` vectors and confirmed against the pkarr crate.

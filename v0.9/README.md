@@ -1,7 +1,8 @@
-# DSIP v0.9 — draft
+# DSIP v0.9 — final
 
-v0.9 is the current revision, assembled from v0.8 at tag `poc-v0.8.1`; `../v0.8/` is frozen. Appendix A.6 of
-`dsip_v_0_9_decentralized_session_initiation_protocol.md` lists what v0.9 changes, as each item lands. The plan is
+v0.9 is final at tag `poc-v0.9`. It was assembled from v0.8 at tag `poc-v0.8.1`, and `../v0.8/` is frozen. Appendix
+A.6 of `dsip_v_0_9_decentralized_session_initiation_protocol.md` lists what v0.9 changes. The companion drafts (DHT
+Hints, RTP/SRTP, Alias Transparency stage 1, Device Events, Recording) stay drafts within the final revision. The plan is
 `../impl/docs/v0.9-research.md`, section 3, decided 2026-10-04:
 
 1. `did:webvh` as a recommended DID method beside `did:web`.
@@ -12,7 +13,7 @@ v0.9 is the current revision, assembled from v0.8 at tag `poc-v0.8.1`; `../v0.8/
 
 | document | what | status |
 |---|---|---|
-| `dsip_v_0_9_decentralized_session_initiation_protocol.md` | DSIP core | draft v0.9 (v0.8 text + A.6) |
+| `dsip_v_0_9_decentralized_session_initiation_protocol.md` | DSIP core | v0.9, final (v0.8 text + A.6) |
 | `dsip-schemas-v0.9-draft/` | Core JSON Schema set | generated; adds the optional `recording` and `recording_session` members (Recording Profile) |
 | `dsip-webrtc-media-binding-v0.9.md` | WebRTC Media Binding 1.0 | normative, unchanged |
 | `dsip-gateway-profile-v0.9.md` | Gateway Profile 1.0 | normative, unchanged |
