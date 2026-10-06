@@ -1,0 +1,18 @@
+{
+  "vector": "device-events/tls-frames-at-limit-waits",
+  "format": 1,
+  "kind": "device-events",
+  "description": "A header announcing exactly 65,536 bytes in all waits for them.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "tls-frames",
+    "stream": "3082fffc"
+  },
+  "expect": {
+    "messages": [],
+    "pending": "3082fffc"
+  }
+}

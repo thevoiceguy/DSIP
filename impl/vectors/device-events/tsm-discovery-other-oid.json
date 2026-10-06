@@ -1,0 +1,19 @@
+{
+  "vector": "device-events/tsm-discovery-other-oid",
+  "format": 1,
+  "kind": "device-events",
+  "description": "Discovery asks for snmpEngineID.0 only.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "tsm",
+    "message": "303b020103300e020107020300ffe304010302010404003024040580000000060400a019020105020100020100300e300c06082b060102010103000500"
+  },
+  "expect": {
+    "refused": {
+      "reason": "not-a-notification"
+    }
+  }
+}

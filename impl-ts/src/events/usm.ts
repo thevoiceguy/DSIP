@@ -60,7 +60,7 @@ export function usmKey(input: JsonObject): JsonObject {
 // BER
 
 /** Any BER or structure failure; the step decides the reason it reports. */
-class Bad extends Error {}
+export class Bad extends Error {}
 
 interface Tlv {
   tag: number;
@@ -213,16 +213,22 @@ function value(b: Uint8Array, t: Tlv): { type: string; value: string } {
   }
 }
 
-interface Pdu {
+/** A parsed PDU, with the ScopedPDU's contextEngineID. */
+export interface Pdu {
+  /** The PDU's tag byte. */
   tag: number;
+  /** contextEngineID bytes. */
+  contextEngineId: Uint8Array;
+  /** request-id. */
   requestId: number;
+  /** Varbinds as `{oid, type, value}`. */
   varbinds: Json[];
 }
 
 /** A ScopedPDU. README step 1, "ScopedPDU" and "PDU". */
 function scopedPdu(b: Uint8Array, outer: Tlv | undefined): Pdu {
   const [ctxEngine, ctxName, pduT] = seq(b, outer, 3);
-  octets(b, ctxEngine);
+  const contextEngineId = octets(b, ctxEngine);
   octets(b, ctxName);
   const pdu = pduT!;
   const parts = children(b, pdu);
@@ -240,10 +246,12 @@ function scopedPdu(b: Uint8Array, outer: Tlv | undefined): Pdu {
     const tv = value(b, v!);
     varbinds.push({ oid, type: tv.type, value: tv.value });
   }
-  return { tag: pdu.tag, requestId, varbinds };
+  return { tag: pdu.tag, contextEngineId, requestId, varbinds };
 }
 
-interface Message {
+/** A parsed SNMPv3 message (README "SNMPv3 traces", step 1). */
+export interface Message {
+  /** msgSecurityModel. */
   model: number;
   auth: boolean;
   priv: boolean;
@@ -260,8 +268,14 @@ interface Message {
   encrypted: Uint8Array | null;
 }
 
-/** README "SNMPv3 traces", step 1 (`malformed`). Spec: E§3; RFC 3412 §6, RFC 3414 §2.4 */
-function parseMessage(b: Uint8Array): Message {
+/**
+ * README "SNMPv3 traces", step 1 (`malformed`); throws {@link Bad} on any failure.
+ * With `tsm`, README "SNMPv3 over TLS" step 1: `securityParameters` is any OCTET STRING, not
+ * read, and `msgData` is always a plaintext ScopedPDU.
+ *
+ * Spec: E§3; RFC 3412 §6, RFC 3414 §2.4, RFC 5591 §4.2
+ */
+export function parseMessage(b: Uint8Array, tsm = false): Message {
   const outer = tlv(b, 0, b.length);
   if (outer.end !== b.length) throw new Bad(); // nothing may follow the outer SEQUENCE
   const [ver, global, spT, data] = seq(b, outer, 4);
@@ -276,7 +290,13 @@ function parseMessage(b: Uint8Array): Message {
   const reportable = (flags[0]! & 4) !== 0;
   if (priv && !auth) throw new Bad();
   const model = intIn(b, modelT, 0n, MAX31);
-  octets(b, spT);
+  const spRaw = octets(b, spT);
+  if (tsm) {
+    // E§3 SNMPv3 over TLS: securityParameters is ignored; TSM never encrypts in the message
+    const pdu = scopedPdu(b, data);
+    const none = b.subarray(0, 0);
+    return { model, auth, priv, reportable, engineId: none, boots: 0, time: 0, userName: none, authParams: spT!, privParams: spRaw.subarray(0, 0), pdu, encrypted: null };
+  }
   const spInner = tlv(b, spT!.start, spT!.end);
   if (spInner.end !== spT!.end) throw new Bad();
   const [eid, bootsT, timeT, userT, authT, privT] = seq(b, spInner, 6);

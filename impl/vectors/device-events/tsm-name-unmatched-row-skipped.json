@@ -1,0 +1,50 @@
+{
+  "vector": "device-events/tsm-name-unmatched-row-skipped",
+  "format": 1,
+  "kind": "device-events",
+  "description": "A row for another certificate is passed over.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "tsm-name",
+    "certificate": {
+      "sha256": "abababababababababababababababababababababababababababababababab",
+      "chain": [
+        "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
+      ],
+      "san": [
+        {
+          "type": "dns",
+          "value": "SW1.Example.NET"
+        },
+        {
+          "type": "ip",
+          "value": "c0000207"
+        }
+      ],
+      "cn": [
+        "sw1"
+      ]
+    },
+    "table": [
+      {
+        "id": 1,
+        "fingerprint": "efefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefef",
+        "map": "specified",
+        "data": "x"
+      },
+      {
+        "id": 2,
+        "fingerprint": "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
+        "map": "specified",
+        "data": "y"
+      }
+    ]
+  },
+  "expect": {
+    "security_name": "y",
+    "row": 2
+  }
+}

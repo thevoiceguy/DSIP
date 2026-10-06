@@ -399,4 +399,5 @@ def vectors() -> list[dict]:
     ]))
     from . import events_v3  # SNMPv3 (USM) and syslog
     out += events_v3.usm_key_vectors() + events_v3.snmpv3_vectors() + events_v3.syslog_vectors()
+    out += events_v3.tsm_vectors() + events_v3.tls_frames_vectors() + events_v3.tsm_name_vectors()
     return out

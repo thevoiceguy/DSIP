@@ -1,0 +1,38 @@
+{
+  "vector": "device-events/tsm-name-san-ip-bad-length",
+  "format": 1,
+  "kind": "device-events",
+  "description": "An address of another length fails.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "tsm-name",
+    "certificate": {
+      "sha256": "abababababababababababababababababababababababababababababababab",
+      "chain": [
+        "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
+      ],
+      "san": [
+        {
+          "type": "ip",
+          "value": "c000020700"
+        }
+      ],
+      "cn": [
+        "sw1"
+      ]
+    },
+    "table": [
+      {
+        "id": 1,
+        "fingerprint": "abababababababababababababababababababababababababababababababab",
+        "map": "san-ip"
+      }
+    ]
+  },
+  "expect": {
+    "error": "no-security-name"
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "vector": "device-events/tsm-name-san-dns-first",
+  "format": 1,
+  "kind": "device-events",
+  "description": "The first dNSName is used.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "tsm-name",
+    "certificate": {
+      "sha256": "abababababababababababababababababababababababababababababababab",
+      "chain": [
+        "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
+      ],
+      "san": [
+        {
+          "type": "dns",
+          "value": "A.example"
+        },
+        {
+          "type": "dns",
+          "value": "b.example"
+        }
+      ],
+      "cn": [
+        "sw1"
+      ]
+    },
+    "table": [
+      {
+        "id": 1,
+        "fingerprint": "abababababababababababababababababababababababababababababababab",
+        "map": "san-dns"
+      }
+    ]
+  },
+  "expect": {
+    "security_name": "a.example",
+    "row": 1
+  }
+}

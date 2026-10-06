@@ -115,6 +115,12 @@ def run_check(i: dict) -> dict:
         return events_v3.parse_syslog(bytes.fromhex(i["datagram"]))
     if c == "usm-key":
         return events_v3.usm_key(i)
+    if c == "tsm":
+        return events_v3.tsm_receive(bytes.fromhex(i["message"]))
+    if c == "tsm-name":
+        return events_v3.tsm_name(i["certificate"], i["table"])
+    if c == "tls-frames":
+        return events_v3.tls_frames(bytes.fromhex(i["stream"]))
     raise ValueError(f"unknown check {c}")
 
 

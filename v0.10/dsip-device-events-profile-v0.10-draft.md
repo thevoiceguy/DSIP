@@ -35,6 +35,7 @@ devices (SNMP SET, NETCONF); standardized vendor mapping content.
   | `snmpv2c` | SNMPv2c trap or inform: community string only, unauthenticated |
   | `snmpv3-auth` | SNMPv3, `authNoPriv` |
   | `snmpv3-authpriv` | SNMPv3, `authPriv` |
+  | `snmpv3-tls` | SNMPv3 over TLS (RFC 6353) with the Transport Security Model (RFC 5591), the device's certificate verified (v0.10) |
   | `syslog-tls` | syslog over TLS (RFC 5425), the device's certificate verified |
   | `syslog-udp` | syslog over UDP (RFC 5426), unauthenticated |
   | `gateway` | raised by the gateway itself (e.g. its own state) |
@@ -46,6 +47,8 @@ devices (SNMP SET, NETCONF); standardized vendor mapping content.
   - `snmpv3-auth`, `snmpv3-authpriv`: `"usm": {"engine_id": "<hex>", "user": "<name>"}`, the authoritative engine
     and the user whose key verified the message;
   - `syslog-tls`: `"certificate_sha256": "<hex>"`, the SHA-256 of the device's verified leaf certificate.
+  - `snmpv3-tls`: `"certificate_sha256"` as for `syslog-tls`, and `"tsm": {"security_name": "<name>"}`, the name
+    the certificate mapped to (E§3).
   - Optionally `"name"` (v0.10): the name the gateway's configuration gives that certificate (or, for other
     authenticated bases, that identity). It is the gateway's claim, rendered beside the fingerprint, and absent when
     the gateway has none. A member MUST NOT render it without the identity it names.
@@ -111,6 +114,56 @@ reason tokens are those of `impl/vectors/README.md` (component `snmpv3`):
   other failure is reported: the gateway drops it silently.
 - **The response to an inform** is sent once the hub has stored the event, as for v2c. It is a Response-PDU at the
   inform's security level, under the gateway's engine ID, boots and time.
+
+**SNMPv3 over TLS** (v0.10; RFC 6353's TLS Transport Model with RFC 5591's Transport Security Model). The basis is
+`snmpv3-tls`.
+
+- **Transport.** TLS over TCP; notifications arrive at port 10162. The device is the TLS client and MUST present a
+  certificate, which the gateway verifies against its trust anchors. DTLS over UDP is not specified here.
+- **The security name** comes from the gateway's certificate-to-name table, RFC 6353's `snmpTlstmCertToTSNTable`.
+  Each row is `{id, fingerprint, map, data?}`, with `fingerprint` the SHA-256 of a certificate in hex. The name is
+  fixed for the whole connection.
+  - **Rows** are considered in ascending `id`. A row matches when its fingerprint, compared without case, is that of
+    the presented certificate or of a CA certificate in its verified path.
+  - **Maps:**
+    - `specified`: `data`.
+    - `san-rfc822`: the first rfc822Name subjectAltName, with the part after its last `@` in lowercase (ASCII).
+      A name without `@` fails.
+    - `san-dns`: the first dNSName, in lowercase (ASCII).
+    - `san-ip`: the first iPAddress, 4 bytes as a dotted quad or 16 bytes as 32 lowercase hex digits. Any other
+      length fails.
+    - `san-any`: the first subjectAltName that is one of those three types, mapped as its type.
+    - Only the first subjectAltName of the type is tried: when its name fails, the row fails.
+    - `common-name`: the subject's first CommonName (deprecated in RFC 6353).
+    - An unknown map, or a map with nothing to map, fails.
+  - **The result** must be 1–32 octets of UTF-8 (VACM's limit). A row that fails, or gives a name outside that, is
+    passed over for the next.
+  - **No transport prefix** is added (`snmpTsmConfigurationUsePrefix` false).
+  - **With no name**, the connection is closed and nothing on it is accepted (RFC 6353 §5.3.2).
+- **Framing.** A message is one BER SEQUENCE, read whole from the stream: the first byte is `0x30`; the length is
+  definite, short form or long form with 1–4 length bytes; the whole message is at most 65,536 bytes. A stream that
+  breaks these rules is closed, since nothing after it can be found. A partial message waits for more bytes, as does
+  a single byte, which the next one decides.
+- **Each message** is checked in this order, and the first failure is reported:
+  - `malformed`: USM's structure rules (README, component `snmpv3`), except that `securityParameters` is any OCTET
+    STRING, which is ignored, and `msgData` is always a plaintext ScopedPDU (TSM never encrypts in the message).
+  - `unsupported-security-model`: `msgSecurityModel` is not 4, the TSM. USM over TLS is refused, so a message has
+    one security model.
+  - `not-a-notification`: the PDU is not a trap or an inform, and not the discovery request below.
+  
+  Any `msgFlags` security level is accepted, since the connection itself provides `authPriv` (RFC 5591 §5.2 step 4).
+  A message refused here is dropped; the connection stays open.
+- **Discovery** (RFC 5343). A sender learns the gateway's snmpEngineID before its first inform. It sends a
+  GetRequest-PDU whose contextEngineID is `80 00 00 00 06` (RFC 5343's localEngineID) and whose only varbind is
+  `snmpEngineID.0` (`1.3.6.1.6.3.10.2.1.1.0`). The gateway answers at once with a Response-PDU on the same
+  connection. The Response has the request's `msgID`, request-id, contextEngineID (the localEngineID: RFC 5343
+  §3.1 registers it, and RFC 3412 answers in the context asked) and contextName. The varbind's value is the
+  gateway's engine ID, as an OCTET STRING. It is the only request the
+  gateway answers; it deposits nothing.
+- **The response to an inform** is sent on the same connection once the hub has stored the event, as for v2c. It is
+  a Response-PDU with the inform's `msgID`, request-id, varbinds, contextEngineID and contextName, and its `msgFlags`
+  without the reportable bit. `msgSecurityModel` is 4, `securityParameters` is empty, and the error status and
+  index are 0.
 
 **Syslog** (RFC 5424 and its transports) is carried as its fields. Its severity maps to an alarm severity through a
 table the gateway MAY override per rule. By default:

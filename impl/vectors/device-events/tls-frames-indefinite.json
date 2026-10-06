@@ -1,0 +1,19 @@
+{
+  "vector": "device-events/tls-frames-indefinite",
+  "format": 1,
+  "kind": "device-events",
+  "description": "The indefinite length closes.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "tls-frames",
+    "stream": "308002010300"
+  },
+  "expect": {
+    "messages": [],
+    "pending": "308002010300",
+    "close": true
+  }
+}

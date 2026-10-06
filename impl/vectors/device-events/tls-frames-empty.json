@@ -1,0 +1,18 @@
+{
+  "vector": "device-events/tls-frames-empty",
+  "format": 1,
+  "kind": "device-events",
+  "description": "An empty stream.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "tls-frames",
+    "stream": ""
+  },
+  "expect": {
+    "messages": [],
+    "pending": ""
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "vector": "device-events/tsm-name-common-name-absent",
+  "format": 1,
+  "kind": "device-events",
+  "description": "No CommonName: the row fails.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "tsm-name",
+    "certificate": {
+      "sha256": "abababababababababababababababababababababababababababababababab",
+      "chain": [
+        "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
+      ],
+      "san": [
+        {
+          "type": "dns",
+          "value": "SW1.Example.NET"
+        },
+        {
+          "type": "ip",
+          "value": "c0000207"
+        }
+      ],
+      "cn": []
+    },
+    "table": [
+      {
+        "id": 1,
+        "fingerprint": "abababababababababababababababababababababababababababababababab",
+        "map": "common-name"
+      }
+    ]
+  },
+  "expect": {
+    "error": "no-security-name"
+  }
+}

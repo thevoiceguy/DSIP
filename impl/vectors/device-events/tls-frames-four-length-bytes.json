@@ -1,0 +1,20 @@
+{
+  "vector": "device-events/tls-frames-four-length-bytes",
+  "format": 1,
+  "kind": "device-events",
+  "description": "A long form with 4 length bytes.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "tls-frames",
+    "stream": "30840000000302010130"
+  },
+  "expect": {
+    "messages": [
+      "308400000003020101"
+    ],
+    "pending": "30"
+  }
+}

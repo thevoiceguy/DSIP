@@ -1,0 +1,41 @@
+{
+  "vector": "device-events/tsm-name-ca-not-in-path",
+  "format": 1,
+  "kind": "device-events",
+  "description": "A fingerprint of a CA outside the verified path does not match.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "tsm-name",
+    "certificate": {
+      "sha256": "abababababababababababababababababababababababababababababababab",
+      "chain": [],
+      "san": [
+        {
+          "type": "dns",
+          "value": "SW1.Example.NET"
+        },
+        {
+          "type": "ip",
+          "value": "c0000207"
+        }
+      ],
+      "cn": [
+        "sw1"
+      ]
+    },
+    "table": [
+      {
+        "id": 1,
+        "fingerprint": "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
+        "map": "specified",
+        "data": "x"
+      }
+    ]
+  },
+  "expect": {
+    "error": "no-security-name"
+  }
+}

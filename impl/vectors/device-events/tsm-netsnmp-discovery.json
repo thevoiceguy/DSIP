@@ -1,0 +1,19 @@
+{
+  "vector": "device-events/tsm-netsnmp-discovery",
+  "format": 1,
+  "kind": "device-events",
+  "description": "net-snmp 5.9.5.2's RFC 5343 discovery before an inform (captured; noAuthNoPriv, reportable).",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "tsm",
+    "message": "3043020103301102043a39be96020300ffe304010402010404003029040580000000060400a01e02040a2c07100201000201003010300e060a2b060106030a020101000500"
+  },
+  "expect": {
+    "discovery": {
+      "request_id": 170657552
+    }
+  }
+}

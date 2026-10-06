@@ -1,0 +1,19 @@
+{
+  "vector": "device-events/tsm-discovery-other-context",
+  "format": 1,
+  "kind": "device-events",
+  "description": "Discovery names RFC 5343's localEngineID, not a real engine.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "tsm",
+    "message": "3045020103300e020107020300ffe30401030201040400302e040d80001f8880bbbbbbbbbbbbbbbb0400a01b0201050201000201003010300e060a2b060106030a020101000500"
+  },
+  "expect": {
+    "refused": {
+      "reason": "not-a-notification"
+    }
+  }
+}

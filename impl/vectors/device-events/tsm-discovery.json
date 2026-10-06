@@ -1,0 +1,19 @@
+{
+  "vector": "device-events/tsm-discovery",
+  "format": 1,
+  "kind": "device-events",
+  "description": "RFC 5343 discovery: GetRequest, contextEngineID 8000000006, only snmpEngineID.0.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "tsm",
+    "message": "303d020103300e020107020300ffe304010302010404003026040580000000060400a01b0201050201000201003010300e060a2b060106030a020101000500"
+  },
+  "expect": {
+    "discovery": {
+      "request_id": 5
+    }
+  }
+}

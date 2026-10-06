@@ -1,0 +1,42 @@
+{
+  "vector": "device-events/tsm-name-san-dns-first-only",
+  "format": 1,
+  "kind": "device-events",
+  "description": "Only the first dNSName is tried: when it is too long, the row fails.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "tsm-name",
+    "certificate": {
+      "sha256": "abababababababababababababababababababababababababababababababab",
+      "chain": [
+        "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
+      ],
+      "san": [
+        {
+          "type": "dns",
+          "value": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        },
+        {
+          "type": "dns",
+          "value": "ok.example"
+        }
+      ],
+      "cn": [
+        "sw1"
+      ]
+    },
+    "table": [
+      {
+        "id": 1,
+        "fingerprint": "abababababababababababababababababababababababababababababababab",
+        "map": "san-dns"
+      }
+    ]
+  },
+  "expect": {
+    "error": "no-security-name"
+  }
+}

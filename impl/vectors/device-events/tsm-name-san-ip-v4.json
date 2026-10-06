@@ -1,0 +1,43 @@
+{
+  "vector": "device-events/tsm-name-san-ip-v4",
+  "format": 1,
+  "kind": "device-events",
+  "description": "An IPv4 address is a dotted quad.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "tsm-name",
+    "certificate": {
+      "sha256": "abababababababababababababababababababababababababababababababab",
+      "chain": [
+        "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
+      ],
+      "san": [
+        {
+          "type": "dns",
+          "value": "SW1.Example.NET"
+        },
+        {
+          "type": "ip",
+          "value": "c0000207"
+        }
+      ],
+      "cn": [
+        "sw1"
+      ]
+    },
+    "table": [
+      {
+        "id": 1,
+        "fingerprint": "abababababababababababababababababababababababababababababababab",
+        "map": "san-ip"
+      }
+    ]
+  },
+  "expect": {
+    "security_name": "192.0.2.7",
+    "row": 1
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "vector": "device-events/tsm-response-pdu",
+  "format": 1,
+  "kind": "device-events",
+  "description": "A Response-PDU is not a notification.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "tsm",
+    "message": "3062020103300e020107020300ffe30401030201040400304b04000400a245020101020100020100303a300e06082b06010201010300430204d23017060a2b06010603010104010006092b0601060301010503300f060a2b060102010202010103020103"
+  },
+  "expect": {
+    "refused": {
+      "reason": "not-a-notification"
+    }
+  }
+}

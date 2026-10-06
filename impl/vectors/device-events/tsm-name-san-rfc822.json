@@ -1,0 +1,39 @@
+{
+  "vector": "device-events/tsm-name-san-rfc822",
+  "format": 1,
+  "kind": "device-events",
+  "description": "RFC 6353's example: the host part lowercased, the local part kept.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "tsm-name",
+    "certificate": {
+      "sha256": "abababababababababababababababababababababababababababababababab",
+      "chain": [
+        "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
+      ],
+      "san": [
+        {
+          "type": "rfc822",
+          "value": "FooBar@Example.COM"
+        }
+      ],
+      "cn": [
+        "sw1"
+      ]
+    },
+    "table": [
+      {
+        "id": 1,
+        "fingerprint": "abababababababababababababababababababababababababababababababab",
+        "map": "san-rfc822"
+      }
+    ]
+  },
+  "expect": {
+    "security_name": "FooBar@example.com",
+    "row": 1
+  }
+}

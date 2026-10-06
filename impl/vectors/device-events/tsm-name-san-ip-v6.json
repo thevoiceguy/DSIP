@@ -1,0 +1,39 @@
+{
+  "vector": "device-events/tsm-name-san-ip-v6",
+  "format": 1,
+  "kind": "device-events",
+  "description": "An IPv6 address is 32 lowercase hex digits.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "tsm-name",
+    "certificate": {
+      "sha256": "abababababababababababababababababababababababababababababababab",
+      "chain": [
+        "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
+      ],
+      "san": [
+        {
+          "type": "ip",
+          "value": "20010DB8000000000000000000000001"
+        }
+      ],
+      "cn": [
+        "sw1"
+      ]
+    },
+    "table": [
+      {
+        "id": 1,
+        "fingerprint": "abababababababababababababababababababababababababababababababab",
+        "map": "san-ip"
+      }
+    ]
+  },
+  "expect": {
+    "security_name": "20010db8000000000000000000000001",
+    "row": 1
+  }
+}

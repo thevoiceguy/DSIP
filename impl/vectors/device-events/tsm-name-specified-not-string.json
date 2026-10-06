@@ -1,0 +1,50 @@
+{
+  "vector": "device-events/tsm-name-specified-not-string",
+  "format": 1,
+  "kind": "device-events",
+  "description": "Non-string data fails the row.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "tsm-name",
+    "certificate": {
+      "sha256": "abababababababababababababababababababababababababababababababab",
+      "chain": [
+        "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
+      ],
+      "san": [
+        {
+          "type": "dns",
+          "value": "SW1.Example.NET"
+        },
+        {
+          "type": "ip",
+          "value": "c0000207"
+        }
+      ],
+      "cn": [
+        "sw1"
+      ]
+    },
+    "table": [
+      {
+        "id": 1,
+        "fingerprint": "abababababababababababababababababababababababababababababababab",
+        "map": "specified",
+        "data": 7
+      },
+      {
+        "id": 2,
+        "fingerprint": "abababababababababababababababababababababababababababababababab",
+        "map": "specified",
+        "data": "z"
+      }
+    ]
+  },
+  "expect": {
+    "security_name": "z",
+    "row": 2
+  }
+}

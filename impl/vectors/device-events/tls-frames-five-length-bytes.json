@@ -1,0 +1,19 @@
+{
+  "vector": "device-events/tls-frames-five-length-bytes",
+  "format": 1,
+  "kind": "device-events",
+  "description": "A long form with 5 length bytes closes.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "tls-frames",
+    "stream": "30850000000003020101"
+  },
+  "expect": {
+    "messages": [],
+    "pending": "30850000000003020101",
+    "close": true
+  }
+}

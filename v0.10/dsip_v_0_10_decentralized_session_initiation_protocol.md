@@ -2441,6 +2441,8 @@ v0.9 is final at tag `poc-v0.9`. Each v0.10 item is listed here as it lands, wit
   the identity key can stay offline. Revocation is bounded, not immediate, and the profile states the bound.
 - Device Events (spec-gap 103): an optional gateway hold-down that delays clears, so a flapping link is one alarm
   (E§4); and an optional `source.name`, the gateway's name for a verified device identity (E§2).
+- Device Events (spec-gap 103): SNMPv3 over TLS (RFC 6353) with the Transport Security Model, basis `snmpv3-tls`.
+  It covers RFC 6353's certificate-to-name table, framing, RFC 5343 discovery and the inform Response (E§3).
 
 ---
 

@@ -248,6 +248,145 @@ def parse_v3(b: bytes) -> dict:
     return out
 
 
+# --- SNMPv3 over TLS: TLSTM (RFC 6353) and TSM (RFC 5591), E§3 v0.10 ----------------------------
+
+TLS_MAX = 65536
+LOCAL_ENGINE_ID = bytes.fromhex("8000000006")  # RFC 5343 §3.1
+SNMP_ENGINE_ID_OID = "1.3.6.1.6.3.10.2.1.1.0"
+
+
+def tls_frames(stream: bytes) -> dict:
+    """Split a TLS byte stream into whole BER messages (README `check: "tls-frames"`)."""
+    msgs, pos = [], 0
+    while True:
+        rest = stream[pos:]
+        if len(rest) < 2:
+            return {"messages": msgs, "pending": rest.hex()}
+        if rest[0] != 0x30 or rest[1] == 0x80 or rest[1] >= 0x85:
+            return {"messages": msgs, "pending": rest.hex(), "close": True}
+        if rest[1] < 0x80:
+            hdr, n = 2, rest[1]
+        else:
+            k = rest[1] & 0x7F
+            if len(rest) < 2 + k:
+                return {"messages": msgs, "pending": rest.hex()}
+            hdr, n = 2 + k, int.from_bytes(rest[2:2 + k], "big")
+        if hdr + n > TLS_MAX:
+            return {"messages": msgs, "pending": rest.hex(), "close": True}
+        if len(rest) < hdr + n:
+            return {"messages": msgs, "pending": rest.hex()}
+        msgs.append(rest[:hdr + n].hex())
+        pos += hdr + n
+
+
+def parse_tsm(b: bytes):
+    """Step 1 for TSM: USM's structure, except securityParameters is any OCTET STRING and msgData always a
+    ScopedPDU → (msgSecurityModel, (tag, request id, varbinds))."""
+    top = R(b)
+    ms, me = top.expect(0x30)
+    if not top.done():
+        raise Malformed
+    m = R(b, ms, me)
+    a, z = m.expect(0x02)
+    if ber_int(b[a:z]) != 3:
+        raise Malformed
+    gs, ge = m.expect(0x30)
+    g = R(b, gs, ge)
+    a, z = g.expect(0x02)
+    ranged(ber_int(b[a:z]), 0, MAX31)
+    a, z = g.expect(0x02)
+    ranged(ber_int(b[a:z]), 484, MAX31)
+    a, z = g.expect(0x04)
+    if z - a != 1:
+        raise Malformed
+    flags = b[a]
+    a, z = g.expect(0x02)
+    model = ranged(ber_int(b[a:z]), 0, MAX31)
+    if not g.done():
+        raise Malformed
+    if flags & 2 and not flags & 1:
+        raise Malformed
+    m.expect(0x04)
+    s, e = m.expect(0x30)
+    pdu = scoped_content(b, s, e)
+    if not m.done():
+        raise Malformed
+    q = R(b, s, e)
+    a, z = q.expect(0x04)
+    return model, pdu, b[a:z]
+
+
+def tsm_receive(b: bytes) -> dict:
+    """One message from a TLS connection (README `check: "tsm"`)."""
+    try:
+        model, (tag, rid, vbs), ctx_engine = parse_tsm(b)
+    except (Malformed, IndexError):
+        return {"refused": {"reason": "malformed"}}
+    if model != 4:
+        return {"refused": {"reason": "unsupported-security-model"}}
+    if tag == 0xA0 and ctx_engine == LOCAL_ENGINE_ID and len(vbs) == 1 and vbs[0]["oid"] == SNMP_ENGINE_ID_OID:
+        return {"discovery": {"request_id": rid}}
+    if tag not in (0xA7, 0xA6):
+        return {"refused": {"reason": "not-a-notification"}}
+    trap = {"version": "v3", "varbinds": vbs}
+    if tag == 0xA6:
+        trap["inform"] = {"request_id": rid}
+    return {"accepted": {"trap": trap}}
+
+
+def _lower_ascii(s: str) -> str:
+    return "".join(chr(ord(c) + 32) if "A" <= c <= "Z" else c for c in s)
+
+
+def _san_name(san: dict):
+    t, v = san.get("type"), san.get("value")
+    if not isinstance(v, str):
+        return None
+    if t == "rfc822":
+        if "@" not in v:
+            return None
+        i = v.rindex("@")
+        return v[:i + 1] + _lower_ascii(v[i + 1:])
+    if t == "dns":
+        return _lower_ascii(v)
+    if t == "ip":
+        try:
+            a = bytes.fromhex(v)
+        except ValueError:
+            return None
+        if len(a) == 4:
+            return ".".join(str(x) for x in a)
+        if len(a) == 16:
+            return a.hex()
+        return None
+    return None
+
+
+def tsm_name(cert: dict, table: list) -> dict:
+    """RFC 6353's snmpTlstmCertToTSNTable as E§3 pins it (README `check: "tsm-name"`)."""
+    fps = {cert["sha256"].lower(), *(c.lower() for c in cert.get("chain", []))}
+    sans = cert.get("san", [])
+    for row in sorted(table, key=lambda r: r["id"]):
+        if not isinstance(row.get("fingerprint"), str) or row["fingerprint"].lower() not in fps:
+            continue
+        mp, name = row.get("map"), None
+        if mp == "specified":
+            name = row.get("data") if isinstance(row.get("data"), str) else None
+        elif mp in ("san-rfc822", "san-dns", "san-ip"):
+            want = mp[4:]
+            first = next((s for s in sans if s.get("type") == want), None)
+            name = _san_name(first) if first else None
+        elif mp == "san-any":
+            first = next((s for s in sans if s.get("type") in ("rfc822", "dns", "ip")), None)
+            name = _san_name(first) if first else None
+        elif mp == "common-name":
+            cn = cert.get("cn", [])
+            name = cn[0] if cn and isinstance(cn[0], str) else None
+        if name is not None and 1 <= len(name.encode("utf-8")) <= 32:
+            return {"security_name": name, "row": row["id"]}
+    return {"error": "no-security-name"}
+
+
 # --- USM keys -----------------------------------------------------------------------------------
 
 def password_to_key(auth: str, password: bytes, engine_id: bytes) -> bytes:

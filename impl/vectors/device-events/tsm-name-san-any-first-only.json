@@ -1,0 +1,42 @@
+{
+  "vector": "device-events/tsm-name-san-any-first-only",
+  "format": 1,
+  "kind": "device-events",
+  "description": "san-any does not fall through to a later SAN when the first fails.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "tsm-name",
+    "certificate": {
+      "sha256": "abababababababababababababababababababababababababababababababab",
+      "chain": [
+        "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
+      ],
+      "san": [
+        {
+          "type": "dns",
+          "value": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        },
+        {
+          "type": "dns",
+          "value": "ok.example"
+        }
+      ],
+      "cn": [
+        "sw1"
+      ]
+    },
+    "table": [
+      {
+        "id": 1,
+        "fingerprint": "abababababababababababababababababababababababababababababababab",
+        "map": "san-any"
+      }
+    ]
+  },
+  "expect": {
+    "error": "no-security-name"
+  }
+}

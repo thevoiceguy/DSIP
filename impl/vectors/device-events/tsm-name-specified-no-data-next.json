@@ -1,0 +1,48 @@
+{
+  "vector": "device-events/tsm-name-specified-no-data-next",
+  "format": 1,
+  "kind": "device-events",
+  "description": "specified without data fails; the next row is tried.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "tsm-name",
+    "certificate": {
+      "sha256": "abababababababababababababababababababababababababababababababab",
+      "chain": [
+        "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
+      ],
+      "san": [
+        {
+          "type": "dns",
+          "value": "SW1.Example.NET"
+        },
+        {
+          "type": "ip",
+          "value": "c0000207"
+        }
+      ],
+      "cn": [
+        "sw1"
+      ]
+    },
+    "table": [
+      {
+        "id": 1,
+        "fingerprint": "abababababababababababababababababababababababababababababababab",
+        "map": "specified"
+      },
+      {
+        "id": 2,
+        "fingerprint": "abababababababababababababababababababababababababababababababab",
+        "map": "san-dns"
+      }
+    ]
+  },
+  "expect": {
+    "security_name": "sw1.example.net",
+    "row": 2
+  }
+}

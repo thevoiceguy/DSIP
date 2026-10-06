@@ -1,0 +1,50 @@
+{
+  "vector": "device-events/tsm-name-ascending-id",
+  "format": 1,
+  "kind": "device-events",
+  "description": "Rows are considered in ascending id, whatever their order.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "tsm-name",
+    "certificate": {
+      "sha256": "abababababababababababababababababababababababababababababababab",
+      "chain": [
+        "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
+      ],
+      "san": [
+        {
+          "type": "dns",
+          "value": "SW1.Example.NET"
+        },
+        {
+          "type": "ip",
+          "value": "c0000207"
+        }
+      ],
+      "cn": [
+        "sw1"
+      ]
+    },
+    "table": [
+      {
+        "id": 20,
+        "fingerprint": "abababababababababababababababababababababababababababababababab",
+        "map": "specified",
+        "data": "b"
+      },
+      {
+        "id": 10,
+        "fingerprint": "abababababababababababababababababababababababababababababababab",
+        "map": "specified",
+        "data": "a"
+      }
+    ]
+  },
+  "expect": {
+    "security_name": "a",
+    "row": 10
+  }
+}

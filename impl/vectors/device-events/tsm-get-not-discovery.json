@@ -1,0 +1,19 @@
+{
+  "vector": "device-events/tsm-get-not-discovery",
+  "format": 1,
+  "kind": "device-events",
+  "description": "A GetRequest with an empty contextEngineID is not discovery.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "tsm",
+    "message": "3038020103300e020107020300ffe30401030201040400302104000400a01b0201050201000201003010300e060a2b060106030a020101000500"
+  },
+  "expect": {
+    "refused": {
+      "reason": "not-a-notification"
+    }
+  }
+}

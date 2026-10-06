@@ -1,0 +1,38 @@
+{
+  "vector": "device-events/tsm-netsnmp-trap",
+  "format": 1,
+  "kind": "device-events",
+  "description": "net-snmp 5.9.5.2's trap over TLS (captured).",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "tsm",
+    "message": "307902010330110204013f3813020300ffe30401030201040400305f041180001f8880e61eda2ed341c56a000000000400a74802040e7219ae020100020100303a300e06082b06010201010300430204d23017060a2b06010603010104010006092b0601060301010503300f060a2b060102010202010103020103"
+  },
+  "expect": {
+    "accepted": {
+      "trap": {
+        "version": "v3",
+        "varbinds": [
+          {
+            "oid": "1.3.6.1.2.1.1.3.0",
+            "type": "TimeTicks",
+            "value": "1234"
+          },
+          {
+            "oid": "1.3.6.1.6.3.1.1.4.1.0",
+            "type": "OBJECT IDENTIFIER",
+            "value": "1.3.6.1.6.3.1.1.5.3"
+          },
+          {
+            "oid": "1.3.6.1.2.1.2.2.1.1.3",
+            "type": "Integer32",
+            "value": "3"
+          }
+        ]
+      }
+    }
+  }
+}

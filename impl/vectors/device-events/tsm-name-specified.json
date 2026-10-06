@@ -1,0 +1,44 @@
+{
+  "vector": "device-events/tsm-name-specified",
+  "format": 1,
+  "kind": "device-events",
+  "description": "The leaf's fingerprint, map specified.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "tsm-name",
+    "certificate": {
+      "sha256": "abababababababababababababababababababababababababababababababab",
+      "chain": [
+        "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
+      ],
+      "san": [
+        {
+          "type": "dns",
+          "value": "SW1.Example.NET"
+        },
+        {
+          "type": "ip",
+          "value": "c0000207"
+        }
+      ],
+      "cn": [
+        "sw1"
+      ]
+    },
+    "table": [
+      {
+        "id": 10,
+        "fingerprint": "abababababababababababababababababababababababababababababababab",
+        "map": "specified",
+        "data": "sw1-core"
+      }
+    ]
+  },
+  "expect": {
+    "security_name": "sw1-core",
+    "row": 10
+  }
+}
