@@ -165,6 +165,37 @@ The server sees only the alert.
 
 ---
 
+## RFC 5848 (syslog-sign): errata (rfc-editor.org/errata.php, "Submit Errata")
+
+Found 2026-10-06 while implementing a collector. Both of RFC 5848's examples verify: the Certificate Block's `K` key
+checks its own signature and the Signature Block's, with SHA-1 over the message with ` SIGN="…"` removed. The
+DSIP vectors `syslog-sign-rfc5848-*` carry them verbatim. RFC 5848 has no errata on file.
+
+### 12. FRAG: the field table says base64, the example carries the payload text
+
+**Type:** Technical. **Section:** 5.3.2 (table), 5.3.2.7; example 5.3.2.9.
+
+The field table describes FRAG as "variable (base64 encoded binary)". The example's FRAG is the Payload Block
+itself, `2009-05-03T14:00:39.519005+02:00 K BACsLMZ…`, 587 octets, with FLEN and TPBL both 587. It is not base64 of
+it. The Payload Block is already printable (§5.2.1 base64-encodes its key blob), so carrying it directly is what the
+example's signer does, and a collector that base64-decodes FRAG rejects the RFC's own example.
+
+**Suggest:** in the table, "variable (a fragment of the Payload Block, which is printable ASCII)"; in 5.3.2.7, "FRAG
+is the fragment itself, not further encoded."
+
+### 13. The example's MPI bit count does not match its value
+
+**Type:** Editorial. **Section:** 4.2.8, 4.2.9.
+
+The Signature Block example's SIGN starts `AKBb…`: an MPI declaring 160 bits (`00 a0`), whose first byte `0x5b` makes
+the value 159 bits long. RFC 4880 §3.2 defines the count as the value's exact bit length. A collector that enforces
+RFC 4880 strictly rejects the RFC's own example, so 4.2.8 should say whether the count is exact or only a length.
+
+**Suggest:** "The bit count of each MPI gives its length; collectors MUST NOT require it to equal the value's bit
+length", or else correct the example.
+
+---
+
 ## Already fixed upstream (not to be sent)
 
 - **KEYTRANS Mode-1 `leaf_public_key`.** The editors' copy keeps it only for third-party management (commit

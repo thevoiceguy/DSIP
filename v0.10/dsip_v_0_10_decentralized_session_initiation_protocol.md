@@ -2443,6 +2443,8 @@ v0.9 is final at tag `poc-v0.9`. Each v0.10 item is listed here as it lands, wit
   (E§4); and an optional `source.name`, the gateway's name for a verified device identity (E§2).
 - Device Events (spec-gap 103): SNMPv3 over TLS (RFC 6353) with the Transport Security Model, basis `snmpv3-tls`.
   It covers RFC 6353's certificate-to-name table, framing, RFC 5343 discovery and the inform Response (E§3).
+- Device Events (spec-gap 103): signed syslog (RFC 5848), basis `syslog-signed`. A configured signer's messages are
+  held until a verified Signature Block lists them, or are deposited with their transport's basis (E§3).
 
 ---
 

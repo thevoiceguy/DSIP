@@ -308,6 +308,9 @@ def run(v: dict):
     i = v["input"]
     if "check" in i:
         return run_check(i)
+    if v["context"].get("component") == "syslog-sign":
+        from . import syslog_sign
+        return syslog_sign.run(v)
     if v["context"].get("component") == "holddown":
         m = HoldDown(v["context"])
         return [{"emit": m.step(st["event"]), "held": m.snapshot()} for st in i["steps"]]
