@@ -1,0 +1,41 @@
+{
+  "vector": "recording/add-devices-other-identity-ignored",
+  "format": 1,
+  "kind": "recording",
+  "description": "Entries for another identity are not candidates.",
+  "spec_ref": [
+    "C§5",
+    "M§7.2"
+  ],
+  "context": {},
+  "input": {
+    "check": "add-devices",
+    "target": "did:web:acme.example:bob",
+    "self_identity": "did:web:alice.example",
+    "self_device": "did:key:z6MkAlicePhone",
+    "purpose": "conversation",
+    "key_packages": [
+      {
+        "device": "did:key:z6MkAlicePhone",
+        "identity": "did:web:alice.example",
+        "capabilities": [
+          "dsip.signaling",
+          "dsip.messaging"
+        ]
+      },
+      {
+        "device": "did:key:z6MkBobPhone",
+        "identity": "did:web:acme.example:bob",
+        "capabilities": [
+          "dsip.signaling",
+          "dsip.messaging"
+        ]
+      }
+    ]
+  },
+  "expect": {
+    "add": [
+      "did:key:z6MkBobPhone"
+    ]
+  }
+}

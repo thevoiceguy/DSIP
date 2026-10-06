@@ -1037,6 +1037,19 @@ The checks run in this order, and the first failure is the reason:
 Recording Profile draft (`v0.9/dsip-recording-profile-v0.9-draft.md`, cited `C§n`; spec-gap 107). Three shapes:
 consent traces (C§4), `check: "conversation"` (C§5) and `check: "recording-session"` (C§6).
 
+**`check: "add-devices"`** (C§5, M§5.5, M§7.2) is the devices a device adds for an identity, given what its KeyPackage
+directory returned. The input is `{target, self_identity, self_device, purpose: "conversation" | "personal",
+key_packages: [{device, identity, capabilities}]}`, and the output is `{"add": [device, …]}` or `{"refused": <token>}`:
+
+1. The candidates are the entries whose `identity` is `target` and whose `device` is not `self_device`, in input
+   order, keeping only the first entry for a device.
+2. For `personal`, drop the candidates whose `capabilities` include `dsip.record` (C§5: never the personal group). An
+   entry without `capabilities` has none.
+3. `no-key-packages`: no candidate remains.
+4. `recorder-only`: every remaining candidate carries `dsip.record` and `target` is not `self_identity` (a recorder
+   never stands in for the person; when the adder is that person, it is present itself).
+5. Otherwise `add` lists the remaining candidates' devices, in order.
+
 **Consent traces** model one counterparty's client in one call. The context is
 `{role: "caller" | "callee", accept: "ask" | "always" | "never"}`. Each step's expect is
 `{"emit": [...], "disclosure", "pending", "hold_media", "accepted", "ended"}`:
