@@ -165,6 +165,11 @@ jobs:
         # no peers) and then with its own (same PeerId, peers within seconds, held hints served from disk).
         run: timeout 240 bash demos/dsip-node-restart-demo.sh | tail -14
         working-directory: impl
+      - name: dsip-node under a flooding overlay peer (stage 3)
+        # Self-verifying: the same flood against three victims — budget only, ban in place, ban by address before
+        # the handshake; the address ban must cost the least CPU and the in-place ban no more than the budget.
+        run: timeout 300 bash demos/dsip-node-flood-demo.sh | tail -12
+        working-directory: impl
       - name: reachability hints on Pkarr for a multi-device identity (DHT Hints §9.1)
         # Self-verifying: one identity-signed pointer to two devices; each device publishes its own zone with its
         # delegation (device key only); Bob, knowing only the identity did:key, reaches the phone on R1, and after the
