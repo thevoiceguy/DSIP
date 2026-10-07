@@ -342,7 +342,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with: { workspaces: impl }
       - uses: taiki-e/install-action@v2
-        with: { tool: "cargo-zigbuild@0.20,cargo-deb@3" }
+        with: { tool: "cargo-zigbuild@0.23,cargo-deb@3" }
       - name: build — musl binaries (x86_64, aarch64), tarballs, .debs, the image
         run: bash impl/crates/dsip-node/packaging/build.sh --image
       - name: test — the .deb under systemd, the image locked down; state survives restarts in both
