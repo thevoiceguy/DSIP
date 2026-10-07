@@ -140,7 +140,10 @@ when a peer's ICE checks arrive before the local side's first packet (an unrepli
 the mapped port — drop unsolicited inbound UDP before conntrack confirms it, as routers do), and coturn
 4.6.1 bound to `0.0.0.0` refuses its own address as a peer (403 Forbidden IP), so two relay-only clients
 of one TURN server never connected until it was bound to its public address (`tools/wan/node-setup.sh`).
-Persisted peers landed in #60. The carrier run (a laptop on a Debian live USB, tethered to a phone) added two
+Persisted peers landed in #60. `dsip-node` (stage 2, 2026-10-07) keeps its overlay identity, peers, held records and
+Mainline routing nodes in a state directory, each record verified again at restore: a restarted bootstrap node keeps
+its PeerId and rejoins its peers in about 2.5 s on localhost (`demos/dsip-node-restart-demo.sh`), against no peers at
+all without its state. The WAN figure waits for stage 5. The carrier run (a laptop on a Debian live USB, tethered to a phone) added two
 more: a dual-boot laptop's clock was 4 h behind (Windows keeps the hardware clock in local time), and the relay
 refused Bob's `hello` with `ReplayWindow` before any call was attempted — the 300 s window doing its job; and with
 TURN offered, ICE nominated the relay pair although a direct pair works on the same networks. The cause is the media
