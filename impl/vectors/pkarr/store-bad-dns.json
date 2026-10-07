@@ -1,0 +1,22 @@
+{
+  "vector": "pkarr/store-bad-dns",
+  "format": 1,
+  "kind": "pkarr",
+  "description": "A packet whose DNS message does not parse.",
+  "spec_ref": [
+    "§8.3",
+    "§8.5"
+  ],
+  "context": {},
+  "input": {
+    "check": "store",
+    "key": "916kgx85jbgytip7in9ghxj4srdm9jyaawi1io86m5g8m9fhjaty",
+    "payload": "bc582da73863dad67d2fde2c51696a24188f6ffa6cb414d0b4a9be009fa5e79a75658220c8f53367e25935cdb13e915fe758a8799ca6ae2a1e6352ea1ec3250c00065bfed69259000000000000000000000000",
+    "held": null,
+    "now": 1790000000
+  },
+  "expect": {
+    "outcome": "rejected",
+    "reason": "malformed"
+  }
+}

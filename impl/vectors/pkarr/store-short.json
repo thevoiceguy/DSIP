@@ -1,0 +1,22 @@
+{
+  "vector": "pkarr/store-short",
+  "format": 1,
+  "kind": "pkarr",
+  "description": "Fewer than 72 bytes.",
+  "spec_ref": [
+    "§8.3",
+    "§8.5"
+  ],
+  "context": {},
+  "input": {
+    "check": "store",
+    "key": "916kgx85jbgytip7in9ghxj4srdm9jyaawi1io86m5g8m9fhjaty",
+    "payload": "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+    "held": null,
+    "now": 1790000000
+  },
+  "expect": {
+    "outcome": "rejected",
+    "reason": "malformed"
+  }
+}

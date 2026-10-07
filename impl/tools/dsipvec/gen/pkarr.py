@@ -216,6 +216,7 @@ def vectors() -> list[dict]:
                   rejected("malformed"), ["§8.5"]))
     out += carry_vectors()
     out += devices_vectors()
+    out += store_vectors()
     return out
 
 
@@ -401,4 +402,47 @@ def devices_vectors() -> list[dict]:
          txt("uri=wss://relay.example/dsip", "b=ws/1.0"))), "no-devices"),
     ]:
         dv(vid, desc, payload, {}, {"outcome": "rejected", "reason": want})
+    return out
+
+
+def store_vectors() -> list[dict]:
+    """`check: "store"`: a node's verify-before-store for PUT /<z32> (v0.11, profile §10)."""
+    out = []
+    z = z32_encode(K.public)
+    K2 = keypair_from_seed_name("pkarr-bob")
+    refs = ["§8.3", "§8.5"]
+
+    def sv(vid, desc, key, pay, held, expect):
+        out.append(vector(f"pkarr/store-{vid}", "pkarr", desc, refs, {},
+                          {"check": "store", "key": key, "payload": pay, "held": held, "now": NOW}, expect))
+    stored, kept = {"outcome": "stored"}, lambda r: {"outcome": "kept", "reason": r}  # noqa: E731
+    p1 = payload([EP])
+    p2 = payload([EP], ts=TS + 1_000_000)
+    p1b = payload([("_dsip", 16, 1800, txt("uri=wss://other.example/dsip", "b=ws/1.0"))])  # same ts, other content
+    other_app = payload([("@", 1, 300, bytes([192, 0, 2, 7]))])
+    sv("first", "Nothing held: a verified packet is stored.", z, p1, None, stored)
+    sv("newer", "A higher timestamp replaces the held packet.", z, p2, p1, stored)
+    sv("same", "The same bytes again: kept, and answered as stored (idempotent).", z, p1, p1, kept("same"))
+    sv("older", "A lower timestamp is kept out (§8.3).", z, p1, p2, kept("older"))
+    sv("conflict", "An equal timestamp with other content: the held one stays (§8.3).", z, p1b, p1, kept("conflict"))
+    sv("other-application", "A packet with no _dsip records (another Pkarr application's) is stored: the node serves "
+       "every application.", z, other_app, None, stored)
+    sv("expired-dsip-still-stored", "A _dsip packet whose hint has expired is still stored; readers judge content.", z,
+       payload([EP], ts=(NOW - 7200) * 1_000_000), None, stored)
+    sv("wrong-key", "A packet signed by another key than the path's.", z, payload([EP], signer=K2), None,
+       rejected("signature"))
+    sv("future", "A timestamp more than 300 s ahead.", z, payload([EP], ts=(NOW + 301) * 1_000_000), None, rejected("future"))
+    sv("short", "Fewer than 72 bytes.", z, "00" * 71, None, rejected("malformed"))
+    sv("not-hex", "A payload that is not hex.", z, "zz", None, rejected("malformed"))
+    sv("bad-dns", "A packet whose DNS message does not parse.", z, (lambda d: (K.sign(bep44_signable(TS, d)) +
+       struct.pack("!Q", TS) + d).hex())(b"\x00" * 11), None, rejected("malformed"))
+    last = z[-1]
+    noncanon = z[:-1] + next(c for c in "ybndrfg8ejkmcpqxot1uwisza345h769" if c != last and
+                              "ybndrfg8ejkmcpqxot1uwisza345h769".index(c) >> 4 == "ybndrfg8ejkmcpqxot1uwisza345h769".index(last) >> 4)
+    sv("key-non-canonical", "A key whose padding bits are not zero (one of 16 spellings of the key).", noncanon, p1,
+       None, {"outcome": "rejected", "reason": "bad-key"})
+    sv("key-uppercase", "An uppercase key.", z.upper(), p1, None, {"outcome": "rejected", "reason": "bad-key"})
+    sv("key-short", "A key of 51 characters.", z[:-1], p1, None, {"outcome": "rejected", "reason": "bad-key"})
+    sv("rejected-before-held", "A bad signature is rejected whatever is held.", z, payload([EP], ts=TS + 9_000_000, signer=K2),
+       p1, rejected("signature"))
     return out

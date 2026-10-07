@@ -290,6 +290,16 @@ function openPayload(did: string, payloadHex: Json | undefined, now: number): Op
   // 1. did:key with an Ed25519 key
   const key = did.startsWith("did:key:") ? ed25519FromMultibase(did.slice("did:key:".length)) : null;
   if (!key) return rejected("not-did-key");
+  return openUnder(key, payloadHex, now);
+}
+
+/**
+ * Steps 2–5 of the README's `check: "hint"` under a known Ed25519 key: the payload size, the BEP 44
+ * signature, the timestamp and the DNS message — what every Pkarr packet must pass.
+ *
+ * Spec: DHT Hints Profile §9 (Reading, 2–5), §10 (a node's verify-before-store applies exactly these).
+ */
+function openUnder(key: Buffer, payloadHex: Json | undefined, now: number): Opened | Rejected {
   // 2. 72–1072 bytes: signature, timestamp, then at most 1,000 bytes of DNS (BEP 44's `v` limit)
   const payload = fromHex(payloadHex);
   if (!payload || payload.length < 72 || payload.length > 1072) return rejected("malformed");
@@ -562,11 +572,47 @@ export function resolveDevices(
   return { outcome: "devices", seq: Number(opened.ts), expires_at: expiresAt, devices };
 }
 
+/** The outcome of a node's verify-before-store for `PUT /<z32>`. */
+type StoreOutcome = { outcome: "stored" } | { outcome: "kept"; reason: "same" | "older" | "conflict" } | Rejected;
+
+/**
+ * A hints node's verify-before-store for `PUT /<z32>` (Pkarr's relay interface): the canonical key, then
+ * the checks every Pkarr packet must pass, then §8.3's `ts` rule against the packet held for that key.
+ *
+ * Spec: DHT Hints Profile §10 (`PUT /<z32>`: 204 stored or the same bytes held, 409 an older or
+ * conflicting `ts`, 400 rejected; `_dsip` content is judged by readers), §9 (Reading, 2–5), §8.3 (a higher
+ * sequence wins; an equal one with other content keeps the held record).
+ * Impl (vectors README, `check: "store"`): `key` must be exactly the canonical z-base-32 of a 32-byte key —
+ * 52 lowercase alphabet characters, zero padding bits — else `bad-key`; no case folding of the path.
+ * Nothing past step 5 of `check: "hint"` applies: a packet with no `_dsip` records, or whose `_dsip` hint
+ * has expired, is stored. `held` is trusted as the node's own store (it passed this check when stored) and is
+ * not re-verified: only its signed `ts` (bytes 64–71) is read, compared as an unsigned 64-bit integer, and a
+ * held value too short to carry one counts as nothing held. "Same bytes" is equality of the decoded
+ * payloads (signature, `ts` and DNS message), not of their hex text.
+ */
+export function store(keyText: Json | undefined, payloadHex: Json | undefined, heldHex: Json | undefined, now: number): StoreOutcome {
+  // 1. the canonical key
+  const key = typeof keyText === "string" ? z32Decode(keyText) : null;
+  if (!Buffer.isBuffer(key)) return rejected("bad-key");
+  // 2.–5. the frame, the signature, the timestamp, the DNS message
+  const opened = openUnder(key, payloadHex, now);
+  if ("outcome" in opened) return opened;
+  // 6. §8.3 against what is held
+  const held = heldHex === null || heldHex === undefined ? null : fromHex(heldHex);
+  if (!held || held.length < 72) return { outcome: "stored" };
+  const heldTs = held.readBigUInt64BE(64);
+  if (opened.ts > heldTs) return { outcome: "stored" };
+  if (opened.ts < heldTs) return { outcome: "kept", reason: "older" };
+  return { outcome: "kept", reason: fromHex(payloadHex)!.equals(held) ? "same" : "conflict" };
+}
+
 /** Kind `pkarr`: dispatch on `input.check`. Spec: §8.5; README "Kind: `pkarr`" */
 export function runPkarr(input: JsonObject): Json | undefined {
   switch (input["check"]) {
     case "hint":
       return readHint(input["did"] as string, input["payload"], input["now"] as number) as unknown as Json;
+    case "store":
+      return store(input["key"], input["payload"], input["held"], input["now"] as number) as unknown as Json;
     case "select":
       return select(input["did"] as string, input["payload"], input["held"], input["now"] as number);
     case "bep44-signable": {

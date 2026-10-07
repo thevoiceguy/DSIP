@@ -1,0 +1,22 @@
+{
+  "vector": "pkarr/store-future",
+  "format": 1,
+  "kind": "pkarr",
+  "description": "A timestamp more than 300 s ahead.",
+  "spec_ref": [
+    "§8.3",
+    "§8.5"
+  ],
+  "context": {},
+  "input": {
+    "check": "store",
+    "key": "916kgx85jbgytip7in9ghxj4srdm9jyaawi1io86m5g8m9fhjaty",
+    "payload": "f9ce6ee8111393ae9cc1e5e6a9f77e39dce36f891bba902435d9dfe15f11e48edb27ae80a64496cdc3787f6dadf3309c77bf86bd5a3139540ef27b9d9ce4400900065bfeec16c540000080000000000100000000055f64736970343931366b677838356a62677974697037696e396768786a347372646d396a796161776931696f38366d3567386d3966686a61747900001000010000070800261c7572693d7773733a2f2f72656c61792e6578616d706c652f6473697008623d77732f312e30",
+    "held": null,
+    "now": 1790000000
+  },
+  "expect": {
+    "outcome": "rejected",
+    "reason": "future"
+  }
+}
