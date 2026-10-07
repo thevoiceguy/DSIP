@@ -10,3 +10,4 @@ impl/.dsip/
 *.key
 # Rust (root-level scratch from IDE tooling too)
 target/
+impl/crates/dsip-node/dist/

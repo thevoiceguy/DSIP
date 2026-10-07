@@ -324,3 +324,27 @@ jobs:
         with: { node-version: "20" }
       - run: impl/demos/browser/build.sh
       - run: node impl/demos/browser/test.mjs
+
+  packages:
+    name: dsip-node packages build, install and run (static binaries, .deb under systemd, container)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      # ziglang: zig is cargo-zigbuild's C compiler for ring on both musl targets; cryptography etc.: test.sh's packet
+      - run: pip install ziglang==0.13.0 pynacl cryptography
+      - name: Rust, as pinned in impl/rust-toolchain.toml, plus the musl targets
+        run: |
+          rustup toolchain install && rustup default "$(rustup show active-toolchain | cut -d' ' -f1)"
+          rustup target add x86_64-unknown-linux-musl aarch64-unknown-linux-musl
+        working-directory: impl
+      - uses: Swatinem/rust-cache@v2
+        with: { workspaces: impl }
+      - uses: taiki-e/install-action@v2
+        with: { tool: "cargo-zigbuild@0.20,cargo-deb@3" }
+      - name: build — musl binaries (x86_64, aarch64), tarballs, .debs, the image
+        run: bash impl/crates/dsip-node/packaging/build.sh --image
+      - name: test — the .deb under systemd, the image locked down; state survives restarts in both
+        run: bash impl/crates/dsip-node/packaging/test.sh
+
