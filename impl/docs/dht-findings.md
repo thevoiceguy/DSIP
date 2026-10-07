@@ -143,7 +143,23 @@ of one TURN server never connected until it was bound to its public address (`to
 Persisted peers landed in #60. `dsip-node` (stage 2, 2026-10-07) keeps its overlay identity, peers, held records and
 Mainline routing nodes in a state directory, each record verified again at restore: a restarted bootstrap node keeps
 its PeerId and rejoins its peers in about 2.5 s on localhost (`demos/dsip-node-restart-demo.sh`), against no peers at
-all without its state. The WAN figure waits for stage 5. The carrier run (a laptop on a Debian live USB, tethered to a phone) added two
+all without its state. The WAN figure waits for stage 5.
+
+**The connection-level penalty, measured (`dsip-node` stage 3, 2026-10-07; `demos/dsip-node-flood-demo.sh`).**
+- **The obvious remedy made it worse.** Closing a flooder's connection and refusing its PeerId cost 4× the CPU of
+  only dropping its PUTs (7.97 s against 1.95 s over 30 s). The flooder redials, and a PeerId is known only after
+  the Noise handshake, so each refusal costs a TCP accept plus a key exchange.
+- **What works is refusing the address before the handshake.** At ~50 forged PUTs/s for 30 s:
+
+  | remedy | victim CPU |
+  |---|---|
+  | budget only | 2.4–2.5 s |
+  | ban in place (PUTs dropped for the whole ban, routing entry removed, connection kept) | 2.4–2.8 s |
+  | address refused pre-handshake (`ban_ip`) | 0.66–0.93 s, about 70% less |
+
+- **The address ban has a price:** it also refuses honest peers behind the same NAT, so it is configuration, not a
+  default.
+- **Not yet measured:** a flooder that rotates addresses as well as PeerIds; the WAN, in stage 5. The carrier run (a laptop on a Debian live USB, tethered to a phone) added two
 more: a dual-boot laptop's clock was 4 h behind (Windows keeps the hardware clock in local time), and the relay
 refused Bob's `hello` with `ReplayWindow` before any call was attempted — the 300 s window doing its job; and with
 TURN offered, ICE nominated the relay pair although a direct pair works on the same networks. The cause is the media
