@@ -190,6 +190,28 @@ def read(did: str, payload: bytes, now: int) -> dict:
     return {"subject": did, "seq": ts, "issued_at": issued, "expires_at": expires, "endpoints": eps}
 
 
+def store(key: str, payload: bytes | None, held: bytes | None, now: int) -> dict:
+    """A node's verify-before-store for `PUT /<z32>` (README `check: "store"`; profile §10)."""
+    try:
+        pub = z32_decode(key) if isinstance(key, str) else None
+    except Reject:
+        pub = None
+    if pub is None:
+        return {"outcome": "rejected", "reason": "bad-key"}
+    try:
+        _open(did_key(pub), payload, now)
+    except Reject as e:
+        return {"outcome": "rejected", "reason": e.reason}
+    if held is None:
+        return {"outcome": "stored"}
+    ts, held_ts = struct.unpack("!Q", payload[64:72])[0], struct.unpack("!Q", held[64:72])[0]
+    if ts > held_ts:
+        return {"outcome": "stored"}
+    if ts < held_ts:
+        return {"outcome": "kept", "reason": "older"}
+    return {"outcome": "kept", "reason": "same" if payload == held else "conflict"}
+
+
 def unhex(s) -> bytes | None:
     try:
         return bytes.fromhex(s) if isinstance(s, str) and len(s) % 2 == 0 else None
@@ -204,6 +226,8 @@ def run(v: dict):
     try:
         if c == "hint":
             return {"outcome": "hint", **read(i["did"], unhex(i["payload"]), i["now"])}
+        if c == "store":
+            return store(i["key"], unhex(i["payload"]), None if i["held"] is None else unhex(i["held"]), i["now"])
         if c == "select":
             new = read(i["did"], unhex(i["payload"]), i["now"])
             try:

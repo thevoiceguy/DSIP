@@ -189,3 +189,30 @@ delegation expires, its hourly hint lapses (a revoked device can still sign one)
 pointer without it, at most 7 days later. Short delegation lifetimes tighten this bound. A hint never carries
 authority (§8.1), so a stale device costs at most a failed attempt to reach it, never trust.
 
+## 10. HTTP access (v0.11)
+
+A node MAY serve hints over HTTP for clients that cannot join a DHT: browsers, which have no UDP and no libp2p, and
+light clients. It is the same tier as the DHT. A client verifies everything it receives exactly as it would from the
+DHT (§4, §9). **Withholding, or serving an older hint, is a node's only power**: it cannot forge one, as §9 says of
+Pkarr relays.
+
+| request | answer |
+|---|---|
+| `GET /<z32>` | 200 with the Pkarr relay payload (`signature ‖ ts ‖ dns`), or 404 |
+| `PUT /<z32>` | 204 stored, or the same bytes held; 409 an older or conflicting `ts`; 400 rejected |
+| `GET /dsip/v1/hints/<did>` | 200 `{"hints": ["<record>", …]}`, the §2 records held for the DID, each verified and unexpired; `[]` when there are none |
+| `POST /dsip/v1/hints` | a §2 record: 202 stored; 409 a held record wins (§8.3); 400 rejected |
+
+- **`/<z32>` is Pkarr's relay interface,** so Pkarr clients and DSIP's Pkarr readers use a node unchanged. The path
+  is the key's canonical z-base-32, lowercase: unlike an owner name in the DNS message, it is not compared without
+  case.
+  - A node serves **every** application's packets, so before storing a `PUT` it checks only what every packet must
+    pass: the canonical key, the frame, the signature, the timestamp and the DNS message. Then it applies §8.3's
+    `ts` rule against what it holds (`check: "store"`).
+  - `_dsip` content is judged by readers.
+  - A stored packet MAY be put on the Mainline DHT.
+- **`/dsip/v1/hints` is the overlay's.** A posted record is verified as §4 requires before it is stored or put on the
+  overlay, and §8.3 decides between it and a held record.
+- **Answers** carry `Access-Control-Allow-Origin: *`. A node MAY limit request rates, answering 429.
+- **Pointing a client at a node** is configuration, like a Pkarr relay. Nothing in DSIP makes any node authoritative.
+

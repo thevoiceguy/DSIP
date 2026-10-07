@@ -1397,6 +1397,28 @@ spec-gap 105).
 - Binary values are lowercase hex. Integers in encodings are big-endian.
 - `now` is Unix seconds, and a payload's timestamp `ts` is Unix **microseconds**.
 
+**`check: "store"`** (v0.11, DHT Hints Profile §10) is a node's verify-before-store for `PUT /<z32>`. A node
+serves every application's packets, so only the steps every Pkarr packet must pass are applied, plus §8.3's seq rule.
+Readers still apply the full `hint` reader to what they fetch.
+- **Input:** `{key, payload, held, now}`. `key` is the path segment, and `held` is the payload the node holds for that
+  key, or `null`.
+- **Output:** `{"outcome": "stored"}`, or `{"outcome": "kept", "reason"}` with reason `same`, `older` or
+  `conflict`, or `{"outcome": "rejected", "reason"}`.
+
+The first failing step gives the reason:
+1. **`bad-key`:** `key` is not 52 characters of the z-base-32 alphabet (lowercase) with zero padding bits, so not
+   the canonical encoding of a 32-byte key.
+2. **Steps 2–5 of `check: "hint"`,** with `key` in place of the DID's key: `malformed`, `signature`, `future`.
+3. **Against `held`** (none: `stored`). `held` is a packet this check stored earlier, so it is not verified again; only
+   its `ts` is read. "The same bytes" compares the decoded payloads, not their hex text. With `ts` the payload's
+   timestamp and `held_ts` the held one's:
+   - `ts > held_ts`: `stored`;
+   - equal, with the same bytes: `kept`, `same`;
+   - equal, with different bytes: `kept`, `conflict` (§8.3 keeps the held one);
+   - `ts < held_ts`: `kept`, `older`.
+
+HTTP answers (profile §10): `stored` and `same` are 204, `older` and `conflict` are 409, and `rejected` is 400.
+
 **`check: "hint"`** has input `{did, payload, now}`, where `payload` is a Pkarr relay payload:
 `signature(64) ‖ ts(u64) ‖ dns`. The output is
 `{"outcome": "hint", subject, seq, issued_at, expires_at, endpoints}` or `{"outcome": "rejected", reason}`.

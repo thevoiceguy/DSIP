@@ -1,0 +1,21 @@
+{
+  "vector": "pkarr/store-expired-dsip-still-stored",
+  "format": 1,
+  "kind": "pkarr",
+  "description": "A _dsip packet whose hint has expired is still stored; readers judge content.",
+  "spec_ref": [
+    "§8.3",
+    "§8.5"
+  ],
+  "context": {},
+  "input": {
+    "check": "store",
+    "key": "916kgx85jbgytip7in9ghxj4srdm9jyaawi1io86m5g8m9fhjaty",
+    "payload": "07a207c49cbdd569e326a60132f9312b3bc8a90e7ef73563bdb58ac63f2e89d0a24bb8062d153562ace813eb420448a561bb6ca86c484fe5db8c3b33ccbf210300065bfd2cfe9800000080000000000100000000055f64736970343931366b677838356a62677974697037696e396768786a347372646d396a796161776931696f38366d3567386d3966686a61747900001000010000070800261c7572693d7773733a2f2f72656c61792e6578616d706c652f6473697008623d77732f312e30",
+    "held": null,
+    "now": 1790000000
+  },
+  "expect": {
+    "outcome": "stored"
+  }
+}

@@ -2763,8 +2763,23 @@ DSIP also adds:
 - **Demo:** `demos/pkarr-multidevice-demo.sh` (in CI): one identity-signed pointer; the phone reached on R1; then, with
   the phone gone, the laptop on R2. Devices publish with their own keys only.
 
-**Open.**
-- Browsers are relay-only (no UDP).
+**HTTP access (v0.11, DHT Hints Profile §10; `dsip-node` stage 1, decided with the user 2026-10-06).**
+- **Browsers** still join no DHT, but any `dsip-node` now serves them hints over HTTP, which they verify offline.
+- **The routes:**
+  - Pkarr's relay interface (`GET`/`PUT /<z32>`);
+  - the overlay's `GET /dsip/v1/hints/<did>` and `POST /dsip/v1/hints`;
+  - CORS on every answer.
+- **A node serves every application's packets,** so a `PUT` passes only what every Pkarr packet must pass, then
+  §8.3's `ts` rule (`check: "store"`, 16 vectors, three-way). `_dsip` content is judged by readers.
+- **The second implementation's three open readings were pinned:**
+  - a held packet is not re-verified;
+  - "the same bytes" compares decoded bytes;
+  - the path key is case-sensitive.
+- **Demo:** `demos/dsip-node-demo.sh` (in CI). DSIP's unchanged clients publish through node A, and a call resolves
+  through node C via the Mainline DHT. A browser (curl) reads the overlay hint from C, and forged and older packets
+  are refused.
+
+**Open.** None. Browsers stay off the DHT by design; HTTP access is their path.
 
 ## 106. M§8.4 "Fetching" — a device whose blob fetch finds nothing
 
