@@ -143,7 +143,7 @@ of one TURN server never connected until it was bound to its public address (`to
 Persisted peers landed in #60. `dsip-node` (stage 2, 2026-10-07) keeps its overlay identity, peers, held records and
 Mainline routing nodes in a state directory, each record verified again at restore: a restarted bootstrap node keeps
 its PeerId and rejoins its peers in about 2.5 s on localhost (`demos/dsip-node-restart-demo.sh`), against no peers at
-all without its state. The WAN figure waits for stage 5.
+all without its state. On the WAN (stage 5, below) the four nodes rejoin a full overlay in 2.8–3.5 s.
 
 **The connection-level penalty, measured (`dsip-node` stage 3, 2026-10-07; `demos/dsip-node-flood-demo.sh`).**
 - **The obvious remedy made it worse.** Closing a flooder's connection and refusing its PeerId cost 4× the CPU of
@@ -159,7 +159,8 @@ all without its state. The WAN figure waits for stage 5.
 
 - **The address ban has a price:** it also refuses honest peers behind the same NAT, so it is configuration, not a
   default.
-- **Not yet measured:** a flooder that rotates addresses as well as PeerIds; the WAN, in stage 5. The carrier run (a laptop on a Debian live USB, tethered to a phone) added two
+- **Not yet measured:** a flooder that rotates addresses as well as PeerIds; the flood on the WAN (stage 5 did not
+  repeat it). The carrier run (a laptop on a Debian live USB, tethered to a phone) added two
 more: a dual-boot laptop's clock was 4 h behind (Windows keeps the hardware clock in local time), and the relay
 refused Bob's `hello` with `ReplayWindow` before any call was attempted — the 300 s window doing its job; and with
 TURN offered, ICE nominated the relay pair although a direct pair works on the same networks. The cause is the media
@@ -167,6 +168,50 @@ stack's nomination policy, not DSIP: forge-webrtc's controlling agent nominates 
 a relay↔relay pair needs no hole punch, so it can win before the direct pair's checks complete — or before the peer
 has trickled its server-reflexive candidate at all. RFC 8445 §8.1.1 lets checks continue and nominates the best
 valid pair. Still not done: that fix in forge, and connection-level penalties for flooding peers.
+
+## `dsip-node` on the WAN (stage 5, 2026-10-08 UTC)
+
+The `.deb` from `packaging/build.sh` (musl, x86_64) was installed with `apt` on the same four Linodes: L1 Atlanta,
+L2 Seattle, L3 Tokyo, L4 Milan, all on Debian 13. The config was put in place first: HTTP on `0.0.0.0:8090`, served
+directly with no TLS proxy, and every node bootstrapping its overlay from L1. The "laptop" is a host behind the home
+NAT, with Mainline RTTs of 53 / 84 / 202 / 123 ms to L1–L4. Bob ran there too, publishing through L1's HTTP API and
+relay. Mainline is the **public** DHT; Bob's key was a throwaway. Raw record: `dht-wan-results.jsonl`, run
+`node-5`.
+
+| what | result |
+|---|---|
+| install → serving | each node `active` within 5 s. The overlay is a full mesh (3 peers each); every node joined public Mainline (size estimates 2.0–6.8 M) and answers KRPC pings from the internet |
+| browser lookup, overlay hint, laptop → **Milan** | `GET /dsip/v1/hints/<did>` 200 in 0.46–0.88 s from L2–L4, with `Access-Control-Allow-Origin: *`; an unknown DID gives `{"hints":[]}` (§10) |
+| Pkarr lookup, laptop → Milan, Milan holding nothing | `GET /<z32>` 200 in 2.8–3.3 s, fetched from public Mainline and verified, then held: 0.24 s (Milan), 0.40 s (Tokyo) |
+| client verification | the packets verify offline (`dsipvec.pkarr.read`); Alice's `dsip call --pkarr-relay http://<Milan>:8090` and `…<Tokyo>…` were **answered** in 3.7–4.0 s (3 s of it scripted) |
+| forgery | a packet for Bob's key signed by another key: `PUT` 400 `signature`; Milan kept serving Bob's genuine packet |
+| restart | the overlay was back to 3 peers in 2.8–3.5 s; held overlay records and Pkarr packets were restored |
+
+What the WAN showed that localhost could not:
+
+1. **Every start reset the Mainline routing table.** A node started on a random id, learned its public address from
+   the first replies, then rotated to a BEP 42 id. `mainline` 8.0.1 resets the routing table when it does this,
+   which discarded the 88–143 saved nodes it had just loaded and logged `ERROR Could not bootstrap the routing table`.
+   Localhost cannot show this: there is no public address to learn. **Fixed:** the node saves the address Mainline
+   reports (`mainline-public-ip` in the state directory) and passes it to `DhtBuilder::public_ip` at the next start.
+   After the fix, restarts showed 0 rotations on all four nodes, which kept 88–143 saved nodes. Tokyo saved only 1–4,
+   still joined within 5 s, and was not investigated further.
+2. **A node served the first packet it fetched until long after it expired.** `GET /<z32>` returned a held packet
+   without ever looking at Mainline again. After Bob re-signed, Milan and Tokyo kept serving his first packet. Once
+   it expired, Alice's call through Milan failed with `rejected (expired)`, while L1, L2 and Mainline all held the
+   new one. The profile allows this ("serving an older hint is a node's only power"), but no honest node should do
+   it. **Fixed:** a fresh held packet is served at once and looked for again on Mainline in the background, at most
+   once a minute. One past its TTL (`pkarr::fresh_until`: `ts` plus its shortest record TTL) is looked for before it
+   is served. Measured with a 120 s TTL and Bob re-signing every ~80 s, sampled every 20 s for 4 minutes: Milan and
+   Tokyo followed each re-sign 20–60 s behind L1 and **never served an expired packet** (the least left was 2 s).
+   A copy that had just expired cost one reader 2.8–3.1 s. Tests: `crates/dsip-node/tests/refresh.rs` (both fail on
+   the old code).
+3. **Deployment.** The package starts as soon as it is installed. On a host whose port 8080 is taken (L1 runs other
+   services), the packaged default would have failed to bind, so the config is put in place first and installed
+   with `--force-confold` (now in the README). Stale lab firewall state blocked UDP: L3 still carried Run 3's NAT
+   lab table, which drops new inbound UDP and so Mainline (`natlab.sh down`), and L1's own nftables policy is drop.
+   A KRPC probe needs a 4-byte transaction id: `mainline` silently drops shorter ones, which first looked like a
+   closed port.
 
 ## Things the PoC deliberately did not do
 
