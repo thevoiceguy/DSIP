@@ -2992,9 +2992,12 @@ one. This was conformant, and useless.
 a minute per key. Measured (`dht-findings.md`, "dsip-node on the WAN", finding 2): with a 120 s TTL, nodes followed
 each re-sign 20–60 s behind and never served an expired packet.
 
-**Proposed text (§10, under `/<z32>`):** "A node holding a packet SHOULD look for a newer one on Mainline before
+**Proposed text (§10, under `/<z32>`), as first drafted:** "A node holding a packet SHOULD look for a newer one on Mainline before
 serving it after its TTL has passed (its `ts` plus its shortest record TTL), and MAY look again while it is fresh. A
 held packet is a cache, not a store of record." No vector change: freshness is node behaviour, outside `check:
 "store"`.
 
-**Open.** For the user: adopt the SHOULD in v0.11, or leave §10 silent.
+**Decided (with the user, 2026-10-08): adopted in v0.11.** DHT Hints Profile §10 now says, under `/<z32>`, that a
+held packet is a cache: a node SHOULD look for a newer packet on Mainline before serving one past its freshness
+(`ts` plus its shortest record TTL), and MAY look while it is fresh without delaying the answer. Core A.8 notes it.
+`dsip-node` already does both.

@@ -211,6 +211,11 @@ Pkarr relays.
     `ts` rule against what it holds (`check: "store"`).
   - `_dsip` content is judged by readers.
   - A stored packet MAY be put on the Mainline DHT.
+  - **A held packet is a cache, not a store of record.** A packet is fresh until its `ts` plus its shortest record
+    TTL; a node can compute this for any application's packet. A node SHOULD look for a newer packet on Mainline
+    before serving one that is no longer fresh. It MAY also look while the packet is fresh, without delaying the
+    answer. Without this, an honest node serves a packet that expired after its publisher re-signed, which readers
+    cannot tell from withholding (spec-gap 109).
 - **`/dsip/v1/hints` is the overlay's.** A posted record is verified as §4 requires before it is stored or put on the
   overlay, and §8.3 decides between it and a held record.
 - **Answers** carry `Access-Control-Allow-Origin: *`. A node MAY limit request rates, answering 429.

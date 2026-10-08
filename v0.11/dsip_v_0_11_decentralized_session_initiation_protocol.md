@@ -2460,7 +2460,8 @@ v0.10 is final at tag `poc-v0.10`. Each v0.11 item is listed here as it lands, w
   arrived. It raises the new alarm type `dsip-syslog-gap` (E§7), from a gateway event carrying `syslog_gap` (E§5).
 - HTTP access to hints (DHT Reachability Hints Profile §10; spec-gap 105): a node serves Pkarr's relay interface and
   the overlay's records over HTTP, so browsers, which join no DHT, get hints they verify offline. A node stores any
-  application's verified Pkarr packet under §8.3's `ts` rule; withholding is its only power.
+  application's verified Pkarr packet under §8.3's `ts` rule; withholding is its only power. A node holding a packet
+  SHOULD look on Mainline for a newer one before serving it past its TTL (spec-gap 109).
 
 ---
 
