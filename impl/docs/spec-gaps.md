@@ -2972,3 +2972,29 @@ found an ambiguity in the first wording (the adder's own identity), and the `sel
 - both include the recorder, and Alice is told each is recorded;
 - 19 messaging demos pass with every-device adds.
 
+
+## 109. DHT Hints Profile §10 — when a node holding a Pkarr packet looks for a newer one
+
+**Found (2026-10-08, `dsip-node` stage 5, on the WAN).** §10 says a node serves "the Pkarr relay payload" for
+`GET /<z32>`, and that serving an older packet is its only power. It does not say when a node holding a packet
+should look on Mainline again. `dsip-node` never did. After Bob re-signed, Milan and Tokyo kept serving his first
+packet, and once it expired Alice's call through Milan failed with `rejected (expired)`, while Mainline held the new
+one. This was conformant, and useless.
+
+**Choices considered.**
+1. Leave it to implementations. The cost is honest nodes that look like withholding ones.
+2. Re-read Mainline on every `GET`. Always current, but every lookup pays a DHT query: 2.8–3.3 s on the WAN, against
+   0.25 s from what is held.
+3. Serve a fresh held packet at once and re-read in the background, rate-limited; re-read before serving a packet
+   past its TTL (its `ts` plus its shortest record TTL — a node can compute that for any application's packet).
+
+**Implemented: 3** (`Impl:` on `pkarr_get`, `crates/dsip-node/src/lib.rs`). The background re-read runs at most once
+a minute per key. Measured (`dht-findings.md`, "dsip-node on the WAN", finding 2): with a 120 s TTL, nodes followed
+each re-sign 20–60 s behind and never served an expired packet.
+
+**Proposed text (§10, under `/<z32>`):** "A node holding a packet SHOULD look for a newer one on Mainline before
+serving it after its TTL has passed (its `ts` plus its shortest record TTL), and MAY look again while it is fresh. A
+held packet is a cache, not a store of record." No vector change: freshness is node behaviour, outside `check:
+"store"`.
+
+**Open.** For the user: adopt the SHOULD in v0.11, or leave §10 silent.
