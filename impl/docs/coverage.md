@@ -15,16 +15,19 @@ Profile, `M§n` Messaging Profile, `R§n` RTP/SRTP Media Binding.
 | §3 | dsip-dht/node.rs, dsip-events/ber.rs | — |
 | §3.1 | dsip-events/lib.rs, dsip-events/tsm.rs, dsip-events/usm.rs | — |
 | §3.2 | dsip-events/usm.rs | — |
-| §3.5 | dsip-events/syslog_sign.rs | — |
-| §4 | dsip-core/pkarr.rs, dsip-dht/node.rs, dsip-events/usm.rs, dsip-mailbox/bin/dsip-msg.rs, dsip-node/lib.rs | — |
+| §3.5 | dsip-events/syslog_sign.rs, dsip-number/lib.rs | — |
+| §4 | dsip-core/pkarr.rs, dsip-dht/node.rs, dsip-events/usm.rs, dsip-mailbox/bin/dsip-msg.rs, dsip-node/config.rs, dsip-node/lib.rs | — |
 | §4.1 | dsip-kt/lib.rs | — |
+| §4.1.1.2 | dsip-number/lib.rs | — |
 | §4.1.6 | dsip-events/ber.rs | — |
+| §4.2 | dsip-number/lib.rs | — |
+| §4.2.1.9 | dsip-number/lib.rs | — |
 | §4.2.2 | dsip-gateway/host/sip_leg.rs | — |
 | §4.2.6 | dsip-events/lib.rs | — |
 | §4.2.7 | dsip-events/ber.rs | — |
 | §4.3 | dsip-mailbox/bin/dsip-msg.rs | — |
 | §4.3.1 | dsip-mailbox/bin/dsip-msg.rs | — |
-| §5 | dsip-gateway/controller.rs, dsip-kt/lib.rs, dsip-mailbox/bin/dsip-msg.rs | — |
+| §5 | dsip-gateway/controller.rs, dsip-kt/lib.rs, dsip-mailbox/bin/dsip-msg.rs, dsip-node/config.rs | — |
 | §5.1.3 | dsip-kt/lib.rs | — |
 | §5.2 | dsip-events/tsm.rs, dsip-kt/lib.rs | — |
 | §5.3 | dsip-kt/lib.rs | — |
@@ -46,7 +49,7 @@ Profile, `M§n` Messaging Profile, `R§n` RTP/SRTP Media Binding.
 | §8.3 | dsip-broadcast/authority.rs, dsip-cli/console.rs, dsip-cli/hints.rs, dsip-cli/pkarr_cli.rs, dsip-core/envelope.rs, dsip-core/pkarr.rs, dsip-dht/lib.rs, dsip-dht/node.rs, dsip-dht/record.rs, dsip-node/lib.rs | 65 vector(s): dht/existing-expired-ignored, dht/expired-record, dht/hint-held-accepted, dht/hint-held-duplicate, dht/hint-held-expired, dht/hint-held-newer-wins … |
 | §8.4 | dsip-cli/main.rs, dsip-core/webvh.rs, dsip-transport/resolver.rs | 67 vector(s): did-webvh/cache-at-latest-resolves, did-webvh/cache-behind-advances, did-webvh/cache-malformed-is-absent, did-webvh/carries-dsip-document-properties, did-webvh/create-resolves, did-webvh/deactivated … |
 | §8.5 | dsip-cli/hints.rs, dsip-cli/main.rs, dsip-cli/pkarr_cli.rs, dsip-core/pkarr.rs, dsip-dht/bin/dsip-dht-node.rs, dsip-dht/lib.rs, dsip-dht/node.rs, dsip-dht/record.rs | 100 vector(s): dht/hint-held-accepted, dht/hint-validity-over-cap, dht/valid-self-signed-did-key, payload/reachability-hint-service-mailbox, payload/reachability-hint-service-not-a-type-name, pkarr/bep44-signable … |
-| §9 | dsip-cli/console.rs, dsip-cli/main.rs, dsip-cli/pkarr_cli.rs, dsip-core/pkarr.rs | — |
+| §9 | dsip-cli/console.rs, dsip-cli/main.rs, dsip-cli/pkarr_cli.rs, dsip-core/pkarr.rs, dsip-number/lib.rs | — |
 | §9.1 | dsip-cli/console.rs, dsip-cli/main.rs, dsip-cli/pkarr_cli.rs, dsip-core/pkarr.rs | — |
 | §9.2 | dsip-cli/broadcast_cli.rs | 1 vector(s): state/broadcast-authority-presence |
 | §9.3 | dsip-broadcast/authority.rs, dsip-broadcast/lib.rs, dsip-broadcast/subscriber.rs, dsip-cli/broadcast_cli.rs, dsip-cli/main.rs, dsip-core/registry.rs, dsip-endpoint/core.rs, dsip-events/usm.rs, dsip-relay/main.rs, dsip-schema/lib.rs, dsip-schema/semantic.rs | 19 vector(s): payload/notify-bad-state, payload/notify-initial, payload/notify-seq-zero, payload/notify-terminated, payload/subscribe-no-events, payload/subscribe-over-schema-ceiling … |
@@ -68,7 +71,7 @@ Profile, `M§n` Messaging Profile, `R§n` RTP/SRTP Media Binding.
 | §12.6 | dsip-cli/console.rs, dsip-core/ulid.rs, dsip-session/endpoint.rs, dsip-session/lib.rs | 7 vector(s): envelope/ulid-backdated, state/glare-equal-ids, state/glare-every-losing-attempt-is-withdrawn, state/glare-lowest-id-of-all-decides, state/glare-not-triggered-different-identity, state/glare-we-lose … |
 | §12.7 | dsip-core/registry.rs, dsip-relay/main.rs, dsip-session/endpoint.rs, dsip-session/fork.rs, dsip-session/lib.rs, dsip-webrtc-binding/lib.rs | 31 vector(s): media-binding/candidates-non-party-ignored, media-binding/one-answer-first-valid-applied, messaging/call-event-answered-elsewhere-none, state/direct-device-call-no-fork-cancel, state/fork-first-answer-wins, state/fork-late-answer-after-our-hangup … |
 | §12.8 | dsip-cli/console.rs, dsip-gateway/controller.rs, dsip-media/backend/forge.rs, dsip-media/backend/webrtc_rs.rs, dsip-media/leg.rs, dsip-session/endpoint.rs, dsip-session/lib.rs | 15 vector(s): gateway/trace-inbound-refer-and-hold, gateway/trace-inbound-screened-then-escalated, media-binding/renegotiation-reoffer-rejected-rolls-back, payload/answer-update-reply, payload/update-no-media, payload/update-valid-escalation … |
-| §12.9 | dsip-cli/console.rs, dsip-cli/main.rs, dsip-core/envelope.rs, dsip-core/lib.rs, dsip-core/verdict.rs, dsip-dht/record.rs, dsip-endpoint/verify.rs, dsip-mailbox/verify.rs, dsip-session/endpoint.rs, dsip-session/fork.rs, dsip-session/lib.rs, dsip-session/message.rs | 40 vector(s): broadcast/publication-expired, dht/hint-future-rejected, dht/hint-held-accepted, dht/hint-held-duplicate, dht/hint-held-expired, dht/hint-held-newer-wins … |
+| §12.9 | dsip-cli/console.rs, dsip-cli/main.rs, dsip-core/envelope.rs, dsip-core/lib.rs, dsip-core/verdict.rs, dsip-dht/record.rs, dsip-endpoint/verify.rs, dsip-mailbox/verify.rs, dsip-number/lib.rs, dsip-session/endpoint.rs, dsip-session/fork.rs, dsip-session/lib.rs, dsip-session/message.rs | 40 vector(s): broadcast/publication-expired, dht/hint-future-rejected, dht/hint-held-accepted, dht/hint-held-duplicate, dht/hint-held-expired, dht/hint-held-newer-wins … |
 | §12.10 | dsip-cli/console.rs, dsip-core/registry.rs, dsip-schema/semantic.rs, dsip-session/endpoint.rs, dsip-session/lib.rs | 13 vector(s): messaging/call-event-missed-after-ring-timeout, payload/progress-queue-timeout-over-cap, payload/progress-queued-missing-timeout, payload/progress-queued-valid, payload/progress-ringing, payload/progress-unknown-status-shape-ok … |
 | §12.11 | dsip-cli/console.rs, dsip-relay/main.rs, dsip-session/endpoint.rs, dsip-session/fork.rs | 10 vector(s): gateway/trace-inbound-cancel, payload/cancel-valid, state/fork-responder-answered-elsewhere, state/race-responder-cancel-after-post-answer-traffic, state/relay-cancel-addressed-to-a-device-that-is-not-a-leg, state/relay-cancel-drops-queued-invite … |
 | §12.12 | dsip-cli/console.rs, dsip-core/registry.rs, dsip-endpoint/core.rs, dsip-endpoint/lib.rs, dsip-gateway/host/dsip_leg.rs, dsip-gateway/host/mod.rs, dsip-media/leg.rs, dsip-media/lib.rs, dsip-schema/lib.rs, dsip-schema/validate.rs, dsip-session/endpoint.rs, dsip-session/lib.rs, dsip-transport/agent.rs | 19 vector(s): gateway/trace-dtmf-both-ways, gateway/trace-dtmf-outside-the-call-ignored, gateway/trace-dtmf-rtp-events, media-binding/candidates-initiator-buffers-until-active, payload/info-bad-about, payload/info-dtmf-bad-digit … |
@@ -95,6 +98,7 @@ Profile, `M§n` Messaging Profile, `R§n` RTP/SRTP Media Binding.
 | §17.2 | dsip-gateway/host/media.rs | 2 vector(s): gateway/sdp-trunk-g711-opus-to-descriptors, media-binding/offer-plain-rtp-rejected |
 | §18.1 | dsip-cli/console.rs, dsip-core/trust.rs, dsip-endpoint/core.rs, dsip-gateway/lib.rs, dsip-transport/agent.rs, dsip-wasm/lib.rs | 17 vector(s): gateway/claims-attestation-a-verified, gateway/claims-no-identity-header, gateway/claims-orig-mismatch, gateway/claims-signature-failed, gateway/downgrade-inbound-no-attestation, gateway/trace-inbound-answered … |
 | §18.2 | dsip-cli/main.rs, dsip-core/trust.rs, dsip-endpoint/core.rs, dsip-transport/identity.rs | 1 vector(s): trust/tel-caller-with-cnam |
+| §18.3 | dsip-number/lib.rs | — |
 | §19 | — | 1 vector(s): state/responder-auto-reject-policy |
 | §19.1 | — | 1 vector(s): trust/basis-did-key |
 | §19.3 | dsip-session/endpoint.rs | — |
@@ -210,6 +214,13 @@ Profile, `M§n` Messaging Profile, `R§n` RTP/SRTP Media Binding.
 | C§5 | dsip-core/delegation.rs, dsip-mailbox/bin/dsip-msg.rs, dsip-messaging/checks.rs, dsip-messaging/mls_wire.rs, dsip-recording/lib.rs | 19 vector(s): messaging/recording-acceptance-in-personal-group, messaging/recording-acceptance-no-recorders, messaging/recording-acceptance-outside-personal-group-refused, recording/add-devices-all-devices-with-recorder, recording/add-devices-duplicate-device-once, recording/add-devices-none … |
 | C§6 | dsip-cli/console.rs, dsip-cli/main.rs, dsip-cli/record_fork.rs, dsip-cli/recorder.rs, dsip-endpoint/core.rs, dsip-media/backend/webrtc_rs.rs, dsip-media/leg.rs, dsip-media/source.rs, dsip-recording/lib.rs, dsip-transport/agent.rs | 16 vector(s): recording/session-direction, recording/session-direction-missing, recording/session-media-not-integer, recording/session-missing-capability, recording/session-no-streams, recording/session-not-declared … |
 | C§7 | dsip-cli/main.rs, dsip-recording/lib.rs | 1 vector(s): semantic/reason-recording-declined-on-error |
+| N§3 | — | 159 vector(s): tn-binding/anchor-bad-entries-ignored, tn-binding/anchor-each-qualifying-tried, tn-binding/anchor-with-whitespace-ignored, tn-binding/attested-by-common-name, tn-binding/attested-by-first-organization, tn-binding/attested-by-invalid-utf8-passed-over … |
+| N§3.1 | dsip-number/lib.rs | — |
+| N§3.2 | dsip-number/lib.rs | — |
+| N§3.3 | dsip-number/lib.rs | — |
+| N§3.4 | dsip-number/lib.rs | — |
+| N§4 | dsip-number/lib.rs | — |
+| N§9 | dsip-number/lib.rs | — |
 
 ## Headed sections cited by neither a module nor a vector
 
@@ -217,7 +228,7 @@ Numbered headings of each v0.11 document that no `Spec:` line or `spec_ref` name
 not cover its subsections here. Informative and scope sections are expected to appear; a normative one
 is a candidate for the next vector.
 
-- **Core** (`dsip_v_0_11_decentralized_session_initiation_protocol.md`): §1, §3.3, §5.1, §5.4, §5.6, §5.7, §6.1, §6.2, §7.1, §7.7, §8, §8.2, §9.5, §10.1, §13, §13.4, §13.5, §14, §16, §16.1, §17.3, §17.4, §18, §18.3, §18.4, §19.2, §20, §20.1, §20.2, §20.3, §20.8, §21, §21.1, §21.2, §21.4, §23, §23.1, §23.2, §23.3, §24, §24.1, §24.2, §24.3, §24.4, §25, §25.2, §25.3, §25.4, §28, §29
+- **Core** (`dsip_v_0_11_decentralized_session_initiation_protocol.md`): §1, §3.3, §5.1, §5.4, §5.6, §5.7, §6.1, §6.2, §7.1, §7.7, §8, §8.2, §9.5, §10.1, §13, §13.4, §13.5, §14, §16, §16.1, §17.3, §17.4, §18, §18.4, §19.2, §20, §20.1, §20.2, §20.3, §20.8, §21, §21.1, §21.2, §21.4, §23, §23.1, §23.2, §23.3, §24, §24.1, §24.2, §24.3, §24.4, §25, §25.2, §25.3, §25.4, §28, §29
 - **WebRTC Media Binding** (`dsip-webrtc-media-binding-v0.11.md`): B§3, B§3.2, B§4, B§5.3, B§6, B§9, B§10, B§11
 - **Gateway Profile** (`dsip-gateway-profile-v0.11.md`): G§1, G§2, G§3, G§3.1, G§3.2, G§4, G§4.1, G§4.2, G§6, G§8, G§10, G§11
 - **Messaging Profile** (`dsip-messaging-profile-v0.11.md`): M§2, M§2.1, M§2.2, M§2.3, M§3, M§4, M§4.1, M§6, M§6.10, M§7, M§9.5, M§10.1, M§12.5, M§15, M§15.1, M§15.2, M§15.3, M§15.6, M§18, M§19
@@ -225,3 +236,4 @@ is a candidate for the next vector.
 - **Device Events Profile** (`dsip-device-events-profile-v0.11-draft.md`): E§1, E§7
 - **Alias Transparency Profile** (`dsip-alias-transparency-profile-v0.11-draft.md`): T§1, T§4, T§6
 - **Recording Profile** (`dsip-recording-profile-v0.11-draft.md`): C§8
+- **Number Attestation Profile** (`dsip-number-attestation-profile-v0.11-draft.md`): N§1, N§2, N§5, N§6, N§7, N§8, N§10

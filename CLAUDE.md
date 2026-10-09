@@ -26,7 +26,7 @@ impl/               PoC Cargo workspace (living code; tracks spec versions via
                     git tags poc-v0.6, poc-v0.7, poc-v0.8, poc-v0.8.1, …, never via folder placement)
 impl/vectors/       Language-neutral JSON test vectors (envelope/ payload/
                     semantic/ state/ transport/ dht/ broadcast/ media-binding/
-                    gateway/ trust/ messaging/ device-events/ recording/ …)
+                    gateway/ trust/ messaging/ device-events/ recording/ tn-binding/ …)
 impl/tools/         Python: vector generator + reference harness (dsipvec/), parity.py
                     (Rust/Python), parity_ts.py (Python/TypeScript), fuzz.py (differential
                     fuzzing of all three), spec_lint.py
@@ -36,7 +36,7 @@ impl/docs/          Plans, spec-gaps.md (every gap and its disposition), coverag
 impl/crates/        dsip-core, dsip-schema, dsip-session, dsip-endpoint, dsip-transport,
                     dsip-media, dsip-webrtc-binding, dsip-broadcast, dsip-dht, dsip-relay,
                     dsip-cli, dsip-wasm, dsip-gateway, dsip-messaging, dsip-mls,
-                    dsip-mailbox
+                    dsip-mailbox, dsip-number
 impl/demos/         Self-verifying wire demos run in CI: calls, media, broadcast, DHT,
                     gateway, and the messaging profile (one *-demo.sh per behaviour);
                     browser/ is the wasm client. Check names before adding one —
@@ -167,6 +167,7 @@ pip installs in this environment need `--break-system-packages`.
 | T§n | Alias Transparency Profile, draft (`v0.11/dsip-alias-transparency-profile-v0.11-draft.md`) — cite as `T§n` |
 | E§n | Device Events Profile, draft (`v0.11/dsip-device-events-profile-v0.11-draft.md`) — cite as `E§n` |
 | C§n | Recording Profile, draft (`v0.11/dsip-recording-profile-v0.11-draft.md`) — cite as `C§n` |
+| N§n | Number Attestation Profile, draft (`v0.11/dsip-number-attestation-profile-v0.11-draft.md`) — cite as `N§n` |
 | — | DHT Reachability Hints Profile, draft (`v0.11/dsip-dht-hints-profile-v0.11-draft.md`) — no prefix of its own; cite core §8.3 / §8.5 |
 
 ## Semantic checks (post-schema, must-implement)

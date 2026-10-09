@@ -21,7 +21,8 @@ CRATES = IMPL / "crates"
 VECTORS = IMPL / "vectors"
 SPEC = IMPL.parent / "v0.11"
 # `§n` = Core section; a letter prefix names a v0.11 companion document: `B§n` WebRTC Media Binding,
-# `G§n` Gateway Profile, `M§n` Messaging Profile, `R§n` RTP/SRTP Media Binding, `E§n` Device Events Profile, `T§n` Alias Transparency.
+# `G§n` Gateway Profile, `M§n` Messaging Profile, `R§n` RTP/SRTP Media Binding, `E§n` Device Events Profile, `T§n` Alias Transparency,
+# `C§n` Recording Profile, `N§n` Number Attestation Profile.
 SECTION_RE = None  # built from DOCS below, so every companion prefix is recognised
 DOCS = {
     "": ("Core", "dsip_v_0_11_decentralized_session_initiation_protocol.md", re.compile(r"^#{2,4} (\d+(?:\.\d+)*)[. ]")),
@@ -32,6 +33,7 @@ DOCS = {
     "E": ("Device Events Profile", "dsip-device-events-profile-v0.11-draft.md", re.compile(r"^#{2,4} E§(\d+(?:\.\d+)*)")),
     "T": ("Alias Transparency Profile", "dsip-alias-transparency-profile-v0.11-draft.md", re.compile(r"^#{2,4} T§(\d+(?:\.\d+)*)")),
     "C": ("Recording Profile", "dsip-recording-profile-v0.11-draft.md", re.compile(r"^#{2,4} C§(\d+(?:\.\d+)*)")),
+    "N": ("Number Attestation Profile", "dsip-number-attestation-profile-v0.11-draft.md", re.compile(r"^#{2,4} N§(\d+(?:\.\d+)*)")),
 }
 DOC_ORDER = {p: i for i, p in enumerate(DOCS)}
 PREFIXES = "".join(p for p in DOCS if p)

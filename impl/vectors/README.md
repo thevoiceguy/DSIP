@@ -34,6 +34,7 @@ vectors/
   recording/   Recording Profile draft (C§3–C§6): the counterparty's consent, recorded conversations, the recorder leg
   alias-transparency/ Alias Transparency Profile draft (T§2–T§5): KEYTRANS building blocks, alias normalization
   pkarr/       Reachability hints on Pkarr / BEP 44 for did:key subjects (§8.5; DHT Hints Profile §9; spec-gap 105)
+  tn-binding/  Number Attestation Profile draft (N§3): a STIR-signed number → DID binding and its checks (spec-gap 110)
 ```
 
 One vector per file. The vector id is its path relative to `vectors/` without
@@ -1549,6 +1550,165 @@ steps backwards, this is ahead of the clock: the one case the profile allows, si
 everywhere. A result above 2^53−1, which every reader rejects (`check: "hint"` step 4), is `{"error": "exhausted"}`:
 the publisher signs nothing.
 
+## Kind: `tn-binding`
+
+Verifying a number binding: a STIR-signed statement that a phone number is used by a DID (Number Attestation
+Profile, draft, N§3; spec-gap 110). Everything is offline. The vector supplies the certificate chain that `x5u`
+would serve, the trust list, the DID's document and the clock.
+
+**Context:**
+
+- `trust_anchors`: the STI-CA list. An array of DER certificates in padded base64 (RFC 4648 alphabet, `=` padding,
+  no whitespace). An entry that is not such a string, or does not parse as a certificate (step 2), is ignored.
+- `certificates`: `{url: text}`, what each `x5u` URL serves. A URL missing from this map cannot be fetched.
+- `spc_numbers`: `{spc: [digits]}`, the relying party's lookup of the numbers assigned to each Service Provider
+  Code. Numbers are written without the `+`.
+- `require_status`: a boolean, the relying party's policy for step 8.
+- `status`: `{url: "good" | "revoked"}`, what each status URL answers. A URL missing from this map does not answer,
+  and neither does one whose value is anything other than these two strings.
+
+**Input:** `{binding, did, did_document, now}`.
+
+- `binding` is the compact JWS text.
+- `did` is the DID being checked.
+- `did_document` is its resolved document, or `null` when resolution failed.
+- `now` is integer Unix seconds.
+
+**Expect**, exactly one of:
+
+- `{"outcome": "verified", "tn", "did", "expires", "attested_by"}`.
+  - `tn` and `did` are the payload's.
+  - `expires` is the payload's `exp`.
+  - `attested_by` is the first organizationName (2.5.4.10) in the leaf certificate's subject, in encoded order. When
+    there is none, it is the first commonName (2.5.4.3). When there is neither, it is `null`. Only UTF8String and
+    PrintableString values count, and only when their bytes are valid UTF-8. Any other attribute of the right type is
+    passed over: another string type, or bytes that are not UTF-8.
+- `{"outcome": "rejected", "reason"}`, with `reason` from the steps below.
+
+**Check order (normative for parity).** The first failing step gives the reason. Within a step, the order of the
+checks does not matter, because they all give that step's reason.
+
+1. **`malformed`.**
+   - **Shape.** `binding` is three segments separated by `.`. Each is base64url: the alphabet `A–Z a–z 0–9 - _`, no
+     `=`, and a length that is not 1 more than a multiple of 4. Non-zero unused bits in the last character are
+     accepted (RFC 4648 §3.5). The third segment is not empty.
+   - **JSON.** The decoded header and the decoded payload are each UTF-8, and each is an I-JSON object:
+     - it parses as JSON, and a leading byte-order mark is not JSON;
+     - no object has a member name twice;
+     - no string or name contains a lone surrogate, escaped or not;
+     - every number is an integer from −(2^53−1) to 2^53−1, written without a fraction or exponent.
+   - **Header.**
+     - `alg` is the string `ES256`;
+     - `typ` is the string `dsip-tn-binding+jwt`;
+     - `x5u` is a string that starts `https://`;
+     - there is no `crit` member.
+     - Other members are ignored.
+   - **Payload.**
+     - `tn` is a string matching `^\+[1-9][0-9]{1,14}$`;
+     - `did` is a string that starts `did:`;
+     - `iat` is an integer ≥ 0;
+     - `exp` is an integer greater than `iat`;
+     - `jti` is a string matching `^[0-7][0-9A-HJKMNP-TV-Z]{25}$`;
+     - `status` is absent, or a string that starts `https://`. `null` is not absent.
+     - Other members are ignored.
+2. **`untrusted-certificate`.**
+   - **Fetch.** `certificates` has an entry for `x5u`.
+   - **PEM.** The text holds at least one block from a `-----BEGIN CERTIFICATE-----` line to the next
+     `-----END CERTIFICATE-----` line, with no block left open.
+     - Lines end in LF or CRLF. A marker line is exactly the marker: no other characters, leading or trailing.
+     - Text outside the blocks is ignored.
+     - A block's body lines, with SP, HT, CR and LF removed, are padded base64: RFC 4648's alphabet, `=` padding,
+       and a length that is a multiple of 4. Non-zero unused bits in the last character are accepted (RFC 4648 §3.5).
+     - The blocks are the **chain**, leaf first. Every block must parse, including any after an anchor.
+   - **Parse.** Each block is an X.509 v3 certificate (`version` 2) in DER, and nothing follows it. Also:
+     - its `tbsCertificate` `signature` field is byte-for-byte the outer `signatureAlgorithm`;
+     - no extension appears twice (RFC 5280 §4.2);
+     - a basicConstraints with `cA` false has no pathLenConstraint (RFC 5280 §4.2.1.9);
+     - its basicConstraints and keyUsage, if present, decode (a negative pathLenConstraint does not);
+     - its TNAuthList, if present, is well-formed (below).
+
+     These hold for every block, including blocks after an anchor.
+
+     **Not pinned:** other encodings that DER or RFC 5280 forbid inside a certificate a CA signed. Examples:
+     - a BOOLEAN other than `00` or `FF`;
+     - a DEFAULT value encoded;
+     - a non-minimal BIT STRING;
+     - an empty `extensions` SEQUENCE;
+     - GeneralizedTime before 2050;
+     - a serial number that is negative, zero or longer than 20 bytes;
+     - a PrintableString outside its character set.
+
+     A verifier may refuse such a certificate (`untrusted-certificate`) or read it as it reads. The vectors and the
+     differential fuzz avoid them (spec-gap 110).
+   - **The path.** It is the chain up to and including the first certificate that is byte-for-byte a trust anchor,
+     and the rest of the chain is ignored.
+     - When no chain certificate is an anchor, the path is the whole chain plus an **issuing anchor**: a trust
+       anchor whose subject equals the last chain certificate's issuer and whose key verifies its signature.
+     - When several anchors qualify, step 2 passes if the path through any one of them passes every check below.
+     - With no such anchor, the check fails.
+   - **Links.** Each chain certificate on the path, except an anchor that ends it, must link to the certificate
+     after it on the path:
+     - its issuer is byte-for-byte the next one's subject (the DER `Name`, not compared as text);
+     - the next one's key verifies its signature over its `tbsCertificate` bytes.
+   - **Every certificate on the path,** the anchor included:
+     - its `signatureAlgorithm` is ecdsa-with-SHA256 (1.2.840.10045.4.3.2), with no parameters;
+     - its key is id-ecPublicKey on prime256v1 (1.2.840.10045.3.1.7), and the point is valid;
+     - it is valid at `now`: notBefore ≤ `now` ≤ notAfter;
+     - it has no critical extension other than basicConstraints (2.5.29.19), keyUsage (2.5.29.15) and TNAuthList
+       (1.3.6.1.5.5.7.1.26).
+
+     The anchor's own signature is never checked.
+   - **Issuers.** Number the path from 0 (the leaf). Every certificate at position *p* ≥ 1 issues the one before it,
+     and:
+     - it has basicConstraints with `cA` true;
+     - if it has keyUsage, `keyCertSign` is set;
+     - if it has a pathLenConstraint *L*, then *p* − 1 ≤ *L*.
+   - **Leaf.** If the leaf has keyUsage, `digitalSignature` is set.
+   - **A well-formed TNAuthList** (RFC 8226 §9, EXPLICIT tags) is the extension's value: a DER `SEQUENCE` of one or
+     more entries, and nothing after it. Each entry is exactly one of:
+     - `[0]` (`A0`) wrapping an IA5String: an **spc**, at least 1 byte, every byte below 0x80;
+     - `[1]` (`A1`) wrapping a `SEQUENCE` of exactly a TelephoneNumber **start** and an `INTEGER` **count** ≥ 2;
+     - `[2]` (`A2`) wrapping a TelephoneNumber: **one**.
+
+     A TelephoneNumber is an IA5String of 1 to 15 characters from `0123456789#*`. DER is strict:
+     - lengths are definite and minimal (the short form below 128);
+     - an `INTEGER` has no redundant leading `00` or `FF` byte;
+     - every tagged or constructed element holds exactly its contents.
+3. **`signature`.**
+   - The third segment decodes to exactly 64 bytes. They are *r* then *s*, each 32 bytes big-endian.
+   - 0 < *r*, *s* < *n*, the P-256 order.
+   - The leaf key verifies ECDSA over SHA-256 of the signing input: the ASCII header segment, `.`, the payload
+     segment, as received.
+   - A high *s* is accepted, as ECDSA allows.
+4. **`not-authorized-for-tn`.** The leaf has no TNAuthList, or some certificate on the path has a TNAuthList that does
+   not cover `tn`. With *D* being `tn` without its `+`, a list covers it when one entry does:
+   - **one**: the entry equals *D*;
+   - **range**: start is all digits, start has the same length as *D*, and 0 ≤ *D* − start < count, compared as
+     integers;
+   - **spc**: `spc_numbers[spc]` exists and contains *D*.
+5. **Time.**
+   - **`lifetime-too-long`**: `exp − iat` > 604800.
+   - **`not-yet-valid`**: `iat` > `now` + 300.
+   - **`expired`**: `now` ≥ `exp`.
+
+   These are checked in that order.
+6. **`did-mismatch`.** The payload's `did` is not `did`, compared exactly.
+7. **`not-claimed-by-did`.** `did_document` is not an object, its `id` is not `did`, its `alsoKnownAs` is not an
+   array, or no element of that array is the string `tel:` + `tn`.
+8. **Status**, only when `require_status` is true; otherwise `status` is never consulted:
+   - **`status-unavailable`**: the payload has no `status`, or `status` has no entry for it;
+   - **`revoked`**: the entry is `revoked`.
+
+**Fixtures.** The vector generator makes a test STIR PKI:
+- an STI-CA root;
+- an intermediate CA;
+- service-provider certificates with each kind of TNAuthList entry;
+- an RFC 9060 delegate certificate;
+- certificates that break each step-2 rule.
+
+Keys are P-256 scalars from `sha256("dsip-vector-tn:" + name)`. Signatures use RFC 6979 deterministic nonces, so the
+vectors regenerate byte for byte.
+
 ## Spec-gap list (Impl decisions these vectors encode)
 
 Each item has a matching `spec-gap` issue draft in `impl/docs/spec-gaps.md`.
@@ -1617,6 +1777,13 @@ Each item has a matching `spec-gap` issue draft in `impl/docs/spec-gaps.md`.
     screened (`state/relay-user-cancel-all-legs`, `relay-answer-from-an-expired-leg-is-forwarded`,
     `relay-answer-from-a-rejected-leg-is-forwarded`).
 73. §9.3 vs §15.4: a terminal `notify` carries `session.expired` / `policy.terminated`, tokens the registry lists as valid on other types only; no warning on `notify` (`semantic/notify-terminated-reason`, by the deep-equality rule above).
+110. N§3 / N§7: Number Attestation Profile draft choices pinned by `tn-binding/*`:
+     - the 7-day lifetime cap;
+     - certificates checked at the verification time, not at `iat`;
+     - every TNAuthList on the path must cover the number;
+     - the 300 s `iat` tolerance;
+     - the step 8 policy switch;
+     - E.164 only.
 34–43. Messaging Profile draft choices (hub ordering, archive first-wins, first-contact authorization, `mailbox` tokens, `MAX_MLS_BYTES`, ephemeral lifetime) pinned by `messaging/*`; see the v0.8 messaging worklist in `impl/docs/spec-gaps.md`.
 
 Emission ordering convention for state traces: timer stops → sends → media →

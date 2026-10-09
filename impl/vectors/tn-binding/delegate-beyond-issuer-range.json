@@ -1,0 +1,43 @@
+{
+  "vector": "tn-binding/delegate-beyond-issuer-range",
+  "format": 1,
+  "kind": "tn-binding",
+  "description": "A delegate leaf names a number its issuer's TNAuthList does not cover: every TNAuthList on the path must cover it.",
+  "spec_ref": [
+    "N§3"
+  ],
+  "context": {
+    "trust_anchors": [
+      "MIIBmTCCAUCgAwIBAgIBATAKBggqhkjOPQQDAjBEMQswCQYDVQQGEwJVUzEXMBUGA1UECgwORXhhbXBsZSBTVEktQ0ExHDAaBgNVBAMME0V4YW1wbGUgU1RJLUNBIFJvb3QwHhcNMTUxMDEyMDg1MzIwWhcNMzUxMDA3MDg1MzIwWjBEMQswCQYDVQQGEwJVUzEXMBUGA1UECgwORXhhbXBsZSBTVEktQ0ExHDAaBgNVBAMME0V4YW1wbGUgU1RJLUNBIFJvb3QwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAAQIGId1toA8e/M026BVPerIINtBWq9FFUWOx7AY78G2Eks6saNAimUzWZNLhj/GMIw1yTq1zkjMntBDBeRlYL89oyMwITAPBgNVHRMBAf8EBTADAQH/MA4GA1UdDwEB/wQEAwIBBjAKBggqhkjOPQQDAgNHADBEAiBps4b0NFLWu9y/1fcnOo/EZ+jSSP/93MpMSPQAVLCdeAIgNxZ8bTG/bVMqzMgcVRhubnckrpeA3DUTTI0if7J/UmE="
+    ],
+    "certificates": {
+      "https://cr.carrier.example/sti.pem": "-----BEGIN CERTIFICATE-----\nMIIBkjCCATigAwIBAgIBDTAKBggqhkjOPQQDAjBCMRgwFgYDVQQKDA9DYXJyaWVy\nIEV4YW1wbGUxJjAkBgNVBAMMHUNhcnJpZXIgRXhhbXBsZSBEZWxlZ2F0aW9uIENB\nMB4XDTI1MDkwOTA4NTMyMFoXDTI2MTAwOTA4NTMyMFowMDEbMBkGA1UECgwSRW50\nZXJwcmlzZSBFeGFtcGxlMREwDwYDVQQDDAhEZWxlZ2F0ZTBZMBMGByqGSM49AgEG\nCCqGSM49AwEHA0IABEzTaQ4LSYm2y2/zOf7E6qopLrYCC7ix/HI05SEoJos/wjVm\nkB8C67L8C7ZxImi1zNBKpOR49qQPT3aQ2vBV+i2jMTAvMA4GA1UdDwEB/wQEAwIH\ngDAdBggrBgEFBQcBGgQRMA+iDRYLMTU1NTk5OTAwMDAwCgYIKoZIzj0EAwIDSAAw\nRQIgfc6C7TubyXbi5kIXA0LLPK65oIgN8Yvd17yR4niBDrwCIQCCECtr0c9dVSQB\nrz+O1i9J2hT1C4ql3o/35yADLUXFrQ==\n-----END CERTIFICATE-----\n-----BEGIN CERTIFICATE-----\nMIIBxDCCAWqgAwIBAgIBCzAKBggqhkjOPQQDAjBJMQswCQYDVQQGEwJVUzEXMBUG\nA1UECgwORXhhbXBsZSBTVEktQ0ExITAfBgNVBAMMGEV4YW1wbGUgU1RJLUNBIElz\nc3VpbmcgMTAeFw0yNTA5MDkwODUzMjBaFw0yNjEwMDkwODUzMjBaMEIxGDAWBgNV\nBAoMD0NhcnJpZXIgRXhhbXBsZTEmMCQGA1UEAwwdQ2FycmllciBFeGFtcGxlIERl\nbGVnYXRpb24gQ0EwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAAQg824OaZdkbe3n\nC0RzDZCEcw7lL9NFH2GY+3QdUiumQE7RaqVrYRFbGF8kOQTRc/1SlBLohR76NT4l\n2eRjxqAPo0owSDASBgNVHRMBAf8ECDAGAQH/AgEAMA4GA1UdDwEB/wQEAwIBBjAi\nBggrBgEFBQcBGgQWMBShEjAQFgsxNTU1MTIzNDUwMAIBZDAKBggqhkjOPQQDAgNI\nADBFAiEAlu5XTRc3uQ1xmaZPWmoBefqTW3Kf7ko5/H76bRkuFk8CIHeVsjhHgSUV\n4nmvTgsAwG4rDuYuWIuiLfoluej5Hs4w\n-----END CERTIFICATE-----\n-----BEGIN CERTIFICATE-----\nMIIBozCCAUigAwIBAgIBAjAKBggqhkjOPQQDAjBEMQswCQYDVQQGEwJVUzEXMBUG\nA1UECgwORXhhbXBsZSBTVEktQ0ExHDAaBgNVBAMME0V4YW1wbGUgU1RJLUNBIFJv\nb3QwHhcNMjMwMTEzMDg1MzIwWhcNMjgwNzA1MDg1MzIwWjBJMQswCQYDVQQGEwJV\nUzEXMBUGA1UECgwORXhhbXBsZSBTVEktQ0ExITAfBgNVBAMMGEV4YW1wbGUgU1RJ\nLUNBIElzc3VpbmcgMTBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABKbmN4mLOh1E\nenX0Mmp4yvTIqs9jVizuFIVcJPdlDVbhbrEsdacRwtyTQlqKksz2kujA4wB5XcMg\n9eflRPoTGJ+jJjAkMBIGA1UdEwEB/wQIMAYBAf8CAQEwDgYDVR0PAQH/BAQDAgEG\nMAoGCCqGSM49BAMCA0kAMEYCIQDX9HWw6uIXemLv1MzXU3oJ4uyyjhTISig8GANP\ntZoBRQIhAO+w9V+hBZdwJHItmd/HMm9+tMQJMlMqnHhDzv89tDHO\n-----END CERTIFICATE-----\n"
+    },
+    "spc_numbers": {
+      "709J": [
+        "15553330000",
+        "15553330002"
+      ]
+    },
+    "require_status": false,
+    "status": {}
+  },
+  "input": {
+    "binding": "eyJhbGciOiJFUzI1NiIsInR5cCI6ImRzaXAtdG4tYmluZGluZytqd3QiLCJ4NXUiOiJodHRwczovL2NyLmNhcnJpZXIuZXhhbXBsZS9zdGkucGVtIn0.eyJ0biI6IisxNTU1OTk5MDAwMCIsImRpZCI6ImRpZDp3ZWI6YWxpY2UuZXhhbXBsZSIsImlhdCI6MTc1OTk5NjQwMCwiZXhwIjoxNzYwMDgyODAwLCJqdGkiOiIwMUs2WjhSOFFBRVhBTVAxRUIxTkRORzAwMSJ9.x8OVI0h8Ns1tdBM8jByjifI8BQDwtLjdgNzkX31_r23tIons-6sAAOGx6Z5UdZtW7wIQjwfNWwassEH07mtL2Q",
+    "did": "did:web:alice.example",
+    "did_document": {
+      "@context": [
+        "https://www.w3.org/ns/did/v1"
+      ],
+      "id": "did:web:alice.example",
+      "alsoKnownAs": [
+        "tel:+15559990000"
+      ]
+    },
+    "now": 1760000000
+  },
+  "expect": {
+    "outcome": "rejected",
+    "reason": "not-authorized-for-tn"
+  }
+}
