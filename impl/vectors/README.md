@@ -245,6 +245,13 @@ of the `kid`; `identity` is the DID the signer acts for (`from`, or
 "expect": { "verdict": "accept" } | { "verdict": "reject", "code": "schema-invalid" }
 ```
 
+Schema `pattern`s are ECMA-262 regular expressions (JSON Schema 2020-12 §6.4). Two consequences:
+- `$` matches only at the end of the string, so a value with a trailing newline fails `^…$`;
+- `\d` is ASCII.
+
+A validator built on another regex dialect must translate. Python's `re` needs both fixes; see
+`tools/dsipvec/schema.py`.
+
 ## Kind: `semantic`
 
 Input is a decoded payload plus whatever receiver context the check needs:
@@ -1588,7 +1595,7 @@ would serve, the trust list, the DID's document and the clock.
 **Check order (normative for parity).** The first failing step gives the reason. Within a step, the order of the
 checks does not matter, because they all give that step's reason.
 
-1. **`malformed`.**
+1. **`malformed`.** Every pattern in this section matches the whole string: a trailing newline is not allowed.
    - **Shape.** `binding` is three segments separated by `.`. Each is base64url: the alphabet `A–Z a–z 0–9 - _`, no
      `=`, and a length that is not 1 more than a multiple of 4. Non-zero unused bits in the last character are
      accepted (RFC 4648 §3.5). The third segment is not empty.
@@ -1732,6 +1739,58 @@ it.
     `<tn> now belongs to a different identity (number attested by <attested_by> since <date>). Your contact "<name>" is <contact did>.`
     - `<date>` is `issued` as a UTC calendar date, `YYYY-MM-DD`.
     - When `attested_by` is `null`, the parenthesis reads `(number attested since <date>)`.
+
+**`check: "store"`** is a `dsip-node`'s verify-before-store for `PUT /dsip/v1/tn/<tn>`: discovery route 1 (N§6).
+A node resolves no DIDs, so it applies verification steps 1–5 only. The reader applies all eight.
+- **Input:** `{check, tn, binding, held, now}`, with the same context as verification.
+  - `tn` is the path segment.
+  - `held` is the array of bindings the node holds for `tn`. Each one passed this check earlier and is not verified
+    again; only its payload is read. An entry whose payload does not read is dropped with the expired ones. Reading
+    it means:
+    - three `.`-separated segments, the second base64url;
+    - decoding to an I-JSON object;
+    - with a string `did`, and integer `iat` and `exp`.
+  - A `held` that is not an array is empty.
+  - A held set with two entries for one DID is outside the contract: this check never makes one.
+- **Expect:** `{"outcome": "stored", "held"}`, `{"outcome": "kept", "reason"}` or `{"outcome": "rejected", "reason"}`.
+  `held` is the new set: by `iat` newest first, then by binding text in byte order.
+
+The first rule that applies decides:
+1. **`bad-number`:** `tn` does not match `^\+[1-9][0-9]{1,14}$`.
+2. **Verification steps 1–5:** the first failing step's reason (`malformed` … `expired`).
+3. **`tn-mismatch`:** the payload's `tn` is not `tn`.
+4. **Against `held`.**
+   - Held bindings with `now` ≥ `exp` are dropped first.
+   - When a held binding names the same `did`:
+     - the same text: `kept`, `same`;
+     - a greater `iat`: `stored`, replacing it;
+     - otherwise: `kept`, `older`.
+   - Otherwise, while fewer than **4** are held: `stored`, added.
+   - Otherwise the **eviction candidate** is the held binding with the smallest `iat`; among equals, the greatest
+     binding text. If the new `iat` is greater than the candidate's: `stored`, the candidate evicted. Otherwise:
+     `kept`, `full`.
+
+HTTP answers: `stored` and `same` are 204, `older` and `full` are 409, and `rejected` is 400. `GET
+/dsip/v1/tn/<tn>` answers 200 `{"bindings": [...]}`: the unexpired held set, in the order above, and `[]` when there
+are none.
+
+**`check: "select"`** is the reader's choice among the bindings a lookup returned: number → DID (N§6, N§7).
+- **Input:** `{check, tn, bindings, documents, now}`, with the same context as verification. `documents` maps each
+  DID to its resolved document; a DID missing from it did not resolve.
+- **Each binding** in `bindings` is verified, all eight steps, as follows:
+  - the DID being checked is its own payload's `did`, and its document is `documents[did]` (or `null`);
+  - a `bindings` that is not an array is empty, and a `documents` that is not an object resolves nothing;
+  - a binding that does not parse, fails a step, or whose `tn` is not `tn` is passed over.
+- **Expect:**
+  - `{"outcome": "none"}` when none verifies.
+  - Otherwise `{"outcome": "found", "did", "attested_by", "issued", "others"}`:
+    - the **winner** is the verified binding with the greatest `iat`, ties broken by the smallest binding text in
+      byte order;
+    - `did`, `attested_by` and `issued` (its `iat`) are the winner's;
+    - `others` holds the other verified bindings' DIDs that differ from the winner's, each once, sorted.
+
+    A non-empty `others` means two identities hold verified claims to the number: a port in progress, or a hijack.
+    The client uses the winner and says so (N§7).
 
 **Fixtures.** The vector generator makes a test STIR PKI:
 - an STI-CA root;

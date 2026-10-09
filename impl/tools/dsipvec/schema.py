@@ -7,10 +7,12 @@ source of truth.
 from __future__ import annotations
 
 import json
+import re
 from functools import lru_cache
 from pathlib import Path
 
-from jsonschema import Draft202012Validator
+from jsonschema import Draft202012Validator, validators
+from jsonschema.exceptions import ValidationError
 
 from .registry import MESSAGE_TYPES
 
@@ -22,9 +24,39 @@ BINDING_DATA_SCHEMAS = {"transport:webrtc": "webrtc-info-data", "media:dtmf": "d
 
 
 @lru_cache(maxsize=None)
+def ecma_regex(pattern: str) -> re.Pattern:
+    """JSON Schema patterns are ECMA-262 regexes (draft 2020-12 §6.4). Python's differ in two ways that matter here:
+    `$` also matches before a final newline, and `\\d` matches non-ASCII digits. An unescaped `$` outside a class
+    becomes `\\Z`, and the pattern is ASCII. The other runners (Rust `regex`, JavaScript) need no translation."""
+    out, i, in_class = [], 0, False
+    while i < len(pattern):
+        c = pattern[i]
+        if c == "\\":
+            out.append(pattern[i:i + 2])
+            i += 2
+            continue
+        if c == "[":
+            in_class = True
+        elif c == "]":
+            in_class = False
+        out.append("\\Z" if c == "$" and not in_class else c)
+        i += 1
+    return re.compile("".join(out), re.ASCII)
+
+
+def _ecma_pattern(v, pattern, instance, schema):
+    if v.is_type(instance, "string") and not ecma_regex(pattern).search(instance):
+        yield ValidationError(f"{instance!r} does not match {pattern!r}")
+
+
+# The validator every schema check in this harness uses: draft 2020-12 with ECMA-262 `pattern` semantics.
+Validator = validators.extend(Draft202012Validator, {"pattern": _ecma_pattern})
+
+
+@lru_cache(maxsize=None)
 def validator(name: str) -> Draft202012Validator:
     schema = json.loads((SCHEMA_DIR / f"{name}.schema.json").read_text())
-    return Draft202012Validator(schema)
+    return Validator(schema)
 
 
 def schema_errors(name: str, payload) -> list[str]:

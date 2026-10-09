@@ -8,7 +8,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
-REASON_RE = re.compile(r"^[a-z][a-z0-9-]*\.[a-z][a-z0-9-]*$")
+REASON_RE = re.compile(r"^[a-z][a-z0-9-]*\.[a-z][a-z0-9-]*\Z")
 
 CATEGORIES = ("user", "endpoint", "identity", "session", "media", "policy", "transport", "gateway",
               "mailbox")  # v0.8 (spec-gap 38): Messaging Profile mailbox conditions

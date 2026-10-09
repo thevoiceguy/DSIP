@@ -718,6 +718,106 @@ def vectors() -> list[dict]:
     addk("date-is-utc", "The date is the UTC calendar date of `issued` (23:59:59 UTC).", [alice_c],
          {**att, "issued": 1759535999}, warn)
     addk("empty-book", "An empty address book.", [], att, None)
+    add("malformed-tn-trailing-newline", "`tn` with a trailing LF: patterns match the whole string.", M,
+        jws(p=claims(tn=TN + "\n")))
+    add("malformed-jti-trailing-newline", "`jti` with a trailing LF.", M, jws(p=claims(jti=JTI + "\n")))
+    addc("dropped-number-trailing-newline", "A claim number with a trailing LF is not E.164: no line.",
+         tel(TN + "\n"), {"outcome": "dropped", "reason": "number-mismatch", "line": None})
+
+    # --- check: store (a node's PUT, N§6 route 1) -------------------------------------------------------------
+    def adds(vid, desc, binding, held, expect, tn=TN, context=None, now=NOW):
+        out.append(tv(f"store-{vid}", desc, context or ctx(),
+                      {"check": "store", "tn": tn, "binding": binding, "held": held, "now": now}, expect, ["N§6", "N§3.4"]))
+
+    def order(bs):
+        return sorted(bs, key=lambda b: (-json.loads(base64.urlsafe_b64decode(b.split(".")[1] + "==="))["iat"], b))
+
+    def bnd(did=DID, iat=IAT, jti=JTI, tn=TN, exp=None):
+        return jws(p=claims(did=did, iat=iat, exp=exp or iat + 86400, jti=jti, tn=tn))
+    b0 = jws()
+    STORED = lambda held: {"outcome": "stored", "held": order(held)}  # noqa: E731
+    adds("first", "The first binding for a number is stored.", b0, [], STORED([b0]))
+    adds("bad-number", "The path is not E.164.", b0, [], rej("bad-number"), tn=D)
+    adds("bad-number-before-binding", "A bad path and a malformed binding: bad-number first.", "x.y", [],
+         rej("bad-number"), tn="tel:" + TN)
+    adds("malformed", "A binding that is not a compact JWS.", "x.y", [], rej("malformed"))
+    adds("untrusted", "A binding whose x5u the node cannot fetch.", jws(h=header(x5u="https://other.example/x.pem")),
+         [], rej("untrusted-certificate"))
+    adds("signature", "A binding signed by the wrong key.", jws(k=key("mallory")), [], rej("signature"))
+    adds("not-covered", "A number the certificate does not cover.", bnd(tn="+15550000001"), [],
+         rej("not-authorized-for-tn"), tn="+15550000001")
+    adds("expired", "An expired binding.", b0, [], rej("expired"), now=EXP)
+    adds("tn-mismatch", "A valid binding for another number than the path names.", bnd(tn="+15552000000"), [],
+         rej("tn-mismatch"))
+    bm = bnd(did="did:web:nobody.example")
+    adds("did-not-resolved", "A node resolves no DIDs: a binding whose DID it could not check is stored (steps 6–8 are "
+         "the reader's).", bm, [], STORED([bm]))
+    adds("same", "The same binding again.", b0, [b0], {"outcome": "kept", "reason": "same"})
+    adds("bad-number-trailing-newline", "A path with a trailing LF is not E.164.", b0, [], rej("bad-number"),
+         tn=TN + "\n")
+    unreadable = ["x.y", "a.!!!.c", jws(p={"did": "did:web:q.example", "iat": "1", "exp": EXP}),
+                  jws(p={"iat": IAT, "exp": EXP}), jws(p={"did": "did:web:r.example", "iat": IAT})]
+    adds("unreadable-held-dropped", "Held entries whose payload does not read (two segments, a bad segment, a string "
+         "iat, no did, no exp) are dropped like expired ones.", b0, [u for u in unreadable if u], STORED([b0]))
+    b_old = bnd(iat=IAT - 100, jti="01K6Z8R8QAEXAMP1EB1NDNG002")
+    adds("newer-replaces", "A newer binding for the same DID replaces the held one.", b0, [b_old], STORED([b0]))
+    adds("older-kept", "An older binding for the same DID is not stored.", b_old, [b0], {"outcome": "kept", "reason": "older"})
+    b_same_iat = bnd(jti="01K6Z8R8QAEXAMP1EB1NDNG003")
+    adds("same-iat-different-binding", "Another binding for the same DID with the same iat: the held one stays.",
+         b_same_iat, [b0], {"outcome": "kept", "reason": "older"})
+    bx = bnd(did="did:web:x.example", iat=IAT - 50)
+    adds("second-did-added", "A binding for another DID is added beside the held one: the reader decides (N§7).",
+         bx, [b0], STORED([b0, bx]))
+    b_exp = bnd(did="did:web:gone.example", iat=NOW - 90000, exp=NOW - 10)
+    adds("expired-held-dropped", "An expired held binding is dropped before the new one is weighed.", b0, [b_exp],
+         STORED([b0]))
+    four = [bnd(did=f"did:web:h{i}.example", iat=IAT + 10 * i) for i in range(1, 5)]
+    adds("full", "Four live bindings for other DIDs, all newer: kept, full.", bnd(did="did:web:new.example", iat=IAT),
+         four, {"outcome": "kept", "reason": "full"})
+    newest = bnd(did="did:web:new.example", iat=IAT + 100)
+    adds("full-evicts-oldest", "Four held; a newer binding evicts the one with the smallest iat.", newest, four,
+         STORED(four[1:] + [newest]))
+    tie = [bnd(did=f"did:web:t{i}.example", iat=IAT) for i in range(1, 3)] + four[2:]
+    victim = max(tie[:2])
+    adds("full-evicts-greatest-text-on-tie", "Two held share the smallest iat: the greater binding text is evicted.",
+         newest, tie, STORED([b for b in tie if b != victim] + [newest]))
+    adds("full-equal-iat-kept", "A new binding whose iat equals the eviction candidate's is not stored.",
+         bnd(did="did:web:new.example", iat=IAT + 10), four, {"outcome": "kept", "reason": "full"})
+
+    # --- check: select (number → DID, N§6–N§7) ---------------------------------------------------------------
+    def addq(vid, desc, bindings, documents, expect, tn=TN, now=NOW, context=None):
+        out.append(tv(f"select-{vid}", desc, context or ctx(),
+                      {"check": "select", "tn": tn, "bindings": bindings, "documents": documents, "now": now},
+                      expect, ["N§6", "N§7"]))
+    MAL = "did:web:mallory.example"
+    docs = {DID: doc(), MAL: doc(id_=MAL)}
+    b_mal = bnd(did=MAL, iat=IAT + 600, jti="01K6Z8R8QAEXAMP1EB1NDNG004")
+
+    def found(did=DID, issued=IAT, others=(), by="Carrier Example"):
+        return {"outcome": "found", "did": did, "attested_by": by, "issued": issued, "others": list(others)}
+    addq("one", "One verified binding: the number's DID.", [b0], docs, found())
+    addq("none-empty", "No bindings.", [], docs, {"outcome": "none"})
+    addq("skips-invalid", "Bindings that fail are passed over; the valid one is found.",
+         ["x.y", jws(k=key("mallory")), b0], docs, found())
+    addq("skips-unclaimed", "Mallory's binding is newer, but her document does not claim the number: passed over "
+         "(the two-way rule).", [b0, b_mal], {DID: doc(), MAL: doc("tel:+15550000000", id_=MAL)}, found())
+    addq("skips-unresolved", "A binding whose DID did not resolve is passed over.", [b_mal, b0], {DID: doc()}, found())
+    addq("both-claim-newer-wins", "Both DIDs claim the number: the newer iat wins, and the other DID is reported.",
+         [b0, b_mal], docs, found(MAL, IAT + 600, [DID]))
+    addq("both-claim-order-irrelevant", "Order of the returned bindings does not matter.", [b_mal, b0], docs,
+         found(MAL, IAT + 600, [DID]))
+    b0_older = bnd(iat=IAT - 100, jti="01K6Z8R8QAEXAMP1EB1NDNG002")
+    addq("same-did-twice", "Two bindings for the same DID: the newer is the winner; `others` is empty.",
+         [b0_older, b0], docs, found())
+    b_mal_tie = bnd(did=MAL, iat=IAT, jti="01K6Z8R8QAEXAMP1EB1NDNG005")
+    win = min(b0, b_mal_tie)
+    wd = DID if win == b0 else MAL
+    addq("tie-smallest-text", "Equal iat: the smallest binding text wins.", [b0, b_mal_tie], docs,
+         found(wd, IAT, [MAL if wd == DID else DID]))
+    addq("skips-other-number", "A binding for another number is passed over.",
+         [bnd(tn="+15552000000"), b0], {DID: doc("tel:+15552000000", f"tel:{TN}")}, found())
+    addq("none-all-fail", "Every binding fails.", [jws(k=key("mallory"))], docs, {"outcome": "none"})
+    addq("expired-skipped", "At `exp` the only binding has expired.", [b0], docs, {"outcome": "none"}, now=EXP)
     add("order-claim-before-status", "Not claimed back, and revoked: not-claimed-by-did first.", NC,
         jws(p=claims(status=st)), context=ctx(require_status=True, status={st: "revoked"}), document=doc("tel:+15559999999"))
     return out

@@ -218,9 +218,11 @@ Profile, `M§n` Messaging Profile, `R§n` RTP/SRTP Media Binding.
 | N§3.1 | dsip-number/lib.rs | — |
 | N§3.2 | dsip-number/lib.rs | — |
 | N§3.3 | dsip-cli/main.rs, dsip-number/lib.rs, dsip-transport/identity.rs | — |
-| N§3.4 | dsip-cli/console.rs, dsip-cli/main.rs, dsip-number/lib.rs | 16 vector(s): tn-binding/claim-attested, tn-binding/claim-attested-extra-members, tn-binding/claim-attested-unnamed-issuer, tn-binding/claim-dropped-binding-not-string, tn-binding/claim-dropped-binding-null, tn-binding/claim-dropped-expired … |
+| N§3.4 | dsip-cli/console.rs, dsip-cli/main.rs, dsip-number/lib.rs | 36 vector(s): tn-binding/claim-attested, tn-binding/claim-attested-extra-members, tn-binding/claim-attested-unnamed-issuer, tn-binding/claim-dropped-binding-not-string, tn-binding/claim-dropped-binding-null, tn-binding/claim-dropped-expired … |
 | N§4 | dsip-cli/console.rs, dsip-cli/main.rs, dsip-core/trust.rs, dsip-number/lib.rs | 19 vector(s): tn-binding/claim-attested, tn-binding/claim-attested-extra-members, tn-binding/claim-attested-unnamed-issuer, tn-binding/claim-dropped-binding-not-string, tn-binding/claim-dropped-binding-null, tn-binding/claim-dropped-expired … |
 | N§5 | dsip-cli/console.rs, dsip-cli/main.rs, dsip-number/lib.rs | 8 vector(s): tn-binding/contact-date-is-utc, tn-binding/contact-different-identity, tn-binding/contact-empty-book, tn-binding/contact-first-listing-contact, tn-binding/contact-one-of-two-matches, tn-binding/contact-same-identity … |
+| N§6 | dsip-cli/console.rs, dsip-cli/main.rs, dsip-node/config.rs, dsip-node/lib.rs, dsip-node/main.rs, dsip-number/lib.rs | 32 vector(s): tn-binding/select-both-claim-newer-wins, tn-binding/select-both-claim-order-irrelevant, tn-binding/select-expired-skipped, tn-binding/select-none-all-fail, tn-binding/select-none-empty, tn-binding/select-one … |
+| N§7 | dsip-cli/console.rs, dsip-node/lib.rs, dsip-number/lib.rs | 12 vector(s): tn-binding/select-both-claim-newer-wins, tn-binding/select-both-claim-order-irrelevant, tn-binding/select-expired-skipped, tn-binding/select-none-all-fail, tn-binding/select-none-empty, tn-binding/select-one … |
 | N§9 | dsip-number/lib.rs | — |
 
 ## Headed sections cited by neither a module nor a vector
@@ -237,4 +239,4 @@ is a candidate for the next vector.
 - **Device Events Profile** (`dsip-device-events-profile-v0.11-draft.md`): E§1, E§7
 - **Alias Transparency Profile** (`dsip-alias-transparency-profile-v0.11-draft.md`): T§1, T§4, T§6
 - **Recording Profile** (`dsip-recording-profile-v0.11-draft.md`): C§8
-- **Number Attestation Profile** (`dsip-number-attestation-profile-v0.11-draft.md`): N§1, N§2, N§6, N§7, N§8, N§10
+- **Number Attestation Profile** (`dsip-number-attestation-profile-v0.11-draft.md`): N§1, N§2, N§8, N§10

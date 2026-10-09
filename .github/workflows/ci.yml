@@ -141,6 +141,12 @@ jobs:
         # that it no longer belongs to Bob's stored contact.
         run: timeout 300 bash demos/number-attestation-demo.sh | tail -4
         working-directory: impl
+      - name: number discovery (Number Attestation Profile draft, N§6–N§7)
+        # Self-verifying: Bob dials tel:+15551234567 through a dsip-node and reaches the DID the number is bound to,
+        # verified end to end; nothing unpublished is found; the node refuses forged and uncovered bindings; a binding
+        # whose DID does not claim the number never wins; after a port the newer binding wins and the client says so.
+        run: timeout 300 bash demos/number-discovery-demo.sh | tail -4
+        working-directory: impl
       - name: the recorder leg (Recording Profile draft, C§6)
         # Self-verifying: from a second device of Bob's identity, one sendonly recording session per voice to the
         # declared recorder (checked for dsip.record first), Opus forwarded unchanged end to end; the recorder keeps one

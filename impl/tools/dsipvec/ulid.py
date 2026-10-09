@@ -5,7 +5,7 @@ import hashlib
 import re
 
 CROCKFORD = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
-ULID_RE = re.compile(r"^[0-7][0-9A-HJKMNP-TV-Z]{25}$")
+ULID_RE = re.compile(r"^[0-7][0-9A-HJKMNP-TV-Z]{25}\Z")
 _DECODE = {c: i for i, c in enumerate(CROCKFORD)}
 
 

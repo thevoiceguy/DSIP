@@ -1,0 +1,36 @@
+{
+  "vector": "payload/bye-reason-trailing-newline",
+  "format": 1,
+  "kind": "payload",
+  "description": "A reason token with a trailing LF fails the token pattern.",
+  "spec_ref": [
+    "§15.1"
+  ],
+  "context": {},
+  "input": {
+    "schema": "bye",
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "interactive-media/1.0"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "bye",
+      "id": "01K742SG00TQ22XR12G2J80BH4",
+      "from": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+      "to": "did:web:example.com:users:bob",
+      "session": "01K742SG001QG79X9HH56TS8SW",
+      "reason": "session.ended\n",
+      "issued_at": 1760000000,
+      "expires_at": 1760000030
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "schema-invalid"
+  }
+}

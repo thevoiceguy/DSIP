@@ -1,14 +1,16 @@
 /**
- * Using a verified number binding: the caller's own `tel` claim carrying a binding (N§4), and the warning a client
- * gives when a stored contact's number is now attested for a different identity (N§5).
+ * Using a verified number binding: the caller's own `tel` claim carrying a binding (N§4), the warning a client
+ * gives when a stored contact's number is now attested for a different identity (N§5), a node's verify-before-store
+ * of a published binding (N§6 route 1), and the reader's number → DID choice (N§6, N§7).
  *
  * Spec: N§4 (the claim checked against the envelope, a failed claim dropped, rendering), N§5 (a number that moves to
- * another identity), §18.1 (show the basis, never a generic badge), §18.2 (an unverified claim shown marked).
+ * another identity), N§6 (discovery: the DHT stays a hints tier, §8.1), N§7 (two verified bindings for one number),
+ * §18.1 (show the basis, never a generic badge), §18.2 (an unverified claim shown marked).
  * Impl: the exact lines are the conformance suite's (`impl/vectors/README.md`, kind `tn-binding`, `check: "claim"`
  * and `check: "contact"`); the spec gives their form, not their text.
  */
 import type { Json, JsonObject } from "../did.js";
-import { verifyTnBinding, type TnContext } from "./binding.js";
+import { readPayload, verifyAll, verifyFirstSteps, verifyTnBinding, type TnContext } from "./binding.js";
 
 /** Spec: N§1, N§3.1 — E.164: `+`, then 2 to 15 digits, the first not `0`. */
 const E164 = /^\+[1-9][0-9]{1,14}$/;
@@ -48,33 +50,16 @@ export function checkTelClaim(ctx: TnContext, input: JsonObject): ClaimOutcome {
 
   const binding = claim["binding"];
   if (typeof binding !== "string") return dropped("malformed");
-  const verified = verifyTnBinding(ctx, {
-    binding,
-    did: input["identity"] ?? null,
-    did_document: input["did_document"] ?? null,
-    now: input["now"] ?? null,
-  });
-  if (verified.outcome === "rejected") return dropped(verified.reason);
+  const verified = verifyAll(ctx, binding, input["identity"], input["did_document"], input["now"] as number);
+  if ("reason" in verified) return dropped(verified.reason);
   // N§4: `number` must equal the binding's `tn`, compared exactly (no normalisation).
   if (number !== verified.tn) return dropped("number-mismatch");
 
-  const by = verified.attested_by;
+  const by = verified.attestedBy;
   const line = by === null
     ? `${verified.tn} · number attested for this identity`
     : `${verified.tn} · number attested by ${by} for this identity`;
-  // `issued` is the binding's `iat`; verification has already checked it is an integer.
-  const iat = issuedAt(binding);
-  return { outcome: "attested", line, issued: iat, expires: verified.expires };
-}
-
-/**
- * The `iat` of a binding that has passed verification (so the payload segment is valid base64url I-JSON).
- *
- * Spec: N§3.1 (payload `iat`).
- */
-function issuedAt(binding: string): number {
-  const payload = JSON.parse(Buffer.from(binding.split(".")[1]!, "base64url").toString("utf8")) as JsonObject;
-  return payload["iat"] as number;
+  return { outcome: "attested", line, issued: verified.iat, expires: verified.exp };
 }
 
 /**
@@ -122,14 +107,124 @@ export function contactWarning(input: JsonObject): string | null {
   return `${text(tn)} now belongs to a different identity (${since}). Your contact "${text(first["name"])}" is ${text(first["did"])}.`;
 }
 
+/** Byte order of the UTF-8 encodings (README: "binding text in byte order"). */
+const byteOrder = (a: string, b: string): number => Buffer.compare(Buffer.from(a, "utf8"), Buffer.from(b, "utf8"));
+
+/** A held or new binding with the payload members the held-set rules read. */
+interface Entry {
+  text: string;
+  did: string;
+  iat: number;
+  exp: number;
+}
+
+/** The held-set order: `iat` newest first, then binding text in byte order. Spec: README `check: "store"`. */
+const heldOrder = (a: Entry, b: Entry): number => (b.iat - a.iat) || byteOrder(a.text, b.text);
+
+/** Spec: README `check: "store"` — a node holds at most 4 bindings for a number. */
+const MAX_HELD = 4;
+
+/** The outcome of a node's verify-before-store. */
+export type StoreOutcome =
+  | { outcome: "stored"; held: string[] }
+  | { outcome: "kept"; reason: string }
+  | { outcome: "rejected"; reason: string };
+
+/**
+ * A `dsip-node`'s verify-before-store for `PUT /dsip/v1/tn/<tn>`: N§6 discovery route 1.
+ *
+ * Spec: N§6 ("The DHT stays a hints tier (§8.1). The reader verifies the binding"), §8.1; README `check: "store"` —
+ * `bad-number`, then N§3.4 steps 1–5, then `tn-mismatch`, then the held-set rules (expired dropped; one per DID,
+ * `same` / replace / `older`; at most 4; eviction of the smallest `iat`, the greatest text among equals).
+ * Impl: a held entry's payload segment alone is read (`readPayload`); an entry whose payload does not read is dropped
+ * with the expired ones, since the node could never have stored it (not pinned).
+ * Impl: when several held bindings name the new binding's DID (which this check never produces), `same` if any is
+ * the same text; otherwise `stored` only if the new `iat` is greater than every one of theirs, replacing them all;
+ * otherwise `older` (not pinned).
+ * Impl: a `held` that is not an array is read as empty (not pinned).
+ */
+export function storeBinding(ctx: TnContext, input: JsonObject): StoreOutcome {
+  const tn = input["tn"];
+  const now = input["now"] as number;
+  // 1. bad-number
+  if (typeof tn !== "string" || !E164.test(tn)) return { outcome: "rejected", reason: "bad-number" };
+  // 2. steps 1–5: a node resolves no DIDs
+  const v = verifyFirstSteps(ctx, input["binding"], now);
+  if ("reason" in v) return { outcome: "rejected", reason: v.reason };
+  // 3. tn-mismatch
+  if (v.tn !== tn) return { outcome: "rejected", reason: "tn-mismatch" };
+  const mine: Entry = { text: input["binding"] as string, did: v.did, iat: v.iat, exp: v.exp };
+
+  // 4. against `held`: expired (and unreadable) ones dropped first
+  const rawHeld = Array.isArray(input["held"]) ? input["held"] : [];
+  let held: Entry[] = [];
+  for (const h of rawHeld) {
+    const p = readPayload(h);
+    if (p && now < p.exp) held.push({ text: h as string, did: p.did, iat: p.iat, exp: p.exp });
+  }
+  const done = (set: Entry[]): StoreOutcome => ({ outcome: "stored", held: [...set].sort(heldOrder).map((e) => e.text) });
+
+  const sameDid = held.filter((e) => e.did === mine.did);
+  if (sameDid.length) {
+    if (sameDid.some((e) => e.text === mine.text)) return { outcome: "kept", reason: "same" };
+    if (sameDid.every((e) => mine.iat > e.iat)) return done([...held.filter((e) => e.did !== mine.did), mine]);
+    return { outcome: "kept", reason: "older" };
+  }
+  if (held.length < MAX_HELD) return done([...held, mine]);
+  // Eviction candidate: the smallest `iat`; among equals the greatest binding text.
+  const candidate = held.reduce((c, e) => (e.iat < c.iat || (e.iat === c.iat && byteOrder(e.text, c.text) > 0) ? e : c));
+  if (mine.iat > candidate.iat) {
+    held = held.filter((e) => e !== candidate);
+    return done([...held, mine]);
+  }
+  return { outcome: "kept", reason: "full" };
+}
+
+/** The outcome of a reader's number → DID choice. */
+export type SelectOutcome =
+  | { outcome: "none" }
+  | { outcome: "found"; did: string; attested_by: string | null; issued: number; others: string[] };
+
+/**
+ * The reader's choice among the bindings a lookup returned: number → DID.
+ *
+ * Spec: N§6 (the reader verifies the binding, N§3.4, then resolves the DID), N§7 ("Both DIDs claim it … The binding
+ * with the newer `iat` wins, and the client shows the N§5 warning"); README `check: "select"` — each binding fully
+ * verified against its own payload's `did` and `documents[did]`, a wrong `tn` passed over, the greatest `iat`
+ * winning, ties to the smallest text in byte order, `others` the other verified DIDs, each once, sorted.
+ * Impl: `others` is sorted in UTF-8 byte order, like the binding texts (the README says only "sorted").
+ * Impl: a `documents` that is not an object resolves nothing; a member is looked up as an own property only.
+ */
+export function selectBinding(ctx: TnContext, input: JsonObject): SelectOutcome {
+  const tn = input["tn"];
+  const now = input["now"] as number;
+  const docs = isObject(input["documents"]) ? input["documents"] : {};
+  const bindings = Array.isArray(input["bindings"]) ? input["bindings"] : [];
+  const found: (Entry & { attestedBy: string | null })[] = [];
+  for (const b of bindings) {
+    const p = readPayload(b); // only to find the DID to check; verifyAll parses the binding in full
+    const did = p?.did;
+    const doc = did !== undefined && own(docs, did) ? docs[did] : null;
+    const v = verifyAll(ctx, b, did ?? null, doc ?? null, now);
+    if ("reason" in v || v.tn !== tn) continue;
+    found.push({ text: b as string, did: v.did, iat: v.iat, exp: v.exp, attestedBy: v.attestedBy });
+  }
+  if (found.length === 0) return { outcome: "none" };
+  const winner = found.reduce((w, e) => (e.iat > w.iat || (e.iat === w.iat && byteOrder(e.text, w.text) < 0) ? e : w));
+  const others = [...new Set(found.map((e) => e.did).filter((d) => d !== winner.did))].sort(byteOrder);
+  return { outcome: "found", did: winner.did, attested_by: winner.attestedBy, issued: winner.iat, others };
+}
+
 /**
  * The `tn-binding` vector kind: verification when `input.check` is absent, else the claim or the contact check.
  *
- * Spec: N§3.4, N§4, N§5; README "Kind: `tn-binding`", "`check`".
+ * Spec: N§3.4, N§4, N§5, N§6, N§7; README "Kind: `tn-binding`", "`check`".
  */
 export function runTnBinding(ctx: TnContext, input: JsonObject): Json {
   const check = input["check"];
   if (check === "claim") return checkTelClaim(ctx, input) as unknown as Json;
   if (check === "contact") return contactWarning(input);
+  if (check === "store") return storeBinding(ctx, input) as unknown as Json;
+  if (check === "select") return selectBinding(ctx, input) as unknown as Json;
   return verifyTnBinding(ctx, input) as unknown as Json;
 }

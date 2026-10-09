@@ -202,61 +202,128 @@ function signatureHolds(parsed: Parsed, leaf: Certificate): boolean {
   }
 }
 
+/** A binding that has passed N§3.4 steps 1–5: its payload's members and the leaf certificate. */
+export interface StepsPassed {
+  /** The payload's `tn`. */
+  tn: string;
+  /** The payload's `did`. */
+  did: string;
+  /** The payload's `iat`. */
+  iat: number;
+  /** The payload's `exp`. */
+  exp: number;
+  /** The payload's `status`, when present. */
+  status: string | undefined;
+  /** The leaf certificate's `attested_by` name. */
+  attestedBy: string | null;
+}
+
+/**
+ * N§3.4 steps 1–5, the ones that need no DID resolution: format, certificate path, signature, coverage, time.
+ *
+ * Spec: N§3.4 steps 1–5; README "Kind: `tn-binding`" (check order) and `check: "store"` ("A node resolves no DIDs,
+ * so it applies verification steps 1–5 only").
+ */
+export function verifyFirstSteps(ctx: TnContext, binding: Json | undefined, now: number): StepsPassed | { reason: string } {
+  // 1. malformed
+  const parsed = parseBinding(binding);
+  if (!parsed) return { reason: "malformed" };
+  const { header, payload } = parsed;
+  const tn = payload["tn"] as string;
+  const iat = payload["iat"] as number;
+  const exp = payload["exp"] as number;
+
+  // 2. untrusted-certificate
+  const path = certificatePath(header["x5u"] as string, ctx, now);
+  if (!path) return { reason: "untrusted-certificate" };
+  const leaf = path[0]!;
+
+  // 3. signature
+  if (!signatureHolds(parsed, leaf.cert)) return { reason: "signature" };
+
+  // 4. not-authorized-for-tn (N§3.2 coverage and nested coverage)
+  const digits = tn.slice(1);
+  const spc = ctx.spc_numbers ?? {};
+  if (!leaf.ext.tnAuthList) return { reason: "not-authorized-for-tn" };
+  if (path.some((c) => c.ext.tnAuthList && !covers(c.ext.tnAuthList, digits, spc))) return { reason: "not-authorized-for-tn" };
+
+  // 5. time, in this order (README step 5)
+  if (exp - iat > MAX_LIFETIME) return { reason: "lifetime-too-long" };
+  if (iat > now + IAT_TOLERANCE) return { reason: "not-yet-valid" };
+  if (now >= exp) return { reason: "expired" };
+
+  const status = payload["status"];
+  return {
+    tn, did: payload["did"] as string, iat, exp,
+    status: typeof status === "string" ? status : undefined,
+    attestedBy: attestedBy(leaf.cert),
+  };
+}
+
+/** A binding that has passed all eight steps. */
+export type FullyVerified = StepsPassed;
+
+/**
+ * N§3.4 steps 1–8 against the DID being checked and its document; the passed binding, or the first failing reason.
+ *
+ * Spec: N§3.4; README "Kind: `tn-binding`".
+ */
+export function verifyAll(
+  ctx: TnContext, binding: Json | undefined, checking: Json | undefined, doc: Json | undefined, now: number,
+): FullyVerified | { reason: string } {
+  const first = verifyFirstSteps(ctx, binding, now);
+  if ("reason" in first) return first;
+  const { tn, did } = first;
+
+  // 6. did-mismatch: exact comparison
+  if (did !== checking) return { reason: "did-mismatch" };
+
+  // 7. not-claimed-by-did (N§3.3): `tel:` + `tn`, exactly
+  if (!isObject(doc) || doc["id"] !== checking) return { reason: "not-claimed-by-did" };
+  const aka = doc["alsoKnownAs"];
+  if (!Array.isArray(aka) || !aka.some((a) => a === `tel:${tn}`)) return { reason: "not-claimed-by-did" };
+
+  // 8. status, only under a policy that requires it (§18.3)
+  if (ctx.require_status === true) {
+    const url = first.status;
+    const answers = ctx.status ?? {};
+    // README "Context": an answer other than `good` or `revoked` is no answer.
+    if (url === undefined || !own(answers, url)) return { reason: "status-unavailable" };
+    if (answers[url] === "revoked") return { reason: "revoked" };
+    if (answers[url] !== "good") return { reason: "status-unavailable" };
+  }
+  return first;
+}
+
 /**
  * Verify a number binding: N§3.4 steps 1–8 in order, the first failure giving the reason.
  *
  * Spec: N§3.4; README "Kind: `tn-binding`".
  */
 export function verifyTnBinding(ctx: TnContext, input: JsonObject): TnOutcome {
-  const now = input["now"] as number;
-  const checking = input["did"];
+  const v = verifyAll(ctx, input["binding"], input["did"], input["did_document"], input["now"] as number);
+  if ("reason" in v) return rejected(v.reason);
+  return { outcome: "verified", tn: v.tn, did: v.did, expires: v.exp, attested_by: v.attestedBy };
+}
 
-  // 1. malformed
-  const parsed = parseBinding(input["binding"]);
-  if (!parsed) return rejected("malformed");
-  const { header, payload } = parsed;
-  const tn = payload["tn"] as string;
-  const did = payload["did"] as string;
-  const iat = payload["iat"] as number;
-  const exp = payload["exp"] as number;
-
-  // 2. untrusted-certificate
-  const path = certificatePath(header["x5u"] as string, ctx, now);
-  if (!path) return rejected("untrusted-certificate");
-  const leaf = path[0]!;
-
-  // 3. signature
-  if (!signatureHolds(parsed, leaf.cert)) return rejected("signature");
-
-  // 4. not-authorized-for-tn (N§3.2 coverage and nested coverage)
-  const digits = tn.slice(1);
-  const spc = ctx.spc_numbers ?? {};
-  if (!leaf.ext.tnAuthList) return rejected("not-authorized-for-tn");
-  if (path.some((c) => c.ext.tnAuthList && !covers(c.ext.tnAuthList, digits, spc))) return rejected("not-authorized-for-tn");
-
-  // 5. time, in this order (README step 5)
-  if (exp - iat > MAX_LIFETIME) return rejected("lifetime-too-long");
-  if (iat > now + IAT_TOLERANCE) return rejected("not-yet-valid");
-  if (now >= exp) return rejected("expired");
-
-  // 6. did-mismatch: exact comparison
-  if (did !== checking) return rejected("did-mismatch");
-
-  // 7. not-claimed-by-did (N§3.3): `tel:` + `tn`, exactly
-  const doc = input["did_document"];
-  if (!isObject(doc) || doc["id"] !== checking) return rejected("not-claimed-by-did");
-  const aka = doc["alsoKnownAs"];
-  if (!Array.isArray(aka) || !aka.some((a) => a === `tel:${tn}`)) return rejected("not-claimed-by-did");
-
-  // 8. status, only under a policy that requires it (§18.3)
-  if (ctx.require_status === true) {
-    const url = payload["status"];
-    const answers = ctx.status ?? {};
-    // README "Context": an answer other than `good` or `revoked` is no answer.
-    if (typeof url !== "string" || !own(answers, url)) return rejected("status-unavailable");
-    if (answers[url] === "revoked") return rejected("revoked");
-    if (answers[url] !== "good") return rejected("status-unavailable");
-  }
-
-  return { outcome: "verified", tn, did, expires: exp, attested_by: attestedBy(leaf.cert) };
+/**
+ * Read a held binding's payload without verifying it: the second of three `.`-separated segments, base64url, as an
+ * I-JSON object with a string `did` and integer `iat` and `exp`. The header and the signature are not looked at.
+ *
+ * Spec: README `check: "store"` — a held binding "passed this check earlier and is not verified again; only its
+ * payload is read".
+ * Impl: an entry whose payload cannot be read so (which this check never stores) is dropped with the expired ones
+ * (not pinned).
+ */
+export function readPayload(binding: Json | undefined): { tn: Json | undefined; did: string; iat: number; exp: number } | null {
+  if (typeof binding !== "string") return null;
+  const segs = binding.split(".");
+  if (segs.length !== 3) return null;
+  const bytes = b64urlDecode(segs[1]!);
+  if (!bytes) return null;
+  const p = segmentObject(bytes);
+  if (!p) return null;
+  const { tn, did, iat, exp } = p;
+  if (typeof did !== "string" || !isInt(iat) || !isInt(exp)) return null;
+  return { tn, did, iat, exp };
 }
