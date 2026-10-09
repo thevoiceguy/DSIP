@@ -1,0 +1,49 @@
+{
+  "vector": "device-events/syslog-sign-blob-n-for-c-signer",
+  "format": 1,
+  "kind": "device-events",
+  "description": "N with a signer configured with a certificate: the configured key, whatever its type.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {
+    "component": "syslog-sign",
+    "now": 1000,
+    "hold_s": 10,
+    "signers": [
+      {
+        "hostname": "sw9.example",
+        "type": "C",
+        "key": "MIIEVjCCBASgAwIBAgIBBzALBglghkgBZQMEAwIwFjEUMBIGA1UEAwwLc3c5LmV4YW1wbGUwIBcNMjYxMDA2MTk1MDI3WhgPMjEyNjA5MTIxOTUwMjdaMBYxFDASBgNVBAMMC3N3OS5leGFtcGxlMIIDRDCCAjYGByqGSM44BAEwggIpAoIBAQDpO8SzvGc+KDVjYkQFcPdFRLflMMMT+pvJmA5n7T1imk79F2peboEmNl64XGr7r0lidxfdX59xm9JptdmNKhc9PQ9eeHdNey4i7SCmrcTIED3ULGV42/5Y06CSQt+O5YcbanfK+99+PN5ZNOmR7G0FtAx7rdpcye5NW5bhxXu3OkF3HbiB46BD9hrC2II8I0jEnd+zKvI698SHGKd8RzAz1mLzQaXu/Y5ALWiWdfiotzPfT8f1aCAmlexwOrbOok7RMujNOsr6f1xfeqUY0bc0H0Qu9PwafAQ89iJjgvQOcZL4UMjt11Mz0pNK+GIEULIk4c/jtjdufDeBX1CLEVsFAh0AotJ9UCdq/d1W2JnWSTOg3oOqBq4yiOdUTOuEGQKCAQEApz06qJ4wOeIt+XJrEKCTOinBDEnRlXo7fXJeDx0IX3e3+lAqt/3YuwWzOTHN4SZkz4QAT/BsamXTuSI+gY2EIj0oYJAvkHn5jpeApFq6Q48dkKNqQx4Ks865X0+KQY+p7114kvVVwDn2MYUFlSx7fLxXurBN4SFQAMWd72tNTPzlYgm+Ez5xgoPuPatb8TYDvVsvb4iie0GAhVMBQuVt0f9e+8y73PSTclgiJvc5MLLsul2tsuU4btYbtLsRuNdTM5jcf3Wr49oRgch3sXDwcKV1V0BDPmj4EnbDfry2e48o14IVvD/+nynxoz633XskbVacwsMzJNfrZ/CR9/APUAOCAQYAAoIBAQDJFYtsTsve00670i8YfAFPav8kifO12aQTez7OS/uzhbVhhcocCCI7G1iAkC+9ZBbgci86FP5b5yELUH3RtiYzJjmNPsLE6cPZzOrcLp66QNTVL6/PkaGLU1hreGi3kgOsdtrM/XzM6/B2/rPoBZ4TDGwIf1q7TZsav5hWQUni3CycAEU3w95vqE7qb5PgC1falO2qbcs4iTQqgI84P2OMsJ6p20UVk4jUmfWk31gSC2Eraw46f23LqwNNfAHBlelw73Rti7LCAWAFPQXPbtTvTqFm+Ek+NxoCQjr6S+U2MJtCgHMK8QCIwiRzcaI4clfgq3Ea6M/z1ctlW0XB2Ozno1MwUTAdBgNVHQ4EFgQUktYyal6fEkyCe9xviPW3Yjg7CkQwHwYDVR0jBBgwFoAUktYyal6fEkyCe9xviPW3Yjg7CkQwDwYDVR0TAQH/BAUwAwEB/zALBglghkgBZQMEAwIDPwAwPAIcFk1tA3280P74APwst69burp5VcewnQ+NegC0IgIcPVTlskE91NcEqKBFHbL80jUccfpZx2LobtPq2Q=="
+      }
+    ]
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "receive": {
+            "message": "3c3131303e3120323032362d31302d30365431323a30303a30315a207377392e6578616d706c65207379736c6f6764203737202d205b737369676e2d63657274205645523d22303131312220525349443d2231222053473d22302220535052493d223022205450424c3d2232322220494e4445583d22312220464c454e3d2232322220465241473d22323032362d31302d30365431323a30303a30305a204e22205349474e3d22414f43422f515944494442413554576b3930764f67314e6a4b566655656e7a347574316f5a2f784d414e393739656464355a7752722f71637042514e762b4d63457a37374e38724d466a7a2f4651306c225d"
+          }
+        }
+      }
+    ]
+  },
+  "expect": [
+    {
+      "emit": [
+        {
+          "session": {
+            "hostname": "sw9.example",
+            "app_name": "syslogd",
+            "procid": "77",
+            "rsid": 1,
+            "key_sha256": "aca75c53a9a8d27b6d46abfc29c8be4ffed28c7cb8b30f6062c271e1518fd17c"
+          }
+        }
+      ],
+      "held": [],
+      "waiting": 0
+    }
+  ]
+}

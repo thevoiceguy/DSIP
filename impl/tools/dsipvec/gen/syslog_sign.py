@@ -93,7 +93,43 @@ class Key:
         return base64.b64encode(mpi(r, r_bits) + mpi(s)).decode()
 
 
+def pgp_packet(tag: int, body: bytes, new_format: bool = False, partial: bool = False) -> bytes:
+    """An OpenPGP packet (RFC 4880 §4.2): old-format header with a 2-byte length, or a new-format header."""
+    if new_format:
+        n = len(body)
+        if partial:
+            return bytes([0xC0 | tag, 0xE0 | 8]) + body  # a partial body length of 256: does not read
+        length = bytes([n]) if n < 192 else bytes([((n - 192) >> 8) + 192, (n - 192) & 0xFF]) if n < 8384 else bytes([0xFF]) + n.to_bytes(4, "big")
+        return bytes([0xC0 | tag]) + length + body
+    return bytes([0x80 | (tag << 2) | 1]) + len(body).to_bytes(2, "big") + body
+
+
+def pgp_key_body(p: int, q: int, g: int, y: int, version: int = 4, algo: int = 17, created: int = 1759752000) -> bytes:
+    return bytes([version]) + created.to_bytes(4, "big") + bytes([algo]) + mpi(p) + mpi(q) + mpi(g) + mpi(y)
+
+
+def pgp_fingerprint(body: bytes) -> bytes:
+    return hashlib.sha1(b"\x99" + len(body).to_bytes(2, "big") + body).digest()
+
+
+def pgp_blob(key: Key, body: bytes | None = None, keyid: bytes | None = None, new_format: bool = False,
+             partial: bool = False, first: bytes | None = None, trailer: bytes = b"") -> bytes:
+    """A `P` key blob: the KeyID then an OpenPGP certificate (public key packet, then a User ID packet)."""
+    body = pgp_key_body(key.p, key.q, key.g, pow(key.g, key.x, key.p)) if body is None else body
+    kid = pgp_fingerprint(body)[-8:] if keyid is None else keyid
+    packets = (first or b"") + pgp_packet(6, body, new_format, partial) + pgp_packet(13, b"sw1 <syslog@sw1.example>") + trailer
+    return kid + packets
+
+
+class KeyP(Key):
+    """A `P` signer: K1's DSA key carried as an OpenPGP certificate."""
+
+    def __init__(self, base: Key, **kw):
+        super().__init__(base.p, base.q, base.g, base.x, "P", pgp_blob(base, **kw))
+
+
 K1, K2, KC = Key.raw("dsip syslog-sign K1"), Key.raw("dsip syslog-sign K2"), Key.cert()
+KP = KeyP(K1)
 ALG = {"0111": "sha1", "0121": "sha256"}
 
 
@@ -367,8 +403,7 @@ def vectors() -> list[dict]:
          st([ref("ssign-cert", "fragment-mismatch")]))])
     t("payload-other-key", "A payload naming another key than the configured one, though signed by it.", ctx(S1), [
         (recv(cert(K1, pay=payload(K1, blob=K2.blob))), st([ref("ssign-cert", "payload-mismatch")]))])
-    t("payload-other-type", "A payload of key blob type N.", ctx(S1), [
-        (recv(cert(K1, pay="2026-10-06T12:00:00Z N")), st([ref("ssign-cert", "payload-mismatch")]))])
+    # v0.10's `payload-other-type` pinned N as payload-mismatch; v0.11 reads N, P and U (`blob-*` below; spec-gap 103)
     mal = [
         ("param-order", "Parameters out of order.", lambda: sig(K1, [m1]).replace(b'SG="0" SPRI="0"', b'SPRI="0" SG="0"')),
         ("leading-zero", "A number with a leading zero.", lambda: sig(K1, [m1], rsid="01")),
@@ -390,4 +425,54 @@ def vectors() -> list[dict]:
         (recv(cert(K1).replace(b'FLEN="', b'FLEN="1', 1)), st([ref("ssign-cert", "malformed-block")]))])
     t("malformed-past-tpbl", "INDEX + FLEN − 1 beyond TPBL.", ctx(S1), [
         (recv(cert(K1, pay=pay, index=2, flen=len(pay) - 1, tpbl=len(pay) - 1)), st([ref("ssign-cert", "malformed-block")]))])
+    # --- key blob types N, P and U (v0.11; RFC 5848 §5.2.1) -------------------------------------------------------
+    n_pay = "2026-10-06T12:00:00Z N"
+    t("blob-n-session", "A Certificate Block whose key blob type is N establishes the session with the pre-distributed "
+      "(configured) key, and the signer's Signature Block then verifies.", ctx(S1), [
+          (recv(cert(K1, pay=n_pay)), st([session()])), (recv(m1), st([], [sha(m1)])),
+          (recv(sig(K1, [m1])), st([dep(m1, claim(1))]))])
+    t("blob-n-for-c-signer", "N with a signer configured with a certificate: the configured key, whatever its type.",
+      ctx(S9), [(recv(cert(KC, host="sw9.example", pay=n_pay)), st([session(KC, "sw9.example")]))])
+    t("blob-n-with-blob", "N with a third field is payload-mismatch: N sends no key information.", ctx(S1),
+      [(recv(cert(K1, pay=n_pay + " " + base64.b64encode(K1.blob).decode())), st([ref("ssign-cert", "payload-mismatch")]))])
+    t("blob-u-unsupported", "U, installation-specific key exchange information, is unsupported-key-blob.", ctx(S1),
+      [(recv(cert(K1, pay=payload(K1, kind="U"))), st([ref("ssign-cert", "unsupported-key-blob")]))])
+    t("blob-u-two-fields", "U without a blob is still unsupported-key-blob.", ctx(S1),
+      [(recv(cert(K1, pay="2026-10-06T12:00:00Z U")), st([ref("ssign-cert", "unsupported-key-blob")]))])
+    t("blob-u-before-fields", "U with four fields: the field count fails first (payload-mismatch).", ctx(S1),
+      [(recv(cert(K1, pay="2026-10-06T12:00:00Z U x y")), st([ref("ssign-cert", "payload-mismatch")]))])
+    t("blob-unknown-type", "A type letter outside C, K, P, N, U is payload-mismatch.", ctx(S1),
+      [(recv(cert(K1, pay=payload(K1, kind="X"))), st([ref("ssign-cert", "payload-mismatch")]))])
+    t("blob-lowercase-n", "Types are exact: `n` is not N.", ctx(S1),
+      [(recv(cert(K1, pay="2026-10-06T12:00:00Z n")), st([ref("ssign-cert", "payload-mismatch")]))])
+    t("blob-empty-timestamp", "An empty timestamp with N is payload-mismatch.", ctx(S1),
+      [(recv(cert(K1, pay=" N")), st([ref("ssign-cert", "payload-mismatch")]))])
+    SP = KP.signer("sw1.example")
+    t("blob-p-session", "A P signer: the KeyID and an OpenPGP certificate whose first packet is a v4 DSA public key; the "
+      "payload carries the same blob, and the Signature Block verifies with the key read from it.", ctx(SP), [
+          (recv(cert(KP)), st([session(KP)])), (recv(m1), st([], [sha(m1)])),
+          (recv(sig(KP, [m1])), st([dep(m1, claim(1, KP))]))])
+    kp_new = KeyP(K1, new_format=True)
+    t("blob-p-new-format-header", "A public key packet with a new-format header reads the same, and its fingerprint is "
+      "over the old-format framing.", ctx(kp_new.signer("sw1.example")), [(recv(cert(kp_new)), st([session(kp_new)]))])
+    t("blob-p-type-mismatch", "A P signer and a payload that says K with the same bytes: payload-mismatch.", ctx(SP),
+      [(recv(cert(KP, pay=payload(KP, kind="K"))), st([ref("ssign-cert", "payload-mismatch")]))])
+    y1 = pow(K1.g, K1.x, K1.p)
+    for vid, desc, kw in [
+        ("p-wrong-keyid", "A KeyID that is not the fingerprint's last 8 bytes: the signer has no key, and its blocks are "
+         "bad-signature.", {"keyid": b"\x00" * 8}),
+        ("p-v3-key", "A version 3 public key packet does not read.", {"body": pgp_key_body(K1.p, K1.q, K1.g, y1, version=3)}),
+        ("p-rsa", "A public-key algorithm other than DSA (17) does not read.", {"body": pgp_key_body(K1.p, K1.q, K1.g, y1, algo=1)}),
+        ("p-trailing-bytes", "MPIs that do not fill the body exactly do not read.", {"body": pgp_key_body(K1.p, K1.q, K1.g, y1) + b"\x00"}),
+        ("p-first-packet-userid", "A certificate whose first packet is not a public key does not read.", {"first": pgp_packet(13, b"sw1")}),
+        ("p-partial-length", "A new-format partial body length does not read.", {"new_format": True, "partial": True}),
+        ("p-later-packet-partial", "A partial body length in a later packet: the certificate is framed as a whole.",
+         {"trailer": bytes([0xCD, 0xE0 | 8]) + b"x" * 300}),
+    ]:
+        kp_bad = KeyP(K1, **kw)
+        t(f"blob-{vid}", desc, ctx(kp_bad.signer("sw1.example")), [(recv(cert(kp_bad)), st([ref("ssign-cert", "bad-signature")]))])
+    kp_short = KeyP(K1)
+    kp_short.blob = kp_short.blob[:-5]
+    t("blob-p-truncated-packet", "A packet that does not fit the bytes does not read.", ctx(kp_short.signer("sw1.example")),
+      [(recv(cert(kp_short)), st([ref("ssign-cert", "bad-signature")]))])
     return out

@@ -650,7 +650,9 @@ def gen_syslog_sign(r: random.Random):
     """A syslog-sign collector trace: fragments, messages, overlapping/tampered/foreign blocks, clock advances (E§3)."""
     from dsipvec.gen import syslog_sign as g
     msgs = [g.msg(f"port {i} down") for i in range(5)] + [g.msg("x", host="pc.example")]
-    pay = g.payload(g.K1)
+    # the signer: a K key, or (v0.11) its OpenPGP certificate (P), sometimes one that does not read
+    key = r.choice([g.K1] * 6 + [g.KP, g.KP, g.KeyP(g.K1, new_format=True), g.KeyP(g.K1, keyid=b"\x00" * 8)])
+    pay = g.payload(key)
     steps = []
     for _ in range(r.randint(3, 12)):
         x = r.random()
@@ -658,13 +660,16 @@ def gen_syslog_sign(r: random.Random):
         if x < 0.2:
             cut = r.randint(1, len(pay) - 1)
             idx, fl = r.choice([(1, None), (1, cut), (cut + 1, None)])
-            m = g.cert(g.K1, rsid=rsid, pay=pay if r.random() < 0.9 else g.payload(g.K1, ts="2026-10-06T13:00:00Z"),
+            other = r.choice([g.payload(key, ts="2026-10-06T13:00:00Z"), "2026-10-06T12:00:00Z N", "2026-10-06T12:00:00Z U",
+                              g.payload(key, kind="U"), g.payload(key, kind=r.choice(["K", "P", "C", "X", "n"])),
+                              "2026-10-06T12:00:00Z N x"])
+            m = g.cert(key, rsid=rsid, pay=pay if r.random() < 0.8 else other,
                        index=idx, flen=fl, procid=r.choice(["77", "77", "99"]), sign_with=g.K2 if r.random() < 0.1 else None)
         elif x < 0.45:
             m = r.choice(msgs)
         elif x < 0.75:
             k = r.randint(1, 4)
-            m = g.sig(g.K1, [r.choice(msgs) for _ in range(k)], rsid=rsid, fmn=r.randint(1, 4), sg=r.choice([0, 0, 1]),
+            m = g.sig(key, [r.choice(msgs) for _ in range(k)], rsid=rsid, fmn=r.randint(1, 4), sg=r.choice([0, 0, 1]),
                       spri=r.choice([0, 13]), ver=r.choice(["0111", "0111", "0121"]), sign_with=g.K2 if r.random() < 0.1 else None)
         else:
             steps.append({"advance": r.choice([1, 5, 9, 10, 11])})
@@ -672,7 +677,7 @@ def gen_syslog_sign(r: random.Random):
         if r.random() < 0.15:
             m = mutate(r, m, b' "=[]0123456789ABab+/')
         steps.append({"receive": {"message": m.hex()}})
-    ctx = {"component": "syslog-sign", "now": 1000, "hold_s": 10, "signers": [g.K1.signer("sw1.example", gaps=r.random() < 0.6)]}
+    ctx = {"component": "syslog-sign", "now": 1000, "hold_s": 10, "signers": [key.signer("sw1.example", gaps=r.random() < 0.6)]}
     return "device-events", None, ctx, steps
 
 

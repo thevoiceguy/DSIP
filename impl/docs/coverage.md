@@ -20,7 +20,7 @@ Profile, `M§n` Messaging Profile, `R§n` RTP/SRTP Media Binding.
 | §4.1 | dsip-kt/lib.rs | — |
 | §4.1.1.2 | dsip-number/lib.rs | — |
 | §4.1.6 | dsip-events/ber.rs | — |
-| §4.2 | dsip-number/lib.rs | — |
+| §4.2 | dsip-events/syslog_sign.rs, dsip-number/lib.rs | — |
 | §4.2.1.9 | dsip-number/lib.rs | — |
 | §4.2.2 | dsip-gateway/host/sip_leg.rs | — |
 | §4.2.6 | dsip-events/lib.rs | — |
@@ -30,6 +30,7 @@ Profile, `M§n` Messaging Profile, `R§n` RTP/SRTP Media Binding.
 | §5 | dsip-gateway/controller.rs, dsip-kt/lib.rs, dsip-mailbox/bin/dsip-msg.rs, dsip-node/config.rs | — |
 | §5.1.3 | dsip-kt/lib.rs | — |
 | §5.2 | dsip-events/tsm.rs, dsip-kt/lib.rs | — |
+| §5.2.1 | dsip-events/syslog_sign.rs | — |
 | §5.3 | dsip-kt/lib.rs | — |
 | §5.3.2 | dsip-mailbox/bin/dsip-msg.rs | — |
 | §5.4.1.1 | dsip-kt/lib.rs | — |
@@ -68,7 +69,7 @@ Profile, `M§n` Messaging Profile, `R§n` RTP/SRTP Media Binding.
 | §11.3 | dsip-cli/console.rs, dsip-core/version.rs | 5 vector(s): semantic/sealed-extension-unsupported, semantic/version-known-profile-among-unknown, semantic/version-major-mismatch, semantic/version-unknown-critical, semantic/version-unknown-profile |
 | §12 | dsip-cli/console.rs, dsip-endpoint/core.rs, dsip-endpoint/lib.rs, dsip-gateway/controller.rs, dsip-gateway/host/call.rs, dsip-session/lib.rs | — |
 | §12.1 | dsip-core/registry.rs | 3 vector(s): payload/bye-valid, payload/invite-valid, semantic/unknown-message-type |
-| §12.2 | dsip-session/endpoint.rs, dsip-session/lib.rs | 3 vector(s): payload/bye-no-session, payload/progress-missing-session, state/unknown-session-rejected |
+| §12.2 | dsip-events/syslog_sign.rs, dsip-session/endpoint.rs, dsip-session/lib.rs | 3 vector(s): payload/bye-no-session, payload/progress-missing-session, state/unknown-session-rejected |
 | §12.3 | dsip-session/message.rs | — |
 | §12.4 | dsip-cli/console.rs, dsip-endpoint/core.rs, dsip-session/endpoint.rs, dsip-session/fork.rs, dsip-session/lib.rs | 29 vector(s): gateway/trace-outbound-ring-answer-hangup, payload/error-session-scoped, state/fork-answer-before-progress, state/fork-first-answer-wins, state/fork-late-answer-after-our-hangup, state/fork-late-answer-after-the-call-ended … |
 | §12.5 | dsip-gateway/controller.rs, dsip-gateway/lib.rs, dsip-session/endpoint.rs, dsip-session/fork.rs, dsip-session/lib.rs | 9 vector(s): gateway/trace-inbound-cancel, gateway/trace-outbound-cancel-487, gateway/trace-outbound-cancel-crosses-200, state/fork-late-answer-after-our-hangup, state/race-initiator-cancel-then-answer, state/race-responder-answered-elsewhere-at-answering-leg … |
@@ -209,7 +210,7 @@ Profile, `M§n` Messaging Profile, `R§n` RTP/SRTP Media Binding.
 | M§16 | dsip-core/registry.rs, dsip-mailbox/verify.rs, dsip-mailbox/wire.rs, dsip-messaging/checks.rs, dsip-messaging/mailbox.rs | 6 vector(s): messaging/blob-put-over-max-413, messaging/deposit-unknown-class-refused, messaging/mailbox-config-unknown-mode-refused, messaging/mailbox-forward-hub-unreachable-answered, messaging/mailbox-key-package-fetch-none-available, messaging/mailbox-trace-config-unknown-mode-refused |
 | M§17 | dsip-messaging/checks.rs, dsip-messaging/mls_wire.rs | 11 vector(s): messaging/mls-extension-decode-eight-byte-length, messaging/mls-extension-decode-non-minimal-length, messaging/mls-extension-decode-trailing-bytes, messaging/mls-extension-decode-truncated-data, messaging/mls-extension-decode-truncated-header, messaging/mls-extension-decode-valid … |
 | E§2 | dsip-events/syslog_sign.rs, dsip-events/tsm.rs, dsip-events/usm.rs, dsip-mailbox/bin/dsip-msg.rs | — |
-| E§3 | dsip-events/ber.rs, dsip-events/lib.rs, dsip-events/syslog.rs, dsip-events/syslog_sign.rs, dsip-events/tsm.rs, dsip-events/usm.rs, dsip-mailbox/bin/dsip-msg.rs | 250 vector(s): device-events/inform-accept-for-unknown-ignored, device-events/inform-answered-forgotten-after-300s, device-events/inform-answered-once-stored, device-events/inform-distinct-request-ids, device-events/inform-keys-sort-numerically, device-events/inform-pending-never-expires … |
+| E§3 | dsip-events/ber.rs, dsip-events/lib.rs, dsip-events/syslog.rs, dsip-events/syslog_sign.rs, dsip-events/tsm.rs, dsip-events/usm.rs, dsip-mailbox/bin/dsip-msg.rs | 269 vector(s): device-events/inform-accept-for-unknown-ignored, device-events/inform-answered-forgotten-after-300s, device-events/inform-answered-once-stored, device-events/inform-distinct-request-ids, device-events/inform-keys-sort-numerically, device-events/inform-pending-never-expires … |
 | E§4 | dsip-events/lib.rs, dsip-events/syslog.rs, dsip-mailbox/bin/dsip-msg.rs | 30 vector(s): device-events/holddown-clear-that-holds, device-events/holddown-events-pass, device-events/holddown-flap-is-one-alarm, device-events/holddown-off, device-events/holddown-other-alarm-unaffected, device-events/holddown-qualifier-default … |
 | E§5 | dsip-events/lib.rs, dsip-mailbox/bin/dsip-msg.rs, dsip-messaging/checks.rs | 14 vector(s): device-events/alarm-ack-then-closed-is-final, device-events/alarm-ack-unknown-ignored, device-events/alarm-ack-without-by, device-events/alarm-clear-unknown-creates-nothing, device-events/alarm-raise-repeat-clear, device-events/alarm-reraise-reopens-and-resets-ack … |
 | E§6 | dsip-events/lib.rs, dsip-mailbox/bin/dsip-msg.rs | 8 vector(s): device-events/alarm-unknown-severity-orders-lowest, device-events/escalate-again-after-reopen, device-events/escalate-below-threshold-never, device-events/escalate-cancelled-by-ack, device-events/escalate-cancelled-by-clear, device-events/escalate-order-by-due-then-key … |
