@@ -7,8 +7,13 @@
  * Gap detection (v0.11), per signer with `gaps: true`, reports numbers never covered by a
  * Signature Block and signed hashes whose message never arrived.
  *
+ * A signer's key blob (RFC 5848 §5.2.1) is a PKIX certificate (`C`), raw DSA MPIs (`K`) or an
+ * OpenPGP KeyID and certificate (`P`, v0.11); a Certificate Block payload may also say `N` (no key
+ * sent: the configured key) or `U` (installation-specific, refused `unsupported-key-blob`).
+ *
  * Spec: E§2 (`syslog-signed` basis and its `signed` object), E§3 ("Signed syslog", "Gaps"), E§5
- * (the gap's `syslog_gap` object); RFC 5848, FIPS 186 (DSA). The exact inputs, outputs and order of checks are the vectors README's,
+ * (the gap's `syslog_gap` object); RFC 5848, FIPS 186 (DSA), RFC 4880 (OpenPGP packets, V4
+ * fingerprints). The exact inputs, outputs and order of checks are the vectors README's,
  * "Signed syslog traces" (`context.component: "syslog-sign"`); messages are parsed as
  * `check: "syslog"` does.
  */
@@ -124,6 +129,95 @@ function certDsaKey(der: Uint8Array): DsaKey | null {
   } catch {
     return null;
   }
+}
+
+/**
+ * The DSA key of a `P` key blob: the 8-byte OpenPGP KeyID, then an OpenPGP certificate whose first
+ * packet is a version 4 DSA Public-Key packet; `null` when it does not read.
+ *
+ * Spec: E§3 ("Signers are configured", `P`); RFC 5848 §5.2.1; RFC 4880 §4.2 (packet headers),
+ * §5.5.2 (the v4 Public-Key packet), §12.2 (the V4 fingerprint and KeyID).
+ * README: headers may be old or new format with a definite length (an indeterminate old-format
+ * length or a partial body length does not read); a packet must fit the bytes; the first packet's
+ * body is version 4, a 4-byte creation time, algorithm 17, then the MPIs p, q, g, y filling it
+ * exactly; packets after the first are not examined. The KeyID must equal the last 8 bytes of
+ * SHA-1 over `0x99`, the body length as 2 bytes and the body, whatever header the packet was
+ * carried with.
+ * Impl: the certificate is framed as a whole — every packet's header is read and must fit (the
+ * suite's `syslog-sign-blob-p-truncated-packet` cuts the second packet short); only the first
+ * packet's contents are examined. A body longer than 65,535 bytes cannot be framed for the
+ * fingerprint and does not read.
+ */
+function pgpDsaKey(key: Uint8Array): DsaKey | null {
+  if (key.length < 9) return null;
+  const keyId = key.subarray(0, 8);
+  const cert = key.subarray(8);
+  const packets: { tag: number; start: number; end: number }[] = [];
+  for (let p = 0; p < cert.length; ) {
+    const h = pgpHeader(cert, p);
+    if (h === null) return null;
+    packets.push(h);
+    p = h.end;
+  }
+  const first = packets[0];
+  if (first === undefined || first.tag !== 6) return null;
+  const body = cert.subarray(first.start, first.end);
+  const len = body.length;
+  if (len > 0xffff || len < 6 || body[0] !== 4 || body[5] !== 17) return null;
+  const m = parseMpis(body.subarray(6), 4);
+  if (m === null) return null;
+  const fp = createHash("sha1")
+    .update(Buffer.from([0x99, len >> 8, len & 0xff]))
+    .update(body)
+    .digest();
+  if (!fp.subarray(12).equals(keyId)) return null;
+  return { p: m[0]!, q: m[1]!, g: m[2]!, y: m[3]! };
+}
+
+/**
+ * One OpenPGP packet header at `p`: its tag and the body's bounds, or `null` when it is not a
+ * definite-length header that fits the bytes.
+ *
+ * Spec: RFC 4880 §4.2 — old format (bit 6 clear): tag in bits 5–2, a 1-, 2- or 4-octet length by
+ * bits 1–0, length type 3 being indeterminate; new format (bit 6 set): tag in bits 5–0, a one-octet
+ * (< 192), two-octet (192–223) or five-octet (255) length, 224–254 being a partial body length.
+ * README: indeterminate and partial lengths do not read.
+ */
+function pgpHeader(b: Uint8Array, p: number): { tag: number; start: number; end: number } | null {
+  const first = b[p]!;
+  if ((first & 0x80) === 0) return null;
+  let tag: number;
+  let len: number;
+  let hl: number;
+  if ((first & 0x40) === 0) {
+    tag = (first >> 2) & 0x0f;
+    const n = [1, 2, 4, 0][first & 0x03]!;
+    if (n === 0 || p + 1 + n > b.length) return null;
+    len = 0;
+    for (let i = 0; i < n; i++) len = len * 256 + b[p + 1 + i]!;
+    hl = 1 + n;
+  } else {
+    tag = first & 0x3f;
+    const o1 = b[p + 1];
+    if (o1 === undefined) return null;
+    if (o1 < 192) {
+      len = o1;
+      hl = 2;
+    } else if (o1 < 224) {
+      if (p + 3 > b.length) return null;
+      len = ((o1 - 192) << 8) + b[p + 2]! + 192;
+      hl = 3;
+    } else if (o1 === 255) {
+      if (p + 6 > b.length) return null;
+      len = 0;
+      for (let i = 2; i < 6; i++) len = len * 256 + b[p + i]!;
+      hl = 6;
+    } else {
+      return null;
+    }
+  }
+  if (p + hl + len > b.length) return null;
+  return { tag, start: p + hl, end: p + hl + len };
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -457,6 +551,9 @@ export class SyslogSignCollector {
         if (m !== null) dsa = { p: m[0]!, q: m[1]!, g: m[2]!, y: m[3]! };
       } else if (type === "C") {
         dsa = certDsaKey(keyBytes);
+      } else if (type === "P") {
+        // README: a `P` signer whose key does not read has no key; every block of its is bad-signature
+        dsa = pgpDsaKey(keyBytes);
       }
       this.signers.push({
         hostname: s["hostname"] as string,
@@ -615,7 +712,15 @@ export class SyslogSignCollector {
    * ends an established session and is assembled; a complete payload must name the configured
    * key, and then the session is established.
    *
-   * Spec: E§3 ("A Certificate Block's FRAG is the payload text itself"); RFC 5848 §4.2.8.
+   * The assembled payload is `timestamp SP type [SP blob]`, decided by the first rule that
+   * applies: `payload-mismatch` (fewer than two or more than three fields, an empty timestamp, a
+   * type not exactly one of `C`, `K`, `P`, `N`, `U`); `unsupported-key-blob` (`U`, with or without
+   * a blob); `N` (exactly two fields: the configured key, whatever its type; a third field is
+   * `payload-mismatch`); `C`, `K` or `P` (three fields, the signer's configured type, and padded
+   * base64 of the configured key bytes, else `payload-mismatch`).
+   *
+   * Spec: E§3 ("A Certificate Block's FRAG is the payload text itself"; "Signers are configured":
+   * `N`, `P`, `U`); RFC 5848 §4.2.8, §5.2.1.
    * The README: any other fragment ends the session, dropping its authenticated numbers and its
    * waiting hashes; the `old-session` floor stays.
    * Impl: a fragment "equals the established payload's" only when its TPBL is also the payload's
@@ -663,9 +768,18 @@ export class SyslogSignCollector {
     sess.tpbl = null;
     sess.frags = [];
     const fields = assembled.toString("latin1").split(" ");
-    const keyB = fields.length === 3 && fields[0] !== "" ? b64Strict(fields[2]!) : null;
-    if (keyB === null || fields[1] !== signer.type || !keyB.equals(signer.keyBytes)) {
+    const type = fields[1];
+    if (fields.length < 2 || fields.length > 3 || fields[0] === "" || !["C", "K", "P", "N", "U"].includes(type!)) {
       throw new Refused("payload-mismatch");
+    }
+    if (type === "U") throw new Refused("unsupported-key-blob");
+    if (type === "N") {
+      if (fields.length !== 2) throw new Refused("payload-mismatch");
+    } else {
+      const keyB = fields.length === 3 ? b64Strict(fields[2]!) : null;
+      if (keyB === null || type !== signer.type || !keyB.equals(signer.keyBytes)) {
+        throw new Refused("payload-mismatch");
+      }
     }
     sess.payload = assembled;
     sess.groups = new Map();

@@ -956,10 +956,22 @@ Events:
 
 **Signed syslog traces** (`context.component: "syslog-sign"`, E§3, v0.10; RFC 5848) model a gateway's collector.
 
-**Context:** `{component, now, hold_s, signers: [{hostname, type: "C" | "K", key, gaps?}]}`. `gaps: true` turns on
-gap detection for that signer (v0.11).
-- `key` is base64: the certificate's DER for `C`, or the four MPIs p, q, g, y for `K`.
-- The key's `key_sha256` is the SHA-256 of those decoded bytes, in hex.
+**Context:** `{component, now, hold_s, signers: [{hostname, type: "C" | "K" | "P", key, gaps?}]}`. `gaps: true` turns
+on gap detection for that signer (v0.11).
+- `key` is base64 of the signer's key blob (RFC 5848 §5.2.1): the certificate's DER for `C`; the four MPIs p, q, g,
+  y for `K`; for `P`, the 8-byte OpenPGP KeyID followed by the OpenPGP certificate.
+- **A `P` key** (v0.11) is read as follows, and a signer whose key does not read this way has no key: every block of
+  its is `bad-signature`.
+  - The certificate is a sequence of OpenPGP packets (RFC 4880 §4.2), framed as a whole: every packet's header is
+    read, old or new format, with a definite length (an indeterminate old-format length, or a new-format partial
+    body length, does not read, in any packet), and every packet must fit the bytes.
+  - The first packet is a Public-Key packet (tag 6): version 4, a 4-byte creation time, public-key algorithm 17
+    (DSA), then the MPIs p, q, g, y, which fill the body exactly (RFC 4880 §5.5.2). Only this packet's body is
+    examined; the others are framed and passed over.
+  - The KeyID equals the last 8 bytes of the key's V4 fingerprint: SHA-1 over `0x99`, the body's length as 2 bytes,
+    and the body (RFC 4880 §12.2), whatever header the packet was carried with. A body longer than 65,535 bytes
+    does not read.
+- The key's `key_sha256` is the SHA-256 of the decoded `key` bytes, in hex.
 - Hostnames compare without case (ASCII).
 
 **Steps:**
@@ -974,7 +986,9 @@ The **emits** are:
 - `{"deposit": {"sha256", "signed"}}`, where `sha256` is the message's SHA-256 in hex, and `signed` is `null` or E§2's
   object;
 - `{"session": {hostname, app_name, procid, rsid, key_sha256}}`;
-- `{"refused": {"block": "ssign" | "ssign-cert", "reason"}}`;
+- `{"refused": {"block": "ssign" | "ssign-cert", "reason"}}`, `reason` one of `malformed-block`,
+  `unsupported-version`, `unknown-signer`, `bad-signature`, `old-session`, `fragment-mismatch`, `payload-mismatch`,
+  `unsupported-key-blob`, `no-session`;
 - `{"gap": {hostname, app_name, procid, rsid, sg, spri, from, to}}`, for signers with `gaps: true` (below).
 
 **Classifying a received message.** It is parsed as `check: "syslog"` does.
@@ -1028,10 +1042,19 @@ The **emits** are:
     fragment where they overlap. The fragment is dropped.
   - Otherwise it is stored. When the stored fragments cover bytes 1…`TPBL`, the payload is assembled and the stored
     fragments cleared.
-- **The assembled payload** must be three fields separated by single spaces: a non-empty timestamp (not
-  interpreted), `C` or `K`, and padded
-  base64 decoding to the signer's configured type and key bytes. Otherwise it is `payload-mismatch`. When it is
-  right, `{"session"}` is emitted, with the Certificate Block message's HOSTNAME, and the session is established.
+- **The assembled payload** is fields separated by single spaces: a non-empty timestamp (not interpreted), a key
+  blob type, and the key blob when the type carries one (RFC 5848 §5.2.1). The first rule that applies decides:
+  1. **`payload-mismatch`**: fewer than two fields, more than three, an empty timestamp, or a type that is not
+     exactly one of `C`, `K`, `P`, `N`, `U`.
+  2. **`unsupported-key-blob`** (v0.11): the type is `U`, installation-specific key exchange information, which has
+     no interoperable reading. With or without a third field.
+  3. **`N`**, no key information sent (v0.11): exactly two fields. The key is pre-distributed: the signer's
+     configured key, whatever its type. A third field is `payload-mismatch`.
+  4. **`C`, `K` or `P`**: three fields, the type the signer's configured type, and padded base64 decoding to the
+     signer's configured key bytes. Otherwise `payload-mismatch`.
+
+  When it is right, `{"session"}` is emitted, with the Certificate Block message's HOSTNAME, and the session is
+  established.
 
 **Then, a Signature Block:**
 - **Session.** Without an established session (hostname as configured, APP-NAME, PROCID, RSID), the block is

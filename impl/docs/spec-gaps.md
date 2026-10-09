@@ -2591,9 +2591,28 @@ The gateway (`dsip-msg`):
 - **Fuzzing:** the `syslog-sign` target now randomizes `gaps`; 4,000 probes found no divergence.
 - **Demo:** `device-events-syslog-sign-demo.sh` shows both kinds raising one alarm.
 
+**Key blob types N, P and U (v0.11, 2026-10-09).** RFC 5848 §5.2.1's remaining types, pinned by
+`device-events/syslog-sign-blob-*` (19 traces), three-way.
+- **`N`**: no key information sent; the session uses the configured key, whatever its type. Exactly two payload
+  fields: a third is `payload-mismatch`.
+- **`P`**: the OpenPGP KeyID and certificate. The collector reads the certificate as OpenPGP packets (old and new
+  format headers, definite lengths only), takes the first packet, which must be a v4 DSA Public-Key packet whose
+  MPIs fill its body, and checks the KeyID against the V4 fingerprint. Nothing else in the certificate is examined:
+  the collector authorizes keys by configuration (RFC 5848 §5.2.2), so User ID packets and self-signatures add
+  nothing it would act on. A configured `P` key that does not read leaves the signer without a key, and its blocks
+  fail `bad-signature`.
+  **Choices considered** for a bad `P` key: a configuration error at load (outside the vector contract), treating
+  the signer as unknown (`unknown-signer`, which would hide a misconfiguration behind the same answer as a stranger),
+  or `bad-signature`. **Chosen: `bad-signature`.**
+- **`U`**: `unsupported-key-blob`, a new reason. Installation-specific key exchange has no interoperable reading.
+- **Retired:** v0.10's `syslog-sign-payload-other-type` pinned `N` as `payload-mismatch` under the two-type rule; it
+  is replaced by `blob-n-session` and `blob-unknown-type`.
+- The `syslog-sign` fuzz target now draws `P` signers (one with a wrong KeyID) and `N`/`U`/unknown payloads.
+- **Demo:** `device-events-syslog-sign-demo.sh` adds a signer whose certificate is OpenPGP (`P`) and a rebooted
+  signer re-establishing with `N`.
+
 **Open.**
 - DTLS for SNMP (RFC 6353 over UDP).
-- Key blob types N, P and U for signed syslog.
 
 ## 104. T§2–T§5 / core §8.1–§8.2 — alias transparency: what DSIP adopts of KEYTRANS, and when
 

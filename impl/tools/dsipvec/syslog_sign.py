@@ -78,10 +78,77 @@ def element_end(msg: bytes, start: int):
     return None
 
 
+def pgp_packets(b: bytes):
+    """OpenPGP packets (RFC 4880 §4.2): (tag, body) for each, or None when one does not read."""
+    out, i = [], 0
+    while i < len(b):
+        h = b[i]
+        if not h & 0x80:
+            return None
+        if h & 0x40:  # new format
+            tag, i = h & 0x3F, i + 1
+            if i >= len(b):
+                return None
+            f = b[i]
+            if f < 192:
+                n, i = f, i + 1
+            elif f < 224:
+                if i + 2 > len(b):
+                    return None
+                n, i = ((f - 192) << 8) + b[i + 1] + 192, i + 2
+            elif f == 255:
+                if i + 5 > len(b):
+                    return None
+                n, i = int.from_bytes(b[i + 1:i + 5], "big"), i + 5
+            else:
+                return None  # a partial body length
+        else:  # old format
+            tag, lt, i = (h >> 2) & 0x0F, h & 3, i + 1
+            if lt == 3:
+                return None  # indeterminate length
+            w = 1 << lt
+            if i + w > len(b):
+                return None
+            n, i = int.from_bytes(b[i:i + w], "big"), i + w
+        if i + n > len(b):
+            return None
+        out.append((tag, b[i:i + n]))
+        i += n
+    return out
+
+
+def pgp_dsa_key(blob: bytes):
+    """A `P` key blob: the KeyID, then a certificate whose first packet is a v4 DSA public key (README)."""
+    kid, packets = blob[:8], pgp_packets(blob[8:])
+    if len(blob) < 8 or not packets or packets[0][0] != 6:
+        return None
+    body = packets[0][1]
+    if len(body) < 6 or body[0] != 4 or body[5] != 17:
+        return None
+    m, i = [], 6
+    while i < len(body) and len(m) < 4:
+        n = (int.from_bytes(body[i:i + 2], "big") + 7) // 8
+        if i + 2 + n > len(body):
+            return None
+        m.append(int.from_bytes(body[i + 2:i + 2 + n], "big"))
+        i += 2 + n
+    if len(m) != 4 or i != len(body):
+        return None
+    if hashlib.sha1(b"\x99" + len(body).to_bytes(2, "big") + body).digest()[-8:] != kid:
+        return None
+    p, q, g, y = m
+    try:
+        return dsa.DSAPublicNumbers(y, dsa.DSAParameterNumbers(p, q, g)).public_key()
+    except ValueError:
+        return None
+
+
 def public_key(signer: dict):
     raw = base64.b64decode(signer["key"])
     if signer["type"] == "C":
         return load_der_x509_certificate(raw).public_key()
+    if signer["type"] == "P":
+        return pgp_dsa_key(raw)
     p, q, g, y = mpis(raw)
     return dsa.DSAPublicNumbers(y, dsa.DSAParameterNumbers(p, q, g)).public_key()
 
@@ -156,6 +223,8 @@ class Collector:
             return refused("malformed-block")
         signed = msg[:close - len(cut)] + msg[close:]
         r, s = r_s
+        if signer["pub"] is None:  # a configured key that does not read (README `P`): the signer has no key
+            return refused("bad-signature")
         q = signer["pub"].parameters().parameter_numbers().q
         try:
             if not (0 < r < q and 0 < s < q):
@@ -193,9 +262,18 @@ class Collector:
             return []
         payload = bytes(st["bytes"][i] for i in range(st["tpbl"]))
         del self.frags[session]
+        # the key blob type (RFC 5848 §5.2.1; README): C, K, P carry the configured blob; N is the configured key;
+        # U has no interoperable reading
         parts = payload.split(b" ")
+        if not 2 <= len(parts) <= 3 or not parts[0] or parts[1] not in (b"C", b"K", b"P", b"N", b"U"):
+            return refused("payload-mismatch")
+        if parts[1] == b"U":
+            return refused("unsupported-key-blob")
         try:
-            if len(parts) != 3 or not parts[0] or parts[1].decode() != signer["type"] or b64(parts[2].decode()) != signer["raw"]:
+            if parts[1] == b"N":
+                if len(parts) != 2:
+                    raise Bad
+            elif len(parts) != 3 or parts[1].decode() != signer["type"] or b64(parts[2].decode()) != signer["raw"]:
                 raise Bad
         except (Bad, UnicodeDecodeError):
             return refused("payload-mismatch")

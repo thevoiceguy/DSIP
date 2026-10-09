@@ -176,7 +176,13 @@ element `ssign` or `ssign-cert`. The basis is `syslog-signed`.
 - **Signers are configured.** Each signer is a HOSTNAME (compared without case) with its key: a PKIX certificate
   holding a DSA key (key blob type `C`) or a raw DSA key (type `K`, the four OpenPGP MPIs p, q, g, y). RFC 5848
   §5.2.2 (b) calls this end-entity matching. Since the key is known in advance, every block is authenticated on
-  arrival, including each Certificate Block fragment. Key blob types `N`, `P` and `U` are not supported.
+  arrival, including each Certificate Block fragment. Key blob types `N` and `P` (v0.11): `N` sends no key, and
+  the session uses the signer's pre-distributed (configured) key, whatever its type; `P` is the OpenPGP KeyID and
+  certificate (RFC 5848 §5.2.1), read as a sequence of OpenPGP packets whose first is a version 4 DSA Public-Key
+  packet (RFC 4880 §5.5.2), the KeyID being the last 8 octets of its V4 fingerprint (§12.2); the rest of the
+  certificate is not examined, since the collector authorizes keys by configuration (RFC 5848 §5.2.2). Type `U`,
+  installation-specific key exchange, has no interoperable reading and is refused `unsupported-key-blob`. The
+  conformance suite's `syslog-sign-blob-*` traces pin the rules.
 - **Versions.** `0111` (SHA-1) and `0121` (SHA-256), both with OpenPGP DSA, the only scheme RFC 5848 defines. A
   signature is DSA (FIPS 186) over the message digested with the version's hash. `r` and `s` are two OpenPGP MPIs,
   each a 2-byte bit count and then ⌈bits/8⌉ bytes. The bit count gives only the length: the RFC's own example
