@@ -1,5 +1,5 @@
 {
-  "vector": "tn-binding/claim-other-number",
+  "vector": "tn-binding/backref-other-number",
   "format": 1,
   "kind": "tn-binding",
   "description": "The document claims another number.",

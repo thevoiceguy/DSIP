@@ -1,8 +1,11 @@
 # Draft: DSIP Number Attestation Profile (`tn-binding/0.1`)
 
 **Status:** DRAFT, companion profile to DSIP v0.11. Cite as `N§n`. Adopted 2026-10-08 from the design study
-`impl/docs/number-attestation-design.md` (spec-gap 110). Stage 1 is vectored: N§3, the binding and its checks
-(`impl/vectors/tn-binding/`). The other sections are draft text, and later stages will vector them.
+`impl/docs/number-attestation-design.md` (spec-gap 110). Vectored so far (`impl/vectors/tn-binding/`):
+- stage 1: N§3, the binding and its checks;
+- stage 2: N§4, the claim and its rendering, and N§5, the identity-change warning.
+
+The exact text of the rendered lines is the vector suite's. Later stages will vector the rest.
 
 A phone number is an alias (§8.2), and a DID is an identity. This profile lets the holder of a number's STIR
 authority sign a short-lived statement, the **binding**: "this number is used by this DID". The DID document says
@@ -172,8 +175,11 @@ member:
   still be shown marked "(unverified)".
 - **Rendering** (§18.1). A `tel` claim with a `binding` is the caller's own number. A `tel` claim with a `verifier`
   is G§5's gateway claim for a PSTN caller. Clients render them differently:
-  - *"+1 555 123 4567 · number attested by Carrier Example for this identity"*
-  - *"+1 555 123 4567 · PSTN caller, gateway attested by gw.example · STIR attestation A"*
+  - *"+15551234567 · number attested by Carrier Example for this identity"*
+  - *"PSTN caller +15551234567"*, with the basis *"Gateway attested by gw.example · STIR attestation A (verified)"*
+
+  A claim with a string `verifier` is a gateway claim, even when it also carries a `binding`. A binding claim
+  never changes the identity's own basis line.
 - **Trust tier** (§19.1). How much a verified binding counts for first contact is deployment policy (spec-gap 110,
   item D). Treating it like a domain-bound identity (Tier 3) is a reasonable choice for a business. Numbers are
   cheap to rent in bulk, which is how robocallers work, so a consumer client may give it less.
@@ -188,8 +194,10 @@ member:
 A client that holds a contact's DID and number, and then verifies a binding of that number to a **different** DID,
 **MUST** say so. It renders the new identity as new, never as the stored contact:
 
-> *+1 555 123 4567 now belongs to a different identity (number attested by Carrier B since 3 Oct). Your contact
+> *+15551234567 now belongs to a different identity (number attested by Carrier B since 2026-10-03). Your contact
 > "Alice" is did:web:alice.example.*
+
+A client says this only when no stored contact listing the number has the attested DID.
 
 A legitimate port or a carrier-level hijack moves the number's routing. It never moves the person's identity.
 

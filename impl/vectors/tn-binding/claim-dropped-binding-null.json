@@ -1,10 +1,11 @@
 {
-  "vector": "tn-binding/claim-no-alsoKnownAs",
+  "vector": "tn-binding/claim-dropped-binding-null",
   "format": 1,
   "kind": "tn-binding",
-  "description": "The document has no `alsoKnownAs`.",
+  "description": "`binding: null` is present, and not a string.",
   "spec_ref": [
-    "N§3"
+    "N§4",
+    "N§3.4"
   ],
   "context": {
     "trust_anchors": [
@@ -23,15 +24,27 @@
     "status": {}
   },
   "input": {
-    "binding": "eyJhbGciOiJFUzI1NiIsInR5cCI6ImRzaXAtdG4tYmluZGluZytqd3QiLCJ4NXUiOiJodHRwczovL2NyLmNhcnJpZXIuZXhhbXBsZS9zdGkucGVtIn0.eyJ0biI6IisxNTU1MTIzNDU2NyIsImRpZCI6ImRpZDp3ZWI6YWxpY2UuZXhhbXBsZSIsImlhdCI6MTc1OTk5NjQwMCwiZXhwIjoxNzYwMDgyODAwLCJqdGkiOiIwMUs2WjhSOFFBRVhBTVAxRUIxTkRORzAwMSJ9.xY0OfiVrSXsllNs4gvKMPNDYpkx1IXtkok7dXmDKWpavleWMNjTtTrrNHIi8DZaEL73fWYdpWQV_BwzfC4ugOw",
-    "did": "did:web:alice.example",
+    "check": "claim",
+    "claim": {
+      "type": "tel",
+      "number": "+15551234567",
+      "binding": null
+    },
+    "identity": "did:web:alice.example",
     "did_document": {
-      "id": "did:web:alice.example"
+      "@context": [
+        "https://www.w3.org/ns/did/v1"
+      ],
+      "id": "did:web:alice.example",
+      "alsoKnownAs": [
+        "tel:+15551234567"
+      ]
     },
     "now": 1760000000
   },
   "expect": {
-    "outcome": "rejected",
-    "reason": "not-claimed-by-did"
+    "outcome": "dropped",
+    "reason": "malformed",
+    "line": "+15551234567 (unverified)"
   }
 }

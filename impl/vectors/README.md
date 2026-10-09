@@ -477,8 +477,8 @@ The spec gives the *form* of each line; the exact text below is this suite's and
 
 | check | input | expect |
 |---|---|---|
-| `basis` | `identity` (DID), `claims` | with a `tel` claim (first one; it outranks the carrying identity's own basis): `Gateway attested by <verifier> · STIR attestation <A\|B\|C> (verified\|unverified)`, or `… · no attestation` when `attestation` is `none`; `<verifier>` is the host of the claim's `did:web` verifier. Otherwise `Self-issued identity` (`did:key`), `Domain verified (<did>)` (`did:web`), `Unrecognized identity method` |
-| `tel-caller` | `claim` | `PSTN caller <number>`, plus ` · <cnam>` when the claim has one; `null` for a claim that is not `tel` |
+| `basis` | `identity` (DID), `claims` | with a gateway `tel` claim (the first `tel` claim whose `verifier` is a string; it outranks the carrying identity's own basis — a `tel` claim with a `binding` (N§4) is the identity's own number and never changes the basis): `Gateway attested by <verifier> · STIR attestation <A\|B\|C> (verified\|unverified)`, or `… · no attestation` when `attestation` is `none`; `<verifier>` is the host of the claim's `did:web` verifier. Otherwise `Self-issued identity` (`did:key`), `Domain verified (<did>)` (`did:web`), `Unrecognized identity method` |
+| `tel-caller` | `claim` | `PSTN caller <number>`, plus ` · <cnam>` when the claim has one; `null` for a claim that is not `tel`, or has no string `verifier` (a caller's own bound number, N§4, is not a PSTN caller) |
 | `downgrade` | `losses` (tokens of the gateway `downgrade` check) | `Trust downgraded crossing the gateway (§6.3)`, then `: ` and the losses joined by `; ` — `no-srtp-on-trunk` → `media is not encrypted on the PSTN trunk`, `identity-not-assertable` → `your identity could not be asserted into the PSTN`, `no-attestation` → `the caller carried no verified attestation`, `policy-unenforceable` → `your media policy cannot be enforced past the gateway` |
 
 ## Kind: `gateway`
@@ -1698,6 +1698,40 @@ checks does not matter, because they all give that step's reason.
 8. **Status**, only when `require_status` is true; otherwise `status` is never consulted:
    - **`status-unavailable`**: the payload has no `status`, or `status` has no entry for it;
    - **`revoked`**: the entry is `revoked`.
+
+**`check`.** `input.check` selects what is tested. Absent, it is the verification above. Two more checks build on
+it.
+
+**`check: "claim"`** is a `tel` claim carrying a binding, in an invite's `identity.claims` (N§4).
+- **Input:** `{check, claim, identity, did_document, now}`, with the same context as verification. `identity` is the
+  envelope's verified signing identity: the binding is verified against it.
+- **Expect**, one of:
+  - `{"outcome": "ignored"}`: `claim` is not an object with `type` `tel` and a `binding` member (of any value), or
+    it has a string `verifier`. A claim with a string `verifier` is a gateway's `tel` claim (G§5), even if it also
+    carries a `binding`, and the `trust` kind renders it.
+  - `{"outcome": "attested", "line", "issued", "expires"}`:
+    - `line` is `<tn> · number attested by <attested_by> for this identity`, or `<tn> · number attested for this
+      identity` when `attested_by` is `null`. `<tn>` is the E.164 string as it is.
+    - `issued` is the binding's `iat`, and `expires` its `exp`.
+  - `{"outcome": "dropped", "reason", "line"}`. The order:
+    1. `binding` is not a string: `malformed`;
+    2. otherwise the first failing verification step's reason;
+    3. otherwise, the claim's `number` is not the binding's `tn` (compared exactly): `number-mismatch`.
+
+    `line` is `<number> (unverified)` when the claim's `number` is a string matching `^\+[1-9][0-9]{1,14}$`, and
+    `null` otherwise (§18.2: an unverified claim may still be shown, marked).
+
+**`check: "contact"`** is N§5's warning, when a verified number now belongs to a different identity.
+- **Input:** `{check, contacts, attested}`.
+  - `contacts` is the client's address book: an array of `{name, did, numbers}`, with `numbers` in E.164.
+  - `attested` is `{tn, did, attested_by, issued}`: a verified binding (`issued` is its `iat`).
+- **Expect:** a string or `null`.
+  - **`null`** when no contact lists `tn`, or when some contact listing `tn` has `did` equal to `attested.did`: that
+    is the stored identity, unchanged.
+  - **Otherwise, the first contact** (in array order) that lists `tn`:
+    `<tn> now belongs to a different identity (number attested by <attested_by> since <date>). Your contact "<name>" is <contact did>.`
+    - `<date>` is `issued` as a UTC calendar date, `YYYY-MM-DD`.
+    - When `attested_by` is `null`, the parenthesis reads `(number attested since <date>)`.
 
 **Fixtures.** The vector generator makes a test STIR PKI:
 - an STI-CA root;

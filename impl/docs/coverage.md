@@ -40,12 +40,12 @@ Profile, `M§n` Messaging Profile, `R§n` RTP/SRTP Media Binding.
 | §6.3 | dsip-cli/console.rs, dsip-core/trust.rs, dsip-gateway/host/media.rs, dsip-gateway/host/sip_leg.rs, dsip-gateway/lib.rs | 9 vector(s): gateway/claims-attestation-a-verified, gateway/downgrade-error-none, gateway/downgrade-error-plain-trunk, gateway/downgrade-inbound-no-attestation, gateway/downgrade-outbound-asserted-srtp, gateway/downgrade-outbound-plain-trunk … |
 | §7 | dsip-media/backend/webrtc_rs.rs, dsip-media/leg.rs, dsip-media/lib.rs | — |
 | §7.1.3 | dsip-core/hpke.rs | — |
-| §7.2 | dsip-cli/main.rs, dsip-core/did.rs, dsip-core/hpke.rs, dsip-core/keys.rs, dsip-core/lib.rs, dsip-core/webvh.rs, dsip-endpoint/core.rs, dsip-relay/main.rs, dsip-transport/lib.rs, dsip-transport/resolver.rs | 69 vector(s): did-webvh/cache-at-latest-resolves, did-webvh/cache-behind-advances, did-webvh/cache-malformed-is-absent, did-webvh/carries-dsip-document-properties, did-webvh/create-resolves, did-webvh/deactivated … |
+| §7.2 | dsip-cli/main.rs, dsip-core/did.rs, dsip-core/hpke.rs, dsip-core/keys.rs, dsip-core/lib.rs, dsip-core/webvh.rs, dsip-endpoint/core.rs, dsip-relay/main.rs, dsip-transport/identity.rs, dsip-transport/lib.rs, dsip-transport/resolver.rs | 69 vector(s): did-webvh/cache-at-latest-resolves, did-webvh/cache-behind-advances, did-webvh/cache-malformed-is-absent, did-webvh/carries-dsip-document-properties, did-webvh/create-resolves, did-webvh/deactivated … |
 | §7.3 | dsip-core/keys.rs, dsip-transport/identity.rs | — |
 | §7.4 | dsip-cli/main.rs, dsip-core/delegation.rs, dsip-core/envelope.rs, dsip-core/lib.rs, dsip-core/pkarr.rs, dsip-core/registry.rs, dsip-core/verdict.rs, dsip-dht/lib.rs, dsip-dht/record.rs, dsip-endpoint/core.rs, dsip-mailbox/bin/dsip-msg.rs, dsip-mailbox/verify.rs, dsip-schema/semantic.rs, dsip-session/endpoint.rs, dsip-transport/identity.rs, dsip-wasm/lib.rs | 70 vector(s): broadcast/provenance-unsigned-by-processor, broadcast/publication-delegated-device, dht/non-delegated-signer, dht/valid-delegated-device, envelope/delegated-device-signs-for-identity, envelope/delegated-did-web-identity … |
 | §7.5 | dsip-core/delegation.rs, dsip-core/did.rs, dsip-core/keys.rs, dsip-core/registry.rs, dsip-schema/lib.rs, dsip-schema/semantic.rs | 13 vector(s): envelope/key-rotation-signed-by-previous-key, envelope/rotated-did-web-new-key-delegation, envelope/rotated-did-web-new-key-signs, envelope/rotated-did-web-old-key-delegation-rejected, envelope/rotated-did-web-retired-kid-rejected, payload/key-rotation-bad-reason-token … |
 | §7.6 | dsip-core/keys.rs | 1 vector(s): semantic/key-rotation-recovery-signer |
-| §8.1 | dsip-broadcast/receiver.rs, dsip-cli/console.rs, dsip-cli/hints.rs, dsip-cli/main.rs, dsip-cli/pkarr_cli.rs, dsip-core/delegation.rs, dsip-core/did.rs, dsip-core/envelope.rs, dsip-core/lib.rs, dsip-core/pkarr.rs, dsip-core/webvh.rs, dsip-dht/lib.rs, dsip-endpoint/core.rs, dsip-mailbox/bin/dsip-msg.rs, dsip-messaging/client.rs, dsip-node/lib.rs, dsip-node/main.rs, dsip-transport/lib.rs, dsip-transport/resolver.rs | 95 vector(s): broadcast/publication-publisher-mismatch, did-webvh/cache-at-latest-resolves, did-webvh/cache-behind-advances, did-webvh/cache-malformed-is-absent, did-webvh/carries-dsip-document-properties, did-webvh/create-resolves … |
+| §8.1 | dsip-broadcast/receiver.rs, dsip-cli/console.rs, dsip-cli/hints.rs, dsip-cli/main.rs, dsip-cli/pkarr_cli.rs, dsip-core/delegation.rs, dsip-core/did.rs, dsip-core/envelope.rs, dsip-core/lib.rs, dsip-core/pkarr.rs, dsip-core/webvh.rs, dsip-dht/lib.rs, dsip-endpoint/core.rs, dsip-mailbox/bin/dsip-msg.rs, dsip-messaging/client.rs, dsip-node/lib.rs, dsip-node/main.rs, dsip-relay/main.rs, dsip-transport/identity.rs, dsip-transport/lib.rs, dsip-transport/resolver.rs | 95 vector(s): broadcast/publication-publisher-mismatch, did-webvh/cache-at-latest-resolves, did-webvh/cache-behind-advances, did-webvh/cache-malformed-is-absent, did-webvh/carries-dsip-document-properties, did-webvh/create-resolves … |
 | §8.3 | dsip-broadcast/authority.rs, dsip-cli/console.rs, dsip-cli/hints.rs, dsip-cli/pkarr_cli.rs, dsip-core/envelope.rs, dsip-core/pkarr.rs, dsip-dht/lib.rs, dsip-dht/node.rs, dsip-dht/record.rs, dsip-node/lib.rs | 65 vector(s): dht/existing-expired-ignored, dht/expired-record, dht/hint-held-accepted, dht/hint-held-duplicate, dht/hint-held-expired, dht/hint-held-newer-wins … |
 | §8.4 | dsip-cli/main.rs, dsip-core/webvh.rs, dsip-transport/resolver.rs | 67 vector(s): did-webvh/cache-at-latest-resolves, did-webvh/cache-behind-advances, did-webvh/cache-malformed-is-absent, did-webvh/carries-dsip-document-properties, did-webvh/create-resolves, did-webvh/deactivated … |
 | §8.5 | dsip-cli/hints.rs, dsip-cli/main.rs, dsip-cli/pkarr_cli.rs, dsip-core/pkarr.rs, dsip-dht/bin/dsip-dht-node.rs, dsip-dht/lib.rs, dsip-dht/node.rs, dsip-dht/record.rs | 100 vector(s): dht/hint-held-accepted, dht/hint-validity-over-cap, dht/valid-self-signed-did-key, payload/reachability-hint-service-mailbox, payload/reachability-hint-service-not-a-type-name, pkarr/bep44-signable … |
@@ -96,8 +96,8 @@ Profile, `M§n` Messaging Profile, `R§n` RTP/SRTP Media Binding.
 | §17 | dsip-endpoint/core.rs, dsip-transport/agent.rs | — |
 | §17.1 | dsip-gateway/host/media.rs, dsip-kt/lib.rs, dsip-media/lib.rs | — |
 | §17.2 | dsip-gateway/host/media.rs | 2 vector(s): gateway/sdp-trunk-g711-opus-to-descriptors, media-binding/offer-plain-rtp-rejected |
-| §18.1 | dsip-cli/console.rs, dsip-core/trust.rs, dsip-endpoint/core.rs, dsip-gateway/lib.rs, dsip-transport/agent.rs, dsip-wasm/lib.rs | 17 vector(s): gateway/claims-attestation-a-verified, gateway/claims-no-identity-header, gateway/claims-orig-mismatch, gateway/claims-signature-failed, gateway/downgrade-inbound-no-attestation, gateway/trace-inbound-answered … |
-| §18.2 | dsip-cli/main.rs, dsip-core/trust.rs, dsip-endpoint/core.rs, dsip-transport/identity.rs | 1 vector(s): trust/tel-caller-with-cnam |
+| §18.1 | dsip-cli/console.rs, dsip-core/trust.rs, dsip-endpoint/core.rs, dsip-gateway/lib.rs, dsip-number/lib.rs, dsip-transport/agent.rs, dsip-wasm/lib.rs | 19 vector(s): gateway/claims-attestation-a-verified, gateway/claims-no-identity-header, gateway/claims-orig-mismatch, gateway/claims-signature-failed, gateway/downgrade-inbound-no-attestation, gateway/trace-inbound-answered … |
+| §18.2 | dsip-cli/console.rs, dsip-cli/main.rs, dsip-core/trust.rs, dsip-endpoint/core.rs, dsip-number/lib.rs, dsip-transport/identity.rs | 1 vector(s): trust/tel-caller-with-cnam |
 | §18.3 | dsip-number/lib.rs | — |
 | §19 | — | 1 vector(s): state/responder-auto-reject-policy |
 | §19.1 | — | 1 vector(s): trust/basis-did-key |
@@ -134,7 +134,7 @@ Profile, `M§n` Messaging Profile, `R§n` RTP/SRTP Media Binding.
 | B§6.2 | — | 1 vector(s): media-binding/answer-screening-recvonly |
 | B§7 | dsip-webrtc-binding/lib.rs | 2 vector(s): media-binding/offer-no-fingerprint, media-binding/offer-plain-rtp-rejected |
 | B§8 | dsip-endpoint/core.rs, dsip-session/event.rs, dsip-webrtc-binding/lib.rs | 2 vector(s): media-binding/one-answer-invalid-first-then-valid, state/hangup-with-reason-media-failed |
-| G§5 | dsip-core/trust.rs | — |
+| G§5 | dsip-core/trust.rs, dsip-number/lib.rs | — |
 | G§7 | dsip-cli/console.rs, dsip-core/trust.rs, dsip-gateway/lib.rs | — |
 | G§9 | dsip-gateway/controller.rs, dsip-gateway/host/call.rs, dsip-gateway/host/media.rs, dsip-gateway/host/sip_leg.rs | 4 vector(s): gateway/trace-dtmf-both-ways, gateway/trace-dtmf-other-about-not-carried, gateway/trace-dtmf-outside-the-call-ignored, gateway/trace-dtmf-rtp-events |
 | M§1 | dsip-mailbox/wire.rs | — |
@@ -217,9 +217,10 @@ Profile, `M§n` Messaging Profile, `R§n` RTP/SRTP Media Binding.
 | N§3 | — | 159 vector(s): tn-binding/anchor-bad-entries-ignored, tn-binding/anchor-each-qualifying-tried, tn-binding/anchor-with-whitespace-ignored, tn-binding/attested-by-common-name, tn-binding/attested-by-first-organization, tn-binding/attested-by-invalid-utf8-passed-over … |
 | N§3.1 | dsip-number/lib.rs | — |
 | N§3.2 | dsip-number/lib.rs | — |
-| N§3.3 | dsip-number/lib.rs | — |
-| N§3.4 | dsip-number/lib.rs | — |
-| N§4 | dsip-number/lib.rs | — |
+| N§3.3 | dsip-cli/main.rs, dsip-number/lib.rs, dsip-transport/identity.rs | — |
+| N§3.4 | dsip-cli/console.rs, dsip-cli/main.rs, dsip-number/lib.rs | 16 vector(s): tn-binding/claim-attested, tn-binding/claim-attested-extra-members, tn-binding/claim-attested-unnamed-issuer, tn-binding/claim-dropped-binding-not-string, tn-binding/claim-dropped-binding-null, tn-binding/claim-dropped-expired … |
+| N§4 | dsip-cli/console.rs, dsip-cli/main.rs, dsip-core/trust.rs, dsip-number/lib.rs | 19 vector(s): tn-binding/claim-attested, tn-binding/claim-attested-extra-members, tn-binding/claim-attested-unnamed-issuer, tn-binding/claim-dropped-binding-not-string, tn-binding/claim-dropped-binding-null, tn-binding/claim-dropped-expired … |
+| N§5 | dsip-cli/console.rs, dsip-cli/main.rs, dsip-number/lib.rs | 8 vector(s): tn-binding/contact-date-is-utc, tn-binding/contact-different-identity, tn-binding/contact-empty-book, tn-binding/contact-first-listing-contact, tn-binding/contact-one-of-two-matches, tn-binding/contact-same-identity … |
 | N§9 | dsip-number/lib.rs | — |
 
 ## Headed sections cited by neither a module nor a vector
@@ -236,4 +237,4 @@ is a candidate for the next vector.
 - **Device Events Profile** (`dsip-device-events-profile-v0.11-draft.md`): E§1, E§7
 - **Alias Transparency Profile** (`dsip-alias-transparency-profile-v0.11-draft.md`): T§1, T§4, T§6
 - **Recording Profile** (`dsip-recording-profile-v0.11-draft.md`): C§8
-- **Number Attestation Profile** (`dsip-number-attestation-profile-v0.11-draft.md`): N§1, N§2, N§5, N§6, N§7, N§8, N§10
+- **Number Attestation Profile** (`dsip-number-attestation-profile-v0.11-draft.md`): N§1, N§2, N§6, N§7, N§8, N§10

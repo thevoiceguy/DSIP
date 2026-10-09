@@ -3094,3 +3094,22 @@ pinned with a hand-authored vector.
   those bytes, so leniency never admits an unsigned claim. Pinning them would mean writing a full strict-DER
   validator into every implementation. Vectors and fuzz avoid them. **Proposed text (N§3.2):** "Certificates are DER
   as RFC 5280 requires; a verifier SHOULD refuse one that is not."
+
+**G. Stage 2 (N§4, N§5): the claim and the identity-change warning.** Pinned by `tn-binding/claim-*`,
+`tn-binding/contact-*` and `trust/basis-tel-binding-*`. Exact rendered lines are the suite's.
+- **A latent `trust` divergence, found and fixed.** Two `tel` claims, the first with no `verifier` (a binding claim)
+  and the second a gateway's, were rendered differently:
+  - Rust took the first `tel` claim and fell back to the identity's own basis;
+  - Python took the first claim with a `verifier`;
+  - impl-ts would have printed "undefined".
+
+  **Decided:** the basis comes from the first `tel` claim whose `verifier` is a string, and `tel-caller` needs one
+  too.
+- **A claim with both a string `verifier` and a `binding`** is a gateway claim. The `claim` check ignores it.
+- **A failed binding claim** is shown as `<number> (unverified)` (§18.2), and only when `number` is E.164.
+- **The N§5 warning** is said only when no stored contact listing the number has the attested DID. It names the first
+  contact that lists it, and dates the binding by its `iat` (UTC).
+- **Left open** (client-local data; impl-ts's choices stand, no parity exposure on well-formed input):
+  - dates outside the years 0000–9999;
+  - malformed address-book entries;
+  - an `attested_by` that is neither a string nor `null`.

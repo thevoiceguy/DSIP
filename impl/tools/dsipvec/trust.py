@@ -39,7 +39,8 @@ def verification_basis(identity: str, claims: list) -> str:
 
 
 def tel_caller_line(claim: dict) -> str | None:
-    if claim.get("type") != "tel":
+    # a claim with no verifier is not a gateway's PSTN caller (a caller's own bound number, N§4)
+    if claim.get("type") != "tel" or not isinstance(claim.get("verifier"), str):
         return None
     number = claim.get("number")
     if not isinstance(number, str):

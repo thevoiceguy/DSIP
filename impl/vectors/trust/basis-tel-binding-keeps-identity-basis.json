@@ -1,0 +1,23 @@
+{
+  "vector": "trust/basis-tel-binding-keeps-identity-basis",
+  "format": 1,
+  "kind": "trust",
+  "description": "A `tel` claim with a `binding` (N§4) is the caller's own number: the basis stays the identity's own.",
+  "spec_ref": [
+    "§18.1",
+    "N§4"
+  ],
+  "context": {},
+  "input": {
+    "check": "basis",
+    "identity": "did:web:alice.example",
+    "claims": [
+      {
+        "type": "tel",
+        "number": "+15551234567",
+        "binding": "eyJ.eyJ.c2ln"
+      }
+    ]
+  },
+  "expect": "Domain verified (did:web:alice.example)"
+}

@@ -378,5 +378,45 @@ def _verify(context: dict, i: dict) -> dict:
     return {"outcome": "verified", "tn": p["tn"], "did": p["did"], "expires": p["exp"], "attested_by": attested_by(path[0])}
 
 
-def run(v: dict) -> dict:
-    return verify(v.get("context", {}), v["input"])
+def claim(context: dict, i: dict) -> dict:
+    """N§4: a `tel` claim carrying a binding, verified against the envelope's signing identity."""
+    c = i["claim"]
+    if not (isinstance(c, dict) and c.get("type") == "tel" and "binding" in c) or isinstance(c.get("verifier"), str):
+        return {"outcome": "ignored"}
+    number = c.get("number")
+    line = f"{number} (unverified)" if isinstance(number, str) and TN_RE.match(number) else None
+    if not isinstance(c["binding"], str):
+        return {"outcome": "dropped", "reason": "malformed", "line": line}
+    r = verify(context, {"binding": c["binding"], "did": i["identity"], "did_document": i.get("did_document"),
+                         "now": i["now"]})
+    if r["outcome"] != "verified":
+        return {"outcome": "dropped", "reason": r["reason"], "line": line}
+    if number != r["tn"]:
+        return {"outcome": "dropped", "reason": "number-mismatch", "line": line}
+    by = f" by {r['attested_by']}" if r["attested_by"] is not None else ""
+    _, p, _, _ = parse_binding(c["binding"])
+    return {"outcome": "attested", "line": f"{r['tn']} · number attested{by} for this identity",
+            "issued": p["iat"], "expires": r["expires"]}
+
+
+def contact(contacts: list, attested: dict):
+    """N§5: the warning when a stored contact's number is now attested for another identity."""
+    tn, did = attested["tn"], attested["did"]
+    listing = [c for c in contacts if tn in c.get("numbers", [])]
+    if not listing or any(c["did"] == did for c in listing):
+        return None
+    import datetime
+    date = datetime.datetime.fromtimestamp(attested["issued"], datetime.timezone.utc).strftime("%Y-%m-%d")
+    by = f" by {attested['attested_by']}" if attested.get("attested_by") is not None else ""
+    c = listing[0]
+    return (f"{tn} now belongs to a different identity (number attested{by} since {date}). "
+            f'Your contact "{c["name"]}" is {c["did"]}.')
+
+
+def run(v: dict):
+    i = v["input"]
+    if i.get("check") == "claim":
+        return claim(v.get("context", {}), i)
+    if i.get("check") == "contact":
+        return contact(i["contacts"], i["attested"])
+    return verify(v.get("context", {}), i)

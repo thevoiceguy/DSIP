@@ -39,7 +39,7 @@ python3 ../impl/tools/parity_ts.py       # Python harness vs this implementation
 | `envelope`, `transport`, `dht` | 65, 13, 18 | `envelope.ts`, `did.ts`, `encoding.ts`, `dht.ts` |
 | `payload`, `semantic` | 97, 79 | `schema.ts`, `semantic.ts`, `registry.ts` |
 | `state` | 109 | `endpoint.ts`, `relay.ts`, `broadcast-state.ts`, `timers.ts` |
-| `broadcast`, `trust`, `media-binding` | 21, 13, 42 | `broadcast.ts`, `trust.ts`, `binding.ts` |
+| `broadcast`, `trust`, `media-binding` | 21, 16, 42 | `broadcast.ts`, `trust.ts`, `binding.ts` |
 | `gateway` | 66 | `gateway.ts` |
 | `messaging` | 467 | `messaging/`: `message`, `object`, `rules`, `blobs`, `crypto` (stateless); `device`, `sync`, `client`, `hub`, `mailbox` (the nine trace machines) |
 | `did-webvh` | 67 | `did/webvh.ts` (log verification, restricted JCS, I-JSON), `encoding.ts` |
@@ -47,7 +47,7 @@ python3 ../impl/tools/parity_ts.py       # Python harness vs this implementation
 | `alias-transparency` | 70 | `kt/alias-transparency.ts` (alias normalization, VrfInput, commitments, prefix and log trees, Configuration, tree head, search tree, ladder), `kt/vrf.ts` (ECVRF-EDWARDS25519-SHA512-TAI verify on BigInt Edwards25519 arithmetic; RFC 9381 Examples 16–18 are vectors) |
 | `pkarr` | 95 | `dht/pkarr.ts` (Pkarr relay payloads for `did:key` hints: BEP 44 signed buffer, RFC 1035 parsing with backward-only compression pointers, `_dsip` TXT endpoints, z-base-32, §8.3 selection; a node's verify-before-store for `PUT /<z32>` (profile §10); publishing: the records carried over with rdata names expanded per RFC 3597 §4, the next `ts`; §9.1 multi-device identities: the identity-signed `_dsip-devices` pointer, each device's own hint and its `_dsip-delegation` record), `envelope.ts` (Ed25519; the §7.4 delegation verifier with revocations) |
 | `recording` | 53 | `recording/recording.ts` (the counterparty's consent machine for calls: disclosure, acceptance per session and recorder, held answer and media, decline by `reject` or `bye`; the recorder device in conversations; the recording party's checks on its recorder leg) |
-| `tn-binding` | 159 | `tn/binding.ts`, `tn/x509.ts`, `tn/der.ts` (Number Attestation N§3: compact-JWS ES256 binding, I-JSON, PEM chain, X.509 path to the STI-CA list with the pinned parse rules, strict-DER TNAuthList (RFC 8226, EXPLICIT tags) and coverage, time, DID back-reference, status policy, `attested_by`) |
+| `tn-binding` | 183 | `tn/binding.ts`, `tn/x509.ts`, `tn/der.ts` (Number Attestation N§3: compact-JWS ES256 binding, I-JSON, PEM chain, X.509 path to the STI-CA list with the pinned parse rules, strict-DER TNAuthList (RFC 8226, EXPLICIT tags) and coverage, time, DID back-reference, status policy, `attested_by`), `tn/claim.ts` (N§4: a caller's `tel` claim carrying a binding, verified against the envelope's signing identity, the number matched, the attested or `(unverified)` line; N§5: the identity-change warning against the address book, with a UTC date) |
 
 What this is not: a product. It has no transport, no MLS library and no storage — it is the protocol's *decisions*,
 which is what the vectors measure. The wire demos in `../impl/demos` remain the Rust implementation's.

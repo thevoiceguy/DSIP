@@ -16,7 +16,7 @@ v0.11 is the current revision, assembled from v0.10 at tag `poc-v0.10`; `../v0.1
 | `dsip-alias-transparency-profile-v0.11-draft.md` | Alias Transparency Profile (`alias-transparency/0.1`), cited `T§n` | draft, stage 1 |
 | `dsip-device-events-profile-v0.11-draft.md` | Device Events Profile (`device-events/0.1`), cited `E§n` | draft |
 | `dsip-recording-profile-v0.11-draft.md` | Recording Profile (`recording/0.1`), cited `C§n` | draft |
-| `dsip-number-attestation-profile-v0.11-draft.md` | Number Attestation Profile (`tn-binding/0.1`), cited `N§n` | draft, stage 1 |
+| `dsip-number-attestation-profile-v0.11-draft.md` | Number Attestation Profile (`tn-binding/0.1`), cited `N§n` | draft, stages 1–2 |
 
 No wire-format change so far: `dsip.core` stays `1.0`. Rule 7 of `CLAUDE.md` applies: each change lands as vectors
 first, then the three implementations, and `poc-v0.11` is tagged when all three agree on the v0.11 suite.

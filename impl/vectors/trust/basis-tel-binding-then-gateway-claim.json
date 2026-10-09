@@ -1,0 +1,30 @@
+{
+  "vector": "trust/basis-tel-binding-then-gateway-claim",
+  "format": 1,
+  "kind": "trust",
+  "description": "A binding claim first and a gateway `tel` claim second: the first claim with a `verifier` gives the basis.",
+  "spec_ref": [
+    "§18.1",
+    "N§4"
+  ],
+  "context": {},
+  "input": {
+    "check": "basis",
+    "identity": "did:web:gw.example",
+    "claims": [
+      {
+        "type": "tel",
+        "number": "+15551234567",
+        "binding": "eyJ.eyJ.c2ln"
+      },
+      {
+        "type": "tel",
+        "number": "+15551234567",
+        "attestation": "A",
+        "verified": true,
+        "verifier": "did:web:gw.example"
+      }
+    ]
+  },
+  "expect": "Gateway attested by gw.example · STIR attestation A (verified)"
+}

@@ -1,0 +1,36 @@
+{
+  "vector": "tn-binding/contact-one-of-two-matches",
+  "format": 1,
+  "kind": "tn-binding",
+  "description": "Two contacts list the number and one of them is the attested DID: unchanged.",
+  "spec_ref": [
+    "N§5"
+  ],
+  "context": {},
+  "input": {
+    "check": "contact",
+    "contacts": [
+      {
+        "name": "Alice",
+        "did": "did:web:alice.example",
+        "numbers": [
+          "+15551234567"
+        ]
+      },
+      {
+        "name": "Alice (old)",
+        "did": "did:web:old.example",
+        "numbers": [
+          "+15551234567"
+        ]
+      }
+    ],
+    "attested": {
+      "tn": "+15551234567",
+      "did": "did:web:alice.example",
+      "attested_by": "Carrier B",
+      "issued": 1759449600
+    }
+  },
+  "expect": null
+}
