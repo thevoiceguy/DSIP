@@ -1767,6 +1767,7 @@ Clients and services decide which tiers are allowed for which actions:
 - Self-issued identities may require prior contact approval.
 - Domain-bound identities may reach public business endpoints.
 - Credential-backed identities may bypass spam screening.
+- An identity with a verified phone-number binding (Number Attestation Profile, draft) counts as domain-bound by default: a number proves control of a rented resource, as a domain does, and never by itself bypasses screening (spec-gap 110, item D).
 - Regulated identities may access emergency or public-sector profiles.
 
 ### 19.2 Abuse Controls

@@ -3009,7 +3009,7 @@ identity to be entitled to a phone number. The design study `impl/docs/number-at
 STIR-signed binding. It is now the draft Number Attestation Profile (`N§n`), and stage 1 (N§3, the binding and its
 checks) is pinned by `impl/vectors/tn-binding/`. The design left five choices open. The user decided on 2026-10-08
 to adopt it and start stage 1, with E.164 numbers only. Items B–E take the design's proposals; A was decided with
-stage 4 (below); D still needs a decision when §19.1 next changes.
+stage 4 and D with it (below).
 
 **A. G§11 / SHAKEN: may a gateway attest `A` on a carrier's binding?**
 - Choices:
@@ -3055,9 +3055,23 @@ stage 4 (below); D still needs a decision when §19.1 next changes.
 - Not vectored. It lands with stage 3, discovery.
 
 **D. §19.1: the trust tier of a verified number.**
-- Choices: Tier 1, Tier 3, or deployment policy.
-- Draft text: **deployment policy**, with Tier 3 given as an example for business use. Needs a decision when §19.1
-  next changes.
+- Choices: Tier 1, Tier 3, Tier 4, or deployment policy.
+- **Decided by the user (2026-10-09): Tier 3 by default**, domain-bound; a deployment may raise it for issuers its
+  trust list vouches for more. Text in N§4 and §19.1.
+  - Not Tier 4, although a binding is credential-shaped (a third party's signed statement under a trust list):
+    §19.1 lets credential-backed identities bypass spam screening, and that is the one privilege a number must
+    never buy. Robocalling is numbers rented in bulk from carriers who attest them honestly, and SHAKEN's
+    attestation `A` has not stopped it. What a binding proves is control of a rented, transferable resource, which is
+    what a domain proves.
+  - Not Tier 1: the number authority and the port history are traceable in a way a self-issued key is not, and a
+    self-issued tier would make the profile useless for first contact.
+  - Not policy alone: every tier is policy at the privilege end already; refusing to name the evidence class gains
+    nothing and leaves implementers to repeat the robocall mistake. The spec names the default; the trust list may
+    raise it.
+  - Consistent with G§2 (a gateway is Tier 3 toward DSIP callees). A binding never changes the identity's own basis
+    line (stage 2), so the tier is a first-contact input and nothing else; the binding's larger value is continuity
+    (N§5), which no tier captures.
+  - Not vectored: nothing implements tiers; text only.
 
 **E. N§1: short codes and toll-free numbers.**
 - **Decided by the user: E.164 only for now.** `tn` matches `^\+[1-9][0-9]{1,14}$`.

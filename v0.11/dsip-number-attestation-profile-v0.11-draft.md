@@ -181,9 +181,14 @@ member:
 
   A claim with a string `verifier` is a gateway claim, even when it also carries a `binding`. A binding claim
   never changes the identity's own basis line.
-- **Trust tier** (§19.1). How much a verified binding counts for first contact is deployment policy (spec-gap 110,
-  item D). Treating it like a domain-bound identity (Tier 3) is a reasonable choice for a business. Numbers are
-  cheap to rent in bulk, which is how robocallers work, so a consumer client may give it less.
+- **Trust tier** (§19.1). An identity with a verified binding counts as **domain-bound (Tier 3)** for first contact
+  by default: enough to reach public business endpoints, never enough to bypass screening. A binding proves control
+  of a rented, transferable resource, as a domain does; numbers are cheap to rent in bulk, which is how robocallers
+  work, and a carrier's honest attestation does not change that. A deployment MAY count it higher for issuers its
+  trust list vouches for more (a regulated carrier list, an enterprise's own CA), and MAY count it lower; it MUST
+  NOT treat a binding as credential-backed (Tier 4) on the strength of the STI-CA list alone (spec-gap 110,
+  item D). A binding never changes the identity's own basis line, so the tier is a first-contact input and nothing
+  else.
 - **Toward the PSTN.** A gateway that carries a DSIP caller to the PSTN may assert the `From` number only under a
   STIR certificate that covers it. Normally that is an RFC 9060 delegate certificate, which the number's carrier
   issues to the gateway operator (G§11, path c). The binding tells the gateway, per call, that this DSIP identity is

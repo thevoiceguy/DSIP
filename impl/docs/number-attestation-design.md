@@ -224,7 +224,8 @@ solved, like Sybil resistance (§3.2).
 
 **D. §19.1 — the tier of a verified number.** Choices: Tier 1 (a number proves little), Tier 3 (like a domain), or
 deployment policy. Proposed: deployment policy, with Tier 3 as the example, because numbers are cheap to rent in
-bulk and that is exactly how robocallers work.
+bulk and that is exactly how robocallers work. **Decided (2026-10-09): Tier 3 by default**, the trust list may raise
+it, never Tier 4 on the STI-CA list alone. Spec-gap 110, item D.
 
 ## 12. Open questions for the user
 
