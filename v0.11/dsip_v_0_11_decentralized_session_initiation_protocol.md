@@ -2,12 +2,12 @@
 
 ## A Narrow Core for Trusted Real-Time Media Sessions
 
-**Version:** Draft v0.11
+**Version:** v0.11
 **Status:** Design Proposal
 **Editor:** James Ferris
 **Date:** October 2026
 **Supersedes:** v0.10
-**Companion documents:** WebRTC Media Binding 1.0 (`dsip-webrtc-media-binding-v0.11.md`); Gateway Profile 1.0 (`dsip-gateway-profile-v0.11.md`); Messaging Profile 1.0 (`dsip-messaging-profile-v0.11.md`, with its schema set `dsip-messaging-schemas-draft/`); RTP/SRTP Media Binding (draft, `dsip-rtp-srtp-media-binding-v0.11-draft.md`); DHT Hints Profile (draft, `dsip-dht-hints-profile-v0.11-draft.md`); Alias Transparency Profile (draft, `dsip-alias-transparency-profile-v0.11-draft.md`); Device Events Profile (draft, `dsip-device-events-profile-v0.11-draft.md`); Recording Profile (draft, `dsip-recording-profile-v0.11-draft.md`); JSON Schema set v0.11 (`dsip-schemas-v0.11-draft/`); conformance vectors (`impl/vectors/`, 1,385 vectors on which the Python harness, the Rust reference implementation and the independent TypeScript implementation agree)
+**Companion documents:** WebRTC Media Binding 1.0 (`dsip-webrtc-media-binding-v0.11.md`); Gateway Profile 1.0 (`dsip-gateway-profile-v0.11.md`); Messaging Profile 1.0 (`dsip-messaging-profile-v0.11.md`, with its schema set `dsip-messaging-schemas-draft/`); RTP/SRTP Media Binding (draft, `dsip-rtp-srtp-media-binding-v0.11-draft.md`); DHT Hints Profile (draft, `dsip-dht-hints-profile-v0.11-draft.md`); Alias Transparency Profile (draft, `dsip-alias-transparency-profile-v0.11-draft.md`); Device Events Profile (draft, `dsip-device-events-profile-v0.11-draft.md`); Recording Profile (draft, `dsip-recording-profile-v0.11-draft.md`); Number Attestation Profile (draft, `dsip-number-attestation-profile-v0.11-draft.md`); JSON Schema set v0.11 (`dsip-schemas-v0.11-draft/`); conformance vectors (`impl/vectors/`, 1,924 vectors on which the Python harness, the Rust reference implementation and the independent TypeScript implementation agree)
 
 ---
 
@@ -2454,22 +2454,43 @@ reference implementation and the independent TypeScript implementation agree on 
 
 ### A.8 From v0.10 to v0.11
 
-v0.10 is final at tag `poc-v0.10`. Each v0.11 item is listed here as it lands, with its spec-gap number.
+v0.10 is final at tag `poc-v0.10`; v0.11 is final at tag `poc-v0.11`. v0.11 adds number attestation, finishes the
+Device Events items spec-gap 103 left open, and gives hints an HTTP face. Each item names its spec-gap.
 
+- Number attestation (Number Attestation Profile, draft, `N§n`; spec-gap 110): the holder of a number's STIR
+  authority signs a short-lived binding of an E.164 number to a DID, and the DID document claims the number back in
+  `alsoKnownAs`. Clients verify both offline, against the STI-CA roots the PSTN already trusts. The number stays an
+  alias (§8.2). Stage 1 pins the binding and the order of its checks (N§3). Stage 2 pins the `tel` claim that
+  carries a binding and its rendering (N§4), and the warning when a number moves to another identity (N§5). Stage
+  3 adds discovery: a `dsip-node` holds bindings by number, and a caller dialling `tel:` verifies them and chooses
+  one (N§6 route 1, N§7). Stage 4 is the gateway (N§4.1, N§6.1): a DSIP caller's attested number crosses to the
+  PSTN with a SHAKEN PASSporT signed only under a certificate that covers the number, normally an RFC 9060 delegate
+  certificate (never `B` on a binding alone, item A), a PSTN caller's PASSporT is verified before the G§5 claim is
+  rendered, and an inbound call to a bound number is routed by the operator's table, then by the binding. An
+  identity with a verified number counts as domain-bound (Tier 3) for first contact by default (§19.1, item D).
+- The invite's `destination` (spec-gap 111): a `tel:` E.164 URI naming the PSTN number a caller asks a gateway to
+  reach, ignored by any other callee. G§3.1 had never said how the number was named.
+- `detail` on `error`, `reject`, `cancel` and `bye` may be an object a profile defines (§15; spec-gap 112): G§7's
+  `gateway.downgraded` carries `{"losses": [...]}`, which the suite and the clients had pinned while the schema
+  typed `detail` as a string; a relay refused the first one ever sent on the wire.
 - Device Events (spec-gap 103): gap detection from signed syslog (E§3). A gateway configured to receive all of a
   signer's messages reports the message numbers that no Signature Block covered, or that were signed but never
   arrived. It raises the new alarm type `dsip-syslog-gap` (E§7), from a gateway event carrying `syslog_gap` (E§5).
+- Device Events (spec-gap 103): RFC 5848's remaining key blob types for signed syslog (E§3). `N` uses the signer's
+  pre-distributed key; `P` is an OpenPGP KeyID and certificate, read as RFC 4880 packets with a v4 DSA public key
+  first; `U` has no interoperable reading and is refused.
+- Device Events (spec-gap 103): SNMPv3 over DTLS (RFC 6353 over UDP; E§3). The session's client certificate names
+  the sender through the same table as TLS, a nameless session is closed, and each DTLS record carries exactly one
+  message. The `tsm` claim says which transport (E§2).
 - HTTP access to hints (DHT Reachability Hints Profile §10; spec-gap 105): a node serves Pkarr's relay interface and
   the overlay's records over HTTP, so browsers, which join no DHT, get hints they verify offline. A node stores any
   application's verified Pkarr packet under §8.3's `ts` rule; withholding is its only power. A node holding a packet
   SHOULD look on Mainline for a newer one before serving it past its TTL (spec-gap 109).
-- Number attestation (Number Attestation Profile, draft, `N§n`; spec-gap 110): the holder of a number's STIR authority
-  signs a short-lived binding of an E.164 number to a DID, and the DID document claims the number back in
-  `alsoKnownAs`. Clients verify both offline, against the STI-CA roots the PSTN already trusts. The number stays
-  an alias (§8.2). Stage 1 pins the binding and the order of its checks (N§3). Stage 2 pins the `tel` claim that
-  carries a binding and its rendering (N§4), and the warning when a number moves to another identity (N§5).
-  Stage 3 adds discovery: a `dsip-node` holds bindings by number, and a caller dialling `tel:` verifies them and
-  chooses one (N§6 route 1, N§7).
+
+No wire-format change: `dsip.core` stays `1.0`; the two schema additions are an optional invite member and a wider
+`detail`, and everything else is a registry value or a profile section. Every item is pinned by the v0.11
+conformance suite (1,924 vectors; the Python harness, the Rust reference implementation and the independent
+TypeScript implementation agree on every one).
 
 ---
 
