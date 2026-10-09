@@ -2,7 +2,7 @@
 
 ## A Narrow Core for Trusted Real-Time Media Sessions
 
-**Version:** Draft v0.11
+**Version:** v0.11
 **Status:** Design Proposal
 **Editor:** James Ferris
 **Date:** October 2026
