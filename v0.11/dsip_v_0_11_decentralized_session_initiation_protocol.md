@@ -1320,7 +1320,7 @@ category     = "user" / "endpoint" / "identity" / "session" /
 ```
 
 - `reason` (required on `reject`, `cancel`, `bye`; required within `error`): a registered token.
-- `detail` (optional): free-text elaboration. Clients MAY display it but MUST attribute it to the signing identity and MUST NOT render it in a way that implies independent verification — `detail` is a claim, exactly like display names (§18.2). Relays and gateways MUST NOT inject `detail` into envelopes they did not sign.
+- `detail` (optional): free-text elaboration, or an object whose shape the profile registering the reason token defines (the Gateway Profile's `gateway.downgraded` carries `{"losses": [...]}`, G§7; spec-gap 112). Clients MAY display it but MUST attribute it to the signing identity and MUST NOT render it in a way that implies independent verification — `detail` is a claim, exactly like display names (§18.2). Relays and gateways MUST NOT inject `detail` into envelopes they did not sign.
 - `retry_after` (optional, seconds): a hint that retrying may succeed after the interval. `0` means retrying will not help. Absence means no guidance.
 
 ### 15.3 Categories

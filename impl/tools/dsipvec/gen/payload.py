@@ -44,6 +44,10 @@ def vectors() -> list[dict]:
                   {**inv, "policy": {"recording": "Consent-Required"}}, ok=False))
     out.append(pv("invite-with-grant-ref", "invite", "Invite referencing a contact grant id.", ["§19.4"],
                   {**inv, "grant": uid("grant")}))
+    out.append(pv("invite-destination-tel", "invite", "A tel URI destination: the PSTN number asked of a gateway (Number "
+                  "Attestation N§4.1; spec-gap 111).", ["N§4.1", "G§3.1"], {**inv, "destination": "tel:+15552000001"}))
+    out.append(pv("invite-destination-not-tel", "invite", "A destination that is not an E.164 tel URI.", ["N§4.1"],
+                  {**inv, "destination": "sip:+15552000001@gw.example"}, ok=False))
     out.append(pv("invite-accessibility-purpose", "invite", "Media descriptor with a registered purpose (sign-language).", ["§21.3"],
                   {**inv, "media": MEDIA_OFFER + [{"type": "video", "purpose": "sign-language", "direction": "sendrecv",
                                                     "codecs": [{"id": "codec:video/av1"}]}]}))
@@ -138,6 +142,11 @@ def vectors() -> list[dict]:
     out.append(pv("error-session-scoped", "error", "Session-scoped error.", ["§12.4"],
                   {**err, "session": sid, "reason": "session.invalid-state", "from": BPH}))
     out.append(pv("error-missing-reason", "error", "reason is required.", ["§15.2"], {k: v for k, v in err.items() if k != "reason"}, ok=False))
+    out.append(pv("error-detail-object", "error", "A profile-defined object detail: G§7's gateway.downgraded names the lost "
+                  "guarantees (spec-gap 112).", ["G§7", "§15"],
+                  {**err, "from": BPH, "reason": "gateway.downgraded", "detail": {"losses": ["no-srtp-on-trunk", "identity-not-assertable"]}}))
+    out.append(pv("error-detail-number", "error", "A detail that is neither text nor an object.", ["§15"],
+                  {**err, "detail": 7}, ok=False))
 
     # hello
     hc = hello_client(on_behalf_of=F.BOB_WEB)

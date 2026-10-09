@@ -14,7 +14,8 @@ from cryptography import x509
 from cryptography.exceptions import InvalidSignature, UnsupportedAlgorithm
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import ec
-from cryptography.hazmat.primitives.asymmetric.utils import encode_dss_signature
+from cryptography.hazmat.primitives.asymmetric.utils import decode_dss_signature, encode_dss_signature
+from cryptography.hazmat.primitives.serialization import load_pem_private_key
 from cryptography.x509.oid import ExtensionOID, NameOID
 
 from .webvh import ijson
@@ -323,11 +324,9 @@ def _verify(context: dict, i: dict) -> dict:
     return steps_6_to_8(context, i, p, path)
 
 
-def steps_1_to_5(context: dict, binding, now: int):
-    """What a node can check without resolving a DID (README `check: "store"`)."""
-    h, p, signing_input, sig = parse_binding(binding)
-    # 2. the certificate path
-    text = context.get("certificates", {}).get(h["x5u"])
+def cert_path(context: dict, x5u, now: int) -> list:
+    """Step 2: the path from what `x5u` serves to a trust anchor, checked at `now`."""
+    text = context.get("certificates", {}).get(x5u) if isinstance(x5u, str) else None
     if not isinstance(text, str):
         raise Reject("untrusted-certificate")
     chain = load_chain(text)
@@ -337,17 +336,17 @@ def steps_1_to_5(context: dict, binding, now: int):
             anchors.append(parse_cert(padded_b64(a)))
         except (ValueError, TypeError, binascii.Error):
             pass
-    path = None
     for candidate in build_paths(chain, anchors):
         try:
             check_path(candidate, now)
-            path = candidate
-            break
+            return candidate
         except Reject:
             pass
-    if path is None:
-        raise Reject("untrusted-certificate")
-    # 3. the signature
+    raise Reject("untrusted-certificate")
+
+
+def check_signature(path: list, sig: bytes, signing_input: bytes) -> None:
+    """Step 3: the leaf key verifies the 64-byte r‖s signature over the signing input."""
     r, s = int.from_bytes(sig[:32], "big"), int.from_bytes(sig[32:], "big")
     if len(sig) != 64 or not (0 < r < N_P256 and 0 < s < N_P256):
         raise Reject("signature")
@@ -355,11 +354,21 @@ def steps_1_to_5(context: dict, binding, now: int):
         path[0].key.verify(encode_dss_signature(r, s), signing_input, ec.ECDSA(hashes.SHA256()))
     except InvalidSignature:
         raise Reject("signature")
-    # 4. coverage
-    d = p["tn"][1:]
+
+
+def check_coverage(context: dict, path: list, d: str) -> None:
+    """Step 4: the leaf has a TNAuthList, and every TNAuthList on the path covers the number `d` (no `+`)."""
     spc = context.get("spc_numbers", {})
     if path[0].tnauth is None or any(c.tnauth is not None and not covers(c.tnauth, d, spc) for c in path):
         raise Reject("not-authorized-for-tn")
+
+
+def steps_1_to_5(context: dict, binding, now: int):
+    """What a node can check without resolving a DID (README `check: "store"`)."""
+    h, p, signing_input, sig = parse_binding(binding)
+    path = cert_path(context, h["x5u"], now)                      # 2. the certificate path
+    check_signature(path, sig, signing_input)                     # 3. the signature
+    check_coverage(context, path, p["tn"][1:])                    # 4. coverage
     # 5. time
     if p["exp"] - p["iat"] > LIFETIME_MAX:
         raise Reject("lifetime-too-long")
@@ -496,8 +505,174 @@ def select(context: dict, i: dict) -> dict:
     return {"outcome": "found", "did": r["did"], "attested_by": r["attested_by"], "issued": iat, "others": others}
 
 
+# --- the gateway checks (stage 4): passport, route, assert ------------------------------------------------------
+
+DIGITS = re.compile(r"^[0-9]{1,15}$")
+PP_FRESH = 60
+
+
+def canon(s):
+    """RFC 8224 §8.3 as the README pins it: drop a leading `+` and the visual separators; 1–15 digits or nothing."""
+    if not isinstance(s, str):
+        return None
+    t = s[1:] if s.startswith("+") else s
+    t = "".join(ch for ch in t if ch not in "-.() ")
+    return t if DIGITS.fullmatch(t) else None
+
+
+def parse_identity(value: str):
+    """An Identity header value: the token and its parameters (README `check: "passport"` rule 2)."""
+    parts = value.split(";")
+    token = parts[0].strip(" \t")
+    params = {}
+    for part in parts[1:]:
+        if "=" not in part:
+            raise Reject("malformed")
+        n, val = part.split("=", 1)
+        n, val = n.strip(" \t").lower(), val.strip(" \t")
+        if not n or not val or n in params:
+            raise Reject("malformed")
+        params[n] = val
+    info = params.get("info")
+    if info is None or len(info) < 2 or info[0] != "<" or info[-1] != ">":
+        raise Reject("malformed")
+    return token, params, info[1:-1]
+
+
+def parse_passport(token: str):
+    """A SHAKEN PASSporT (rule 4): segments, I-JSON, the header and payload members."""
+    parts = token.split(".")
+    if len(parts) != 3 or not parts[2]:
+        raise Reject("malformed")
+    raw = [b64u(x) for x in parts]
+    h, p = json_object(raw[0]), json_object(raw[1])
+    x5u = h.get("x5u")
+    if (h.get("alg") != "ES256" or h.get("typ") != "passport" or h.get("ppt") != "shaken"
+            or not isinstance(x5u, str) or not x5u.startswith("https://")):
+        raise Reject("malformed")
+    orig, dest = p.get("orig"), p.get("dest")
+    ok = (p.get("attest") in ("A", "B", "C") and isinstance(orig, dict) and canon(orig.get("tn")) is not None
+          and isinstance(dest, dict) and isinstance(dest.get("tn"), list) and len(dest["tn"]) > 0
+          and all(canon(t) is not None for t in dest["tn"]) and is_int(p.get("iat")) and p["iat"] >= 0)
+    if not ok:
+        raise Reject("malformed")
+    return h, p, f"{parts[0]}.{parts[1]}".encode("ascii"), raw[2]
+
+
+def passport(context: dict, i: dict) -> dict:
+    """A gateway verifying an inbound Identity header (G§5; RFC 8224 §6.2)."""
+    def none(reason):
+        return {"attest": "none", "verified": False, "reason": reason}
+    ident = i.get("identity")
+    if not isinstance(ident, str):
+        return none("no-identity-header")
+    try:
+        token, params, info = parse_identity(ident)
+    except Reject:
+        return none("malformed")
+    if params.get("alg", "ES256") != "ES256" or params.get("ppt", "shaken") != "shaken":
+        return none("unsupported")
+    try:
+        h, p, signing_input, sig = parse_passport(token)
+    except Reject:
+        return none("malformed")
+    orig = canon(p["orig"]["tn"])
+    if orig != canon(i.get("from_tn")):
+        return none("orig-mismatch")
+    level = p["attest"]
+
+    def un(reason):
+        return {"attest": level, "verified": False, "reason": reason}
+    if canon(i.get("to_tn")) not in [canon(t) for t in p["dest"]["tn"]]:
+        return un("dest-mismatch")
+    if abs(i["now"] - p["iat"]) > PP_FRESH:
+        return un("stale")
+    if h["x5u"] != info:
+        return un("x5u-mismatch")
+    try:
+        path = cert_path(context, h["x5u"], i["now"])
+        check_signature(path, sig, signing_input)
+        if level == "A":
+            check_coverage(context, path, orig)
+    except Reject as r:
+        return un(str(r))
+    return {"attest": level, "verified": True}
+
+
+def route(context: dict, i: dict) -> dict:
+    """A gateway resolving a dialled number to the DSIP identity it invites (N§6.1)."""
+    to, conf = i.get("to_tn"), i.get("configured")
+    if isinstance(conf, dict) and isinstance(to, str) and isinstance(conf.get(to), str):
+        return {"outcome": "configured", "did": conf[to]}
+    if isinstance(to, str) and TN_RE.fullmatch(to):
+        s = select(context, {"tn": to, "bindings": i.get("bindings"), "documents": i.get("documents"), "now": i["now"]})
+        if s["outcome"] == "found":
+            return {"outcome": "binding", "did": s["did"], "attested_by": s["attested_by"], "issued": s["issued"],
+                    "others": s["others"]}
+    return {"outcome": "none"}
+
+
+def load_p256_key(gw):
+    """`gateway.key` as a P-256 private key, or None."""
+    if not isinstance(gw, dict) or not isinstance(gw.get("x5u"), str) or not isinstance(gw.get("key"), str):
+        return None
+    if "-----BEGIN PRIVATE KEY-----" not in gw["key"]:  # PKCS#8 only; `cryptography` would also read SEC1
+        return None
+    try:
+        k = load_pem_private_key(gw["key"].encode("utf-8"), None)
+    except (ValueError, TypeError, UnsupportedAlgorithm):
+        return None
+    return k if isinstance(k, ec.EllipticCurvePrivateKey) and isinstance(k.curve, ec.SECP256R1) else None
+
+
+def assert_(context: dict, i: dict) -> dict:
+    """A gateway carrying a DSIP caller's bound number to the PSTN (N§4.1): From, and a PASSporT when entitled."""
+    number, dropped = None, None
+    for c in i.get("claims") if isinstance(i.get("claims"), list) else []:
+        r = claim(context, {"claim": c, "identity": i.get("identity"), "did_document": i.get("did_document"), "now": i["now"]})
+        if r["outcome"] == "attested":
+            number = c["number"]
+            break
+        if r["outcome"] == "dropped" and dropped is None:
+            dropped = r["reason"]
+    if number is None:
+        return {"from": None, "passport": None, "assertable": False, "reason": dropped or "no-binding"}
+
+    def no(reason):
+        return {"from": number, "passport": None, "assertable": False, "reason": reason}
+    to = i.get("to_tn")
+    if not (isinstance(to, str) and TN_RE.fullmatch(to)):
+        return no("bad-destination")
+    gw = context.get("gateway")
+    k = load_p256_key(gw)
+    if k is None:
+        return no("no-certificate")
+    try:
+        path = cert_path(context, gw["x5u"], i["now"])
+        check_coverage(context, path, number[1:])
+    except Reject as r:
+        return no(str(r))
+    if k.public_key().public_numbers() != path[0].key.public_numbers():
+        return no("key-mismatch")
+    h = {"alg": "ES256", "ppt": "shaken", "typ": "passport", "x5u": gw["x5u"]}
+    p = {"attest": "A", "dest": {"tn": [to[1:]]}, "iat": i["now"], "orig": {"tn": number[1:]}, "origid": i.get("origid")}
+    segs = [base64.urlsafe_b64encode(json.dumps(x, sort_keys=True, separators=(",", ":")).encode()).rstrip(b"=").decode()
+            for x in (h, p)]
+    si = ".".join(segs).encode("ascii")
+    r, s = decode_dss_signature(k.sign(si, ec.ECDSA(hashes.SHA256())))
+    token = ".".join(segs) + "." + base64.urlsafe_b64encode(r.to_bytes(32, "big") + s.to_bytes(32, "big")).rstrip(b"=").decode()
+    assert len(token.split(".")) == 3
+    return {"from": number, "passport": {"header": h, "claims": p}, "assertable": True}
+
+
 def run(v: dict):
     i = v["input"]
+    if i.get("check") == "passport":
+        return passport(v.get("context", {}), i)
+    if i.get("check") == "route":
+        return route(v.get("context", {}), i)
+    if i.get("check") == "assert":
+        return assert_(v.get("context", {}), i)
     if i.get("check") == "store":
         return store(v.get("context", {}), i)
     if i.get("check") == "select":

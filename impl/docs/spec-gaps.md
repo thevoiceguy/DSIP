@@ -3134,3 +3134,73 @@ pinned with a hand-authored vector.
   Overlay replication of bindings is open.
 - **Enumeration (item C)** is unchanged. Publishing is opt-in (`dsip tn-publish`), and a node's HTTP rate limit
   applies.
+
+**I. Stage 4 (N§4.1, N§6.1, G§5, G§7): the gateway.** Pinned by `tn-binding/assert-*`, `passport-*` and `route-*`;
+the wire demo is `demos/number-gateway-demo.sh` (two gateways over SIP between a DSIP caller and a DSIP callee).
+- **Outbound (`assert`).** The first attested `tel` claim gives the `From`. The gateway signs a SHAKEN PASSporT only
+  under its own certificate: chained at `now`, every TNAuthList on the path covering the number, the key the
+  leaf's. **Choices considered** for a caller with an attested number the gateway cannot sign for:
+  - (a) refuse the call;
+  - (b) present the number unsigned and cross downgraded (G§11 path b);
+  - (c) sign `B` ("customer known").
+
+  **Chosen: (b).** (c) is item A's question for SHAKEN governance, and the draft says `A` or nothing. A caller with no
+  attested claim gets the gateway's own `From`: a number nobody proved is never presented.
+- **The level is `A`** under an RFC 9060 delegate certificate (item A, path c, now normative in the draft; the
+  SHAKEN-governance question stays open).
+- **The signature is not pinned**, only the signing input (header and claims as decoded objects): ECDSA signatures
+  differ between implementations, and RFC 6979 nonces are not something a spec may require of a gateway. Each
+  implementation's own round trip (`assert` then `passport`) is tested in its unit tests and in the demo.
+- **Inbound (`passport`), RFC 8224 §6.2 made exact.** The order: absent, malformed parameters, unsupported
+  `alg`/`ppt` (ignored, §6.2.3), malformed token, `orig` against the `From` (discarded whole, G§5), then with the
+  level kept: `dest`, freshness (60 s, §6.2.1), `x5u` against `info`, the path, the signature, coverage.
+  - **Coverage is checked for `A` only.** `B` and `C` attest no authority over the number (RFC 8588 §3); a SHAKEN SP
+    certificate holds only an SPC, so checking coverage would refuse every honest `B`. For `A`, an SPC entry covers
+    through the relying party's `spc_numbers`, as for bindings.
+  - **Canonical numbers** (RFC 8224 §8.3): the `+` and the visual separators `-`, `.`, `(`, `)`, SP removed; 1 to 15
+    digits remain or nothing matches.
+  - **An unsupported `ppt` is `none`,** not a refusal: the gateway renders "no attestation", as for an absent header.
+  - **No status step**: a PASSporT has no status URL, and OCSP for STI certificates is out of scope.
+- **Routing (`route`).** The operator's table first, then route 1, then `identity.unknown` (404, cause 1).
+  **Choices considered:** a verified binding overriding the table (the binding is cryptographic evidence) or the
+  table first (the operator's statement about its own trunk). **Chosen: the table first.** An operator that wants
+  bindings to win configures no table.
+- **From impl-ts, written from the text alone** (second implementation, this stage): a parameter value is everything
+  after the first `=`; a trailing `;` is `malformed`; values compare exactly (`alg=es256` is unsupported); an empty
+  `info` URI reads and fails `x5u-mismatch`; a SEC1 `EC PRIVATE KEY` PEM is `no-certificate` (the Python reference
+  would have read it: fixed). Each is a vector now.
+
+## 111. G§3.1 / invite schema — how a DSIP caller names the PSTN number a gateway should reach
+
+**Found (2026-10-09, Number Attestation stage 4).** G§3.1 has the gateway dial `sip:+1555…@trunk` on a DSIP invite
+whose `to` is the gateway's DID, and the invite schema is closed, so nothing in the message says which number. The
+round-one daemon took the number from configuration; the stage 4 demo needs the caller to name it.
+
+- Choices:
+  - (a) an optional invite member `destination`, a tel URI (`tel:` + E.164), meaningful when `to` is a gateway and
+    ignored by any other callee;
+  - (b) a `to` that is a gateway-minted DID per number (a DID document per dialled number: absurd at scale);
+  - (c) out of band (configuration, as in round one).
+- **Chosen: (a)**, as a draft member of the Number Attestation Profile (N§4.1, N§9), in the core invite schema with
+  the same precedent as `recording_session` (Recording Profile draft). The core registry (§24) should list it when
+  the profile leaves draft. A client asked for `tel:+…` looks the number up first (N§6) and treats only a number no
+  binding resolves as a PSTN number; `dsip call --to tel:+… --gateway <did>` does exactly that.
+- Pinned by `payload/invite-destination-tel` and `payload/invite-destination-not-tel`.
+- Open: whether `destination` should also admit `sip:` URIs for a SIP (not PSTN) target through the gateway, and
+  whether a gateway that cannot reach the destination answers `identity.unknown` (as the daemon does for a missing
+  or malformed `destination`) or a token of its own.
+
+## 112. §15 / error schema vs G§7 — `error.detail` is a string, and `gateway.downgraded` carries `{losses}`
+
+**Found (2026-10-09, by the stage 4 wire demo).** G§7 makes `gateway.downgraded` an informational `error` whose
+`detail` names each lost guarantee, and the conformance suite (`gateway/downgrade-error-*`) and the clients pin
+that detail as the object `{"losses": [...]}`. The core error schema typed `detail` as a string (free text, 13C.3.2),
+so a relay refused the first `gateway.downgraded` ever sent on the wire as `schema-invalid`. The error had been
+vector-pinned but never sent until a daemon hosted both legs.
+
+- Choices:
+  - (a) `detail` is a string or an object a profile defines;
+  - (b) G§7's detail becomes a string of tokens, and the vectors and clients change.
+- **Chosen: (a)**: `detail` is `anyOf` a string (≤ 1024 characters) and an object (≤ 16 members). The core prose
+  should say that a profile may define an object-valued `detail` for a reason token it registers, and §24 should
+  list `gateway.downgraded`'s. Pinned by `payload/error-detail-object` and `payload/error-detail-number`.

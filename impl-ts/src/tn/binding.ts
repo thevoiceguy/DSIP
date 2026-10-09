@@ -52,7 +52,7 @@ const own = (o: object, k: string): boolean => Object.prototype.hasOwnProperty.c
  *
  * Spec: N§3.1 ("JSON in both segments is UTF-8 I-JSON (RFC 7493). Integers have no fraction or exponent").
  */
-function segmentObject(bytes: Buffer): JsonObject | null {
+export function segmentObject(bytes: Buffer): JsonObject | null {
   const text = utf8Decode(bytes); // fatal, ignoreBOM: a leading U+FEFF stays in the text, and JSON.parse refuses it
   if (text === null) return null;
   const value = parseIJson(text);
@@ -60,24 +60,30 @@ function segmentObject(bytes: Buffer): JsonObject | null {
 }
 
 /** A JSON value that is an integer (I-JSON has already ruled out fractions, exponents and out-of-range values). */
-const isInt = (v: Json | undefined): v is number => typeof v === "number" && Number.isInteger(v);
+export const isInt = (v: Json | undefined): v is number => typeof v === "number" && Number.isInteger(v);
 
-/** The parsed parts of a well-formed binding. */
-interface Parsed {
+/** The parts of a compact JWS whose shape and JSON are well-formed (README step 1 "Shape" and "JSON"). */
+export interface Parsed {
+  /** The ASCII header segment, `.`, the payload segment, as received (§10.2: never re-encoded). */
   signingInput: Buffer;
+  /** The decoded third segment. */
   signature: Buffer;
+  /** The decoded protected header. */
   header: JsonObject;
+  /** The decoded payload. */
   payload: JsonObject;
 }
 
 /**
- * Step 1, `malformed`: the shape, the JSON, the header and the payload.
+ * Split a compact JWS: three base64url segments, the third not empty, the first two decoding to I-JSON objects.
+ * The header's and the payload's members are not looked at.
  *
- * Spec: N§3.1, N§3.4 step 1; README step 1.
+ * Spec: README step 1 "Shape" and "JSON" (shared by a binding, N§3.1, and a SHAKEN PASSporT, `check: "passport"`
+ * rule 4); §10.2 (the signing input is the segments as received).
  */
-function parseBinding(binding: Json | undefined): Parsed | null {
-  if (typeof binding !== "string") return null;
-  const segs = binding.split(".");
+export function splitJws(text: Json | undefined): Parsed | null {
+  if (typeof text !== "string") return null;
+  const segs = text.split(".");
   if (segs.length !== 3) return null;
   const decoded = segs.map(b64urlDecode);
   if (decoded.some((d) => d === null)) return null;
@@ -86,6 +92,18 @@ function parseBinding(binding: Json | undefined): Parsed | null {
   const header = segmentObject(h);
   const payload = segmentObject(p);
   if (!header || !payload) return null;
+  return { signingInput: Buffer.from(`${segs[0]}.${segs[1]}`, "ascii"), signature: s, header, payload };
+}
+
+/**
+ * Step 1, `malformed`: the shape, the JSON, the header and the payload.
+ *
+ * Spec: N§3.1, N§3.4 step 1; README step 1.
+ */
+function parseBinding(binding: Json | undefined): Parsed | null {
+  const parsed = splitJws(binding);
+  if (!parsed) return null;
+  const { header, payload } = parsed;
 
   // Spec: N§3.1 protected header table; "A header with a `crit` member is malformed".
   if (header["alg"] !== "ES256" || header["typ"] !== "dsip-tn-binding+jwt") return null;
@@ -102,13 +120,14 @@ function parseBinding(binding: Json | undefined): Parsed | null {
     const status = payload["status"]; // README: `null` is not absent
     if (typeof status !== "string" || !status.startsWith("https://")) return null;
   }
-  // Spec: §10.2 — the signing input is the segments as received, never re-encoded.
-  return { signingInput: Buffer.from(`${segs[0]}.${segs[1]}`, "ascii"), signature: s, header, payload };
+  return parsed;
 }
 
 /** A path certificate with its decoded extensions. */
-interface PathCert {
+export interface PathCert {
+  /** The certificate. */
   cert: Certificate;
+  /** Its decoded basicConstraints, keyUsage and TNAuthList. */
   ext: KnownExtensions;
 }
 
@@ -152,7 +171,7 @@ function pathHolds(path: Certificate[], anchorEnds: boolean, now: number): PathC
  * padded base64 or does not parse is ignored; when several anchors qualify as the issuing anchor, step 2 passes
  * if the path through any one of them passes (they are tried in trust-list order).
  */
-function certificatePath(url: string, ctx: TnContext, now: number): PathCert[] | null {
+export function certificatePath(url: string, ctx: TnContext, now: number): PathCert[] | null {
   const text = own(ctx.certificates ?? {}, url) ? ctx.certificates[url] : undefined;
   if (typeof text !== "string") return null;
   const blocks = pemBlocks(text);
@@ -187,7 +206,7 @@ function certificatePath(url: string, ctx: TnContext, now: number): PathCert[] |
  *
  * Spec: N§3.4 step 3, §10.2; RFC 7518 §3.4 (ES256 signature form). A high s is accepted.
  */
-function signatureHolds(parsed: Parsed, leaf: Certificate): boolean {
+export function signatureHolds(parsed: Pick<Parsed, "signingInput" | "signature">, leaf: Certificate): boolean {
   const sig = parsed.signature;
   if (sig.length !== 64) return false;
   const r = BigInt(`0x${sig.subarray(0, 32).toString("hex")}`);
@@ -200,6 +219,18 @@ function signatureHolds(parsed: Parsed, leaf: Certificate): boolean {
   } catch {
     return false;
   }
+}
+
+/**
+ * Step 4, `not-authorized-for-tn`: the leaf has a TNAuthList, and every TNAuthList on the path covers the digits
+ * *D* (the number without its `+`).
+ *
+ * Spec: N§3.2 (coverage and nested coverage), N§3.4 step 4; README step 4; RFC 8226.
+ */
+export function coverageHolds(path: PathCert[], digits: string, ctx: TnContext): boolean {
+  const spc = ctx.spc_numbers ?? {};
+  if (!path[0]?.ext.tnAuthList) return false;
+  return path.every((c) => !c.ext.tnAuthList || covers(c.ext.tnAuthList, digits, spc));
 }
 
 /** A binding that has passed N§3.4 steps 1–5: its payload's members and the leaf certificate. */
@@ -242,10 +273,7 @@ export function verifyFirstSteps(ctx: TnContext, binding: Json | undefined, now:
   if (!signatureHolds(parsed, leaf.cert)) return { reason: "signature" };
 
   // 4. not-authorized-for-tn (N§3.2 coverage and nested coverage)
-  const digits = tn.slice(1);
-  const spc = ctx.spc_numbers ?? {};
-  if (!leaf.ext.tnAuthList) return { reason: "not-authorized-for-tn" };
-  if (path.some((c) => c.ext.tnAuthList && !covers(c.ext.tnAuthList, digits, spc))) return { reason: "not-authorized-for-tn" };
+  if (!coverageHolds(path, tn.slice(1), ctx)) return { reason: "not-authorized-for-tn" };
 
   // 5. time, in this order (README step 5)
   if (exp - iat > MAX_LIFETIME) return { reason: "lifetime-too-long" };
