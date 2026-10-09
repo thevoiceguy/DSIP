@@ -232,6 +232,9 @@ def run_vector(v: dict) -> Result:
             actual = KT.run(v)
         elif kind == "device-events":
             actual = EVENTS.run(v)
+        elif kind == "tn-binding":
+            from . import tnbinding as TNBINDING
+            actual = TNBINDING.run(v)
         elif kind == "recording":
             from . import recording as RECORDING
             actual = RECORDING.run(v)

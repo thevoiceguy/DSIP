@@ -3001,3 +3001,96 @@ held packet is a cache, not a store of record." No vector change: freshness is n
 held packet is a cache: a node SHOULD look for a newer packet on Mainline before serving one past its freshness
 (`ts` plus its shortest record TTL), and MAY look while it is fresh without delaying the answer. Core A.8 notes it.
 `dsip-node` already does both.
+
+## 110. N§1–N§7 (draft) / G§11 / §19.1 — number-to-DID attestation
+
+**Found (2026-10-08).** G4 recommendation 3 (`gateway-stir-findings.md` §5) and G§11 path (c) need a way for a DSIP
+identity to be entitled to a phone number. The design study `impl/docs/number-attestation-design.md` proposed a
+STIR-signed binding. It is now the draft Number Attestation Profile (`N§n`), and stage 1 (N§3, the binding and its
+checks) is pinned by `impl/vectors/tn-binding/`. The design left five choices open. The user decided on 2026-10-08
+to adopt it and start stage 1, with E.164 numbers only. Items B–E take the design's proposals; A and D still need a
+decision outside the PoC.
+
+**A. G§11 / SHAKEN: may a gateway attest `A` on a carrier's binding?**
+- Choices:
+  - (a) yes, with the binding standing in for the subscriber relationship;
+  - (b) `B`;
+  - (c) only under an RFC 9060 delegate certificate for the number.
+- Draft text (N§4): (c) is normative, and (a) is a question for SHAKEN governance, not for DSIP.
+- Not vectored. It lands with stage 4, the gateway.
+
+**B. N§3 / N§7: lifetime, certificate time, conflicts.**
+- **Lifetime.** Choices: a 24 h, 7 d or 30 d cap. **Chosen: 7 d**, as `exp − iat` ≤ 604800, giving
+  `lifetime-too-long`.
+- **Clock skew.** `iat` may be up to 300 s ahead (the §12.9 tolerance), giving `not-yet-valid`. The design had no
+  future rule.
+- **Certificate time.** The design said "the certificate valid at `iat`". **Changed:** every certificate on the path
+  is checked at the verification time, which is RFC 5280's practice. `iat` is the signer's own claim, so checking
+  the certificate at `iat` proves nothing a signer could not choose.
+- **Two verified bindings for one number.** The two-way rule decides first. When both DIDs claim the number, the
+  newer `iat` wins, with the N§5 warning. Not vectored yet; it lands with stage 2.
+- **Vectors:**
+  - `tn-binding/lifetime-*`, `verified-lifetime-exactly-7-days`;
+  - `not-yet-valid`, `verified-iat-at-tolerance`;
+  - `cert-leaf-expired`, `cert-anchor-expired`.
+
+**C. N§6: whether a number is discoverable by default.**
+- Choices: opt-in, opt-out, or never published keyed by the number.
+- **Chosen: opt-in.** Enumeration is a stated limitation, instrumented and not solved, like Sybil resistance
+  (§3.2).
+- Not vectored. It lands with stage 3, discovery.
+
+**D. §19.1: the trust tier of a verified number.**
+- Choices: Tier 1, Tier 3, or deployment policy.
+- Draft text: **deployment policy**, with Tier 3 given as an example for business use. Needs a decision when §19.1
+  next changes.
+
+**E. N§1: short codes and toll-free numbers.**
+- **Decided by the user: E.164 only for now.** `tn` matches `^\+[1-9][0-9]{1,14}$`.
+- Short codes are not E.164 and are out of scope.
+- Toll-free numbers written in E.164 pass the syntax checks. Their issuers (RespOrgs) and their STIR treatment
+  are open.
+
+**Decisions the vectors pin that the design did not discuss** (`Impl:` in `crates/dsip-number`):
+- **Every TNAuthList on the path must cover the number,** not only the leaf's. A delegate certificate (RFC 9060)
+  therefore cannot exceed its issuer's scope. Vectors: `delegate-beyond-issuer-range`,
+  `tn-intermediate-list-does-not-cover`.
+- **Recognized critical extensions.** Only basicConstraints, keyUsage and TNAuthList; any other critical extension
+  is `untrusted-certificate`. SHAKEN's JWTClaimConstraints (RFC 8226 §8) is therefore refused when it is critical,
+  until a later stage implements it.
+- **An SPC entry covers a number** only through the relying party's SPC lookup (`spc_numbers`): the number
+  portability data in SHAKEN.
+- **Step 8 status** is a policy switch. `status-unavailable` covers both a missing URL and no answer; that token is
+  new against the design.
+
+**F. N§3.2 / README step 2: certificate parsing.** The impl-ts implementation, written from the text alone, probed
+it with 41 temporary vectors and found 16 places where the three implementations disagreed. Each was decided and is
+pinned with a hand-authored vector.
+- **PEM.** Marker lines are whole lines, and lines end in LF or CRLF. A block left open fails the text. Only SP, HT,
+  CR and LF are removed from a body. Non-zero unused bits are accepted. Vectors: `cert-pem-*`.
+- **Every block parses, even after an anchor.** That means:
+  - the tbs `signature` field equals `signatureAlgorithm` (RFC 5280 §4.1.1.2);
+  - no extension appears twice (§4.2);
+  - there is no pathLen without cA (§4.2.1.9);
+  - basicConstraints and keyUsage decode, and any TNAuthList is well-formed.
+
+  Vectors: `cert-duplicate-*`, `cert-pathlen-without-ca`, `cert-tbs-algorithm-differs`,
+  `cert-unparseable-after-anchor`.
+- **Trust anchors.** An entry that is not padded base64 of a certificate is ignored. Every qualifying issuing
+  anchor is tried, in list order. Vectors: `anchor-*`.
+- **Status.** A required check fails closed on an answer that is neither `good` nor `revoked` (`status-unknown-answer`).
+- **`attested_by`.** A value whose bytes are not UTF-8 is passed over, never shown lossily
+  (`attested-by-invalid-utf8-passed-over`).
+- **Left unpinned, stated in the README.** Other DER and RFC 5280 encoding faults inside a CA-signed certificate:
+  - a BOOLEAN `01`;
+  - an encoded DEFAULT;
+  - a non-minimal BIT STRING;
+  - an empty `extensions` SEQUENCE;
+  - GeneralizedTime before 2050;
+  - an odd serial number;
+  - a PrintableString outside its character set.
+
+  The implementations differ here: `cryptography` and impl-ts are strict, and `x509-parser` is lenient. A CA signed
+  those bytes, so leniency never admits an unsigned claim. Pinning them would mean writing a full strict-DER
+  validator into every implementation. Vectors and fuzz avoid them. **Proposed text (N§3.2):** "Certificates are DER
+  as RFC 5280 requires; a verifier SHOULD refuse one that is not."

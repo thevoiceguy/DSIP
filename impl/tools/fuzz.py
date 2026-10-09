@@ -706,8 +706,102 @@ def gen_recording(r: random.Random):
     return "recording", None, ctx, steps
 
 
+def gen_tnbinding(r: random.Random):
+    """A number binding (N§3.4): random TNAuthLists, CA constraints, chains, clocks, claims and byte mutations."""
+    sys.path.insert(0, str(REPO / "impl/tools"))
+    from dsipvec.gen import tnbinding as G
+    pool = ["15551234567", "15552000000", "15552000999", "15552001000", "1555200099", "155520000005", "15553330000",
+            "15553330001", "15551234500", "15551234599", "15551234600", "1555*00", "1#", "1555123456789012", ""]
+
+    tn = "+" + r.choice(pool[:11]) if r.random() < 0.95 else r.choice(["+0155", "+1", "15551234567", "+1555123456789012"])
+
+    def tnauth():
+        if r.random() < 0.1:
+            return None
+        entries = [G.tn_one(tn[1:])] if r.random() < 0.5 and tn[1:].isdigit() and len(tn) <= 16 else []
+        for _ in range(r.randint(0 if entries or r.random() < 0.03 else 1, 3)):
+            x = r.random()
+            bad = r.random() < 0.03
+            number = r.choice(pool[13:] if bad else pool[:13])
+            if x < 0.4:
+                entries.append(G.tn_one(number) if r.random() < 0.97 else G.tlv(0x82, b"15551234567"))
+            elif x < 0.8:
+                count = r.choice([0, 1, -3] if r.random() < 0.08 else [2, 10, 100, 1000, 2 ** 64 + 5, 10 ** 20])
+                entries.append(G.explicit(1, G.seq(G.ia5(number), G.integer(count))))
+            else:
+                entries.append(G.tn_spc(r.choice(["709J", "709J", "OTHR", "709j"] if r.random() < 0.97 else [""])))
+        raw = G.seq(*entries)
+        if r.random() < 0.08:
+            raw = mutate(r, raw, bytes(range(0, 256, 7)) + b"\x30\xa0\xa1\xa2\x16\x02\x80\x81")
+        return G.tnauth(raw=raw)
+
+    def window():
+        return r.choice([(NOW - 86400, NOW + 86400)] * 6 + [(NOW - 86400, NOW), (NOW, NOW + 1), (NOW + 1, NOW + 9),
+                         (NOW - 9, NOW - 1)])
+
+    def exts(ca: bool):
+        e = []
+        if ca:
+            x = r.random()
+            if x < 0.95:
+                e.append(G.bc(r.random() < 0.95, r.choice([None, None, None, 0, 1, 2])))
+            e.append(r.choice([G.CA_KU] * 6 + [G.ku(0), G.ku(5)]) if r.random() < 0.8 else b"")
+        else:
+            e.append(r.choice([G.LEAF_KU] * 6 + [G.ku(5), G.ku(0, 5)]) if r.random() < 0.8 else b"")
+            if r.random() < 0.05:
+                e.append(G.bc(r.random() < 0.5, r.choice([None, 0, 3])))
+        if r.random() < 0.02 and e:
+            e.append(e[0])  # a duplicate extension
+        t = tnauth() if (not ca or r.random() < 0.3) else None
+        if t:
+            e.append(t)
+        if r.random() < 0.05:
+            e.append(G.ext("1.3.6.1.4.1.99999.1", b"\x05\x00", critical=r.random() < 0.5))
+        return [x for x in e if x]
+
+    inter = G.INTER if r.random() < 0.6 else G.cert(G.INTER.subject, G.key("inter"), G.ROOT, exts(True), 90,
+                                                    *(lambda w: (w[0] - 99, w[1] + 99))(window()))
+    mid = G.cert(G.name((G.O, "Mid CA")), G.key("mid"), inter, exts(True), 91) if r.random() < 0.25 else None
+    issuer = mid or inter
+    nb, na = window() if r.random() < 0.1 else (NOW - 86400, NOW + 86400)
+    leaf = G.cert(G.name((G.O, r.choice(["Carrier Example", "Other"])), (G.CN, "x")), G.key("sp-fuzz"), issuer,
+                  exts(False), 92, nb, na)
+    chain = [leaf] + ([mid] if mid else []) + [inter]
+    x = r.random()
+    if x < 0.04:
+        chain = chain[::-1]
+    elif x < 0.15:
+        chain = chain + [G.ROOT]
+    elif x < 0.18:
+        chain = chain[:1]
+    anchors = r.choice([[G.ROOT]] * 18 + [[], [G.cert(G.ROOT.subject, G.key("rogue"), None, [G.bc(True)], 1)]])
+    iat = NOW + r.choice([-3600] * 5 + [-604800, 0, 300, 301, -1])
+    exp = iat + r.choice([86400] * 12 + [604800, 604801, 1, 0, 3600])
+    p = {"tn": tn, "did": r.choice([G.DID, G.DID, "did:web:bob.example"]), "iat": iat, "exp": exp, "jti": G.JTI}
+    st = "https://status.example/x"
+    if r.random() < 0.3:
+        p["status"] = st
+    h = G.header(**({"crit": ["x"]} if r.random() < 0.02 else {}))
+    pj = json.dumps(p, separators=(",", ":")).encode()
+    if r.random() < 0.04:
+        pj = mutate(r, pj, b'{}[]":,.-0123456789eE\\u ')
+    k = leaf.key if r.random() < 0.95 else G.key("mallory")
+    binding = G.jws(h, pj, k)
+    if r.random() < 0.04:
+        binding = mutate(r, binding.encode(), b"AZaz09-_.=+/").decode("latin-1")
+    text = G.pem(*chain)
+    if r.random() < 0.03:
+        text = mutate(r, text.encode(), b"-ABC \n\r=+/").decode("latin-1")
+    doc = r.choice([G.doc(f"tel:{tn}"), G.doc(f"tel:{tn}"), G.doc("tel:+15550000000"), None, G.doc(f"tel:{tn}", id_="did:x:y")])
+    ctx = {"trust_anchors": [c.b64() for c in anchors], "certificates": {G.X5U: text},
+           "spc_numbers": r.choice([{"709J": ["15553330000"]}, {}]), "require_status": r.random() < 0.3,
+           "status": r.choice([{}, {st: "good"}, {st: "revoked"}])}
+    return "tn-binding", None, ctx, {"binding": binding, "did": G.DID, "did_document": doc,
+                                     "now": NOW + r.choice([0] * 8 + [-1, 1, 3600, 86400, 604800])}
+
+
 TARGETS = {
-    "syslog": gen_syslog, "snmpv3": gen_snmpv3, "recording": gen_recording,
+    "syslog": gen_syslog, "snmpv3": gen_snmpv3, "recording": gen_recording, "tn-binding": gen_tnbinding,
     "tsm": gen_tsm, "tls-frames": gen_tls_frames, "tsm-name": gen_tsm_name, "syslog-sign": gen_syslog_sign,
     "gap": gen_gap, "commit-retry": gen_commit_retry, "hub-outage": gen_hub_outage, "resume": gen_resume, "history": gen_history,
     "successor": gen_successor, "client": gen_client, "hub": gen_hub, "mailbox": gen_mailbox, "endpoint": gen_endpoint,

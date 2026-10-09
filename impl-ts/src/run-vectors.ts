@@ -34,6 +34,7 @@ import { Relay, type RelayContext } from "./relay.js";
 import { SchemaSet } from "./schema.js";
 import { checkPayload } from "./semantic.js";
 import { downgradeSummary, telCallerLine, verificationBasis } from "./trust.js";
+import { verifyTnBinding, type TnContext } from "./tn/binding.js";
 import { reject, type Verdict } from "./verdict.js";
 
 const DEFAULT_VECTORS = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "impl", "vectors");
@@ -65,6 +66,7 @@ const RUNNERS: Record<string, (v: Vector) => Json | undefined> = {
   recording: (v) => runRecording(v.context ?? {}, v.input),
   "alias-transparency": (v) => runAliasTransparency(v.input),
   pkarr: (v) => runPkarr(v.input),
+  "tn-binding": (v) => verifyTnBinding(v.context as unknown as TnContext, v.input) as unknown as Json,
   gateway: (v) => gateway(v),
   messaging: (v) => messaging(v),
   trust: (v) =>

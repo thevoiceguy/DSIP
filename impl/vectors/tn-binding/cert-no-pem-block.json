@@ -1,0 +1,43 @@
+{
+  "vector": "tn-binding/cert-no-pem-block",
+  "format": 1,
+  "kind": "tn-binding",
+  "description": "The text at `x5u` holds no certificate block.",
+  "spec_ref": [
+    "N§3"
+  ],
+  "context": {
+    "trust_anchors": [
+      "MIIBmTCCAUCgAwIBAgIBATAKBggqhkjOPQQDAjBEMQswCQYDVQQGEwJVUzEXMBUGA1UECgwORXhhbXBsZSBTVEktQ0ExHDAaBgNVBAMME0V4YW1wbGUgU1RJLUNBIFJvb3QwHhcNMTUxMDEyMDg1MzIwWhcNMzUxMDA3MDg1MzIwWjBEMQswCQYDVQQGEwJVUzEXMBUGA1UECgwORXhhbXBsZSBTVEktQ0ExHDAaBgNVBAMME0V4YW1wbGUgU1RJLUNBIFJvb3QwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAAQIGId1toA8e/M026BVPerIINtBWq9FFUWOx7AY78G2Eks6saNAimUzWZNLhj/GMIw1yTq1zkjMntBDBeRlYL89oyMwITAPBgNVHRMBAf8EBTADAQH/MA4GA1UdDwEB/wQEAwIBBjAKBggqhkjOPQQDAgNHADBEAiBps4b0NFLWu9y/1fcnOo/EZ+jSSP/93MpMSPQAVLCdeAIgNxZ8bTG/bVMqzMgcVRhubnckrpeA3DUTTI0if7J/UmE="
+    ],
+    "certificates": {
+      "https://cr.carrier.example/sti.pem": "no certificates here\n"
+    },
+    "spc_numbers": {
+      "709J": [
+        "15553330000",
+        "15553330002"
+      ]
+    },
+    "require_status": false,
+    "status": {}
+  },
+  "input": {
+    "binding": "eyJhbGciOiJFUzI1NiIsInR5cCI6ImRzaXAtdG4tYmluZGluZytqd3QiLCJ4NXUiOiJodHRwczovL2NyLmNhcnJpZXIuZXhhbXBsZS9zdGkucGVtIn0.eyJ0biI6IisxNTU1MTIzNDU2NyIsImRpZCI6ImRpZDp3ZWI6YWxpY2UuZXhhbXBsZSIsImlhdCI6MTc1OTk5NjQwMCwiZXhwIjoxNzYwMDgyODAwLCJqdGkiOiIwMUs2WjhSOFFBRVhBTVAxRUIxTkRORzAwMSJ9.xY0OfiVrSXsllNs4gvKMPNDYpkx1IXtkok7dXmDKWpavleWMNjTtTrrNHIi8DZaEL73fWYdpWQV_BwzfC4ugOw",
+    "did": "did:web:alice.example",
+    "did_document": {
+      "@context": [
+        "https://www.w3.org/ns/did/v1"
+      ],
+      "id": "did:web:alice.example",
+      "alsoKnownAs": [
+        "tel:+15551234567"
+      ]
+    },
+    "now": 1760000000
+  },
+  "expect": {
+    "outcome": "rejected",
+    "reason": "untrusted-certificate"
+  }
+}

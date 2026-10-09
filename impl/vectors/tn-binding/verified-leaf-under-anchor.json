@@ -1,0 +1,46 @@
+{
+  "vector": "tn-binding/verified-leaf-under-anchor",
+  "format": 1,
+  "kind": "tn-binding",
+  "description": "A leaf issued directly by the anchor: the chain is the leaf alone.",
+  "spec_ref": [
+    "N§3"
+  ],
+  "context": {
+    "trust_anchors": [
+      "MIIBmTCCAUCgAwIBAgIBATAKBggqhkjOPQQDAjBEMQswCQYDVQQGEwJVUzEXMBUGA1UECgwORXhhbXBsZSBTVEktQ0ExHDAaBgNVBAMME0V4YW1wbGUgU1RJLUNBIFJvb3QwHhcNMTUxMDEyMDg1MzIwWhcNMzUxMDA3MDg1MzIwWjBEMQswCQYDVQQGEwJVUzEXMBUGA1UECgwORXhhbXBsZSBTVEktQ0ExHDAaBgNVBAMME0V4YW1wbGUgU1RJLUNBIFJvb3QwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAAQIGId1toA8e/M026BVPerIINtBWq9FFUWOx7AY78G2Eks6saNAimUzWZNLhj/GMIw1yTq1zkjMntBDBeRlYL89oyMwITAPBgNVHRMBAf8EBTADAQH/MA4GA1UdDwEB/wQEAwIBBjAKBggqhkjOPQQDAgNHADBEAiBps4b0NFLWu9y/1fcnOo/EZ+jSSP/93MpMSPQAVLCdeAIgNxZ8bTG/bVMqzMgcVRhubnckrpeA3DUTTI0if7J/UmE="
+    ],
+    "certificates": {
+      "https://cr.carrier.example/sti.pem": "-----BEGIN CERTIFICATE-----\nMIIBvjCCAWSgAwIBAgIBBDAKBggqhkjOPQQDAjBEMQswCQYDVQQGEwJVUzEXMBUG\nA1UECgwORXhhbXBsZSBTVEktQ0ExHDAaBgNVBAMME0V4YW1wbGUgU1RJLUNBIFJv\nb3QwHhcNMjUwOTA5MDg1MzIwWhcNMjYxMDA5MDg1MzIwWjA9MQswCQYDVQQGEwJV\nUzEYMBYGA1UECgwPQ2FycmllciBFeGFtcGxlMRQwEgYDVQQDDAtTSEFLRU4gNzA5\nSjBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABOrpU0kX0Vns1jYOAj/Q0jbO9lHS\n3IY3vY/4iKBjJY8yy53R+MSYR1XUMclMBbzMqTLsvjEy7eQhJLIsTbGPe/ajTjBM\nMA4GA1UdDwEB/wQEAwIHgDA6BggrBgEFBQcBGgQuMCyiDRYLMTU1NTEyMzQ1Njeh\nEzARFgsxNTU1MjAwMDAwMAICA+igBhYENzA5SjAKBggqhkjOPQQDAgNIADBFAiBy\nCmFjWt/IIqrLy8ONkm47zUT9Y+q7VfZs7wbxnWJB+QIhAIVGgBBD0t1E8jqZQ6u9\nrpx4e1EfkP1jaceyFBmA/gkL\n-----END CERTIFICATE-----\n"
+    },
+    "spc_numbers": {
+      "709J": [
+        "15553330000",
+        "15553330002"
+      ]
+    },
+    "require_status": false,
+    "status": {}
+  },
+  "input": {
+    "binding": "eyJhbGciOiJFUzI1NiIsInR5cCI6ImRzaXAtdG4tYmluZGluZytqd3QiLCJ4NXUiOiJodHRwczovL2NyLmNhcnJpZXIuZXhhbXBsZS9zdGkucGVtIn0.eyJ0biI6IisxNTU1MTIzNDU2NyIsImRpZCI6ImRpZDp3ZWI6YWxpY2UuZXhhbXBsZSIsImlhdCI6MTc1OTk5NjQwMCwiZXhwIjoxNzYwMDgyODAwLCJqdGkiOiIwMUs2WjhSOFFBRVhBTVAxRUIxTkRORzAwMSJ9.AFAveVWuQDsNxqGv9aD0TyQx2N0dGSc0o9QYPe3AFmrJ_tfgOyYtoUp4qNWaNrDJb0TeLQ7i-JfJEy5Q-5O9gQ",
+    "did": "did:web:alice.example",
+    "did_document": {
+      "@context": [
+        "https://www.w3.org/ns/did/v1"
+      ],
+      "id": "did:web:alice.example",
+      "alsoKnownAs": [
+        "tel:+15551234567"
+      ]
+    },
+    "now": 1760000000
+  },
+  "expect": {
+    "outcome": "verified",
+    "tn": "+15551234567",
+    "did": "did:web:alice.example",
+    "expires": 1760082800,
+    "attested_by": "Carrier Example"
+  }
+}
