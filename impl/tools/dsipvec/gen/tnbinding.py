@@ -861,6 +861,46 @@ def vectors() -> list[dict]:
     add("order-claim-before-status", "Not claimed back, and revoked: not-claimed-by-did first.", NC,
         jws(p=claims(status=st)), context=ctx(require_status=True, status={st: "revoked"}), document=doc("tel:+15559999999"))
 
+    # --- check: authority (route 2, the serving half: pooled .well-known answers, N§6) ------------------------
+    def addy(vid, desc, answers, expect, tn=TN, documents=None, now=NOW, context=None):
+        out.append(tv(f"authority-{vid}", desc, context or ctx(),
+                      {"check": "authority", "tn": tn, "answers": answers, "documents": docs if documents is None else documents,
+                       "now": now}, expect, ["N§6", "N§7"]))
+
+    def ans(authority, status=200, bindings=None, body="auto"):
+        return {"authority": authority, "status": status, "body": {"bindings": bindings or []} if body == "auto" else body}
+    A, B2 = "carrier-a.example", "carrier-b.example"
+
+    def served(did=DID, issued=IAT, others=(), by="Carrier Example", served_by=(A,)):
+        return {**found(did, issued, others, by), "served_by": list(served_by)}
+    addy("one", "One authority serves the number's binding.", [ans(A, bindings=[b0])], served())
+    addy("two-serve-the-same", "Two authorities serve the same binding: both are accountable for the answer.",
+         [ans(A, bindings=[b0]), ans(B2, bindings=[b0])], served(served_by=(A, B2)))
+    addy("served-by-one-of-two", "Two authorities, two bindings: only the winner's server is named.",
+         [ans(A, bindings=[b0]), ans(B2, bindings=[b_mal])], served(MAL, IAT + 600, [DID], served_by=(B2,)))
+    addy("not-found-ignored", "A 404 contributes nothing.", [ans(A, 404, body=None), ans(B2, bindings=[b0])], served(served_by=(B2,)))
+    addy("no-answer-ignored", "An authority that did not answer (status null) contributes nothing.",
+         [ans(A, None, body=None), ans(B2, bindings=[b0])], served(served_by=(B2,)))
+    addy("body-not-object", "A 200 whose body is not an object contributes nothing.", [ans(A, body=[b0]), ans(B2, bindings=[b0])],
+         served(served_by=(B2,)))
+    addy("bindings-not-array", "A 200 whose bindings is not an array contributes nothing.",
+         [ans(A, body={"bindings": b0}), ans(B2, bindings=[b0])], served(served_by=(B2,)))
+    addy("non-string-elements-skipped", "Non-string elements are skipped; the rest contribute.",
+         [ans(A, bindings=[5, None, b0])], served())
+    addy("status-as-string", "A status that is not the integer 200 contributes nothing.", [ans(A, "200", bindings=[b0])],
+         {"outcome": "none"})
+    addy("none", "Nothing served.", [ans(A, 404, body=None)], {"outcome": "none"})
+    addy("none-no-answers", "No authorities configured.", [], {"outcome": "none"})
+    addy("none-answers-not-array", "An answers that is not an array is empty.", "x", {"outcome": "none"})
+    addy("unverified-passed-over", "A served binding that fails verification is passed over.",
+         [ans(A, bindings=[jws(k=key("mallory"))]), ans(B2, bindings=[b0])], served(served_by=(B2,)))
+    addy("unclaimed-passed-over", "A served binding whose DID does not claim the number is passed over.",
+         [ans(A, bindings=[b0])], {"outcome": "none"}, documents={DID: doc("tel:+15550000000")})
+    addy("duplicate-authority-once", "An authority listed twice is named once.",
+         [ans(A, bindings=[b0]), ans(A, bindings=[b0])], served())
+    addy("order-of-answers", "served_by follows the answers' order.", [ans(B2, bindings=[b0]), ans(A, bindings=[b0])],
+         served(served_by=(B2, A)))
+
     # --- check: passport (a gateway verifying an inbound Identity header, G§5) --------------------------------
     def addp(vid, desc, identity, expect, from_tn=TN, to_tn=TO, now=NOW, context=None, refs=("G§5", "N§4.1")):
         out.append(tv(f"passport-{vid}", desc, context or gw_ctx(),

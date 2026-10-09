@@ -2498,6 +2498,12 @@ TypeScript implementation agree on every one).
 
 v0.11 is final at tag `poc-v0.11`. Each v0.12 item is listed here as it lands, with its spec-gap number.
 
+- Number attestation, discovery route 2's serving half (Number Attestation Profile N§6; spec-gap 110 item J): a
+  number's authority serves the bindings it issued at `https://<authority>/.well-known/dsip/tn/<tn>`; a client asks
+  the authorities it is configured with, pools their answers with route 1's, chooses by N§7 and keeps the names of
+  the authorities that served the answer. The Alias Transparency Profile's T§3 gains the `tel:` label (a global tel
+  URI, E.164 digits), so the log entry route 2 calls for is defined; verifying it waits for T§6 (KEYTRANS -06).
+
 ---
 
 ## Appendix B: Emergency Services and Regulated Profiles

@@ -1343,6 +1343,10 @@ value here was confirmed with katie. The editors' copy differs from -05 only in 
 Each vector has `input.check`. The checks and their outputs:
 
 - **`alias`** (`{alias}`, T§3) → `{"label": <normalized>}` or `{"error": "not-an-alias"}`.
+  - **A `tel:` alias** (v0.12; Number Attestation N§6 route 2): when the first four characters are `tel:` in any case,
+    the rest is a global tel URI (RFC 3966) with no parameters: `+`, then digits with the visual separators `-`, `.`,
+    `(` and `)` removed, and nothing else. The digits must be 2 to 15, the first not `0` (E.164). The label is
+    `tel:+<digits>`; anything else is `not-an-alias`. The rules below are for every other alias.
   - Split at the **last** `@` into `local` and `domain`.
   - `local` is one or more characters, each U+0021–U+007E and not `@`.
   - `domain` is at least two `.`-separated labels. Each is 1–63 characters of `[A-Za-z0-9-]` and neither begins nor
@@ -1822,6 +1826,24 @@ are none.
 
     A non-empty `others` means two identities hold verified claims to the number: a port in progress, or a hijack.
     The client uses the winner and says so (N§7).
+
+**`check: "authority"`** (v0.12) is a client pooling what the number's authorities served it: discovery route 2
+(N§6), its serving half. Each configured authority was asked `GET https://<authority>/.well-known/dsip/tn/<tn>`.
+- **Input:** `{check, tn, answers, documents, now}`, with the same context as verification. `answers` is an array of
+  `{authority, status, body}`, in the order the authorities are configured: `authority` is the string the client
+  configured, `status` the HTTP status as an integer or `null` when there was no answer, and `body` the response
+  body as JSON, any value, or `null`. `documents` is as in `select`.
+- **The pool.** Each answer in order contributes when `status` is `200` and `body` is an object whose `bindings` is
+  an array: each element that is a string joins the pool, once, in first-occurrence order. Any other answer
+  contributes nothing.
+- **Expect:** the `select` check over the pool, with `tn`, `documents` and `now`: `{"outcome": "none"}`, or
+  `{"outcome": "found", "did", "attested_by", "issued", "others", "served_by"}`, where `served_by` lists, in `answers`
+  order and each once, the `authority` of every contributing answer whose `bindings` holds the winning binding's
+  text: the parties accountable for the answer. An `answers` that is not an array is empty, and an element that is
+  not an object contributes nothing. `authority` is a string in every vector; the check is not defined otherwise.
+
+A binding served this way is verified exactly as one a node served; what the authority adds is its name on the
+answer, and, with T§ stage 2, the log entry that makes that name auditable (N§6, T§6).
 
 **Gateway checks** (stage 4 of the profile; spec-gap 110 item I). A DSIP↔PSTN gateway is a relying party on both
 sides: it verifies a PSTN caller's SHAKEN PASSporT (G§5), it finds the DSIP identity behind a dialled number (N§6.1),

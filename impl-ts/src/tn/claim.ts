@@ -1,7 +1,8 @@
 /**
  * Using a verified number binding: the caller's own `tel` claim carrying a binding (N§4), the warning a client
  * gives when a stored contact's number is now attested for a different identity (N§5), a node's verify-before-store
- * of a published binding (N§6 route 1), and the reader's number → DID choice (N§6, N§7).
+ * of a published binding (N§6 route 1), the reader's number → DID choice (N§6, N§7), and a client pooling what the
+ * number's authorities served it (N§6 route 2).
  *
  * Spec: N§4 (the claim checked against the envelope, a failed claim dropped, rendering), N§5 (a number that moves to
  * another identity), N§6 (discovery: the DHT stays a hints tier, §8.1), N§7 (two verified bindings for one number),
@@ -197,10 +198,24 @@ export type SelectOutcome =
  * Impl: a `documents` that is not an object resolves nothing; a member is looked up as an own property only.
  */
 export function selectBinding(ctx: TnContext, input: JsonObject): SelectOutcome {
+  return selectAmong(ctx, input["bindings"], input).outcome;
+}
+
+/** The `select` outcome together with the winning binding's text (for `served_by`). */
+interface Selection {
+  outcome: SelectOutcome;
+  winner: string | null;
+}
+
+/**
+ * The `select` logic over `bindings`, with `tn`, `documents` and `now` from `input`.
+ * Spec: README `check: "select"`; `check: "authority"` ("the `select` check over the pool").
+ */
+function selectAmong(ctx: TnContext, rawBindings: Json | undefined, input: JsonObject): Selection {
   const tn = input["tn"];
   const now = input["now"] as number;
   const docs = isObject(input["documents"]) ? input["documents"] : {};
-  const bindings = Array.isArray(input["bindings"]) ? input["bindings"] : [];
+  const bindings = Array.isArray(rawBindings) ? rawBindings : [];
   const found: (Entry & { attestedBy: string | null })[] = [];
   for (const b of bindings) {
     const p = readPayload(b); // only to find the DID to check; verifyAll parses the binding in full
@@ -210,15 +225,68 @@ export function selectBinding(ctx: TnContext, input: JsonObject): SelectOutcome 
     if ("reason" in v || v.tn !== tn) continue;
     found.push({ text: b as string, did: v.did, iat: v.iat, exp: v.exp, attestedBy: v.attestedBy });
   }
-  if (found.length === 0) return { outcome: "none" };
+  if (found.length === 0) return { outcome: { outcome: "none" }, winner: null };
   const winner = found.reduce((w, e) => (e.iat > w.iat || (e.iat === w.iat && byteOrder(e.text, w.text) < 0) ? e : w));
   const others = [...new Set(found.map((e) => e.did).filter((d) => d !== winner.did))].sort(byteOrder);
-  return { outcome: "found", did: winner.did, attested_by: winner.attestedBy, issued: winner.iat, others };
+  return {
+    outcome: { outcome: "found", did: winner.did, attested_by: winner.attestedBy, issued: winner.iat, others },
+    winner: winner.text,
+  };
+}
+
+/** The outcome of pooling the number's authorities' answers: `select`, plus who served the winner. */
+export type AuthorityOutcome =
+  | { outcome: "none" }
+  | { outcome: "found"; did: string; attested_by: string | null; issued: number; others: string[]; served_by: Json[] };
+
+/**
+ * A client pooling what the number's authorities served it at `/.well-known/dsip/tn/<tn>`: N§6 discovery route 2,
+ * its serving half.
+ *
+ * Spec: N§6 route 2 — "A client asks the authorities it is configured with …, pools what they return …, verifies
+ * every binding in full against its DID's document and chooses by N§7, and remembers which authorities served the
+ * chosen binding: the parties accountable for the answer"; README `check: "authority"` — an answer contributes when
+ * `status` is the integer 200 and `body` is an object whose `bindings` is an array; its string elements join the
+ * pool once each, in first-occurrence order; the `select` check decides; `served_by` names, in `answers` order and
+ * each once, the `authority` of every contributing answer whose `bindings` holds the winning binding's text.
+ * Impl: an `authority` that is not a string is named as the value it is, deduplicated by its JSON text (not pinned).
+ * Impl: an answer that is not an object is not an answer and contributes nothing (not pinned).
+ */
+export function poolAuthorities(ctx: TnContext, input: JsonObject): AuthorityOutcome {
+  // README: "(A `answers` that is not an array is empty.)"
+  const answers = Array.isArray(input["answers"]) ? input["answers"] : [];
+  const contributing: { authority: Json; bindings: Json[] }[] = [];
+  const pool: string[] = [];
+  const seen = new Set<string>();
+  for (const a of answers) {
+    if (!isObject(a)) continue;
+    const body = a["body"];
+    // `status` is the HTTP status as an integer: `"200"` is not 200.
+    if (a["status"] !== 200 || !isObject(body) || !Array.isArray(body["bindings"])) continue;
+    contributing.push({ authority: a["authority"] ?? null, bindings: body["bindings"] });
+    for (const b of body["bindings"]) {
+      if (typeof b !== "string" || seen.has(b)) continue;
+      seen.add(b);
+      pool.push(b);
+    }
+  }
+  const { outcome, winner } = selectAmong(ctx, pool, input);
+  if (outcome.outcome === "none") return outcome;
+  const served_by: Json[] = [];
+  const named = new Set<string>();
+  for (const c of contributing) {
+    if (!c.bindings.some((b) => b === winner)) continue;
+    const key = JSON.stringify(c.authority);
+    if (named.has(key)) continue;
+    named.add(key);
+    served_by.push(c.authority);
+  }
+  return { ...outcome, served_by };
 }
 
 /**
- * The `tn-binding` vector kind: verification when `input.check` is absent, else the claim, contact, store, select
- * or one of the gateway checks (`gateway.ts`).
+ * The `tn-binding` vector kind: verification when `input.check` is absent, else the claim, contact, store, select,
+ * authority or one of the gateway checks (`gateway.ts`).
  *
  * Spec: N§3.4, N§4, N§5, N§6, N§7, G§5; README "Kind: `tn-binding`", "`check`", "Gateway checks".
  */
@@ -228,6 +296,7 @@ export function runTnBinding(ctx: TnContext, input: JsonObject): Json {
   if (check === "contact") return contactWarning(input);
   if (check === "store") return storeBinding(ctx, input) as unknown as Json;
   if (check === "select") return selectBinding(ctx, input) as unknown as Json;
+  if (check === "authority") return poolAuthorities(ctx, input) as unknown as Json;
   if (check === "passport") return verifyPassport(ctx, input) as unknown as Json;
   if (check === "route") return routeNumber(ctx, input) as unknown as Json;
   if (check === "assert") return assertNumber(ctx, input) as unknown as Json;

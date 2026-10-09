@@ -46,8 +46,16 @@ def u64(n):
 # --- T§3 --------------------------------------------------------------------------------------
 
 def normalize_alias(a: str) -> str | None:
-    """`local@domain` → its normal form, or None (not an alias)."""
-    if not isinstance(a, str) or "@" not in a:
+    """`local@domain` → its normal form, or a `tel:` global number (README `alias`), or None (not an alias)."""
+    if not isinstance(a, str):
+        return None
+    if a[:4].lower() == "tel:":
+        rest = a[4:]
+        if not rest.startswith("+"):
+            return None
+        digits = "".join(c for c in rest[1:] if c not in "-.()")
+        return f"tel:+{digits}" if re.fullmatch(r"[1-9][0-9]{1,14}", digits) and all(c in "0123456789-.()" for c in rest[1:]) else None
+    if "@" not in a:
         return None
     local, domain = a.rsplit("@", 1)
     if not local or not all(0x21 <= ord(c) <= 0x7E and c != "@" for c in local):

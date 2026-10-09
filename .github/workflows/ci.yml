@@ -145,8 +145,9 @@ jobs:
       - name: number discovery (Number Attestation Profile draft, N§6–N§7)
         # Self-verifying: Bob dials tel:+15551234567 through a dsip-node and reaches the DID the number is bound to,
         # verified end to end; nothing unpublished is found; the node refuses forged and uncovered bindings; a binding
-        # whose DID does not claim the number never wins; after a port the newer binding wins and the client says so.
-        run: timeout 300 bash demos/number-discovery-demo.sh | tail -4
+        # whose DID does not claim the number never wins; after a port the newer binding wins and the client says so;
+        # and (route 2, v0.12) the number's authority serves the binding at its .well-known, named on the answer.
+        run: timeout 300 bash demos/number-discovery-demo.sh | tail -5
         working-directory: impl
       - name: number gateway (Number Attestation Profile draft, N§4.1, N§6.1)
         # Self-verifying, two gateways over SIP between a DSIP caller and a DSIP callee: Alice's bound number crosses

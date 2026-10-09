@@ -39,6 +39,18 @@ def vectors() -> list[dict]:
     out = []
     # --- T§3 alias normalization (by hand) -----------------------------------------------------------
     for vid, alias, want in [
+        ("alias-tel-plain", "tel:+15551234567", "tel:+15551234567"),
+        ("alias-tel-separators-removed", "tel:+1-555-123-4567", "tel:+15551234567"),
+        ("alias-tel-dots-parens", "TEL:+1.(555).123.4567", "tel:+15551234567"),
+        ("alias-tel-scheme-case", "Tel:+447700900123", "tel:+447700900123"),
+        ("alias-tel-local-number", "tel:5551234567", None),
+        ("alias-tel-parameter", "tel:+15551234567;ext=12", None),
+        ("alias-tel-space", "tel:+1 555 123 4567", None),
+        ("alias-tel-leading-zero", "tel:+05551234567", None),
+        ("alias-tel-too-long", "tel:+1555123456789012", None),
+        ("alias-tel-one-digit", "tel:+1", None),
+        ("alias-tel-empty", "tel:", None),
+        ("alias-tel-with-at", "tel:+15551234567@example.com", None),
         ("alias-domain-lowercased", "Alice@Example.COM", "Alice@example.com"),
         ("alias-local-case-kept", "BOB.Smith+x@example.org", "BOB.Smith+x@example.org"),
         ("alias-a-label-domain", "carol@xn--bcher-kva.example", "carol@xn--bcher-kva.example"),

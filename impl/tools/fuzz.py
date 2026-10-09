@@ -844,6 +844,23 @@ def gen_tn_select(r: random.Random):
                                              "now": G.NOW + r.choice([0, 0, 3600, 80000])}
 
 
+def gen_tn_authority(r: random.Random):
+    """A client pooling authorities' .well-known answers (N§6 route 2; README `check: "authority"`)."""
+    pool, G = _tn_pool()
+    dids = ["did:web:alice.example", "did:web:mallory.example", "did:web:x.example", "did:web:y.example"]
+    docs = {d: G.doc(r.choice([f"tel:{G.TN}"] * 3 + ["tel:+15550000000"]), id_=d) for d in dids if r.random() < 0.8}
+
+    def answer():
+        auth = r.choice(["carrier-a.example", "carrier-b.example", "carrier-a.example", "x.example"])
+        status = r.choice([200] * 6 + [404, None, "200", 500])
+        bs = r.sample(pool, r.randint(0, 4)) + ([5, None] if r.random() < 0.1 else [])
+        body = r.choice([{"bindings": bs}] * 6 + [None, [bs], {"bindings": "x"}, {}])
+        return {"authority": auth, "status": status, "body": body}
+    answers = [answer() for _ in range(r.randint(0, 4))] if r.random() < 0.97 else "x"
+    return "tn-binding", "authority", G.ctx(), {"tn": r.choice([G.TN] * 9 + ["+15552000000"]), "answers": answers,
+                                                "documents": docs, "now": G.NOW + r.choice([0, 0, 3600, 80000])}
+
+
 def gen_tn_passport(r: random.Random):
     """A gateway's Identity header check (G§5; README `check: "passport"`): mutated PASSporTs, parameters, From/To, clocks."""
     pool, G = _tn_pool()
@@ -900,7 +917,7 @@ def gen_tn_assert(r: random.Random):
 
 TARGETS = {
     "syslog": gen_syslog, "snmpv3": gen_snmpv3, "recording": gen_recording, "tn-binding": gen_tnbinding, "tn-store": gen_tn_store, "tn-select": gen_tn_select,
-    "tn-passport": gen_tn_passport, "tn-route": gen_tn_route, "tn-assert": gen_tn_assert,
+    "tn-passport": gen_tn_passport, "tn-route": gen_tn_route, "tn-assert": gen_tn_assert, "tn-authority": gen_tn_authority,
     "tsm": gen_tsm, "tls-frames": gen_tls_frames, "tsm-name": gen_tsm_name, "syslog-sign": gen_syslog_sign,
     "gap": gen_gap, "commit-retry": gen_commit_retry, "hub-outage": gen_hub_outage, "resume": gen_resume, "history": gen_history,
     "successor": gen_successor, "client": gen_client, "hub": gen_hub, "mailbox": gen_mailbox, "endpoint": gen_endpoint,

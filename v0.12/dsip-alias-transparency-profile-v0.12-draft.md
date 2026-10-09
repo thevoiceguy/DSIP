@@ -46,6 +46,11 @@ An alias is `local@domain`, split at its last `@`. It normalizes as follows:
   differ in how (IDNA2003 versus UTS 46), so the conversion is outside this profile.
 - The result is `local@domain`, and must be at most 255 bytes.
 
+**A `tel:` alias** (v0.12; the Number Attestation Profile's route 2, N§6) is a tel URI (RFC 3966) of a global number
+with no parameters: the scheme `tel:` in any case, `+`, then digits with the visual separators `-`, `.`, `(` and `)`
+removed. The digits are E.164 (2 to 15, the first not `0`). The label is `tel:+<digits>`, in lowercase; a local
+number, a parameter (`;ext=`, `;phone-context=`) or anything else is not an alias in this draft.
+
 Anything else is not an alias.
 
 Impl (spec-gap 104): §8.1 step 1 says identifiers are normalized but not how; this is the normalization for aliases.

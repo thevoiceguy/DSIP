@@ -1,0 +1,17 @@
+{
+  "vector": "alias-transparency/alias-tel-scheme-case",
+  "format": 1,
+  "kind": "alias-transparency",
+  "description": "T§3: 'Tel:+447700900123' → tel:+447700900123.",
+  "spec_ref": [
+    "T§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "alias",
+    "alias": "Tel:+447700900123"
+  },
+  "expect": {
+    "label": "tel:+447700900123"
+  }
+}
