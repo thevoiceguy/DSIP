@@ -1,6 +1,6 @@
 # Number-to-DID attestation — design study
 
-**Status:** design study, 2026-10-08. **Adopted 2026-10-08** as the draft Number Attestation Profile (`v0.11/dsip-number-attestation-profile-v0.11-draft.md`, spec-gap 110); stage 1 (§10) is done. The text below is kept as the design record;
+**Status:** design study, 2026-10-08. **Adopted 2026-10-08** as the draft Number Attestation Profile (`v0.12/dsip-number-attestation-profile-v0.12-draft.md`, spec-gap 110); stage 1 (§10) is done. The text below is kept as the design record;
 the profile and spec-gap 110 record where stage 1 departed from it (certificate time). It answers G4
 recommendation 3 (`gateway-stir-findings.md` §5, "Pursue (c)") and G§11 path (c).
 
