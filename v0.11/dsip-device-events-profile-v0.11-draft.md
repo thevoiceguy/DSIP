@@ -48,7 +48,8 @@ devices (SNMP SET, NETCONF); standardized vendor mapping content.
   - `snmpv3-auth`, `snmpv3-authpriv`: `"usm": {"engine_id": "<hex>", "user": "<name>"}`, the authoritative engine
     and the user whose key verified the message;
   - `syslog-tls`: `"certificate_sha256": "<hex>"`, the SHA-256 of the device's verified leaf certificate.
-  - `snmpv3-tls`: `"certificate_sha256"` as for `syslog-tls`, and `"tsm": {"security_name": "<name>"}`, the name
+  - `snmpv3-tls`: `"certificate_sha256"` as for `syslog-tls`, and `"tsm": {"security_name": "<name>", "transport":
+    "tls" | "dtls"}` (v0.11 adds `transport`), the name
     the certificate mapped to (E§3).
   - `syslog-signed`: `"signed": {hostname, app_name, procid, rsid, sg, spri, message_number, key_sha256}`. These are
     the signer and reboot session, the Signature Group, the message's number in that group, and the SHA-256 of the
@@ -122,8 +123,12 @@ reason tokens are those of `impl/vectors/README.md` (component `snmpv3`):
 **SNMPv3 over TLS** (v0.10; RFC 6353's TLS Transport Model with RFC 5591's Transport Security Model). The basis is
 `snmpv3-tls`.
 
-- **Transport.** TLS over TCP; notifications arrive at port 10162. The device is the TLS client and MUST present a
-  certificate, which the gateway verifies against its trust anchors. DTLS over UDP is not specified here.
+- **Transport.** TLS over TCP, or DTLS over UDP (v0.11); notifications arrive at port 10162. The device is the
+  TLS or DTLS client and MUST present a certificate, which the gateway verifies against its trust anchors. Over
+  DTLS, the session takes the place of the connection: its certificate names the sender for every record, a
+  session that maps to no name is closed, and each DTLS record carries exactly one message (a record that does not
+  is dropped and the session continues; the conformance suite's `dtls-record` check pins it). The gateway's
+  `source.tsm.transport` says which, `tls` or `dtls` (E§2).
 - **The security name** comes from the gateway's certificate-to-name table, RFC 6353's `snmpTlstmCertToTSNTable`.
   Each row is `{id, fingerprint, map, data?}`, with `fingerprint` the SHA-256 of a certificate in hex. The name is
   fixed for the whole connection.

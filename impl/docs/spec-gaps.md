@@ -2611,8 +2611,21 @@ The gateway (`dsip-msg`):
 - **Demo:** `device-events-syslog-sign-demo.sh` adds a signer whose certificate is OpenPGP (`P`) and a rebooted
   signer re-establishing with `N`.
 
-**Open.**
-- DTLS for SNMP (RFC 6353 over UDP).
+**DTLS for SNMP (v0.11, 2026-10-09; RFC 6353 over UDP).** The last leftover. The transport model is the same: the
+DTLS session's client certificate names the sender through the same table, and a session with no name is closed
+(RFC 6353 §5.3.2). What differs is framing: a DTLS record carries exactly one message, pinned by
+`device-events/dtls-record-*` (11, stateless, defined through the `tls-frames` split: one message, nothing pending,
+no close). A record that is not one message is dropped and the session continues. The basis stays `snmpv3-tls`,
+RFC 6353's one model; E§2's `tsm` claim gains `transport: "tls" | "dtls"`.
+- **Choices considered** for a record that is not one message: close the session (as an unframeable TLS stream is
+  closed) or drop the record. **Chosen: drop.** A stream that cannot be framed loses synchronization for good; a
+  datagram does not, since the next record starts clean.
+- **Host:** `dsip-msg --snmp-dtls-listen`, OpenSSL's DTLS server (rustls has no DTLS) with RFC 6347's cookie
+  exchange, a session per peer address. Handshake retransmission and idle-session expiry are left to a later round.
+- **Demo:** `device-events-snmp-tls-demo.sh` sends sw1's trap over net-snmp's `dtlsudp:` transport, and sw3's
+  nameless session is closed.
+
+**Closed:** every item of spec-gap 103 is now disposed.
 
 ## 104. T§2–T§5 / core §8.1–§8.2 — alias transparency: what DSIP adopts of KEYTRANS, and when
 

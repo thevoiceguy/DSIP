@@ -1,0 +1,17 @@
+{
+  "vector": "device-events/dtls-record-empty",
+  "format": 1,
+  "kind": "device-events",
+  "description": "An empty record.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "dtls-record",
+    "record": ""
+  },
+  "expect": {
+    "error": "not-one-message"
+  }
+}

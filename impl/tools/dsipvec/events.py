@@ -121,6 +121,8 @@ def run_check(i: dict) -> dict:
         return events_v3.tsm_name(i["certificate"], i["table"])
     if c == "tls-frames":
         return events_v3.tls_frames(bytes.fromhex(i["stream"]))
+    if c == "dtls-record":
+        return events_v3.dtls_record(bytes.fromhex(i["record"]))
     raise ValueError(f"unknown check {c}")
 
 
