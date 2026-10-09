@@ -1,6 +1,6 @@
 # DSIP Conformance Test Vectors
 
-**Tracks:** DSIP v0.11 + JSON Schema set v0.11 (draft 2020-12); the Messaging Profile schema set for `messaging/`
+**Tracks:** DSIP Draft v0.12 + JSON Schema set v0.12 (draft 2020-12); the Messaging Profile schema set for `messaging/`
 **Format version:** 1
 
 These vectors are the language-neutral conformance contract for DSIP Core v1.0.
@@ -456,7 +456,7 @@ Emissions: `send subscribe`, `{"ui":"notify","event","state"}`, `{"ui":"subscrip
 
 ## Kind: `media-binding`
 
-WebRTC Media Binding 1.0 (`v0.11/dsip-webrtc-media-binding-v0.11.md`) conformance, below the
+WebRTC Media Binding 1.0 (`v0.12/dsip-webrtc-media-binding-v0.12.md`) conformance, below the
 envelope pipeline: inputs are decoded payloads or event traces. `input.check` selects:
 
 | check | input | expect |
@@ -535,9 +535,9 @@ Details the table leaves out, all part of the contract:
 
 ## Kind: `messaging`
 
-DSIP Messaging Profile 1.0 (`v0.11/dsip-messaging-profile-v0.11.md`, cited `M§n`), tranche 1.
+DSIP Messaging Profile 1.0 (`v0.12/dsip-messaging-profile-v0.12.md`, cited `M§n`), tranche 1.
 Written **before** any implementation. The profile schema set is staged at
-`v0.11/dsip-messaging-schemas-draft/` (generated, freshness-checked like the core set). MLS is
+`v0.12/dsip-messaging-schemas-draft/` (generated, freshness-checked like the core set). MLS is
 abstracted: traces carry what a hub or mailbox observes (epoch, commit adds/removes, validity, a
 digest of the MLS bytes), just as relay traces abstract signatures. `input.check` selects:
 
@@ -798,7 +798,7 @@ lowercase hex. Everything else, non-ASCII included, is written as UTF-8.
 
 ## Kind: `device-events`
 
-Device Events Profile draft (`v0.11/dsip-device-events-profile-v0.11-draft.md`, cited `E§n`; spec-gap 103). There are two
+Device Events Profile draft (`v0.12/dsip-device-events-profile-v0.12-draft.md`, cited `E§n`; spec-gap 103). There are two
 shapes: stateless checks (`input.check`) and alarm-list traces (`input.steps`).
 
 **`check: "trap"`** (E§3), with `input.trap`, outputs `{"snmp": {version, uptime, trap_oid, varbinds}}` or
@@ -1251,7 +1251,7 @@ expect is `{"emit": [...], "held": [...]}`. `held` lists the held clears, sorted
 
 ## Kind: `recording`
 
-Recording Profile draft (`v0.11/dsip-recording-profile-v0.11-draft.md`, cited `C§n`; spec-gap 107). Three shapes:
+Recording Profile draft (`v0.12/dsip-recording-profile-v0.12-draft.md`, cited `C§n`; spec-gap 107). Three shapes:
 consent traces (C§4), `check: "conversation"` (C§5) and `check: "recording-session"` (C§6).
 
 **`check: "add-devices"`** (C§5, M§5.5, M§7.2) is the devices a device adds for an identity, given what its KeyPackage
@@ -1330,7 +1330,7 @@ it has opened with `bye` and `policy.blocked`. The checks run in this order:
 
 ## Kind: `alias-transparency`
 
-Alias Transparency Profile draft, stage 1 (`v0.11/dsip-alias-transparency-profile-v0.11-draft.md`, cited `T§n`;
+Alias Transparency Profile draft, stage 1 (`v0.12/dsip-alias-transparency-profile-v0.12-draft.md`, cited `T§n`;
 spec-gap 104). These are the KEYTRANS building blocks, following the editors' copy of draft-ietf-keytrans-protocol
 (2026-09-16) and the editor's implementation katie (commit `e1640671`), plus the profile's own rules. Every computed
 value here was confirmed with katie. The editors' copy differs from -05 only in the mode-1 Configuration.

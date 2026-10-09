@@ -1,6 +1,6 @@
 """Messaging Profile 1.0 reference semantics (v0.8 draft, cited M§n).
 
-Spec: `v0.11/dsip-messaging-profile-v0.11.md`. Written before any Rust implementation; the
+Spec: `v0.12/dsip-messaging-profile-v0.12.md`. Written before any Rust implementation; the
 `messaging/` vectors pin this module's choices and `dsip-messaging` mirrors it.
 
 Checks (`input.check`):
@@ -26,7 +26,7 @@ from jsonschema import Draft202012Validator
 from . import ulid as U
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-SCHEMA_DIR = REPO_ROOT / "v0.11" / "dsip-messaging-schemas-draft" / "schemas"
+SCHEMA_DIR = REPO_ROOT / "v0.12" / "dsip-messaging-schemas-draft" / "schemas"
 
 MAX_MLS_BYTES = 24576          # M§5.1
 MAX_LIFETIME_S = 60            # M§5.1: delivery envelopes, not records
