@@ -1,0 +1,17 @@
+{
+  "vector": "device-events/dtls-record-one-byte",
+  "format": 1,
+  "kind": "device-events",
+  "description": "A single byte.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "dtls-record",
+    "record": "30"
+  },
+  "expect": {
+    "error": "not-one-message"
+  }
+}

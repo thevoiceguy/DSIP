@@ -1127,6 +1127,11 @@ stream, repeatedly:
 `pending` is `""` when nothing is left, and it is the unread rest of the stream after a close. A single byte waits
 even when it is not `0x30` (step 1 comes first); a second byte decides.
 
+**`check: "dtls-record"`** (v0.11), with `record` (hex), is the DTLS side of the same transport model (RFC 6353 over
+UDP): a DTLS record carries exactly one message. The record is split as `tls-frames` splits a stream, and it is the
+one message when that gives exactly one message, nothing pending and no close: `{"message": hex}`. Otherwise
+`{"error": "not-one-message"}`, and the gateway drops the record; the session continues.
+
 **`check: "tsm"`**, with `message` (hex), outputs one of:
 - `{"accepted": {"trap": {"version": "v3", "varbinds": [...], "inform"?: {"request_id"}}}}`;
 - `{"discovery": {"request_id"}}`, for RFC 5343 discovery: a PDU with tag `0xA0`, contextEngineID `8000000006`,

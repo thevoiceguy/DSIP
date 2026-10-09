@@ -6,7 +6,7 @@
  * Spec: E§2 (`snmpv3-tls` basis), E§3 ("SNMPv3 over TLS"); RFC 6353 §5.3.2 and
  * `snmpTlstmCertToTSNTable`, RFC 5591 (TSM), RFC 5343 (context engine discovery). The exact
  * inputs, output shapes and order of checks are the vectors README's, "SNMPv3 over TLS"
- * (`check: "tsm-name"`, `"tls-frames"`, `"tsm"`).
+ * (`check: "tsm-name"`, `"tls-frames"`, `"dtls-record"`, `"tsm"`).
  */
 import type { Json, JsonObject } from "../did.js";
 import { Bad, parseMessage, type Message } from "./usm.js";
@@ -172,6 +172,24 @@ export function tlsFrames(stream: Uint8Array): JsonObject {
     messages.push(Buffer.from(stream.subarray(p, p + total)).toString("hex")); // 7
     p += total;
   }
+}
+
+/**
+ * `check: "dtls-record"` (v0.11): one DTLS record carries exactly one message, as
+ * `{message}` or `{error: "not-one-message"}`.
+ *
+ * Spec: E§3 "Transport" — over DTLS (RFC 6353 over UDP) each record carries exactly one message;
+ * a record that does not is dropped and the session continues. README "SNMPv3 over TLS",
+ * `dtls-record`: the record is split as `tls-frames` splits a stream, and it is the one message
+ * when that gives exactly one message, nothing pending and no close.
+ */
+export function dtlsRecord(record: Uint8Array): JsonObject {
+  const frames = tlsFrames(record);
+  const messages = frames["messages"] as string[];
+  if (messages.length === 1 && frames["pending"] === "" && !("close" in frames)) {
+    return { message: messages[0]! };
+  }
+  return { error: "not-one-message" };
 }
 
 // ---------------------------------------------------------------------------------------------

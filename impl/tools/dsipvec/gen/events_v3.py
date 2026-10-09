@@ -530,6 +530,29 @@ def tsm_vectors() -> list[dict]:
     return out
 
 
+def dtls_record_vectors() -> list[dict]:
+    """A DTLS record is exactly one message (E§3 v0.11; README `check: "dtls-record"`)."""
+    out = []
+    a, b = tsm(), tsm(scoped(tag=0xA6, rid=9))
+
+    def d(name, desc, record, message=None):
+        e = {"message": message} if message is not None else {"error": "not-one-message"}
+        out.append(ev(f"dtls-record-{name}", desc, ["E§3"], {"check": "dtls-record", "record": record}, e))
+    d("one", "One whole message is the record.", a, a)
+    d("inform", "An inform is a message like any other.", b, b)
+    d("two", "Two messages in one record: not one message.", a + b)
+    d("trailing-byte", "A message followed by a byte.", a + "00")
+    d("truncated", "A record shorter than its message.", a[:-4])
+    d("empty", "An empty record.", "")
+    d("one-byte", "A single byte.", "30")
+    d("not-a-sequence", "A first byte other than 0x30.", "04" + a[2:])
+    d("indefinite-length", "An indefinite length.", "3080" + a[4:] + "0000")
+    long_ok = "30" + "82" + (len(a) // 2 - 2 + 1).to_bytes(2, "big").hex() + a[4:] + "00"
+    d("long-form-length", "A long-form length covering the whole record is one message.", long_ok, long_ok)
+    d("long-form-length-overruns", "A long-form length that overruns the record.", "30" + "82" + "0100" + a[4:])
+    return out
+
+
 def tls_frames_vectors() -> list[dict]:
     out = []
     a, b = tsm(), tsm(scoped(tag=0xA6, rid=9))

@@ -279,6 +279,14 @@ def tls_frames(stream: bytes) -> dict:
         pos += hdr + n
 
 
+def dtls_record(record: bytes) -> dict:
+    """A DTLS record is exactly one message (README `check: "dtls-record"`; E§3 v0.11)."""
+    f = tls_frames(record)
+    if len(f["messages"]) == 1 and f["pending"] == "" and not f.get("close"):
+        return {"message": f["messages"][0]}
+    return {"error": "not-one-message"}
+
+
 def parse_tsm(b: bytes):
     """Step 1 for TSM: USM's structure, except securityParameters is any OCTET STRING and msgData always a
     ScopedPDU → (msgSecurityModel, (tag, request id, varbinds))."""

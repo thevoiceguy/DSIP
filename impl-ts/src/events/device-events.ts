@@ -11,7 +11,7 @@
 import type { Json, JsonObject } from "../did.js";
 import { mapSyslog, parseSyslog } from "./syslog.js";
 import { UsmReceiver, usmKey } from "./usm.js";
-import { tlsFrames, tsmName, tsmReceive } from "./tsm.js";
+import { dtlsRecord, tlsFrames, tsmName, tsmReceive } from "./tsm.js";
 import { SyslogSignCollector } from "./syslog-sign.js";
 
 /** One varbind, as carried. Spec: E§3 */
@@ -534,7 +534,7 @@ export class HoldDown {
  * `{emit, engines}` per step, or a hold-down trace (`context.component: "holddown"`) returning one
  * `{emit, held}` per step, or a signed syslog trace (`context.component: "syslog-sign"`) returning one
  * `{emit, held, waiting}` per step; the stateless checks include `syslog`, `usm-key` and SNMPv3 over TLS's `tsm-name`,
- * `tls-frames` and `tsm`. Spec: E§3–E§6
+ * `tls-frames`, `dtls-record` and `tsm`. Spec: E§3–E§6
  */
 export function runDeviceEvents(context: JsonObject, input: JsonObject): Json {
   if (Array.isArray(input["steps"]) && context["component"] === "informs") {
@@ -570,6 +570,8 @@ export function runDeviceEvents(context: JsonObject, input: JsonObject): Json {
       return tsmName(input["certificate"] as JsonObject, input["table"] as JsonObject[]);
     case "tls-frames":
       return tlsFrames(Buffer.from(input["stream"] as string, "hex"));
+    case "dtls-record":
+      return dtlsRecord(Buffer.from(input["record"] as string, "hex"));
     case "tsm":
       return tsmReceive(Buffer.from(input["message"] as string, "hex"));
     case "map": {

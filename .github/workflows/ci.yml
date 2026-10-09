@@ -118,8 +118,9 @@ jobs:
       - name: device events over SNMPv3/TLS (Device Events Profile draft E§3, RFC 6353)
         # Self-verifying with net-snmp 5.9.5.2 (Debian's packages, pinned by SHA-256: older net-snmp caps its TLS client
         # at TLS 1.0): a trap is named by its certificate's fingerprint row; an inform runs RFC 5343 discovery, then is
-        # answered once stored; a certificate no row names, and a client without one, are refused.
-        run: timeout 300 bash demos/device-events-snmp-tls-demo.sh | tail -22
+        # answered once stored; a certificate no row names, and a client without one, are refused; the same trap over
+        # DTLS (v0.11) is named by its session's certificate, and a nameless DTLS session is closed.
+        run: timeout 300 bash demos/device-events-snmp-tls-demo.sh | tail -28
         working-directory: impl
       - name: device events from signed syslog (Device Events Profile draft E§3, RFC 5848)
         # Self-verifying: a fragmented Certificate Block establishes the session; two held messages become
