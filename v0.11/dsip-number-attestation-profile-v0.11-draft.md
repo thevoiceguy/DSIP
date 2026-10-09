@@ -187,8 +187,9 @@ member:
 - **Toward the PSTN.** A gateway that carries a DSIP caller to the PSTN may assert the `From` number only under a
   STIR certificate that covers it. Normally that is an RFC 9060 delegate certificate, which the number's carrier
   issues to the gateway operator (G§11, path c). The binding tells the gateway, per call, that this DSIP identity is
-  the one the number belongs to. Whether a binding alone lets a gateway attest `A` is a question for SHAKEN
-  governance, not for DSIP (spec-gap 110, item A). N§4.1 says what the gateway does.
+  the one the number belongs to. A binding alone never raises the level: `A` under a certificate that covers the
+  number, or nothing (spec-gap 110, item A). N§4.1 says what the gateway does, and how a gateway comes to hold such
+  a certificate for a subscriber's number.
 
 ### N§4.1 Gateways
 
@@ -216,6 +217,12 @@ binding resolves is a PSTN number (spec-gap 111).
 3. **Otherwise** the number is presented unsigned (G§11 path b) and the crossing is downgraded
    `identity-not-assertable`. The level is `A` or nothing: a gateway that cannot vouch for the number under its
    certificate does not attest `B` on the strength of a binding (spec-gap 110, item A).
+
+**How a gateway gets the certificate (informative).** A subscriber's gateway need not be its carrier's. RFC 9060
+delegate certificates are issued by ACME (RFC 9448) against a TNAuthList authority token (RFC 9447), and a binding,
+with the subscriber's signed choice of gateway, is grounds for that token: the carrier issues the gateway a
+short-lived delegate certificate for the subscriber's number, stays the issuer, and keeps revocation. This profile
+defines the binding; the token exchange is the carrier's, and the subject of the pilot (design study §10, stage 5).
 
 **Inbound: a PSTN caller's PASSporT.** The gateway verifies an inbound INVITE's `Identity` header before it renders
 the G§5 claim (RFC 8224 §6.2): the header reads, `alg` and `ppt` are ones it implements (an unsupported header is

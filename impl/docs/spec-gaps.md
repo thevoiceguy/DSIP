@@ -3008,16 +3008,30 @@ held packet is a cache: a node SHOULD look for a newer packet on Mainline before
 identity to be entitled to a phone number. The design study `impl/docs/number-attestation-design.md` proposed a
 STIR-signed binding. It is now the draft Number Attestation Profile (`N§n`), and stage 1 (N§3, the binding and its
 checks) is pinned by `impl/vectors/tn-binding/`. The design left five choices open. The user decided on 2026-10-08
-to adopt it and start stage 1, with E.164 numbers only. Items B–E take the design's proposals; A and D still need a
-decision outside the PoC.
+to adopt it and start stage 1, with E.164 numbers only. Items B–E take the design's proposals; A was decided with
+stage 4 (below); D still needs a decision when §19.1 next changes.
 
 **A. G§11 / SHAKEN: may a gateway attest `A` on a carrier's binding?**
 - Choices:
   - (a) yes, with the binding standing in for the subscriber relationship;
   - (b) `B`;
   - (c) only under an RFC 9060 delegate certificate for the number.
-- Draft text (N§4): (c) is normative, and (a) is a question for SHAKEN governance, not for DSIP.
-- Not vectored. It lands with stage 4, the gateway.
+- **Decided by the user (2026-10-09): (c).** A gateway signs `A` only under a STIR certificate that covers the
+  number, normally an RFC 9060 delegate certificate, and signs nothing otherwise. Pinned by `tn-binding/assert-*`
+  (stage 4).
+  - Not (b): after a binding verified the number against the number authority's signature and the caller's proof of
+    possession, `B` ("customer known, number not verified") states something false and discards the evidence.
+  - Not (a): "A on a binding alone" has the gateway sign under a certificate that does not cover the number. A
+    SHAKEN SP certificate holds only an SPC, so a verifier cannot check coverage, and this profile's own `passport`
+    check refuses such an `A` unless the relying party's portability data lists the number. The profile encodes (c)
+    structurally.
+  - What (c) leaves open is practical, not a policy question: a subscriber crosses only through a gateway that
+    already holds a delegate certificate for the number. The DSIP-shaped answer stays inside SHAKEN's machinery:
+    a binding, with the subscriber's signed choice of gateway, as grounds for an RFC 9447 TNAuthList authority
+    token, so the gateway obtains a short-lived RFC 9060 delegate certificate for the number by ACME (RFC 9448),
+    the carrier still the issuer and revocation still its own. That is the stage 5 partner conversation, and the
+    argument for it: a binding is a signed, expiring, revocable statement by the number authority with proof of
+    possession, where today's letter of authorization is a document.
 
 **B. N§3 / N§7: lifetime, certificate time, conflicts.**
 - **Lifetime.** Choices: a 24 h, 7 d or 30 d cap. **Chosen: 7 d**, as `exp − iat` ≤ 604800, giving
@@ -3144,10 +3158,9 @@ the wire demo is `demos/number-gateway-demo.sh` (two gateways over SIP between a
   - (b) present the number unsigned and cross downgraded (G§11 path b);
   - (c) sign `B` ("customer known").
 
-  **Chosen: (b).** (c) is item A's question for SHAKEN governance, and the draft says `A` or nothing. A caller with no
+  **Chosen: (b).** (c) is what item A rules out: `A` under a covering certificate, or nothing. A caller with no
   attested claim gets the gateway's own `From`: a number nobody proved is never presented.
-- **The level is `A`** under an RFC 9060 delegate certificate (item A, path c, now normative in the draft; the
-  SHAKEN-governance question stays open).
+- **The level is `A`** under an RFC 9060 delegate certificate (item A, decided: path c).
 - **The signature is not pinned**, only the signing input (header and claims as decoded objects): ECDSA signatures
   differ between implementations, and RFC 6979 nonces are not something a spec may require of a gateway. Each
   implementation's own round trip (`assert` then `passport`) is tested in its unit tests and in the demo.
