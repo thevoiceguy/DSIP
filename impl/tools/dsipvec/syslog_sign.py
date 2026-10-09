@@ -21,7 +21,7 @@ from .events_v3 import parse_syslog
 VERSIONS = {"0111": ("sha1", 20, hashes.SHA1()), "0121": ("sha256", 32, hashes.SHA256())}
 SIG_PARAMS = ["VER", "RSID", "SG", "SPRI", "GBC", "FMN", "CNT", "HB", "SIGN"]
 CERT_PARAMS = ["VER", "RSID", "SG", "SPRI", "TPBL", "INDEX", "FLEN", "FRAG", "SIGN"]
-B64 = re.compile(r"^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$")
+B64 = re.compile(r"^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?\Z")
 
 
 class Bad(Exception):

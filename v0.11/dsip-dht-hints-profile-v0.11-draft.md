@@ -202,6 +202,8 @@ Pkarr relays.
 | `PUT /<z32>` | 204 stored, or the same bytes held; 409 an older or conflicting `ts`; 400 rejected |
 | `GET /dsip/v1/hints/<did>` | 200 `{"hints": ["<record>", …]}`, the §2 records held for the DID, each verified and unexpired; `[]` when there are none |
 | `POST /dsip/v1/hints` | a §2 record: 202 stored; 409 a held record wins (§8.3); 400 rejected |
+| `GET /dsip/v1/tn/<tn>` | 200 `{"bindings": [...]}`: number bindings (Number Attestation N§6, draft), when the node serves numbers; else 404 |
+| `PUT /dsip/v1/tn/<tn>` | a number binding: 204 stored or the same one held; 409 an older one, or the set is full; 400 rejected |
 
 - **`/<z32>` is Pkarr's relay interface,** so Pkarr clients and DSIP's Pkarr readers use a node unchanged. The path
   is the key's canonical z-base-32, lowercase: unlike an owner name in the DNS message, it is not compared without

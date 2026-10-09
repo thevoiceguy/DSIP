@@ -800,8 +800,47 @@ def gen_tnbinding(r: random.Random):
                                      "now": NOW + r.choice([0] * 8 + [-1, 1, 3600, 86400, 604800])}
 
 
+def _tn_pool():
+    """A fixed pool of bindings for the store and select targets: DIDs, iats and numbers that collide on purpose."""
+    sys.path.insert(0, str(REPO / "impl/tools"))
+    from dsipvec.gen import tnbinding as G
+    if not hasattr(_tn_pool, "pool"):
+        dids = ["did:web:alice.example", "did:web:mallory.example", "did:web:x.example", "did:web:y.example",
+                "did:web:z.example"]
+        pool = []
+        for i, did in enumerate(dids):
+            for d_iat in (-7200, -3600, -3600, 0):
+                jti = G.JTI[:-2] + f"{(i * 7 + len(pool)) % 100:02d}"
+                pool.append(G.jws(p=G.claims(did=did, iat=G.IAT + d_iat, exp=G.IAT + d_iat + 86400, jti=jti)))
+        pool.append(G.jws(p=G.claims(tn="+15552000000")))
+        pool.append(G.jws(k=G.key("mallory")))
+        pool.append(G.jws(p=G.claims(did="did:web:old.example", iat=G.NOW - 90000, exp=G.NOW - 5)))
+        _tn_pool.pool, _tn_pool.G = pool, G
+    return _tn_pool.pool, _tn_pool.G
+
+
+def gen_tn_store(r: random.Random):
+    """A node's PUT against a random held set (N§6; README `check: "store"`)."""
+    pool, G = _tn_pool()
+    # a node never holds two bindings for one DID (outside the README contract): one per DID, the pool is 4 per DID
+    held = [r.choice(pool[4 * i:4 * i + 4]) for i in r.sample(range(5), r.randint(0, 5))]
+    tn = r.choice([G.TN] * 8 + ["+15552000000", "15551234567"])
+    return "tn-binding", "store", G.ctx(), {"tn": tn, "binding": r.choice(pool), "held": held,
+                                            "now": G.NOW + r.choice([0, 0, 0, 3600, 80000])}
+
+
+def gen_tn_select(r: random.Random):
+    """A reader's choice among returned bindings (N§6–N§7; README `check: "select"`)."""
+    pool, G = _tn_pool()
+    dids = ["did:web:alice.example", "did:web:mallory.example", "did:web:x.example", "did:web:y.example"]
+    docs = {d: G.doc(r.choice([f"tel:{G.TN}"] * 3 + ["tel:+15550000000"]), id_=d) for d in dids if r.random() < 0.8}
+    return "tn-binding", "select", G.ctx(), {"tn": r.choice([G.TN] * 9 + ["+15552000000"]),
+                                             "bindings": r.sample(pool, r.randint(0, 6)), "documents": docs,
+                                             "now": G.NOW + r.choice([0, 0, 3600, 80000])}
+
+
 TARGETS = {
-    "syslog": gen_syslog, "snmpv3": gen_snmpv3, "recording": gen_recording, "tn-binding": gen_tnbinding,
+    "syslog": gen_syslog, "snmpv3": gen_snmpv3, "recording": gen_recording, "tn-binding": gen_tnbinding, "tn-store": gen_tn_store, "tn-select": gen_tn_select,
     "tsm": gen_tsm, "tls-frames": gen_tls_frames, "tsm-name": gen_tsm_name, "syslog-sign": gen_syslog_sign,
     "gap": gen_gap, "commit-retry": gen_commit_retry, "hub-outage": gen_hub_outage, "resume": gen_resume, "history": gen_history,
     "successor": gen_successor, "client": gen_client, "hub": gen_hub, "mailbox": gen_mailbox, "endpoint": gen_endpoint,

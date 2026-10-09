@@ -246,6 +246,16 @@ def vectors() -> list[dict]:
     out.append(pv("reachability-hint-service-not-a-type-name", "reachability-hint", "service is a DID service type name.", ["§8.5"],
                   {**hint, "endpoints": [{**hint["endpoints"][0], "service": "dsip mailbox"}]}, ok=False))
 
+    # JSON Schema patterns are ECMA-262 (draft 2020-12 §6.4): `$` is the end of the string, never before a final LF
+    out.append(pv("invite-id-trailing-newline", "invite", "An id with a trailing LF fails the ULID pattern: `$` is the end "
+                  "of the string (ECMA-262), not before a final newline.", ["§10.3", "§20.6"], {**inv, "id": inv["id"] + "\n"},
+                  ok=False))
+    out.append(pv("invite-from-trailing-newline", "invite", "A `from` DID with a trailing LF fails the DID pattern.",
+                  ["§10.3", "§7.1"], {**inv, "from": inv["from"] + "\n"}, ok=False))
+    bye_lf = session_msg("bye", "bye-lf", sid, F.did("alice-phone"), F.BOB_WEB, reason="session.ended\n")
+    out.append(pv("bye-reason-trailing-newline", "bye", "A reason token with a trailing LF fails the token pattern.",
+                  ["§15.1"], bye_lf, ok=False))
+
     # envelope schema (shape only)
     from .common import signed
     env = signed(inv, "alice-phone")

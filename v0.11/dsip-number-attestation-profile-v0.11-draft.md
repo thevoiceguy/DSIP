@@ -3,7 +3,8 @@
 **Status:** DRAFT, companion profile to DSIP v0.11. Cite as `N§n`. Adopted 2026-10-08 from the design study
 `impl/docs/number-attestation-design.md` (spec-gap 110). Vectored so far (`impl/vectors/tn-binding/`):
 - stage 1: N§3, the binding and its checks;
-- stage 2: N§4, the claim and its rendering, and N§5, the identity-change warning.
+- stage 2: N§4, the claim and its rendering, and N§5, the identity-change warning;
+- stage 3: N§6 route 1, on a `dsip-node`, and N§7, choosing between bindings.
 
 The exact text of the rendered lines is the vector suite's. Later stages will vector the rest.
 
@@ -205,9 +206,18 @@ A legitimate port or a carrier-level hijack moves the number's routing. It never
 
 There are three ways for a caller to find the DID behind a number, in order of preference:
 
-1. **A hint the subject publishes**, keyed by the number: an overlay record, or a Pkarr packet whose key is derived
-   from `tn`. The DHT stays a hints tier (§8.1). The reader verifies the binding (N§3.4) and then resolves the
-   DID, so a forged or stale record costs a failed lookup, never a misroute.
+1. **A binding the subject publishes on a hints node.**
+   - A `dsip-node` holds bindings by number:
+     - `PUT /dsip/v1/tn/<tn>` stores one;
+     - `GET /dsip/v1/tn/<tn>` answers `{"bindings": [...]}`.
+   - Before it stores a binding, a node checks steps 1–5 of N§3.4: everything that needs no DID resolution. It
+     holds at most four live bindings per number, one per DID, keeping the newest (the vector README pins the
+     rules).
+   - A reader verifies every returned binding in full, each against its own DID's document, and chooses by N§7.
+     A forged or stale binding costs a failed lookup, never a misroute.
+   - The node is a hints tier (§8.1): it can withhold a binding, but never forge one.
+   - In this draft nodes do not replicate bindings to each other. A publisher puts its binding on several nodes,
+     as it would on several Pkarr relays, and renews it with each new binding.
 2. **A binding the number's authority serves**, at `https://<authority>/.well-known/dsip/tn/<tn>`, and enters in an
    Alias Transparency log (T§) under the label `tel:` + `tn`. The log makes the authority's answers auditable.
 3. **A binding presented in a call** (N§4). The callee learns the number-to-DID mapping for future calls.
@@ -229,7 +239,9 @@ Being findable is not being reachable: an unsolicited call still faces first con
   - **One DID claims the number.** The binding whose DID lists it in `alsoKnownAs` wins. Step 7 of N§3.4 already
     decides almost every case.
   - **Both DIDs claim it.** This happens after a hijack, or when the old subscriber never removed it. The binding
-    with the newer `iat` wins, and the client shows the N§5 warning (spec-gap 110, item B).
+    with the newer `iat` wins; on a tie, the smaller binding text wins. The client names the other identities that
+    still hold verified bindings for the number. When a stored contact is involved, it also shows the N§5 warning
+    (spec-gap 110, item B).
 - **Revocation without a status service** is expiry. That is why the lifetime cap exists.
 
 ## N§8 Who issues bindings (informative)

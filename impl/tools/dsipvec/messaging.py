@@ -97,7 +97,8 @@ def reject(code: str, reason: str | None = None) -> dict:
 
 @lru_cache(maxsize=None)
 def validator(name: str) -> Draft202012Validator:
-    return Draft202012Validator(json.loads((SCHEMA_DIR / f"{name}.schema.json").read_text()))
+    from .schema import Validator
+    return Validator(json.loads((SCHEMA_DIR / f"{name}.schema.json").read_text()))
 
 
 def has_float(v) -> bool:

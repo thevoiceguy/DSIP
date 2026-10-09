@@ -2467,6 +2467,8 @@ v0.10 is final at tag `poc-v0.10`. Each v0.11 item is listed here as it lands, w
   `alsoKnownAs`. Clients verify both offline, against the STI-CA roots the PSTN already trusts. The number stays
   an alias (§8.2). Stage 1 pins the binding and the order of its checks (N§3). Stage 2 pins the `tel` claim that
   carries a binding and its rendering (N§4), and the warning when a number moves to another identity (N§5).
+  Stage 3 adds discovery: a `dsip-node` holds bindings by number, and a caller dialling `tel:` verifies them and
+  chooses one (N§6 route 1, N§7).
 
 ---
 

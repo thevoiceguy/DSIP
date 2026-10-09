@@ -7,7 +7,7 @@ import re
 from .verdict import Verdict
 from .ulid import ULID_RE
 
-DID_RE = re.compile(r"^did:[a-z0-9]+:[A-Za-z0-9.%_:-]+$")
+DID_RE = re.compile(r"^did:[a-z0-9]+:[A-Za-z0-9.%_:-]+\Z")
 
 
 class _IntOnly(json.JSONDecoder):

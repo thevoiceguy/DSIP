@@ -6,6 +6,7 @@ Written from the README's check order. Certificates are parsed with `cryptograph
 from __future__ import annotations
 
 import base64
+import json
 import binascii
 import re
 
@@ -35,7 +36,7 @@ class Reject(Exception):
 
 
 def b64u(s: str) -> bytes:
-    if not B64U.match(s) or len(s) % 4 == 1:
+    if not B64U.fullmatch(s) or len(s) % 4 == 1:
         raise Reject("malformed")
     return base64.urlsafe_b64decode(s + "=" * (-len(s) % 4))
 
@@ -64,11 +65,11 @@ def parse_binding(binding: str):
     if (h.get("alg") != "ES256" or h.get("typ") != "dsip-tn-binding+jwt" or not isinstance(x5u, str)
             or not x5u.startswith("https://") or "crit" in h):
         raise Reject("malformed")
-    ok = (isinstance(p.get("tn"), str) and TN_RE.match(p["tn"])
+    ok = (isinstance(p.get("tn"), str) and TN_RE.fullmatch(p["tn"])
           and isinstance(p.get("did"), str) and p["did"].startswith("did:")
           and is_int(p.get("iat")) and p["iat"] >= 0
           and is_int(p.get("exp")) and p["exp"] > p["iat"]
-          and isinstance(p.get("jti"), str) and ULID_RE.match(p["jti"])
+          and isinstance(p.get("jti"), str) and ULID_RE.fullmatch(p["jti"])
           and ("status" not in p or (isinstance(p["status"], str) and p["status"].startswith("https://"))))
     if not ok:
         raise Reject("malformed")
@@ -318,8 +319,13 @@ def verify(context: dict, i: dict) -> dict:
 
 
 def _verify(context: dict, i: dict) -> dict:
-    h, p, signing_input, sig = parse_binding(i["binding"])
-    now = i["now"]
+    p, path = steps_1_to_5(context, i["binding"], i["now"])
+    return steps_6_to_8(context, i, p, path)
+
+
+def steps_1_to_5(context: dict, binding, now: int):
+    """What a node can check without resolving a DID (README `check: "store"`)."""
+    h, p, signing_input, sig = parse_binding(binding)
     # 2. the certificate path
     text = context.get("certificates", {}).get(h["x5u"])
     if not isinstance(text, str):
@@ -361,6 +367,10 @@ def _verify(context: dict, i: dict) -> dict:
         raise Reject("not-yet-valid")
     if now >= p["exp"]:
         raise Reject("expired")
+    return p, path
+
+
+def steps_6_to_8(context: dict, i: dict, p: dict, path: list) -> dict:
     # 6–7. the DID, and its claim back
     if p["did"] != i["did"]:
         raise Reject("did-mismatch")
@@ -384,7 +394,7 @@ def claim(context: dict, i: dict) -> dict:
     if not (isinstance(c, dict) and c.get("type") == "tel" and "binding" in c) or isinstance(c.get("verifier"), str):
         return {"outcome": "ignored"}
     number = c.get("number")
-    line = f"{number} (unverified)" if isinstance(number, str) and TN_RE.match(number) else None
+    line = f"{number} (unverified)" if isinstance(number, str) and TN_RE.fullmatch(number) else None
     if not isinstance(c["binding"], str):
         return {"outcome": "dropped", "reason": "malformed", "line": line}
     r = verify(context, {"binding": c["binding"], "did": i["identity"], "did_document": i.get("did_document"),
@@ -413,8 +423,85 @@ def contact(contacts: list, attested: dict):
             f'Your contact "{c["name"]}" is {c["did"]}.')
 
 
+def payload_of(binding: str) -> dict:
+    return json.loads(b64u(binding.split(".")[1]))
+
+
+def held_payload(h):
+    """A held entry's payload, when it reads: three segments, the second an I-JSON object with a string `did` and
+    integer `iat` and `exp`. The header and signature are not looked at (README `check: "store"`)."""
+    try:
+        parts = h.split(".")
+        if len(parts) != 3:
+            return None
+        p = json_object(b64u(parts[1]))
+    except (AttributeError, Reject, ValueError):
+        return None
+    ok = isinstance(p.get("did"), str) and is_int(p.get("iat")) and is_int(p.get("exp"))
+    return p if ok else None
+
+
+def held_order(bs: list[str]) -> list[str]:
+    return sorted(bs, key=lambda b: (-payload_of(b)["iat"], b.encode()))
+
+
+def store(context: dict, i: dict) -> dict:
+    """A node's verify-before-store for PUT /dsip/v1/tn/<tn> (N§6 route 1)."""
+    tn, b, now = i["tn"], i["binding"], i["now"]
+    if not (isinstance(tn, str) and TN_RE.fullmatch(tn)):
+        return {"outcome": "rejected", "reason": "bad-number"}
+    try:
+        p, _ = steps_1_to_5(context, b, now)
+    except Reject as r:
+        return {"outcome": "rejected", "reason": str(r)}
+    if p["tn"] != tn:
+        return {"outcome": "rejected", "reason": "tn-mismatch"}
+    held_in = i["held"] if isinstance(i["held"], list) else []
+    held = [h for h in held_in if held_payload(h) is not None and now < held_payload(h)["exp"]]
+    same = [h for h in held if payload_of(h)["did"] == p["did"]]
+    if same:
+        h = same[0]
+        if h == b:
+            return {"outcome": "kept", "reason": "same"}
+        if p["iat"] > payload_of(h)["iat"]:
+            return {"outcome": "stored", "held": held_order([x for x in held if x != h] + [b])}
+        return {"outcome": "kept", "reason": "older"}
+    if len(held) < 4:
+        return {"outcome": "stored", "held": held_order(held + [b])}
+    low = min(payload_of(h)["iat"] for h in held)
+    victim = max((h for h in held if payload_of(h)["iat"] == low), key=str.encode)
+    if p["iat"] > payload_of(victim)["iat"]:
+        return {"outcome": "stored", "held": held_order([x for x in held if x != victim] + [b])}
+    return {"outcome": "kept", "reason": "full"}
+
+
+def select(context: dict, i: dict) -> dict:
+    """The reader's choice among the bindings a lookup returned (N§6, N§7)."""
+    verified = []
+    documents = i["documents"] if isinstance(i["documents"], dict) else {}
+    for b in i["bindings"] if isinstance(i["bindings"], list) else []:
+        try:
+            did = payload_of(b)["did"] if isinstance(b, str) else None
+        except Exception:
+            continue
+        if not isinstance(did, str):
+            continue
+        r = verify(context, {"binding": b, "did": did, "did_document": documents.get(did), "now": i["now"]})
+        if r["outcome"] == "verified" and r["tn"] == i["tn"]:
+            verified.append((payload_of(b)["iat"], b, r))
+    if not verified:
+        return {"outcome": "none"}
+    iat, b, r = min(verified, key=lambda x: (-x[0], x[1].encode()))
+    others = sorted({v[2]["did"] for v in verified if v[2]["did"] != r["did"]})
+    return {"outcome": "found", "did": r["did"], "attested_by": r["attested_by"], "issued": iat, "others": others}
+
+
 def run(v: dict):
     i = v["input"]
+    if i.get("check") == "store":
+        return store(v.get("context", {}), i)
+    if i.get("check") == "select":
+        return select(v.get("context", {}), i)
     if i.get("check") == "claim":
         return claim(v.get("context", {}), i)
     if i.get("check") == "contact":

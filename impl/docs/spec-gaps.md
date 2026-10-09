@@ -3113,3 +3113,24 @@ pinned with a hand-authored vector.
   - dates outside the years 0000–9999;
   - malformed address-book entries;
   - an `attested_by` that is neither a string nor `null`.
+
+**H. Stage 3 (N§6 route 1, N§7): discovery.** Pinned by `tn-binding/store-*` and `select-*`.
+- **What a node checks.** A node resolves no DIDs, so before it stores a binding it checks steps 1–5 and that the
+  path's number is the binding's (`tn-mismatch`). Steps 6–8 are the reader's.
+- **The held set.**
+  - At most 4 live bindings per number, one per DID.
+  - For the same DID, a newer `iat` replaces the held binding. The same text is `same`; anything else is `older`.
+  - When the set is full, the smallest `iat` is evicted (on a tie, the greatest text), and only by a newer
+    binding.
+
+  **Choices considered:**
+  - (a) one binding per number, the newest winning. This lets a misissued binding displace the right one at the
+    node.
+  - (b) unbounded. Storage is then open to any holder of valid bindings.
+  - (c) a small set, which leaves the conflict to the reader, who resolves DIDs. **Chosen: (c).**
+- **Reader selection.** Every binding is verified fully, against its own DID. The greatest `iat` wins, and on a
+  tie the smallest binding text. `others` lists the other DIDs that verified.
+- **No replication between nodes** in this draft. Publishers PUT to several nodes, as with Pkarr relays.
+  Overlay replication of bindings is open.
+- **Enumeration (item C)** is unchanged. Publishing is opt-in (`dsip tn-publish`), and a node's HTTP rate limit
+  applies.
