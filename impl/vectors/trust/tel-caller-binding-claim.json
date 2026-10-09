@@ -1,0 +1,19 @@
+{
+  "vector": "trust/tel-caller-binding-claim",
+  "format": 1,
+  "kind": "trust",
+  "description": "A caller's own bound number is not a PSTN caller.",
+  "spec_ref": [
+    "N§4"
+  ],
+  "context": {},
+  "input": {
+    "check": "tel-caller",
+    "claim": {
+      "type": "tel",
+      "number": "+15551234567",
+      "binding": "eyJ.eyJ.c2ln"
+    }
+  },
+  "expect": null
+}

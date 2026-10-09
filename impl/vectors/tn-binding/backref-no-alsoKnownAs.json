@@ -1,8 +1,8 @@
 {
-  "vector": "tn-binding/claim-document-not-object",
+  "vector": "tn-binding/backref-no-alsoKnownAs",
   "format": 1,
   "kind": "tn-binding",
-  "description": "The document is an array.",
+  "description": "The document has no `alsoKnownAs`.",
   "spec_ref": [
     "N§3"
   ],
@@ -25,17 +25,9 @@
   "input": {
     "binding": "eyJhbGciOiJFUzI1NiIsInR5cCI6ImRzaXAtdG4tYmluZGluZytqd3QiLCJ4NXUiOiJodHRwczovL2NyLmNhcnJpZXIuZXhhbXBsZS9zdGkucGVtIn0.eyJ0biI6IisxNTU1MTIzNDU2NyIsImRpZCI6ImRpZDp3ZWI6YWxpY2UuZXhhbXBsZSIsImlhdCI6MTc1OTk5NjQwMCwiZXhwIjoxNzYwMDgyODAwLCJqdGkiOiIwMUs2WjhSOFFBRVhBTVAxRUIxTkRORzAwMSJ9.xY0OfiVrSXsllNs4gvKMPNDYpkx1IXtkok7dXmDKWpavleWMNjTtTrrNHIi8DZaEL73fWYdpWQV_BwzfC4ugOw",
     "did": "did:web:alice.example",
-    "did_document": [
-      {
-        "@context": [
-          "https://www.w3.org/ns/did/v1"
-        ],
-        "id": "did:web:alice.example",
-        "alsoKnownAs": [
-          "tel:+15551234567"
-        ]
-      }
-    ],
+    "did_document": {
+      "id": "did:web:alice.example"
+    },
     "now": 1760000000
   },
   "expect": {

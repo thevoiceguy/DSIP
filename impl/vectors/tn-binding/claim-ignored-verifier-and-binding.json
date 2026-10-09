@@ -1,10 +1,11 @@
 {
-  "vector": "tn-binding/claim-alsoKnownAs-string",
+  "vector": "tn-binding/claim-ignored-verifier-and-binding",
   "format": 1,
   "kind": "tn-binding",
-  "description": "`alsoKnownAs` is a string, not an array.",
+  "description": "A claim with a string `verifier` is a gateway's claim even when it carries a `binding`: not this check's.",
   "spec_ref": [
-    "N§3"
+    "N§4",
+    "N§3.4"
   ],
   "context": {
     "trust_anchors": [
@@ -23,16 +24,28 @@
     "status": {}
   },
   "input": {
-    "binding": "eyJhbGciOiJFUzI1NiIsInR5cCI6ImRzaXAtdG4tYmluZGluZytqd3QiLCJ4NXUiOiJodHRwczovL2NyLmNhcnJpZXIuZXhhbXBsZS9zdGkucGVtIn0.eyJ0biI6IisxNTU1MTIzNDU2NyIsImRpZCI6ImRpZDp3ZWI6YWxpY2UuZXhhbXBsZSIsImlhdCI6MTc1OTk5NjQwMCwiZXhwIjoxNzYwMDgyODAwLCJqdGkiOiIwMUs2WjhSOFFBRVhBTVAxRUIxTkRORzAwMSJ9.xY0OfiVrSXsllNs4gvKMPNDYpkx1IXtkok7dXmDKWpavleWMNjTtTrrNHIi8DZaEL73fWYdpWQV_BwzfC4ugOw",
-    "did": "did:web:alice.example",
+    "check": "claim",
+    "claim": {
+      "type": "tel",
+      "number": "+15551234567",
+      "binding": "eyJhbGciOiJFUzI1NiIsInR5cCI6ImRzaXAtdG4tYmluZGluZytqd3QiLCJ4NXUiOiJodHRwczovL2NyLmNhcnJpZXIuZXhhbXBsZS9zdGkucGVtIn0.eyJ0biI6IisxNTU1MTIzNDU2NyIsImRpZCI6ImRpZDp3ZWI6YWxpY2UuZXhhbXBsZSIsImlhdCI6MTc1OTk5NjQwMCwiZXhwIjoxNzYwMDgyODAwLCJqdGkiOiIwMUs2WjhSOFFBRVhBTVAxRUIxTkRORzAwMSJ9.xY0OfiVrSXsllNs4gvKMPNDYpkx1IXtkok7dXmDKWpavleWMNjTtTrrNHIi8DZaEL73fWYdpWQV_BwzfC4ugOw",
+      "attestation": "A",
+      "verified": true,
+      "verifier": "did:web:gw.example"
+    },
+    "identity": "did:web:alice.example",
     "did_document": {
+      "@context": [
+        "https://www.w3.org/ns/did/v1"
+      ],
       "id": "did:web:alice.example",
-      "alsoKnownAs": "tel:+15551234567"
+      "alsoKnownAs": [
+        "tel:+15551234567"
+      ]
     },
     "now": 1760000000
   },
   "expect": {
-    "outcome": "rejected",
-    "reason": "not-claimed-by-did"
+    "outcome": "ignored"
   }
 }

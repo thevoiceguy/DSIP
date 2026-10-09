@@ -1,10 +1,11 @@
 {
-  "vector": "tn-binding/claim-formatted",
+  "vector": "tn-binding/claim-dropped-binding-not-string",
   "format": 1,
   "kind": "tn-binding",
-  "description": "`tel:+1-555-123-4567`: visual separators are not stripped.",
+  "description": "`binding` is not a string.",
   "spec_ref": [
-    "N§3"
+    "N§4",
+    "N§3.4"
   ],
   "context": {
     "trust_anchors": [
@@ -23,21 +24,29 @@
     "status": {}
   },
   "input": {
-    "binding": "eyJhbGciOiJFUzI1NiIsInR5cCI6ImRzaXAtdG4tYmluZGluZytqd3QiLCJ4NXUiOiJodHRwczovL2NyLmNhcnJpZXIuZXhhbXBsZS9zdGkucGVtIn0.eyJ0biI6IisxNTU1MTIzNDU2NyIsImRpZCI6ImRpZDp3ZWI6YWxpY2UuZXhhbXBsZSIsImlhdCI6MTc1OTk5NjQwMCwiZXhwIjoxNzYwMDgyODAwLCJqdGkiOiIwMUs2WjhSOFFBRVhBTVAxRUIxTkRORzAwMSJ9.xY0OfiVrSXsllNs4gvKMPNDYpkx1IXtkok7dXmDKWpavleWMNjTtTrrNHIi8DZaEL73fWYdpWQV_BwzfC4ugOw",
-    "did": "did:web:alice.example",
+    "check": "claim",
+    "claim": {
+      "type": "tel",
+      "number": "+15551234567",
+      "binding": [
+        "x"
+      ]
+    },
+    "identity": "did:web:alice.example",
     "did_document": {
       "@context": [
         "https://www.w3.org/ns/did/v1"
       ],
       "id": "did:web:alice.example",
       "alsoKnownAs": [
-        "tel:+1-555-123-4567"
+        "tel:+15551234567"
       ]
     },
     "now": 1760000000
   },
   "expect": {
-    "outcome": "rejected",
-    "reason": "not-claimed-by-did"
+    "outcome": "dropped",
+    "reason": "malformed",
+    "line": "+15551234567 (unverified)"
   }
 }

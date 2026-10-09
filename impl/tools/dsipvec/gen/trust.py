@@ -56,4 +56,16 @@ def vectors() -> list[dict]:
                   "Trust downgraded crossing the gateway (§6.3): the caller carried no verified attestation"))
     out.append(tv("downgrade-empty", "Downgrade with no named losses.", ["§6.3"],
                   {"check": "downgrade", "losses": []}, "Trust downgraded crossing the gateway (§6.3)"))
+    # N§4: a caller's own bound number is not a gateway claim (spec-gap 110)
+    own = {"type": "tel", "number": "+15551234567", "binding": "eyJ.eyJ.c2ln"}
+    out.append(tv("basis-tel-binding-keeps-identity-basis", "A `tel` claim with a `binding` (N§4) is the caller's own "
+                  "number: the basis stays the identity's own.", ["§18.1", "N§4"],
+                  {"check": "basis", "identity": "did:web:alice.example", "claims": [own]},
+                  "Domain verified (did:web:alice.example)"))
+    out.append(tv("basis-tel-binding-then-gateway-claim", "A binding claim first and a gateway `tel` claim second: the "
+                  "first claim with a `verifier` gives the basis.", ["§18.1", "N§4"],
+                  {"check": "basis", "identity": GW, "claims": [own, tel()]},
+                  "Gateway attested by gw.example · STIR attestation A (verified)"))
+    out.append(tv("tel-caller-binding-claim", "A caller's own bound number is not a PSTN caller.", ["N§4"],
+                  {"check": "tel-caller", "claim": own}, None))
     return out

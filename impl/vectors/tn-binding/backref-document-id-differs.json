@@ -1,8 +1,8 @@
 {
-  "vector": "tn-binding/claim-without-plus",
+  "vector": "tn-binding/backref-document-id-differs",
   "format": 1,
   "kind": "tn-binding",
-  "description": "`tel:15551234567`: the claim is `tel:` + `tn` exactly.",
+  "description": "The document's `id` is not the DID being checked.",
   "spec_ref": [
     "N§3"
   ],
@@ -29,9 +29,9 @@
       "@context": [
         "https://www.w3.org/ns/did/v1"
       ],
-      "id": "did:web:alice.example",
+      "id": "did:web:bob.example",
       "alsoKnownAs": [
-        "tel:15551234567"
+        "tel:+15551234567"
       ]
     },
     "now": 1760000000

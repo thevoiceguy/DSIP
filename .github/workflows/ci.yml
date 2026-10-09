@@ -134,6 +134,13 @@ jobs:
         # mid-call by update and declined ends with bye policy.recording-declined.
         run: timeout 300 bash demos/recording-consent-demo.sh | tail -14
         working-directory: impl
+      - name: number attestation (Number Attestation Profile draft, N§3–N§5)
+        # Self-verifying, four calls to Bob over a relay (did:web callers): Alice's carrier-bound number is shown as
+        # attested by that carrier; a number the certificate does not cover and a binding replayed by another identity
+        # are refused and shown "(unverified)"; a ported number is attested for its new identity with the N§5 warning
+        # that it no longer belongs to Bob's stored contact.
+        run: timeout 300 bash demos/number-attestation-demo.sh | tail -4
+        working-directory: impl
       - name: the recorder leg (Recording Profile draft, C§6)
         # Self-verifying: from a second device of Bob's identity, one sendonly recording session per voice to the
         # declared recorder (checked for dsip.record first), Opus forwarded unchanged end to end; the recorder keeps one

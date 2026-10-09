@@ -622,17 +622,17 @@ def vectors() -> list[dict]:
     add("order-did-before-claim", "Another DID, whose document is absent too: did-mismatch first.", rej("did-mismatch"),
         jws(p=claims(did="did:web:bob.example")), document=NULLDOC)
     NC = rej("not-claimed-by-did")
-    add("claim-no-document", "The DID did not resolve.", NC, document=NULLDOC)
-    add("claim-no-alsoKnownAs", "The document has no `alsoKnownAs`.", NC, document={"id": DID})
-    add("claim-alsoKnownAs-string", "`alsoKnownAs` is a string, not an array.", NC,
+    add("backref-no-document", "The DID did not resolve.", NC, document=NULLDOC)
+    add("backref-no-alsoKnownAs", "The document has no `alsoKnownAs`.", NC, document={"id": DID})
+    add("backref-alsoKnownAs-string", "`alsoKnownAs` is a string, not an array.", NC,
         document={"id": DID, "alsoKnownAs": f"tel:{TN}"})
-    add("claim-other-number", "The document claims another number.", NC, document=doc("tel:+15559999999"))
-    add("claim-without-plus", "`tel:15551234567`: the claim is `tel:` + `tn` exactly.", NC, document=doc(f"tel:{D}"))
-    add("claim-formatted", "`tel:+1-555-123-4567`: visual separators are not stripped.", NC,
+    add("backref-other-number", "The document claims another number.", NC, document=doc("tel:+15559999999"))
+    add("backref-without-plus", "`tel:15551234567`: the claim is `tel:` + `tn` exactly.", NC, document=doc(f"tel:{D}"))
+    add("backref-formatted", "`tel:+1-555-123-4567`: visual separators are not stripped.", NC,
         document=doc("tel:+1-555-123-4567"))
-    add("claim-document-id-differs", "The document's `id` is not the DID being checked.", NC,
+    add("backref-document-id-differs", "The document's `id` is not the DID being checked.", NC,
         document=doc(id_="did:web:bob.example"))
-    add("claim-document-not-object", "The document is an array.", NC, document=[doc()])
+    add("backref-document-not-object", "The document is an array.", NC, document=[doc()])
 
     # --- 8. status -------------------------------------------------------------------------------------------
     add("status-required-no-url", "The policy requires a status check; the binding has no status URL.",
@@ -643,6 +643,81 @@ def vectors() -> list[dict]:
         context=ctx(require_status=True, status={st: "revoked"}))
     add("status-unknown-answer", "The status URL answers neither `good` nor `revoked`: fail closed.",
         rej("status-unavailable"), jws(p=claims(status=st)), context=ctx(require_status=True, status={st: "unknown"}))
+    # --- check: claim (N§4) ----------------------------------------------------------------------------------
+    def addc(vid, desc, claim, expect, context=None, identity=DID, document=None, now=NOW):
+        i = {"check": "claim", "claim": claim, "identity": identity,
+             "did_document": doc() if document is None else document, "now": now}
+        if document is NULLDOC:
+            i["did_document"] = None
+        out.append(tv(f"claim-{vid}", desc, context or ctx(), i, expect, ["N§4", "N§3.4"]))
+
+    def tel(number=TN, binding=None, **kw):
+        return {"type": "tel", "number": number, "binding": jws() if binding is None else binding, **kw}
+    line = f"{TN} · number attested by Carrier Example for this identity"
+    addc("attested", "The caller's binding verifies against the envelope's signing identity: rendered with the "
+         "issuer's name (§18.1).", tel(), {"outcome": "attested", "line": line, "issued": IAT, "expires": EXP})
+    addc("attested-unnamed-issuer", "A leaf with neither O nor CN: the line names no issuer.", tel(),
+         {"outcome": "attested", "line": f"{TN} · number attested for this identity", "issued": IAT, "expires": EXP},
+         context=ctx(pem(c_only, INTER)))
+    addc("attested-extra-members", "Other claim members are carried and ignored.", tel(cnam="ALICE"),
+         {"outcome": "attested", "line": line, "issued": IAT, "expires": EXP})
+    addc("dropped-other-identity", "The envelope was signed by another identity than the binding names.",
+         tel(), {"outcome": "dropped", "reason": "did-mismatch", "line": f"{TN} (unverified)"},
+         identity="did:web:mallory.example", document=doc(id_="did:web:mallory.example"))
+    addc("dropped-not-claimed", "The identity's document does not claim the number back.", tel(),
+         {"outcome": "dropped", "reason": "not-claimed-by-did", "line": f"{TN} (unverified)"},
+         document=doc("tel:+15550000000"))
+    t2 = "+15559990000"
+    addc("dropped-not-covered", "A binding for a number the certificate does not cover.",
+         tel(t2, jws(p=claims(tn=t2))), {"outcome": "dropped", "reason": "not-authorized-for-tn",
+                                          "line": f"{t2} (unverified)"}, document=doc(f"tel:{t2}"))
+    addc("dropped-number-mismatch", "The claim shows another number than the binding binds.", tel("+15550000000"),
+         {"outcome": "dropped", "reason": "number-mismatch", "line": "+15550000000 (unverified)"})
+    addc("dropped-binding-not-string", "`binding` is not a string.", tel(binding=["x"]),
+         {"outcome": "dropped", "reason": "malformed", "line": f"{TN} (unverified)"})
+    addc("dropped-number-not-e164", "A failed claim whose number is not E.164 has no line.",
+         tel("555-1234"), {"outcome": "dropped", "reason": "number-mismatch", "line": None})
+    addc("dropped-expired", "An expired binding.", tel(), {"outcome": "dropped", "reason": "expired",
+                                                          "line": f"{TN} (unverified)"}, now=EXP)
+    addc("order-verify-before-number", "A binding whose payload names did:web:bob.example, signed into a claim from "
+         "alice that shows another number: the "
+         "verification failure comes first.", tel("+15550000000", jws(p=claims(did="did:web:bob.example"))),
+         {"outcome": "dropped", "reason": "did-mismatch", "line": "+15550000000 (unverified)"})
+    addc("ignored-gateway-claim", "A gateway's `tel` claim (G§5) has no binding: not this check's.",
+         {"type": "tel", "number": TN, "attestation": "A", "verified": True, "verifier": "did:web:gw.example"},
+         {"outcome": "ignored"})
+    addc("ignored-verifier-and-binding", "A claim with a string `verifier` is a gateway's claim even when it carries a "
+         "`binding`: not this check's.", tel(attestation="A", verified=True, verifier="did:web:gw.example"),
+         {"outcome": "ignored"})
+    addc("dropped-binding-null", "`binding: null` is present, and not a string.", tel(binding=None) | {"binding": None},
+         {"outcome": "dropped", "reason": "malformed", "line": f"{TN} (unverified)"})
+    addc("ignored-other-type", "A claim of another type.", {"type": "brand", "binding": jws()}, {"outcome": "ignored"})
+    addc("ignored-not-object", "A claim that is not an object.", "tel", {"outcome": "ignored"})
+
+    # --- check: contact (N§5) --------------------------------------------------------------------------------
+    def addk(vid, desc, contacts, attested, expect):
+        out.append(tv(f"contact-{vid}", desc, {}, {"check": "contact", "contacts": contacts, "attested": attested},
+                      expect, ["N§5"]))
+    alice_c = {"name": "Alice", "did": DID, "numbers": [TN]}
+    att = {"tn": TN, "did": "did:web:mallory.example", "attested_by": "Carrier B", "issued": 1759449600}
+    warn = (f'{TN} now belongs to a different identity (number attested by Carrier B since 2025-10-03). '
+            f'Your contact "Alice" is {DID}.')
+    addk("different-identity", "A stored contact's number is now attested for another DID: the client says so, "
+         "naming the contact's own DID.", [alice_c], att, warn)
+    addk("same-identity", "The number is attested for the stored contact's DID: nothing to say.", [alice_c],
+         {**att, "did": DID}, None)
+    addk("unknown-number", "No contact lists the number.", [{"name": "Bob", "did": "did:web:bob.example",
+                                                             "numbers": ["+15550000000"]}], att, None)
+    addk("one-of-two-matches", "Two contacts list the number and one of them is the attested DID: unchanged.",
+         [alice_c, {"name": "Alice (old)", "did": "did:web:old.example", "numbers": [TN]}], {**att, "did": DID}, None)
+    addk("first-listing-contact", "Two contacts list the number, neither is the attested DID: the first is named.",
+         [{"name": "Bob", "did": "did:web:bob.example", "numbers": ["+15550000000"]}, alice_c,
+          {"name": "Al", "did": "did:web:al.example", "numbers": [TN]}], att, warn)
+    addk("unnamed-issuer", "The issuer has no name.", [alice_c], {**att, "attested_by": None},
+         warn.replace("number attested by Carrier B since", "number attested since"))
+    addk("date-is-utc", "The date is the UTC calendar date of `issued` (23:59:59 UTC).", [alice_c],
+         {**att, "issued": 1759535999}, warn)
+    addk("empty-book", "An empty address book.", [], att, None)
     add("order-claim-before-status", "Not claimed back, and revoked: not-claimed-by-did first.", NC,
         jws(p=claims(status=st)), context=ctx(require_status=True, status={st: "revoked"}), document=doc("tel:+15559999999"))
     return out
