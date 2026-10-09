@@ -1909,7 +1909,8 @@ presents, and the SHAKEN PASSporT it signs under its own STIR certificate when i
 
   From here `from` is the number; a failing rule gives `passport` `null`, `assertable` false and its reason:
 
-  2. **`bad-destination`**: `to_tn` does not match `^\+[1-9][0-9]{1,14}$`.
+  2. **`bad-destination`**: `to_tn` does not match `^\+[1-9][0-9]{1,14}$`. The gateway then declines the DSIP
+     invite `identity.unknown` (spec-gap 111), as it does when the invite names no `destination` at all.
   3. **`no-certificate`**: `gateway` is not an object, its `x5u` is not a string, or its `key` is not a string
      holding a PKCS#8 PEM (`-----BEGIN PRIVATE KEY-----`) P-256 private key. A SEC1 `EC PRIVATE KEY` PEM is not
      one.

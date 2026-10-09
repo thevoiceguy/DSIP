@@ -2621,7 +2621,9 @@ RFC 6353's one model; E§2's `tsm` claim gains `transport: "tls" | "dtls"`.
   closed) or drop the record. **Chosen: drop.** A stream that cannot be framed loses synchronization for good; a
   datagram does not, since the next record starts clean.
 - **Host:** `dsip-msg --snmp-dtls-listen`, OpenSSL's DTLS server (rustls has no DTLS) with RFC 6347's cookie
-  exchange, a session per peer address. Handshake retransmission and idle-session expiry are left to a later round.
+  exchange, a session per peer address. A lost handshake flight is retransmitted by OpenSSL's DTLS timer, run from
+  the session thread (`DTLSv1_handle_timeout`, reached through `SSL_ctrl` since the crate does not wrap it); a
+  session silent for 300 s is shut down, and the peer's next datagram starts a new one.
 - **Demo:** `device-events-snmp-tls-demo.sh` sends sw1's trap over net-snmp's `dtlsudp:` transport, and sw3's
   nameless session is closed.
 
@@ -3197,6 +3199,11 @@ pinned with a hand-authored vector.
 
 **I. Stage 4 (N§4.1, N§6.1, G§5, G§7): the gateway.** Pinned by `tn-binding/assert-*`, `passport-*` and `route-*`;
 the wire demo is `demos/number-gateway-demo.sh` (two gateways over SIP between a DSIP caller and a DSIP callee).
+- **The daemon carries media** (closing the deferrals, 2026-10-09): a forge-webrtc peer connection per call on the
+  DSIP leg, SDP in `transports[].sdp`, candidates in signed `info` (§12.12), bridged to the trunk's G.711 RTP once
+  both sides are up (§14.1). The demo's calls carry tones and both ends count what they received through two
+  gateways. forge creates its event stream when the SDP exchange starts, so the pump that collects candidates and
+  inbound Opus is attached after the offer or answer, never before.
 - **Outbound (`assert`).** The first attested `tel` claim gives the `From`. The gateway signs a SHAKEN PASSporT only
   under its own certificate: chained at `now`, every TNAuthList on the path covering the number, the key the
   leaf's. **Choices considered** for a caller with an attested number the gateway cannot sign for:
@@ -3245,9 +3252,14 @@ round-one daemon took the number from configuration; the stage 4 demo needs the 
   the profile leaves draft. A client asked for `tel:+…` looks the number up first (N§6) and treats only a number no
   binding resolves as a PSTN number; `dsip call --to tel:+… --gateway <did>` does exactly that.
 - Pinned by `payload/invite-destination-tel` and `payload/invite-destination-not-tel`.
-- Open: whether `destination` should also admit `sip:` URIs for a SIP (not PSTN) target through the gateway, and
-  whether a gateway that cannot reach the destination answers `identity.unknown` (as the daemon does for a missing
-  or malformed `destination`) or a token of its own.
+- **Decided (2026-10-09, closing the deferrals):**
+  - `destination` is a `tel:` E.164 URI only in this draft, as the profile's scope is (item E of spec-gap 110). A
+    `sip:` target is a different feature, a SIP trunk selector, and would need its own trust story; it is not
+    admitted by the schema until asked for.
+  - A DSIP invite to a gateway with no `destination`, or one the gateway cannot dial (`bad-destination` in the
+    `assert` check), is declined `identity.unknown`: nothing was named that the gateway could reach. No token of
+    its own: §15's `identity.unknown` already means "no such party", and the Gateway Profile maps it to 404 on the
+    other side. Stated in the README under `assert` rule 2.
 
 ## 112. §15 / error schema vs G§7 — `error.detail` is a string, and `gateway.downgraded` carries `{losses}`
 
