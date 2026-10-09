@@ -147,6 +147,13 @@ jobs:
         # whose DID does not claim the number never wins; after a port the newer binding wins and the client says so.
         run: timeout 300 bash demos/number-discovery-demo.sh | tail -4
         working-directory: impl
+      - name: number gateway (Number Attestation Profile draft, N§4.1, N§6.1)
+        # Self-verifying, two gateways over SIP between a DSIP caller and a DSIP callee: Alice's bound number crosses
+        # to the PSTN with a SHAKEN PASSporT (attestation A) signed under the gateway's RFC 9060 delegate
+        # certificate, is verified by the far gateway, which reaches Bob through the binding he published; a caller
+        # without a binding crosses downgraded; a number nobody published is refused identity.unknown.
+        run: timeout 300 bash demos/number-gateway-demo.sh | tail -6
+        working-directory: impl
       - name: the recorder leg (Recording Profile draft, C§6)
         # Self-verifying: from a second device of Bob's identity, one sendonly recording session per voice to the
         # declared recorder (checked for dsip.record first), Opus forwarded unchanged end to end; the recorder keeps one

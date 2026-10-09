@@ -11,6 +11,7 @@
  */
 import type { Json, JsonObject } from "../did.js";
 import { readPayload, verifyAll, verifyFirstSteps, verifyTnBinding, type TnContext } from "./binding.js";
+import { assertNumber, routeNumber, verifyPassport } from "./gateway.js";
 
 /** Spec: N§1, N§3.1 — E.164: `+`, then 2 to 15 digits, the first not `0`. */
 const E164 = /^\+[1-9][0-9]{1,14}$/;
@@ -216,9 +217,10 @@ export function selectBinding(ctx: TnContext, input: JsonObject): SelectOutcome 
 }
 
 /**
- * The `tn-binding` vector kind: verification when `input.check` is absent, else the claim or the contact check.
+ * The `tn-binding` vector kind: verification when `input.check` is absent, else the claim, contact, store, select
+ * or one of the gateway checks (`gateway.ts`).
  *
- * Spec: N§3.4, N§4, N§5, N§6, N§7; README "Kind: `tn-binding`", "`check`".
+ * Spec: N§3.4, N§4, N§5, N§6, N§7, G§5; README "Kind: `tn-binding`", "`check`", "Gateway checks".
  */
 export function runTnBinding(ctx: TnContext, input: JsonObject): Json {
   const check = input["check"];
@@ -226,5 +228,8 @@ export function runTnBinding(ctx: TnContext, input: JsonObject): Json {
   if (check === "contact") return contactWarning(input);
   if (check === "store") return storeBinding(ctx, input) as unknown as Json;
   if (check === "select") return selectBinding(ctx, input) as unknown as Json;
+  if (check === "passport") return verifyPassport(ctx, input) as unknown as Json;
+  if (check === "route") return routeNumber(ctx, input) as unknown as Json;
+  if (check === "assert") return assertNumber(ctx, input) as unknown as Json;
   return verifyTnBinding(ctx, input) as unknown as Json;
 }

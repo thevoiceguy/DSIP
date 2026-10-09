@@ -60,6 +60,11 @@
     "recording_session": {
       "$ref": "#/$defs/recordingSession"
     },
+    "destination": {
+      "type": "string",
+      "pattern": "^tel:\\+[1-9][0-9]{1,14}$",
+      "description": "v0.11 (Number Attestation Profile draft, N\u00a74.1): the PSTN number a caller asks a gateway to reach, a tel URI (E.164). Meaningful only when `to` is a gateway; any other callee ignores it (spec-gap 111)."
+    },
     "sealed": {
       "type": "object",
       "description": "Extension sealed-body/1.0 (spec 10.4): the type's sealable fields, sealed with HPKE to the addressee identity's X25519 key agreement key. The plaintext is a JSON object of sealable fields only, padded with spaces to a multiple of 256 bytes. A payload with sealed lists sealed-body/1.0 in dsip.extensions and dsip.critical. A sealed field never also appears in clear (receiver check after opening).",

@@ -210,7 +210,9 @@ Choices:
 - (b) `B`, the gateway knowing the customer but not owning the number;
 - (c) only under an RFC 9060 delegate certificate for the number.
 
-Proposed: (c) normative and (a) raised with the SHAKEN governance bodies. This is not DSIP's to decide.
+Proposed: (c) normative and (a) raised with the SHAKEN governance bodies. **Decided (stage 4, 2026-10-09): (c)**,
+and (a) is not raised: a binding becomes the basis for an RFC 9447 authority token, so a gateway obtains a
+short-lived delegate certificate by ACME (RFC 9448) instead. Spec-gap 110, item A.
 
 **B. N§3 / N§7 — binding lifetime and conflicts.** Choices for the maximum lifetime: 24 h, 7 d or 30 d. Shorter
 bounds the port-out window; longer survives an issuer outage. Proposed: 7 d. For two valid bindings, the two-way
@@ -222,7 +224,8 @@ solved, like Sybil resistance (§3.2).
 
 **D. §19.1 — the tier of a verified number.** Choices: Tier 1 (a number proves little), Tier 3 (like a domain), or
 deployment policy. Proposed: deployment policy, with Tier 3 as the example, because numbers are cheap to rent in
-bulk and that is exactly how robocallers work.
+bulk and that is exactly how robocallers work. **Decided (2026-10-09): Tier 3 by default**, the trust list may raise
+it, never Tier 4 on the STI-CA list alone. Spec-gap 110, item D.
 
 ## 12. Open questions for the user
 

@@ -34,7 +34,9 @@ vectors/
   recording/   Recording Profile draft (C§3–C§6): the counterparty's consent, recorded conversations, the recorder leg
   alias-transparency/ Alias Transparency Profile draft (T§2–T§5): KEYTRANS building blocks, alias normalization
   pkarr/       Reachability hints on Pkarr / BEP 44 for did:key subjects (§8.5; DHT Hints Profile §9; spec-gap 105)
-  tn-binding/  Number Attestation Profile draft (N§3): a STIR-signed number → DID binding and its checks (spec-gap 110)
+  tn-binding/  Number Attestation Profile draft: a STIR-signed number → DID binding and its checks (N§3), the claim and
+               identity-change warning (N§4–N§5), a node's store and the reader's choice (N§6–N§7), and the gateway's
+               PASSporT verification, routing and assertion (N§4.1, N§6.1, G§5) (spec-gap 110)
 ```
 
 One vector per file. The vector id is its path relative to `vectors/` without
@@ -519,7 +521,8 @@ Details the table leaves out, all part of the contract:
   `policy.terminated`; any other registered token keeps its own row's cause (`session.timeout` → 102), and an
   unregistered token is 16 — category fallback is a pre-answer rule.
   `retry_after: true` appears only for `policy.rate-limited`.
-- `downgrade-error` (input `facts`) is the `detail` of the informational `error gateway.downgraded`: `{losses: […]}`, or
+- `downgrade-error` (input `facts`) is the `detail` of the informational `error gateway.downgraded` (the core error
+  schema admits an object detail for it, spec-gap 112; `payload/error-detail-object`): `{losses: […]}`, or
   `null` when nothing was lost. Losses are listed in G§7 table order; `no-attestation` is inbound-only,
   `identity-not-assertable` outbound-only.
 - `trace` keeps expectations in `expect.steps[i]` = `{emit, state}`, parallel to `input.steps[i].event`. States — DSIP leg:
@@ -1792,11 +1795,119 @@ are none.
     A non-empty `others` means two identities hold verified claims to the number: a port in progress, or a hijack.
     The client uses the winner and says so (N§7).
 
+**Gateway checks** (stage 4 of the profile; spec-gap 110 item I). A DSIP↔PSTN gateway is a relying party on both
+sides: it verifies a PSTN caller's SHAKEN PASSporT (G§5), it finds the DSIP identity behind a dialled number (N§6.1),
+and it asserts a DSIP caller's bound number toward the PSTN (N§4.1). Three checks pin those rules.
+
+**`check: "passport"`** is a gateway's verification of the `Identity` header on an inbound SIP INVITE (G§5, N§4.1;
+RFC 8224 §6.2, RFC 8225, RFC 8588). Its result is the `identity` that the `gateway` kind's `claims` check renders.
+- **Input:** `{check, identity, from_tn, to_tn, now}`, with the same context as verification. `require_status` and
+  `status` are never consulted: a PASSporT has no status URL.
+  - `identity` is the value of the INVITE's `Identity` header, as text, or `null` when the INVITE carried none.
+  - `from_tn` is the user part of the `From` URI, and `to_tn` the user part of the Request-URI, as received.
+  - `now` is integer Unix seconds.
+- **Numbers are compared canonically** (RFC 8224 §8.3): a leading `+` is removed, then every `-`, `.`, `(`, `)` and
+  SP; what remains must be 1 to 15 characters from `0`–`9`, otherwise the number matches nothing.
+- **Expect:** `{"attest", "verified": true}` when verified, otherwise `{"attest", "verified": false, "reason"}`.
+  `attest` is `A`, `B` or `C`, or `none` when no PASSporT was accepted. The first rule that applies decides:
+  1. **`no-identity-header`** (`none`): `identity` is not a string.
+  2. **`malformed`** (`none`): the header value does not read as a token and parameters. The value is split on `;`.
+     The first part, with SP and HT removed from both ends, is the token. Every other part is `name=value`, with SP
+     and HT removed from both ends of the name and of the value, the value being everything after the first `=`; a
+     part without `=` (a trailing `;` makes one), an empty name, an empty value or a name given twice is `malformed`.
+     Names are compared case-insensitively, values exactly. An `info` parameter is required, and its value is `<`,
+     the URI, `>`; the URI may be empty, which rule 8 then refuses.
+  3. **`unsupported`** (`none`): an `alg` parameter other than `ES256`, or a `ppt` parameter other than `shaken`
+     (RFC 8224 §6.2.3: a verifier ignores an `Identity` header it cannot process). Other parameters are ignored.
+  4. **`malformed`** (`none`): the token does not read.
+     - It is three base64url segments, the first two decoding to I-JSON objects: the rules of verification step 1.
+     - Header: `alg` is `ES256`, `typ` is `passport`, `ppt` is `shaken`, and `x5u` is a string that starts
+       `https://`. Other members are ignored.
+     - Payload: `attest` is `A`, `B` or `C`; `orig` is an object whose `tn` is a string with a canonical form;
+       `dest` is an object whose `tn` is a non-empty array of strings, each with a canonical form; `iat` is an
+       integer ≥ 0. Other members (`origid`, `rcd`, …) are ignored.
+  5. **`orig-mismatch`** (`none`): `orig.tn` and `from_tn` differ canonically. The PASSporT attests some other call
+     and is discarded whole (G§5): no level is kept.
+
+  From here `attest` is the payload's, and when a rule fails, `verified` is false with its reason:
+
+  6. **`dest-mismatch`**: no element of `dest.tn` equals `to_tn` canonically.
+  7. **`stale`**: |`now` − `iat`| > 60 (RFC 8224 §6.2.1's freshness).
+  8. **`x5u-mismatch`**: the header's `x5u` is not the `info` URI, compared exactly.
+  9. **`untrusted-certificate`**: verification step 2 on `certificates[x5u]`, at `now`.
+  10. **`signature`**: verification step 3, over the token's signing input.
+  11. **`not-authorized-for-tn`**, for `attest` `A` only: verification step 4 with the canonical `orig.tn` as *D*. `B`
+      and `C` attest no authority over the number (RFC 8588 §3), so the step is skipped for them.
+
+**`check: "route"`** is a gateway resolving an inbound PSTN call's dialled number to the DSIP identity it invites
+(G§3.2's "resolved DSIP target", N§6.1).
+- **Input:** `{check, to_tn, configured, bindings, documents, now}`, with the same context as verification.
+  - `to_tn` is the dialled number as the gateway canonicalized it: E.164 (`+` and digits) when it is a number, and
+    otherwise the Request-URI user as received.
+  - `configured` is the operator's own table, `{number: did}`.
+  - `bindings` is what the N§6 route 1 lookup returned (`null` when no node answered), and `documents` is as in
+    `select`.
+- **Expect**, the first that applies:
+  1. `{"outcome": "configured", "did"}`: `configured` is an object whose member named `to_tn` is a string. The
+     operator's table is the operator's statement about its own trunk, and a binding never overrides it.
+  2. `{"outcome": "binding", "did", "attested_by", "issued", "others"}`: `to_tn` matches `^\+[1-9][0-9]{1,14}$` and
+     the `select` check, with `tn` = `to_tn`, finds a binding. The members are `select`'s.
+  3. `{"outcome": "none"}`: the gateway refuses the INVITE `identity.unknown` (404, Q.850 cause 1; G§4.2).
+
+**`check: "assert"`** is a gateway carrying a DSIP caller's bound number to the PSTN (N§4.1): the SIP `From` it
+presents, and the SHAKEN PASSporT it signs under its own STIR certificate when it may.
+- **Context:** verification's, plus `gateway`: `{x5u, key}`. `x5u` names the gateway's own certificate chain
+  (`certificates[x5u]` serves it), and `key` is the private key of that chain's leaf: a P-256 key as a PKCS#8 PEM
+  (`-----BEGIN PRIVATE KEY-----`). A context without `gateway` is a gateway that holds no STIR certificate.
+- **Input:** `{check, claims, identity, did_document, to_tn, now, origid}`.
+  - `claims` is the invite's `identity.claims`; `identity` is the envelope's verified signing identity, and
+    `did_document` its document, as in `claim`.
+  - `to_tn` is the number the DSIP caller dialled, as the gateway canonicalized it.
+  - `origid` is the call's SHAKEN origination identifier, a string (RFC 8588 §4: a UUID the gateway makes per call).
+    The inputs are what the gateway holds: `from_tn`, `to_tn` and `origid` are strings in every vector, and the
+    checks are not defined for anything else.
+- **Expect:** `{"from", "passport", "assertable"}`, with `reason` when `assertable` is false.
+  - `from` is the number the gateway presents as the SIP `From` user, or `null`: the gateway's own identity.
+  - `passport` is `{"header", "claims"}`, the PASSporT's decoded protected header and payload, or `null`. The
+    signature is not pinned, because ECDSA signatures differ between implementations; the gateway sends the compact
+    JWS as the `Identity` header value `<token>;info=<x5u>;alg=ES256;ppt=shaken`.
+  - `assertable` false is G§7's `identity-not-assertable`.
+
+  The first rule that applies decides:
+  1. **The binding.** Each element of `claims` (a non-array is empty), in order, goes through the `claim` check with
+     `identity`, `did_document` and `now`. The first `attested` claim gives the number: its `number`. When none is
+     attested, the result is `{"from": null, "passport": null, "assertable": false, "reason"}`, with `reason` the
+     first `dropped` claim's reason, or `no-binding` when no claim was dropped either.
+
+  From here `from` is the number; a failing rule gives `passport` `null`, `assertable` false and its reason:
+
+  2. **`bad-destination`**: `to_tn` does not match `^\+[1-9][0-9]{1,14}$`.
+  3. **`no-certificate`**: `gateway` is not an object, its `x5u` is not a string, or its `key` is not a string
+     holding a PKCS#8 PEM (`-----BEGIN PRIVATE KEY-----`) P-256 private key. A SEC1 `EC PRIVATE KEY` PEM is not
+     one.
+  4. **`untrusted-certificate`**: verification step 2 on `certificates[gateway.x5u]`, at `now`.
+  5. **`not-authorized-for-tn`**: verification step 4 for the number, on that path. An RFC 9060 delegate certificate
+     covers exactly the numbers its carrier delegated (spec-gap 110 item A: path (c)).
+  6. **`key-mismatch`**: the key's public point is not the leaf's.
+  7. **Signed.** `assertable` is true and `passport` is:
+     - `header`: `{"alg": "ES256", "ppt": "shaken", "typ": "passport", "x5u": <gateway.x5u>}`;
+     - `claims`: `{"attest": "A", "dest": {"tn": [<to_tn> without its +]}, "iat": <now>, "orig": {"tn": <number>
+       without its +}, "origid": <origid>}`.
+
+     The token is the two objects serialized as RFC 8225 §9 says (members in lexicographic order, no whitespace),
+     base64url-encoded and joined by `.`, then ES256-signed by the key over that signing input (RFC 7515 §5.1). The
+     level is `A`: the caller proved to the gateway that the number is its own, and the certificate authorizes the
+     gateway for it.
+
 **Fixtures.** The vector generator makes a test STIR PKI:
 - an STI-CA root;
 - an intermediate CA;
 - service-provider certificates with each kind of TNAuthList entry;
-- an RFC 9060 delegate certificate;
+- an RFC 9060 delegate certificate: Carrier Example's delegation CA (a range of 100 numbers) issues Enterprise
+  Example's leaf for the number. The gateway checks use it as the gateway's own chain, served at
+  `https://gw.example/sti.pem`, with its key as the `gateway.key` PEM;
+- SHAKEN PASSporTs signed by the service-provider and delegate leaves, with `origid`
+  `9f1b2c3d-4e5f-4a6b-8c7d-0e1f2a3b4c5d`;
 - certificates that break each step-2 rule.
 
 Keys are P-256 scalars from `sha256("dsip-vector-tn:" + name)`. Signatures use RFC 6979 deterministic nonces, so the

@@ -14,7 +14,7 @@ import json
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.asymmetric.utils import decode_dss_signature, encode_dss_signature
-from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
+from cryptography.hazmat.primitives.serialization import Encoding, NoEncryption, PrivateFormat, PublicFormat
 
 from .common import vector, NOW
 
@@ -207,6 +207,14 @@ DID = "did:web:alice.example"
 IAT = NOW - 3600
 EXP = IAT + 86400
 JTI = "01K6Z8R8QAEXAMP1EB1NDNG001"
+# delegate certificates (RFC 9060): an SP CA with a range issues an enterprise's leaf for one number
+SPCA = cert(name((O, "Carrier Example"), (CN, "Carrier Example Delegation CA")), key("sp-ca"), INTER,
+            [bc(True, 0), CA_KU, tnauth(tn_range("15551234500", 100))], 11)
+DEL = cert(name((O, "Enterprise Example"), (CN, "Delegate")), key("delegate"), SPCA, [LEAF_KU, tnauth(tn_one(D))], 12)
+# the gateway checks (stage 4): the gateway's own chain is the delegate's, served at GW_X5U
+GW_X5U = "https://gw.example/sti.pem"
+TO = "+15552000001"      # the number a call is placed to (covered by LEAF's range, not by DEL)
+ORIGID = "9f1b2c3d-4e5f-4a6b-8c7d-0e1f2a3b4c5d"
 
 
 def b64u(b: bytes) -> str:
@@ -272,6 +280,41 @@ def ok(tn=TN, did=DID, expires=EXP, by="Carrier Example") -> dict:
 
 def rej(r: str) -> dict:
     return {"outcome": "rejected", "reason": r}
+
+
+# --- the gateway checks: PASSporTs and the gateway's own certificate ---------------------------------------------
+
+def key_pem(k) -> str:
+    return k.private_bytes(Encoding.PEM, PrivateFormat.PKCS8, NoEncryption()).decode()
+
+
+def gw_ctx(x5u: str = GW_X5U, chain: str | None = None, k=None, gateway: dict | None = None, **kw) -> dict:
+    """The verification context plus the gateway's chain (served at `x5u`) and its leaf key (`gateway`)."""
+    c = ctx(**kw)
+    c["certificates"][x5u] = pem(DEL, SPCA, INTER) if chain is None else chain
+    c["gateway"] = {"x5u": x5u, "key": key_pem(k or DEL.key)} if gateway is None else gateway
+    return c
+
+
+def pp_header(**over) -> dict:
+    h = {"alg": "ES256", "ppt": "shaken", "typ": "passport", "x5u": X5U}
+    h.update(over)
+    return {k: v for k, v in h.items() if v is not DROP}
+
+
+def pp_claims(**over) -> dict:
+    p = {"attest": "A", "dest": {"tn": [TO[1:]]}, "iat": NOW - 5, "orig": {"tn": D}, "origid": ORIGID}
+    p.update(over)
+    return {k: v for k, v in p.items() if v is not DROP}
+
+
+def passport(h: dict | None = None, p: dict | None = None, k=None, sig=None, info: str | None = None,
+             params: str = ";alg=ES256;ppt=shaken") -> str:
+    """An `Identity` header value: a SHAKEN PASSporT signed by `k` (the SP leaf by default) and its parameters."""
+    h = pp_header() if h is None else h
+    token = jws(h, pp_claims() if p is None else p, k or LEAF.key, sig)
+    uri = (h.get("x5u") if isinstance(h, dict) and isinstance(h.get("x5u"), str) else X5U) if info is None else info
+    return f"{token};info=<{uri}>{params}"
 
 
 def tv(vid, desc, context, input_, expect, refs=None):
@@ -355,10 +398,7 @@ def vectors() -> list[dict]:
     add("attested-by-skips-other-string-types", "An organizationName that is an IA5String is passed over; the "
         "commonName is used.", ok(by="CN Carrier"), context=ctx(pem(ia5_leaf, INTER)))
 
-    # delegate certificates (RFC 9060): an SP CA with a range issues an enterprise's leaf for one number
-    SPCA = cert(name((O, "Carrier Example"), (CN, "Carrier Example Delegation CA")), key("sp-ca"), INTER,
-                [bc(True, 0), CA_KU, tnauth(tn_range("15551234500", 100))], 11)
-    DEL = cert(name((O, "Enterprise Example"), (CN, "Delegate")), key("delegate"), SPCA, [LEAF_KU, tnauth(tn_one(D))], 12)
+    # delegate certificates (RFC 9060): an SP CA with a range issues an enterprise's leaf for one number (SPCA, DEL)
     add("verified-delegate", "An RFC 9060 delegate certificate: the enterprise's leaf names the number, and its "
         "issuer's TNAuthList (a range) covers it too.", ok(by="Enterprise Example"), jws(k=DEL.key),
         context=ctx(pem(DEL, SPCA, INTER)))
@@ -820,4 +860,215 @@ def vectors() -> list[dict]:
     addq("expired-skipped", "At `exp` the only binding has expired.", [b0], docs, {"outcome": "none"}, now=EXP)
     add("order-claim-before-status", "Not claimed back, and revoked: not-claimed-by-did first.", NC,
         jws(p=claims(status=st)), context=ctx(require_status=True, status={st: "revoked"}), document=doc("tel:+15559999999"))
+
+    # --- check: passport (a gateway verifying an inbound Identity header, G§5) --------------------------------
+    def addp(vid, desc, identity, expect, from_tn=TN, to_tn=TO, now=NOW, context=None, refs=("G§5", "N§4.1")):
+        out.append(tv(f"passport-{vid}", desc, context or gw_ctx(),
+                      {"check": "passport", "identity": identity, "from_tn": from_tn, "to_tn": to_tn, "now": now},
+                      expect, list(refs)))
+
+    def pv(level="A"):
+        return {"attest": level, "verified": True}
+
+    def pr(reason, level="none"):
+        return {"attest": level, "verified": False, "reason": reason}
+    addp("verified-a", "A SHAKEN PASSporT signed under the SP certificate: orig is the From, dest holds the "
+         "Request-URI number, fresh, chained, and the TNAuthList covers orig.", passport(), pv())
+    addp("verified-delegate", "A PASSporT a gateway signed under its RFC 9060 delegate certificate (the `assert` "
+         "check's output) verifies at the far end.", passport(h=pp_header(x5u=GW_X5U), k=DEL.key), pv())
+    t = "+15559990000"
+    addp("verified-b-uncovered-number", "Attestation B for a number the certificate does not cover: B attests no "
+         "authority over the number, so coverage is not checked.",
+         passport(p=pp_claims(attest="B", orig={"tn": t[1:]})), pv("B"), from_tn=t)
+    addp("verified-c", "Attestation C verifies the same way.", passport(p=pp_claims(attest="C")), pv("C"))
+    addp("a-not-authorized", "Attestation A for a number the path does not cover: the level is kept, unverified.",
+         passport(p=pp_claims(orig={"tn": t[1:]})), pr("not-authorized-for-tn", "A"), from_tn=t)
+    addp("absent", "No Identity header.", None, pr("no-identity-header"))
+    addp("absent-not-string", "An Identity that is not text.", 5, pr("no-identity-header"))
+    addp("malformed-no-info", "No info parameter.", passport().split(";")[0] + ";alg=ES256", pr("malformed"))
+    addp("malformed-info-not-bracketed", "An info value without the angle brackets.",
+         passport().split(";")[0] + f";info={X5U};alg=ES256;ppt=shaken", pr("malformed"))
+    addp("malformed-param-without-equals", "A parameter that is not name=value.", passport(params=";alg=ES256;shaken"),
+         pr("malformed"))
+    addp("malformed-param-twice", "A parameter given twice.", passport(params=";alg=ES256;alg=ES256"), pr("malformed"))
+    addp("malformed-empty-value", "A parameter with an empty value.", passport(params=";alg=;ppt=shaken"), pr("malformed"))
+    addp("malformed-trailing-semicolon", "A trailing `;` is an empty part without `=`.", passport(params=";alg=ES256;"),
+         pr("malformed"))
+    addp("value-after-first-equals", "A value is everything after the first `=`: an info URI with a query.",
+         passport(h=pp_header(x5u=X5U + "?v=1")), pr("untrusted-certificate", "A"))
+    addp("info-empty-uri", "An empty info URI reads, and is not the x5u.", passport(info=""), pr("x5u-mismatch", "A"))
+    addp("unsupported-alg-lowercase", "Parameter values are compared exactly: `es256` is not `ES256`.",
+         passport(params=";alg=es256"), pr("unsupported"))
+    addp("params-case-and-whitespace", "Parameter names are case-insensitive and whitespace around parts is removed.",
+         passport(params=" ; ALG = ES256 ;\tPpt=shaken "), pv())
+    addp("unsupported-ppt", "A ppt parameter the gateway does not implement: the header is ignored (RFC 8224 §6.2.3).",
+         passport(params=";alg=ES256;ppt=div"), pr("unsupported"))
+    addp("unsupported-alg", "An alg parameter other than ES256.", passport(params=";alg=RS256;ppt=shaken"), pr("unsupported"))
+    addp("unsupported-before-token", "An unsupported ppt and a token that does not read: unsupported first.",
+         "x.y;info=<" + X5U + ">;ppt=div", pr("unsupported"))
+    addp("params-absent-default", "Absent alg and ppt parameters default to ES256 and shaken.", passport(params=""), pv())
+    addp("unknown-param-ignored", "An unknown parameter is ignored.", passport(params=";alg=ES256;ppt=shaken;x=1"), pv())
+    addp("malformed-two-segments", "A token of two segments.", "a.b;info=<" + X5U + ">", pr("malformed"))
+    addp("malformed-header-typ", "A protected header whose typ is not passport.",
+         passport(h=pp_header(typ="dsip-tn-binding+jwt")), pr("malformed"))
+    addp("malformed-header-ppt", "A protected header whose ppt is not shaken.", passport(h=pp_header(ppt="div")), pr("malformed"))
+    addp("malformed-header-x5u-http", "An x5u that is not https.", passport(h=pp_header(x5u="http://cr.carrier.example/sti.pem")),
+         pr("malformed"))
+    addp("malformed-attest", "An attest outside A, B, C.", passport(p=pp_claims(attest="D")), pr("malformed"))
+    addp("malformed-dest-not-array", "A dest.tn that is a string.", passport(p=pp_claims(dest={"tn": TO[1:]})), pr("malformed"))
+    addp("malformed-dest-empty", "An empty dest.tn.", passport(p=pp_claims(dest={"tn": []})), pr("malformed"))
+    addp("malformed-orig-not-a-number", "An orig.tn with no canonical form.", passport(p=pp_claims(orig={"tn": "anonymous"})),
+         pr("malformed"))
+    addp("malformed-iat-negative", "A negative iat.", passport(p=pp_claims(iat=-1)), pr("malformed"))
+    addp("malformed-iat-float", "A fractional iat is not I-JSON.",
+         jws(pp_header(), b'{"attest":"A","dest":{"tn":["' + TO[1:].encode() + b'"]},"iat":1.5,"orig":{"tn":"' + D.encode() + b'"}}',
+             LEAF.key) + f";info=<{X5U}>", pr("malformed"))
+    addp("extra-members-ignored", "Unknown header and payload members are ignored.",
+         passport(h=pp_header(kid="k1"), p=pp_claims(rcd={"nam": "Alice"})), pv())
+    addp("origid-absent", "A PASSporT without origid still verifies here.", passport(p=pp_claims(origid=DROP)), pv())
+    addp("orig-mismatch", "The From is another number: the PASSporT attests some other call and is discarded (G§5).",
+         passport(), pr("orig-mismatch"), from_tn="+15552000002")
+    addp("orig-mismatch-before-signature", "A From that does not match and a bad signature: orig-mismatch first, no level.",
+         passport(k=key("mallory")), pr("orig-mismatch"), from_tn="+15552000002")
+    addp("from-anonymous", "A From with no canonical form matches nothing.", passport(), pr("orig-mismatch"), from_tn="anonymous")
+    addp("canonical-from", "A From written with +, spaces, parentheses and dashes is the same number.", passport(), pv(),
+         from_tn="+1 (555) 123-4567")
+    addp("canonical-orig-plus", "An orig.tn written with a leading + is the same number.", passport(p=pp_claims(orig={"tn": TN})), pv())
+    addp("canonical-dest-dots", "A dest.tn written with dots is the same number.",
+         passport(p=pp_claims(dest={"tn": ["1.555.200.0001"]})), pv())
+    addp("dest-mismatch", "The Request-URI number is not in dest.tn: the level is kept, unverified.", passport(),
+         pr("dest-mismatch", "A"), to_tn="+15552000002")
+    addp("dest-second-element", "The Request-URI number is the second dest.tn element.",
+         passport(p=pp_claims(dest={"tn": ["15552000002", TO[1:]]})), pv())
+    addp("dest-mismatch-before-stale", "Wrong dest and stale: dest-mismatch first.", passport(p=pp_claims(iat=NOW - 600)),
+         pr("dest-mismatch", "A"), to_tn="+15552000002")
+    addp("stale-past", "An iat 61 s ago.", passport(p=pp_claims(iat=NOW - 61)), pr("stale", "A"))
+    addp("stale-future", "An iat 61 s ahead.", passport(p=pp_claims(iat=NOW + 61)), pr("stale", "A"))
+    addp("fresh-at-tolerance-past", "An iat exactly 60 s ago is fresh.", passport(p=pp_claims(iat=NOW - 60)), pv())
+    addp("fresh-at-tolerance-future", "An iat exactly 60 s ahead is fresh.", passport(p=pp_claims(iat=NOW + 60)), pv())
+    addp("stale-before-x5u", "Stale and an info that is not the x5u: stale first.",
+         passport(p=pp_claims(iat=NOW - 61), info="https://other.example/x.pem"), pr("stale", "A"))
+    addp("x5u-mismatch", "The info URI is not the header's x5u.", passport(info="https://other.example/x.pem"),
+         pr("x5u-mismatch", "A"))
+    addp("x5u-mismatch-before-certificate", "An info that is not the x5u, and an x5u the gateway cannot fetch: "
+         "x5u-mismatch first.", passport(h=pp_header(x5u="https://nowhere.example/x.pem"), info=X5U), pr("x5u-mismatch", "A"))
+    addp("untrusted-not-served", "An x5u the gateway cannot fetch.", passport(h=pp_header(x5u="https://nowhere.example/x.pem")),
+         pr("untrusted-certificate", "A"))
+    addp("untrusted-anchor", "An empty trust list: the chain reaches no anchor.", passport(), pr("untrusted-certificate", "A"),
+         context=gw_ctx(anchors=[]))
+    addp("untrusted-leaf-expired", "The leaf has expired at now.", passport(p=pp_claims(iat=NOW + 86400 * 400)),
+         pr("untrusted-certificate", "A"), now=NOW + 86400 * 400)
+    addp("signature", "Signed by another key.", passport(k=key("mallory")), pr("signature", "A"))
+    addp("signature-before-coverage", "A bad signature on an uncovered number: signature first.",
+         passport(p=pp_claims(orig={"tn": t[1:]}), k=key("mallory")), pr("signature", "A"), from_tn=t)
+    addp("status-never-consulted", "require_status is true and no status answers: a PASSporT has no status step.",
+         passport(), pv(), context=gw_ctx(require_status=True))
+    addp("spc-covers", "An orig covered through the SPC entry (the relying party's number data).",
+         passport(p=pp_claims(orig={"tn": SPC_NUMBER})), pv(), from_tn="+" + SPC_NUMBER)
+
+    # --- check: route (an inbound PSTN call's number → the DSIP identity to invite, N§6.1) --------------------
+    def addr(vid, desc, to_tn, configured, bindings, documents, expect, now=NOW, context=None):
+        out.append(tv(f"route-{vid}", desc, context or ctx(),
+                      {"check": "route", "to_tn": to_tn, "configured": configured, "bindings": bindings,
+                       "documents": documents, "now": now}, expect, ["N§6.1", "G§3.2"]))
+    BOB = "did:web:bob.example"
+    addr("configured", "The operator's table names the number.", TN, {TN: BOB}, [], {}, {"outcome": "configured", "did": BOB})
+    addr("configured-wins", "The operator's table names the number, and a verified binding says otherwise: the "
+         "table wins.", TN, {TN: BOB}, [b0], docs, {"outcome": "configured", "did": BOB})
+    addr("configured-not-a-number", "A Request-URI user that is not a number, in the table.", "bob", {"bob": BOB}, [],
+         {}, {"outcome": "configured", "did": BOB})
+    addr("binding", "Nothing configured: the lookup's verified binding.", TN, {}, [b0], docs,
+         {**found(), "outcome": "binding"})
+    addr("binding-others", "Two verified bindings: the newer wins, and the other identity is reported (N§7).",
+         TN, {}, [b0, b_mal], docs, {**found(MAL, IAT + 600, [DID]), "outcome": "binding"})
+    addr("binding-configured-not-string", "A table entry that is not a string is no entry.", TN, {TN: 5}, [b0], docs,
+         {**found(), "outcome": "binding"})
+    addr("binding-configured-null", "A table that is null.", TN, None, [b0], docs, {**found(), "outcome": "binding"})
+    addr("binding-unclaimed", "The only binding's DID does not claim the number: no route (the two-way rule).",
+         TN, {}, [b0], {DID: doc("tel:+15550000000")}, {"outcome": "none"})
+    addr("none", "Nothing configured, nothing returned.", TN, {}, [], {}, {"outcome": "none"})
+    addr("none-no-answer", "Nothing configured, no node answered.", TN, {}, None, {}, {"outcome": "none"})
+    addr("none-not-a-number", "A Request-URI user that is not a number, and not in the table.", "bob", {TN: BOB}, [b0], docs,
+         {"outcome": "none"})
+    addr("none-other-number", "A verified binding for another number does not route this one.", "+15552000000", {}, [b0],
+         docs, {"outcome": "none"})
+    addr("none-expired", "At exp the binding has expired.", TN, {}, [b0], docs, {"outcome": "none"}, now=EXP)
+
+    # --- check: assert (a DSIP caller's bound number toward the PSTN, N§4.1) ---------------------------------
+    def adda(vid, desc, claims_, expect, to_tn=TO, context=None, identity=DID, document=None, now=NOW, origid=ORIGID):
+        out.append(tv(f"assert-{vid}", desc, context or gw_ctx(),
+                      {"check": "assert", "claims": claims_, "identity": identity,
+                       "did_document": doc() if document is None else document, "to_tn": to_tn, "now": now,
+                       "origid": origid}, expect, ["N§4.1", "G§7", "G§11"]))
+
+    def signed(x5u=GW_X5U, tn=TN, to=TO, now=NOW, origid=ORIGID):
+        return {"from": tn, "assertable": True,
+                "passport": {"header": {"alg": "ES256", "ppt": "shaken", "typ": "passport", "x5u": x5u},
+                             "claims": {"attest": "A", "dest": {"tn": [to[1:]]}, "iat": now, "orig": {"tn": tn[1:]},
+                                        "origid": origid}}}
+
+    def unasserted(reason, tn=TN):
+        return {"from": tn, "passport": None, "assertable": False, "reason": reason}
+    GWC = {"type": "tel", "number": "+15550001111", "attestation": "A", "verified": True, "verifier": "did:web:gw.example"}
+    adda("signed", "The caller's binding verifies, and the gateway's delegate certificate covers the number: a SHAKEN "
+         "PASSporT, attestation A, orig the caller's number and dest the dialled one.", [tel()], signed())
+    adda("signed-now", "iat is the gateway's clock.", [tel()], signed(now=NOW + 7), now=NOW + 7)
+    adda("signed-origid", "origid is the call's.", [tel()], signed(origid="00000000-0000-4000-8000-000000000001"),
+         origid="00000000-0000-4000-8000-000000000001")
+    adda("signed-other-destination", "dest is whatever number was dialled.", [tel()], signed(to="+447700900123"),
+         to_tn="+447700900123")
+    adda("signed-second-claim", "The first binding claim is dropped (another identity's), the second is attested.",
+         [tel(binding=jws(p=claims(did="did:web:x.example"))), tel()], signed())
+    adda("signed-after-gateway-claim", "A gateway's own tel claim (a string verifier) is ignored; the binding claim "
+         "after it is used.", [GWC, tel()], signed())
+    adda("no-claims", "No claims at all.", [], unasserted("no-binding", None))
+    adda("no-claims-not-array", "claims that is not an array.", "x", unasserted("no-binding", None))
+    adda("no-binding-claim", "Only a gateway claim and a display name.", [GWC, {"type": "display_name", "value": "Alice"}],
+         unasserted("no-binding", None))
+    adda("dropped-did-mismatch", "The binding names another identity: dropped, and the gateway presents its own.",
+         [tel(binding=jws(p=claims(did="did:web:x.example")))], unasserted("did-mismatch", None))
+    adda("dropped-first-reason", "Two dropped claims: the first one's reason.",
+         [tel(binding=jws(k=key("mallory"))), tel(binding="x.y")], unasserted("signature", None))
+    adda("dropped-number-mismatch", "The claim's number is not the binding's.", [tel(number="+15552000000")],
+         unasserted("number-mismatch", None))
+    adda("dropped-not-claimed", "The identity's document does not claim the number.", [tel()],
+         unasserted("not-claimed-by-did", None), document=doc("tel:+15550000000"))
+    adda("bad-destination", "The dialled target is not E.164.", [tel()], unasserted("bad-destination"), to_tn="911")
+    adda("bad-destination-before-certificate", "Not E.164, and no certificate: bad-destination first.", [tel()],
+         unasserted("bad-destination"), to_tn="bob", context=ctx())
+    adda("no-certificate", "A gateway without a STIR certificate presents the number unsigned (G§11 path b) and "
+         "crosses downgraded.", [tel()], unasserted("no-certificate"), context=ctx())
+    adda("no-certificate-key-not-pem", "A key that is not a PEM.", [tel()], unasserted("no-certificate"),
+         context=gw_ctx(gateway={"x5u": GW_X5U, "key": "not a key"}))
+    adda("no-certificate-key-not-string", "A key that is not a string.", [tel()], unasserted("no-certificate"),
+         context=gw_ctx(gateway={"x5u": GW_X5U, "key": None}))
+    adda("no-certificate-x5u-not-string", "An x5u that is not a string.", [tel()], unasserted("no-certificate"),
+         context=gw_ctx(gateway={"x5u": 5, "key": key_pem(DEL.key)}))
+    sec1 = DEL.key.private_bytes(Encoding.PEM, PrivateFormat.TraditionalOpenSSL, NoEncryption()).decode()
+    adda("no-certificate-sec1-pem", "A SEC1 `EC PRIVATE KEY` PEM is not a PKCS#8 PEM.", [tel()], unasserted("no-certificate"),
+         context=gw_ctx(gateway={"x5u": GW_X5U, "key": sec1}))
+    p384 = key("gw-384", ec.SECP384R1())
+    adda("no-certificate-wrong-curve", "A PKCS#8 key on another curve.", [tel()], unasserted("no-certificate"),
+         context=gw_ctx(gateway={"x5u": GW_X5U, "key": key_pem(p384)}))
+    adda("untrusted-not-served", "The gateway's x5u serves nothing.", [tel()], unasserted("untrusted-certificate"),
+         context=gw_ctx(gateway={"x5u": "https://nowhere.example/x.pem", "key": key_pem(DEL.key)}))
+    adda("untrusted-no-anchor", "An empty trust list: the gateway's own chain reaches no anchor. (The caller's binding "
+         "fails first for the same reason: its claim is dropped.)", [tel()],
+         {"from": None, "passport": None, "assertable": False, "reason": "untrusted-certificate"}, context=gw_ctx(anchors=[]))
+    t2 = "+15552000500"
+    adda("not-authorized", "The caller's number verifies under the SP's range, but the delegate certificate names "
+         "only one other number.", [tel(number=t2, binding=jws(p=claims(tn=t2)))], unasserted("not-authorized-for-tn", t2),
+         document=doc(f"tel:{t2}"))
+    adda("not-authorized-issuer-range", "A delegate leaf naming the number under a delegation CA whose range does not "
+         "cover it: every TNAuthList on the path must.", [tel(number=t2, binding=jws(p=claims(tn=t2)))],
+         unasserted("not-authorized-for-tn", t2), document=doc(f"tel:{t2}"),
+         context=gw_ctx(chain=pem(cert(name((O, "Enterprise Example"), (CN, "Delegate")), key("delegate"), SPCA,
+                                       [LEAF_KU, tnauth(tn_one(t2[1:]))], 13), SPCA, INTER)))
+    adda("signed-under-sp-certificate", "A gateway that is the carrier itself signs under the SP certificate.", [tel()],
+         signed(x5u=X5U), context=gw_ctx(gateway={"x5u": X5U, "key": key_pem(LEAF.key)}))
+    adda("key-mismatch", "A key that is not the leaf's.", [tel()], unasserted("key-mismatch"),
+         context=gw_ctx(gateway={"x5u": GW_X5U, "key": key_pem(LEAF.key)}))
+    adda("key-mismatch-after-coverage", "An uncovered number and the wrong key: not-authorized-for-tn first.",
+         [tel(number=t2, binding=jws(p=claims(tn=t2)))], unasserted("not-authorized-for-tn", t2), document=doc(f"tel:{t2}"),
+         context=gw_ctx(gateway={"x5u": GW_X5U, "key": key_pem(LEAF.key)}))
     return out

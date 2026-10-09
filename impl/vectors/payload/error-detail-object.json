@@ -1,0 +1,41 @@
+{
+  "vector": "payload/error-detail-object",
+  "format": 1,
+  "kind": "payload",
+  "description": "A profile-defined object detail: G§7's gateway.downgraded names the lost guarantees (spec-gap 112).",
+  "spec_ref": [
+    "G§7",
+    "§15"
+  ],
+  "context": {},
+  "input": {
+    "schema": "error",
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "error",
+      "id": "01K742SG000EQMRZ6HG43BF8FH",
+      "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+      "to": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+      "reason": "gateway.downgraded",
+      "retry_after": 30,
+      "in_reply_to": "01K742SG001QG79X9HH56TS8SW",
+      "issued_at": 1760000000,
+      "expires_at": 1760000030,
+      "detail": {
+        "losses": [
+          "no-srtp-on-trunk",
+          "identity-not-assertable"
+        ]
+      }
+    }
+  },
+  "expect": {
+    "verdict": "accept"
+  }
+}

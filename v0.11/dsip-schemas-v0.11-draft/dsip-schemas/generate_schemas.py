@@ -184,9 +184,8 @@ def base(msg_type, *, session_scoped, has_to=True, extra_props=None,
 REASON_FIELDS = {
     "reason": {"$ref": "#/$defs/reasonToken"},
     "detail": {
-        "type": "string",
-        "maxLength": 1024,
-        "description": "Free-text elaboration. A claim by the signer; clients must not render as independently verified (spec 13C.3.2).",
+        "anyOf": [{"type": "string", "maxLength": 1024}, {"type": "object", "maxProperties": 16}],
+        "description": "Free-text elaboration, or an object the profile registering the reason defines (Gateway Profile G\u00a77: {losses: [...]} on gateway.downgraded; spec-gap 112). A claim by the signer; clients must not render as independently verified (spec 13C.3.2).",
     },
     "retry_after": {"type": "integer", "minimum": 0},
 }
@@ -208,6 +207,8 @@ schemas["invite"] = base(
         "policy": {"$ref": "#/$defs/policy"},
         "recording": {"$ref": "#/$defs/recording"},
         "recording_session": {"$ref": "#/$defs/recordingSession"},
+        "destination": {"type": "string", "pattern": "^tel:\\+[1-9][0-9]{1,14}$",
+                        "description": "v0.11 (Number Attestation Profile draft, N\u00a74.1): the PSTN number a caller asks a gateway to reach, a tel URI (E.164). Meaningful only when `to` is a gateway; any other callee ignores it (spec-gap 111)."},
     },
     extra_required=["media", "transports"],
 )

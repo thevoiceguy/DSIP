@@ -264,3 +264,6 @@ verifies today; (b) a non-SP presents `From`/`P-Asserted-Identity` only and cros
 `gateway.downgraded`; (c) an RFC 9060 delegate certificate model where a carrier delegates a TN
 range — the most DSIP-shaped path, because the DID document could publish the delegate certificate.
 This version implements (b) and documents (a)/(c). See `impl/docs/gateway-stir-findings.md` (G4) for the full analysis and the `sip-identity` PASSporT-signing prototype (siphon-rs PR #123) behind path (a)/(c).
+The draft Number Attestation Profile (N§4.1, N§6.1) builds path (c) on top of this profile: a DSIP caller's
+carrier-signed number binding entitles the gateway to assert the number under its RFC 9060 delegate certificate,
+and an inbound call to a bound number is routed by the binding. Those rules are the draft's, not this version's.

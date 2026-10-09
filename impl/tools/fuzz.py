@@ -839,8 +839,63 @@ def gen_tn_select(r: random.Random):
                                              "now": G.NOW + r.choice([0, 0, 3600, 80000])}
 
 
+def gen_tn_passport(r: random.Random):
+    """A gateway's Identity header check (G§5; README `check: "passport"`): mutated PASSporTs, parameters, From/To, clocks."""
+    pool, G = _tn_pool()
+    numbers = [G.TN, G.TO, "+15559990000", "+" + G.SPC_NUMBER, "+15552000500"]
+    tn, to = r.choice(numbers), r.choice(numbers)
+    fmt = r.choice([lambda n: n, lambda n: n, lambda n: n[1:], lambda n: f"+1 ({n[2:5]}) {n[5:8]}-{n[8:]}", lambda n: "anonymous"])
+    h = G.pp_header(**r.choice([{}, {}, {}, {"x5u": G.GW_X5U}, {"ppt": "div"}, {"typ": "JWT"}, {"x5u": "https://nowhere.example/x.pem"}]))
+    dest = r.choice([[to[1:]], [to[1:]], [to, "15550000000"], ["15550000000"], [], "x"])
+    p = G.pp_claims(attest=r.choice(["A", "A", "B", "C", "D"]), orig={"tn": r.choice([tn[1:], tn, "anon"])}, dest={"tn": dest},
+                    iat=G.NOW + r.choice([0, 0, -30, 60, -61, 61, 400]), **({} if r.random() < 0.7 else {"origid": G.DROP}))
+    k = r.choice([G.LEAF.key] * 4 + [G.DEL.key, G.key("mallory")])
+    params = r.choice([";alg=ES256;ppt=shaken"] * 4 + ["", ";ppt=div", ";alg=es256", ";alg=ES256;", "; Alg = ES256 ", ";x"])
+    identity = G.passport(h, p, k, info=r.choice([None] * 5 + ["", "https://other.example/x.pem"]), params=params)
+    if r.random() < 0.08:
+        identity = r.choice([None, "x.y;info=<a>", identity.split(";")[0], identity.replace(".", ",", 1)])
+    ctx = G.gw_ctx(anchors=r.choice([[G.ROOT]] * 6 + [[], [G.INTER]]), require_status=r.random() < 0.2)
+    return "tn-binding", "passport", ctx, {"identity": identity, "from_tn": fmt(tn), "to_tn": fmt(to), "now": G.NOW + r.choice([0, 0, 0, 30, -40, 100])}
+
+
+def gen_tn_route(r: random.Random):
+    """A gateway resolving a dialled number (N§6.1; README `check: "route"`): tables and lookups that collide."""
+    pool, G = _tn_pool()
+    dids = ["did:web:alice.example", "did:web:mallory.example", "did:web:x.example", "did:web:y.example"]
+    to = r.choice([G.TN] * 6 + ["+15552000000", "bob", "15551234567"])
+    conf = r.choice([{}, {}, {G.TN: "did:web:bob.example"}, {"bob": "did:web:bob.example"}, {G.TN: 5}, None, "x"])
+    docs = {d: G.doc(r.choice([f"tel:{G.TN}"] * 3 + ["tel:+15550000000"]), id_=d) for d in dids if r.random() < 0.8}
+    return "tn-binding", "route", G.ctx(), {"to_tn": to, "configured": conf, "bindings": r.choice([r.sample(pool, r.randint(0, 5))] * 5 + [None]),
+                                            "documents": docs, "now": G.NOW + r.choice([0, 0, 3600, 80000])}
+
+
+def gen_tn_assert(r: random.Random):
+    """A gateway asserting a bound number (N§4.1; README `check: "assert"`): claims, destinations, certificates, keys."""
+    pool, G = _tn_pool()
+    def claim():
+        x = r.random()
+        if x < 0.5:
+            return {"type": "tel", "number": r.choice([G.TN] * 4 + ["+15552000500", "+15552000000"]), "binding": r.choice(pool + [G.jws(), G.jws()])}
+        if x < 0.7:
+            return {"type": "tel", "number": G.TN, "binding": G.jws(), "verifier": "did:web:gw.example"}
+        if x < 0.85:
+            return {"type": "display_name", "value": "Alice"}
+        return {"type": "tel", "number": "+15552000500", "binding": G.jws(p=G.claims(tn="+15552000500"))}
+    claims = [claim() for _ in range(r.randint(0, 3))]
+    gw = r.choice([None] * 2 + [{"x5u": G.GW_X5U, "key": G.key_pem(G.DEL.key)}] * 5 + [{"x5u": G.X5U, "key": G.key_pem(G.LEAF.key)},
+                  {"x5u": G.GW_X5U, "key": G.key_pem(G.LEAF.key)}, {"x5u": "https://nowhere.example/x.pem", "key": G.key_pem(G.DEL.key)},
+                  {"x5u": G.GW_X5U, "key": "junk"}])
+    ctx = G.gw_ctx(gateway=gw, anchors=r.choice([[G.ROOT]] * 8 + [[]]))
+    if gw is None:
+        del ctx["gateway"]
+    doc = G.doc(*r.choice([(f"tel:{G.TN}",), (f"tel:{G.TN}", "tel:+15552000500"), ("tel:+15550000000",)]))
+    return "tn-binding", "assert", ctx, {"claims": claims, "identity": r.choice([G.DID] * 5 + ["did:web:mallory.example"]), "did_document": doc,
+                                         "to_tn": r.choice([G.TO] * 5 + ["911", "+447700900123"]), "now": G.NOW + r.choice([0, 0, 3600]), "origid": G.ORIGID}
+
+
 TARGETS = {
     "syslog": gen_syslog, "snmpv3": gen_snmpv3, "recording": gen_recording, "tn-binding": gen_tnbinding, "tn-store": gen_tn_store, "tn-select": gen_tn_select,
+    "tn-passport": gen_tn_passport, "tn-route": gen_tn_route, "tn-assert": gen_tn_assert,
     "tsm": gen_tsm, "tls-frames": gen_tls_frames, "tsm-name": gen_tsm_name, "syslog-sign": gen_syslog_sign,
     "gap": gen_gap, "commit-retry": gen_commit_retry, "hub-outage": gen_hub_outage, "resume": gen_resume, "history": gen_history,
     "successor": gen_successor, "client": gen_client, "hub": gen_hub, "mailbox": gen_mailbox, "endpoint": gen_endpoint,

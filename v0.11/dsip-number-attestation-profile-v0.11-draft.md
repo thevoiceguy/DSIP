@@ -181,14 +181,61 @@ member:
 
   A claim with a string `verifier` is a gateway claim, even when it also carries a `binding`. A binding claim
   never changes the identity's own basis line.
-- **Trust tier** (§19.1). How much a verified binding counts for first contact is deployment policy (spec-gap 110,
-  item D). Treating it like a domain-bound identity (Tier 3) is a reasonable choice for a business. Numbers are
-  cheap to rent in bulk, which is how robocallers work, so a consumer client may give it less.
+- **Trust tier** (§19.1). An identity with a verified binding counts as **domain-bound (Tier 3)** for first contact
+  by default: enough to reach public business endpoints, never enough to bypass screening. A binding proves control
+  of a rented, transferable resource, as a domain does; numbers are cheap to rent in bulk, which is how robocallers
+  work, and a carrier's honest attestation does not change that. A deployment MAY count it higher for issuers its
+  trust list vouches for more (a regulated carrier list, an enterprise's own CA), and MAY count it lower; it MUST
+  NOT treat a binding as credential-backed (Tier 4) on the strength of the STI-CA list alone (spec-gap 110,
+  item D). A binding never changes the identity's own basis line, so the tier is a first-contact input and nothing
+  else.
 - **Toward the PSTN.** A gateway that carries a DSIP caller to the PSTN may assert the `From` number only under a
   STIR certificate that covers it. Normally that is an RFC 9060 delegate certificate, which the number's carrier
   issues to the gateway operator (G§11, path c). The binding tells the gateway, per call, that this DSIP identity is
-  the one the number belongs to. Whether a binding alone lets a gateway attest `A` is a question for SHAKEN
-  governance, not for DSIP (spec-gap 110, item A).
+  the one the number belongs to. A binding alone never raises the level: `A` under a certificate that covers the
+  number, or nothing (spec-gap 110, item A). N§4.1 says what the gateway does, and how a gateway comes to hold such
+  a certificate for a subscriber's number.
+
+### N§4.1 Gateways
+
+A DSIP↔PSTN gateway (Gateway Profile 1.0, `G§`) is a relying party on both sides of a crossing. This section adds
+to G§3, G§5 and G§7 what a bound number changes; the conformance suite pins the rules (`tn-binding/assert-*`,
+`passport-*`).
+
+**Naming the destination.** A DSIP caller that wants a PSTN number dials the gateway: the invite's `to` is the
+gateway's DID, and its `destination` member is the number as a tel URI, `tel:` + E.164. A callee that is not a
+gateway ignores `destination`. A client that was asked for `tel:+…` first looks the number up (N§6); only a number no
+binding resolves is a PSTN number (spec-gap 111).
+
+**Outbound: a bound number toward the PSTN.** The gateway checks the invite's `tel` claims as any receiver does
+(N§4, against the envelope's signing identity). The first attested claim gives the number.
+
+1. **With no attested claim** the gateway presents its own identity on the SIP leg and crosses with
+   `gateway.downgraded` `identity-not-assertable` (G§7). It never presents a number a caller did not prove.
+2. **With an attested claim** the SIP `From` is the number: the caller proved to the gateway that it is the
+   number's. The gateway signs a SHAKEN PASSporT (RFC 8225, RFC 8588) for the call **only** when its own STIR
+   certificate (G§11 path c: normally an RFC 9060 delegate certificate) chains to the gateway's trust list, every
+   TNAuthList on that path covers the number (N§3.2), and the signing key is the leaf's. The PASSporT carries
+   `attest: A`, `orig.tn` the caller's number, `dest.tn` the dialled one, `iat` the gateway's clock and an `origid`
+   the gateway makes per call (RFC 8588 §4); it travels as the `Identity` header, `<token>;info=<x5u>;alg=ES256;ppt=shaken`
+   (RFC 8224 §4).
+3. **Otherwise** the number is presented unsigned (G§11 path b) and the crossing is downgraded
+   `identity-not-assertable`. The level is `A` or nothing: a gateway that cannot vouch for the number under its
+   certificate does not attest `B` on the strength of a binding (spec-gap 110, item A).
+
+**How a gateway gets the certificate (informative).** A subscriber's gateway need not be its carrier's. RFC 9060
+delegate certificates are issued by ACME (RFC 9448) against a TNAuthList authority token (RFC 9447), and a binding,
+with the subscriber's signed choice of gateway, is grounds for that token: the carrier issues the gateway a
+short-lived delegate certificate for the subscriber's number, stays the issuer, and keeps revocation. This profile
+defines the binding; the token exchange is the carrier's, and the subject of the pilot (design study §10, stage 5).
+
+**Inbound: a PSTN caller's PASSporT.** The gateway verifies an inbound INVITE's `Identity` header before it renders
+the G§5 claim (RFC 8224 §6.2): the header reads, `alg` and `ppt` are ones it implements (an unsupported header is
+ignored, RFC 8224 §6.2.3), the PASSporT reads, `orig` is the `From` (a mismatch discards the PASSporT whole, G§5),
+`dest` holds the dialled number, `iat` is within 60 s, the `x5u` is the `info` URI, the chain reaches the trust
+list, the signature holds, and, for `attest` `A` only, every TNAuthList on the path covers `orig`. A PASSporT that
+reads but fails a later step keeps its level with `verified: false`. Numbers are compared canonically (RFC 8224
+§8.3): without the `+` and visual separators.
 
 ## N§5 A number that moves to another identity
 
@@ -221,6 +268,16 @@ There are three ways for a caller to find the DID behind a number, in order of p
 2. **A binding the number's authority serves**, at `https://<authority>/.well-known/dsip/tn/<tn>`, and enters in an
    Alias Transparency log (T§) under the label `tel:` + `tn`. The log makes the authority's answers auditable.
 3. **A binding presented in a call** (N§4). The callee learns the number-to-DID mapping for future calls.
+
+### N§6.1 A gateway routing a PSTN call to a bound number
+
+An inbound PSTN call names a number, and the gateway must find the DSIP identity to invite (G§3.2's "resolved DSIP
+target"). The operator's own table decides first: it is the operator's statement about its own trunk, and a binding
+never overrides it. When the table names nothing, the gateway resolves the number by route 1 (a lookup on the hints
+nodes it is configured with), verifies every returned binding in full against its own DID's document, and chooses
+by N§7. When neither yields an identity, the gateway refuses the INVITE `identity.unknown` (404, Q.850 cause 1;
+G§4.2). The G§5 `tel` claim on the DSIP invite is the same either way; only the target changed. The suite pins the
+rule (`tn-binding/route-*`).
 
 **Discoverability is opt-in** (spec-gap 110, item C). Without it, a binding is only presented (route 3), or served to
 someone who already holds the DID (N§3.3). It is never published under a key derived from the number.
@@ -257,6 +314,8 @@ Being findable is not being reachable: an unsolicited call still faces first con
 - **Media type** of a binding's `typ`: `dsip-tn-binding+jwt`.
 - **DID service type** (§24): `DSIPNumberBinding`.
 - **`tel` claim member** (G§5, §24): `binding`, a compact JWS (N§4).
+- **Invite member** (§24, the invite schema): `destination`, a tel URI naming the PSTN number asked of a gateway
+  (N§4.1).
 - **Verification reasons** (local, never sent on the wire):
   - `malformed`
   - `untrusted-certificate`
@@ -269,6 +328,11 @@ Being findable is not being reachable: an unsolicited call still faces first con
   - `not-claimed-by-did`
   - `status-unavailable`
   - `revoked`
+- **Gateway reasons** (local; N§4.1, the conformance suite's `passport` and `assert` checks):
+  - a PASSporT: `no-identity-header`, `malformed`, `unsupported`, `orig-mismatch`, `dest-mismatch`, `stale`,
+    `x5u-mismatch`, then `untrusted-certificate`, `signature`, `not-authorized-for-tn` as above;
+  - an assertion: `no-binding`, `bad-destination`, `no-certificate`, `key-mismatch`, and `untrusted-certificate`,
+    `not-authorized-for-tn` as above. A dropped claim's reason is reported as the N§4 check gave it.
 
 ## N§10 Security and privacy considerations
 
@@ -278,6 +342,9 @@ Being findable is not being reachable: an unsolicited call still faces first con
 - **A port or a hijack** moves a number's routing to another DID. It never moves an existing identity, and N§5
   makes the change visible.
 - **Enumeration** is the cost of discovery (N§6), so discoverability is opt-in.
+- **A gateway signs within its certificate.** A gateway that signs PASSporTs (N§4.1) can assert only the numbers
+  its STIR certificate covers, and only for a caller who proved the number with a binding. A compromised gateway
+  key is a compromised delegate certificate, no more: the carrier that issued it revokes it.
 - **Trust lists** are the relying party's choice. A deployment outside SHAKEN's reach (another country's STIR
   ecosystem, or an enterprise's own CA for internal numbers) configures its own list, and a binding means exactly
   what that list's certificates mean.
