@@ -2623,7 +2623,9 @@ RFC 6353's one model; E§2's `tsm` claim gains `transport: "tls" | "dtls"`.
 - **Host:** `dsip-msg --snmp-dtls-listen`, OpenSSL's DTLS server (rustls has no DTLS) with RFC 6347's cookie
   exchange, a session per peer address. A lost handshake flight is retransmitted by OpenSSL's DTLS timer, run from
   the session thread (`DTLSv1_handle_timeout`, reached through `SSL_ctrl` since the crate does not wrap it); a
-  session silent for 300 s is shut down, and the peer's next datagram starts a new one.
+  session silent for 300 s is shut down, and the peer's next datagram starts a new one. At most 64 handshakes are
+  in flight at once (each unseen source address costs a thread until the cookie exchange and the certificate check
+  are done), and a handshake has 10 s; past the cap, datagrams from new addresses are dropped until one ends.
 - **Demo:** `device-events-snmp-tls-demo.sh` sends sw1's trap over net-snmp's `dtlsudp:` transport, and sw3's
   nameless session is closed.
 
@@ -3223,6 +3225,13 @@ the wire demo is `demos/number-gateway-demo.sh` (two gateways over SIP between a
   both sides are up (§14.1). The demo's calls carry tones and both ends count what they received through two
   gateways. forge creates its event stream when the SDP exchange starts, so the pump that collects candidates and
   inbound Opus is attached after the offer or answer, never before.
+- **From the review of the daemon (2026-10-09):** the engine holds one pending SDP, so the gateway's offer or answer
+  is given to it right before the event that consumes it (`place_call`, `accept`), never at invite time; a
+  retransmitted INVITE (same Call-ID and CSeq) gets its `100` again and nothing else; a re-INVITE (hold, a
+  session-timer refresh) is refused `488` with `Reason: DSIP;text="media.unsupported"` and the dialog stands, since
+  no mid-call offer crosses in this round; ended calls leave the table; a DSIP `destination` must carry its `+`
+  (a local number is declined, never dialled under a guessed country code); the DSIP caller's DTMF `info` reaches
+  the controller (G§9).
 - **Outbound (`assert`).** The first attested `tel` claim gives the `From`. The gateway signs a SHAKEN PASSporT only
   under its own certificate: chained at `now`, every TNAuthList on the path covering the number, the key the
   leaf's. **Choices considered** for a caller with an attested number the gateway cannot sign for:

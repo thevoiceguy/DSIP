@@ -669,7 +669,7 @@ def pool_answers(answers) -> list[str]:
     """The bindings the authorities' answers contribute (README `check: "authority"`), once each, in order."""
     pool: list[str] = []
     for a in answers if isinstance(answers, list) else []:
-        if not isinstance(a, dict) or a.get("status") != 200 or not isinstance(a.get("body"), dict):
+        if not isinstance(a, dict) or not is_int(a.get("status")) or a["status"] != 200 or not isinstance(a.get("body"), dict):
             continue
         for b in a["body"].get("bindings") if isinstance(a["body"].get("bindings"), list) else []:
             if isinstance(b, str) and b not in pool:
@@ -687,7 +687,7 @@ def authority(context: dict, i: dict) -> dict:
     win = s.pop("binding")
     served = []
     for a in answers:
-        if (isinstance(a, dict) and a.get("status") == 200 and isinstance(a.get("body"), dict)
+        if (isinstance(a, dict) and is_int(a.get("status")) and a["status"] == 200 and isinstance(a.get("body"), dict)
                 and isinstance(a["body"].get("bindings"), list) and win in a["body"]["bindings"] and a.get("authority") not in served):
             served.append(a.get("authority"))
     return {**s, "served_by": served}
