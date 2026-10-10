@@ -345,13 +345,16 @@ jobs:
         with: { version: v0.15.0 }
       - uses: actions/setup-node@v4
         with: { node-version: "20" }
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install pynacl cryptography   # the test number authority (demos/tn_issuer.py) behind the gateway fixture
       - run: impl/web/build.sh
       - run: node impl/web/test/engine.mjs
       - run: npm ci
         working-directory: impl/web
       - run: npx playwright install --with-deps firefox chromium
         working-directory: impl/web
-      - name: two browsers call each other through a local relay (Firefox, then Chromium)
+      - name: the client's headless tests through a local relay and the gateway fixture (Firefox, then Chromium)
         run: impl/web/test/run.sh all
 
   packages:
