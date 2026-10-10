@@ -38,9 +38,11 @@ impl/crates/        dsip-core, dsip-schema, dsip-session, dsip-endpoint, dsip-tr
                     dsip-cli, dsip-wasm, dsip-gateway, dsip-messaging, dsip-mls,
                     dsip-mailbox, dsip-number
 impl/demos/         Self-verifying wire demos run in CI: calls, media, broadcast, DHT,
-                    gateway, and the messaging profile (one *-demo.sh per behaviour);
-                    browser/ is the wasm client. Check names before adding one —
+                    gateway, and the messaging profile (one *-demo.sh per behaviour).
+                    Check names before adding one —
                     first-contact-demo.sh (core) ≠ messaging-first-contact-demo.sh
+impl/web/           The browser client (reference client, plan in impl/docs/dsip-client-plan.md):
+                    a host of dsip-wasm; Playwright tests in web/test run in CI (web/README.md)
 impl-ts/            Second implementation (TypeScript), measured against impl/vectors.
                     Written from the spec, schemas and vectors README ONLY — never by
                     reading impl/crates or impl/tools/dsipvec verdict logic (impl-ts/README.md)
