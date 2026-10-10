@@ -16,7 +16,7 @@ crates/
   dsip-session  §12 endpoint state engine, timers, races, renegotiation; §12.7 relay leg tracker
   dsip-endpoint IO-free endpoint core: verify → §12 engine → build/sign (shared by native agent and WASM)
   dsip-transport ws/1.0 client binding (wss, hello, caps, reconnect), identity dirs, did:web fetch, the Agent
-  dsip-wasm     the same verifier/engine/builder for the browser (wasm-bindgen); built into demos/browser/pkg
+  dsip-wasm     the same verifier/engine/builder for the browser (wasm-bindgen); built into web/pkg for the client
   dsip-media    native WebRTC media leg (webrtc-rs): offer/answer, trickle ICE, Opus tone/file source, Ogg recording
   dsip-broadcast Verified Broadcast (§22) + subscriptions (§9.3): authority registry, subscriber state, receiver verification with provenance
   dsip-dht      reachability hints over libp2p Kademlia (experimental §8.5); `dsip-dht-node` binary
@@ -118,9 +118,10 @@ dsip broadcast subscribe --identity ./alice --ca .relay/cert.pem --target <bob d
 dsip broadcast unpublish --identity ./bob --ca .relay/cert.pem --stream radio:main
 
 # Phase 2: browser endpoint (needs `rustup target add wasm32-unknown-unknown` + `cargo install wasm-pack`)
-demos/browser/build.sh          # wasm-pack → demos/browser/pkg
-node demos/browser/test.mjs     # two WASM endpoints run a full call + first contact in memory
-demos/browser-demo.sh           # relay serves https://127.0.0.1:8443/?as=alice and ?as=bob (accept the self-signed cert once)
+web/build.sh                    # wasm-pack → web/pkg
+node web/test/engine.mjs        # two WASM endpoints run a full call + first contact in memory
+demos/browser-demo.sh           # the relay serves the client: https://127.0.0.1:8443/?as=alice and ?as=bob (accept the self-signed cert once)
+web/test/run.sh [firefox|chromium|all]   # headless: two browsers call each other through a local relay (web/README.md)
 
 # Phase 2: native media (webrtc-rs; needs cmake for the Opus encoder)
 demos/media-demo.sh             # native↔native DTLS-SRTP call: tones exchanged, both sides recorded to Ogg/Opus
