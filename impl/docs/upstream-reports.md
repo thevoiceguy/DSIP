@@ -1,10 +1,18 @@
 # Upstream reports — ready to send
 
 Findings from implementing did:webvh (spec-gaps 101–102) and KEYTRANS (spec-gaps 104), rechecked on 2026-10-05
-against the current texts:
-- the did:webvh v1.0 spec as of `7e39c70`;
-- `didwebvh-ts` 2.8.0 (the latest on npm) and `didwebvh-rs` 0.8.0 (the latest on crates.io);
-- `draft-ietf-keytrans-protocol` -05, and the editors' copy at `a214b15`.
+against the current texts, and again on 2026-10-09 (every report below still stands):
+- the did:webvh v1.0 spec as of `7846c94` (2026-10-09; the commits since `7e39c70` concern DID URL handling and an
+  at-risk note on implicit services, nothing on entries, JCS, I-JSON or the schema; `schemas/v1.0/log_entry.json`
+  still has `minItems: 1` on the three arrays, a `proof` that may be one object, and `"type": "date-time"`);
+- `didwebvh-ts` 2.8.0 (still the latest on npm, published 2026-06-26; the repository has moved on, with
+  `nextKeyHashes` guards merged 2026-10-01, and nothing newer is published) and `didwebvh-rs` 0.8.0 (the latest on
+  crates.io, 2026-10-01);
+- `draft-ietf-keytrans-protocol` -05 (still the latest revision on the datatracker), and the editors' copy still at
+  `a214b15` (2026-09-16); issue #51 is still open;
+- net-snmp: Debian trixie still ships 5.9.4+dfsg-2+deb13u1 and Ubuntu noble-updates 5.9.4+dfsg-1.1ubuntu3.2, both
+  with the TLS 1.0 cap; unstable and the next Ubuntu carry 5.9.5.2;
+- RFC 5848: no errata on file.
 
 Findings already fixed upstream are listed at the end and are **not** to be sent. Each report links to a vector in
 `https://github.com/thevoiceguy/DSIP/tree/main/impl/vectors`, so it can be reproduced.
