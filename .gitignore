@@ -11,3 +11,7 @@ impl/.dsip/
 # Rust (root-level scratch from IDE tooling too)
 target/
 impl/crates/dsip-node/dist/
+# Browser client
+impl/web/pkg/
+impl/web/node_modules/
+impl/demos/browser/

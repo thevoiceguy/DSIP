@@ -230,7 +230,7 @@ such document is in the repository, and §26 step 8 still says candidates ride i
 (the descriptor keeps `id: transport:webrtc`, `ice: trickle`); trickle candidates ride in
 `info.data.candidates[{candidate, sdp_mid, sdp_m_line_index}]` + `end_of_candidates`, exactly
 the §12.12 example shape; `info` is ACTIVE-only so candidates gathered before the answer are
-buffered by the endpoint. Implemented in `dsip-endpoint` and `demos/browser/app.js`.
+buffered by the endpoint. Implemented in `dsip-endpoint` and the browser client (`web/app.js`).
 
 **Suggested fix.** Publish the binding document (or an appendix) with these shapes, fix §26
 step 8 to say `info`, and state whether a forked invite's single SDP offer may be answered by
