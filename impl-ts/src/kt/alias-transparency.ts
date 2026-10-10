@@ -43,6 +43,23 @@ const MODE_CONTACT_MONITORING = 1;
 
 const LABEL = /^(?!-)[A-Za-z0-9-]{1,63}(?<!-)$/;
 
+/** Spec: T§3 — E.164 digits: 2 to 15, the first not `0`. */
+const E164_DIGITS = /^[1-9][0-9]{1,14}$/;
+
+/**
+ * Normalize a `tel:` alias (the scheme already recognised, `rest` being what follows it); `null` when it is not one.
+ * Spec: T§3 (v0.12; N§6 route 2) — "a tel URI (RFC 3966) of a global number with no parameters: … `+`, then digits
+ * with the visual separators `-`, `.`, `(` and `)` removed. The digits are E.164 (2 to 15, the first not `0`). The
+ * label is `tel:+<digits>`, in lowercase; a local number, a parameter … or anything else is not an alias".
+ * Impl: the separators are removed wherever they occur after the `+` (RFC 3966 allows them between any digits); a
+ * `+` followed by separators alone has no digits and is not an alias.
+ */
+function normalizeTelAlias(rest: string): string | null {
+  if (!rest.startsWith("+")) return null;
+  const digits = rest.slice(1).replace(/[-.()]/g, "");
+  return E164_DIGITS.test(digits) ? `tel:+${digits}` : null;
+}
+
 /**
  * Normalize an alias; `null` when it is not one.
  * Spec: T§3
@@ -50,6 +67,8 @@ const LABEL = /^(?!-)[A-Za-z0-9-]{1,63}(?<!-)$/;
  * `[A-Za-z0-9-]`, not beginning or ending with `-`), lowercased; at most 255 bytes.
  */
 export function normalizeAlias(alias: string): string | null {
+  // T§3: a `tel:` alias (the scheme in any case) is a global number; the `local@domain` rules never apply to it.
+  if (alias.slice(0, 4).toLowerCase() === "tel:") return normalizeTelAlias(alias.slice(4));
   const at = alias.lastIndexOf("@");
   if (at < 0) return null;
   const local = alias.slice(0, at);

@@ -1,0 +1,17 @@
+{
+  "vector": "alias-transparency/alias-tel-plain",
+  "format": 1,
+  "kind": "alias-transparency",
+  "description": "T§3: 'tel:+15551234567' → tel:+15551234567.",
+  "spec_ref": [
+    "T§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "alias",
+    "alias": "tel:+15551234567"
+  },
+  "expect": {
+    "label": "tel:+15551234567"
+  }
+}

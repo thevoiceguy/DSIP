@@ -1,0 +1,17 @@
+{
+  "vector": "alias-transparency/alias-tel-one-digit",
+  "format": 1,
+  "kind": "alias-transparency",
+  "description": "T§3: 'tel:+1' → not an alias.",
+  "spec_ref": [
+    "T§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "alias",
+    "alias": "tel:+1"
+  },
+  "expect": {
+    "error": "not-an-alias"
+  }
+}

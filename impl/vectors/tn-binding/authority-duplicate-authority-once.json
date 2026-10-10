@@ -1,0 +1,81 @@
+{
+  "vector": "tn-binding/authority-duplicate-authority-once",
+  "format": 1,
+  "kind": "tn-binding",
+  "description": "An authority listed twice is named once.",
+  "spec_ref": [
+    "N§6",
+    "N§7"
+  ],
+  "context": {
+    "trust_anchors": [
+      "MIIBmTCCAUCgAwIBAgIBATAKBggqhkjOPQQDAjBEMQswCQYDVQQGEwJVUzEXMBUGA1UECgwORXhhbXBsZSBTVEktQ0ExHDAaBgNVBAMME0V4YW1wbGUgU1RJLUNBIFJvb3QwHhcNMTUxMDEyMDg1MzIwWhcNMzUxMDA3MDg1MzIwWjBEMQswCQYDVQQGEwJVUzEXMBUGA1UECgwORXhhbXBsZSBTVEktQ0ExHDAaBgNVBAMME0V4YW1wbGUgU1RJLUNBIFJvb3QwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAAQIGId1toA8e/M026BVPerIINtBWq9FFUWOx7AY78G2Eks6saNAimUzWZNLhj/GMIw1yTq1zkjMntBDBeRlYL89oyMwITAPBgNVHRMBAf8EBTADAQH/MA4GA1UdDwEB/wQEAwIBBjAKBggqhkjOPQQDAgNHADBEAiBps4b0NFLWu9y/1fcnOo/EZ+jSSP/93MpMSPQAVLCdeAIgNxZ8bTG/bVMqzMgcVRhubnckrpeA3DUTTI0if7J/UmE="
+    ],
+    "certificates": {
+      "https://cr.carrier.example/sti.pem": "-----BEGIN CERTIFICATE-----\nMIIBxDCCAWmgAwIBAgIBAzAKBggqhkjOPQQDAjBJMQswCQYDVQQGEwJVUzEXMBUG\nA1UECgwORXhhbXBsZSBTVEktQ0ExITAfBgNVBAMMGEV4YW1wbGUgU1RJLUNBIElz\nc3VpbmcgMTAeFw0yNTA5MDkwODUzMjBaFw0yNjEwMDkwODUzMjBaMD0xCzAJBgNV\nBAYTAlVTMRgwFgYDVQQKDA9DYXJyaWVyIEV4YW1wbGUxFDASBgNVBAMMC1NIQUtF\nTiA3MDlKMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEntYMiAMvOOi2s04YIp9R\nvWYdB6bh+We612jOIw5wt2rjjFTL3wrydqEGvEB9bdm8dvpK9E9U4v7sHzetn//T\npKNOMEwwDgYDVR0PAQH/BAQDAgeAMDoGCCsGAQUFBwEaBC4wLKINFgsxNTU1MTIz\nNDU2N6ETMBEWCzE1NTUyMDAwMDAwAgID6KAGFgQ3MDlKMAoGCCqGSM49BAMCA0kA\nMEYCIQDvo0kj9Vo1VJdVyTDKNB5oFipRPzj3V9fgo6o3r6zvEwIhAPrCMLilHiAg\nVGvmoFqABQe1wsogIBSUoKppRweSfX0+\n-----END CERTIFICATE-----\n-----BEGIN CERTIFICATE-----\nMIIBozCCAUigAwIBAgIBAjAKBggqhkjOPQQDAjBEMQswCQYDVQQGEwJVUzEXMBUG\nA1UECgwORXhhbXBsZSBTVEktQ0ExHDAaBgNVBAMME0V4YW1wbGUgU1RJLUNBIFJv\nb3QwHhcNMjMwMTEzMDg1MzIwWhcNMjgwNzA1MDg1MzIwWjBJMQswCQYDVQQGEwJV\nUzEXMBUGA1UECgwORXhhbXBsZSBTVEktQ0ExITAfBgNVBAMMGEV4YW1wbGUgU1RJ\nLUNBIElzc3VpbmcgMTBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABKbmN4mLOh1E\nenX0Mmp4yvTIqs9jVizuFIVcJPdlDVbhbrEsdacRwtyTQlqKksz2kujA4wB5XcMg\n9eflRPoTGJ+jJjAkMBIGA1UdEwEB/wQIMAYBAf8CAQEwDgYDVR0PAQH/BAQDAgEG\nMAoGCCqGSM49BAMCA0kAMEYCIQDX9HWw6uIXemLv1MzXU3oJ4uyyjhTISig8GANP\ntZoBRQIhAO+w9V+hBZdwJHItmd/HMm9+tMQJMlMqnHhDzv89tDHO\n-----END CERTIFICATE-----\n"
+    },
+    "spc_numbers": {
+      "709J": [
+        "15553330000",
+        "15553330002"
+      ]
+    },
+    "require_status": false,
+    "status": {}
+  },
+  "input": {
+    "check": "authority",
+    "tn": "+15551234567",
+    "answers": [
+      {
+        "authority": "carrier-a.example",
+        "status": 200,
+        "body": {
+          "bindings": [
+            "eyJhbGciOiJFUzI1NiIsInR5cCI6ImRzaXAtdG4tYmluZGluZytqd3QiLCJ4NXUiOiJodHRwczovL2NyLmNhcnJpZXIuZXhhbXBsZS9zdGkucGVtIn0.eyJ0biI6IisxNTU1MTIzNDU2NyIsImRpZCI6ImRpZDp3ZWI6YWxpY2UuZXhhbXBsZSIsImlhdCI6MTc1OTk5NjQwMCwiZXhwIjoxNzYwMDgyODAwLCJqdGkiOiIwMUs2WjhSOFFBRVhBTVAxRUIxTkRORzAwMSJ9.xY0OfiVrSXsllNs4gvKMPNDYpkx1IXtkok7dXmDKWpavleWMNjTtTrrNHIi8DZaEL73fWYdpWQV_BwzfC4ugOw"
+          ]
+        }
+      },
+      {
+        "authority": "carrier-a.example",
+        "status": 200,
+        "body": {
+          "bindings": [
+            "eyJhbGciOiJFUzI1NiIsInR5cCI6ImRzaXAtdG4tYmluZGluZytqd3QiLCJ4NXUiOiJodHRwczovL2NyLmNhcnJpZXIuZXhhbXBsZS9zdGkucGVtIn0.eyJ0biI6IisxNTU1MTIzNDU2NyIsImRpZCI6ImRpZDp3ZWI6YWxpY2UuZXhhbXBsZSIsImlhdCI6MTc1OTk5NjQwMCwiZXhwIjoxNzYwMDgyODAwLCJqdGkiOiIwMUs2WjhSOFFBRVhBTVAxRUIxTkRORzAwMSJ9.xY0OfiVrSXsllNs4gvKMPNDYpkx1IXtkok7dXmDKWpavleWMNjTtTrrNHIi8DZaEL73fWYdpWQV_BwzfC4ugOw"
+          ]
+        }
+      }
+    ],
+    "documents": {
+      "did:web:alice.example": {
+        "@context": [
+          "https://www.w3.org/ns/did/v1"
+        ],
+        "id": "did:web:alice.example",
+        "alsoKnownAs": [
+          "tel:+15551234567"
+        ]
+      },
+      "did:web:mallory.example": {
+        "@context": [
+          "https://www.w3.org/ns/did/v1"
+        ],
+        "id": "did:web:mallory.example",
+        "alsoKnownAs": [
+          "tel:+15551234567"
+        ]
+      }
+    },
+    "now": 1760000000
+  },
+  "expect": {
+    "outcome": "found",
+    "did": "did:web:alice.example",
+    "attested_by": "Carrier Example",
+    "issued": 1759996400,
+    "others": [],
+    "served_by": [
+      "carrier-a.example"
+    ]
+  }
+}

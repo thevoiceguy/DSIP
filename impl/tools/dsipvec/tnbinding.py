@@ -502,7 +502,7 @@ def select(context: dict, i: dict) -> dict:
         return {"outcome": "none"}
     iat, b, r = min(verified, key=lambda x: (-x[0], x[1].encode()))
     others = sorted({v[2]["did"] for v in verified if v[2]["did"] != r["did"]})
-    return {"outcome": "found", "did": r["did"], "attested_by": r["attested_by"], "issued": iat, "others": others}
+    return {"outcome": "found", "did": r["did"], "attested_by": r["attested_by"], "issued": iat, "others": others, "binding": b}
 
 
 # --- the gateway checks (stage 4): passport, route, assert ------------------------------------------------------
@@ -665,8 +665,38 @@ def assert_(context: dict, i: dict) -> dict:
     return {"from": number, "passport": {"header": h, "claims": p}, "assertable": True}
 
 
+def pool_answers(answers) -> list[str]:
+    """The bindings the authorities' answers contribute (README `check: "authority"`), once each, in order."""
+    pool: list[str] = []
+    for a in answers if isinstance(answers, list) else []:
+        if not isinstance(a, dict) or a.get("status") != 200 or not isinstance(a.get("body"), dict):
+            continue
+        for b in a["body"].get("bindings") if isinstance(a["body"].get("bindings"), list) else []:
+            if isinstance(b, str) and b not in pool:
+                pool.append(b)
+    return pool
+
+
+def authority(context: dict, i: dict) -> dict:
+    """Discovery route 2, the serving half: pool the authorities' answers, select, and name who served the winner."""
+    answers = i.get("answers") if isinstance(i.get("answers"), list) else []
+    pool = pool_answers(answers)
+    s = select(context, {"tn": i["tn"], "bindings": pool, "documents": i.get("documents"), "now": i["now"]})
+    if s["outcome"] != "found":
+        return {"outcome": "none"}
+    win = s.pop("binding")
+    served = []
+    for a in answers:
+        if (isinstance(a, dict) and a.get("status") == 200 and isinstance(a.get("body"), dict)
+                and isinstance(a["body"].get("bindings"), list) and win in a["body"]["bindings"] and a.get("authority") not in served):
+            served.append(a.get("authority"))
+    return {**s, "served_by": served}
+
+
 def run(v: dict):
     i = v["input"]
+    if i.get("check") == "authority":
+        return authority(v.get("context", {}), i)
     if i.get("check") == "passport":
         return passport(v.get("context", {}), i)
     if i.get("check") == "route":
@@ -676,7 +706,9 @@ def run(v: dict):
     if i.get("check") == "store":
         return store(v.get("context", {}), i)
     if i.get("check") == "select":
-        return select(v.get("context", {}), i)
+        s = select(v.get("context", {}), i)
+        s.pop("binding", None)
+        return s
     if i.get("check") == "claim":
         return claim(v.get("context", {}), i)
     if i.get("check") == "contact":

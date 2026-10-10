@@ -265,8 +265,16 @@ There are three ways for a caller to find the DID behind a number, in order of p
    - The node is a hints tier (§8.1): it can withhold a binding, but never forge one.
    - In this draft nodes do not replicate bindings to each other. A publisher puts its binding on several nodes,
      as it would on several Pkarr relays, and renews it with each new binding.
-2. **A binding the number's authority serves**, at `https://<authority>/.well-known/dsip/tn/<tn>`, and enters in an
-   Alias Transparency log (T§) under the label `tel:` + `tn`. The log makes the authority's answers auditable.
+2. **A binding the number's authority serves**, at `https://<authority>/.well-known/dsip/tn/<tn>`: `200` with
+   `{"bindings": [...]}`, as a node answers, or `404` when it holds none for the number. An authority serves the
+   bindings it issued. A client asks the authorities it is configured with (its own carriers, or a list a deployment
+   maintains), pools what they return with route 1's answers, verifies every binding in full against its DID's
+   document and chooses by N§7, and remembers which authorities served the chosen binding: the parties accountable
+   for the answer (the vector README's `authority` check pins the pooling).
+   **Staged with Alias Transparency stage 2 (T§6):** the authority also enters each binding it serves in its
+   transparency log under the label `tel:` + `tn` (T§3), and the client verifies that entry from the log's search
+   response, so an authority cannot serve one answer to one caller and another to the next without the log showing
+   it. Until then a served binding is as auditable as a node's: by the authority's word.
 3. **A binding presented in a call** (N§4). The callee learns the number-to-DID mapping for future calls.
 
 ### N§6.1 A gateway routing a PSTN call to a bound number

@@ -2693,6 +2693,12 @@ The original list:
    - a stray `UpdateRequest request;` in -05 §15.1;
    - [KTA] -09 §7 cites the RMW as "[PROTO] §7.1"; in -05 it is §6.1.
 
+**`tel:` labels (v0.12, 2026-10-09; for Number Attestation route 2).** T§3 gains the `tel:` alias: a global tel
+URI (RFC 3966) with no parameters, visual separators removed, E.164 digits, lowercase scheme; the label is
+`tel:+<digits>`. Pinned by `alias-transparency/alias-tel-*`. **Choices considered:** admit parameters (`;ext=`,
+`;phone-context=`) and local numbers, or only global numbers. **Chosen: global numbers only**, matching the
+profile's E.164 scope (spec-gap 110 item E); a local number has no identity without its context.
+
 **Open (stage 2).**
 - Lookups, monitoring and fork detection.
 - Anti-enumeration at the query endpoint: identical answers for "no such alias" and "not permitted", plus rate
@@ -3196,6 +3202,19 @@ pinned with a hand-authored vector.
   Overlay replication of bindings is open.
 - **Enumeration (item C)** is unchanged. Publishing is opt-in (`dsip tn-publish`), and a node's HTTP rate limit
   applies.
+
+**J. Route 2, the serving half (N§6; v0.12, 2026-10-09).** The number's authority serves its bindings at
+`https://<authority>/.well-known/dsip/tn/<tn>`, `200 {"bindings": [...]}` or `404`. A client asks the authorities it
+is configured with, pools their answers with route 1's, verifies and chooses as before, and keeps `served_by`: the
+authorities whose answer held the chosen binding. Pinned by `tn-binding/authority-*`; `dsip call --tn-authority`;
+the discovery demo's simulated carrier (`demos/tn_authority.py`).
+- **What is staged:** the log entry (T§6, after KEYTRANS -06). The auditable half of route 2 is Alias Transparency
+  stage 2's lookup verification applied to the label `tel:` + `tn`; T§3 now defines that label.
+- **Choices considered** for how a client finds the authority: a lookup from number to carrier (number portability
+  data, not available to a client), the binding's own `x5u` host (circular: the binding is what is sought), or a
+  configured list. **Chosen: a configured list.** The relying party already configures its trust list and SPC data.
+- **Pooling, not precedence.** N§6's "order of preference" names the routes; a client that has both a node's and an
+  authority's answer pools them and lets N§7 choose, since both are verified the same way.
 
 **I. Stage 4 (N§4.1, N§6.1, G§5, G§7): the gateway.** Pinned by `tn-binding/assert-*`, `passport-*` and `route-*`;
 the wire demo is `demos/number-gateway-demo.sh` (two gateways over SIP between a DSIP caller and a DSIP callee).
