@@ -3303,3 +3303,26 @@ vector-pinned but never sent until a daemon hosted both legs.
 - **Chosen: (a)**: `detail` is `anyOf` a string (≤ 1024 characters) and an object (≤ 16 members). The core prose
   should say that a profile may define an object-valued `detail` for a reason token it registers, and §24 should
   list `gateway.downgraded`'s. Pinned by `payload/error-detail-object` and `payload/error-detail-number`.
+
+## 113. §7.4 / §13.2 — how a `did:key` identity hands its relay a revocation
+
+**Found (2026-10-10, by the client's stage 3).** §7.4 (v0.8) says a `did:key` subject's revocations "reach verifiers
+only by distribution — to the identity's own services, or presented alongside", and that a service handed one for a
+device it has bound "SHOULD end that binding at once". The Messaging Profile defines the carriage to a mailbox
+(`mailbox-config.revoked_delegations`, acknowledged). ws/1.0 (§13.2) defines none to a relay: `delegation-revocation`
+is a registered type with a schema, but a relay routes by `to`, which the record does not carry, and its signer (a key
+of the identity, never the bound device) fails the "signer is the bound device" rule every routed frame meets.
+
+- Choices:
+  - (a) the record itself is sent as a frame on a bound connection; the relay recognises the type, requires the signer
+    to be the subject, holds the record for every later verification and ends the named device's binding; no
+    acknowledgement (an `error` only when it is refused);
+  - (b) a relay configuration message like the mailbox's, carrying revocations in an array and acknowledged;
+  - (c) the record presented "alongside": a `revocations` array in the protected header of any `hello`, so every relay
+    an identity binds to learns it at the next hello of any of its other devices, with no new message flow.
+- **Chosen: (a)** in the PoC relay (`dsip-relay`, `State::revoke`), accepted from any bound device: a validly signed
+  record can only remove authority, so its source does not matter (§7.4). The client (`impl/web`) sends it and holds it.
+  (c) suits identities bound to several relays and adds no flow; the core should pick one and say whether a relay
+  acknowledges. Pinned by the client's headless test (`web/test/devices.mjs`: the revoked device is dropped and its next
+  hello refused `delegation-revoked`, after a relay-side hold too); no vector yet, because the relay tracker has no
+  revocation event, which is the next gap once the carriage is decided.
