@@ -1833,8 +1833,9 @@ are none.
   `{authority, status, body}`, in the order the authorities are configured: `authority` is the string the client
   configured, `status` the HTTP status as an integer or `null` when there was no answer, and `body` the response
   body as JSON, any value, or `null`. `documents` is as in `select`.
-- **The pool.** Each answer in order contributes when `status` is `200` and `body` is an object whose `bindings` is
-  an array: each element that is a string joins the pool, once, in first-occurrence order. Any other answer
+- **The pool.** Each answer in order contributes when `status` is the JSON integer `200` (a number written with a
+  fraction or exponent is not; the vectors carry none, since an implementation in a language without that
+  distinction cannot tell) and `body` is an object whose `bindings` is an array: each element that is a string joins the pool, once, in first-occurrence order. Any other answer
   contributes nothing.
 - **Expect:** the `select` check over the pool, with `tn`, `documents` and `now`: `{"outcome": "none"}`, or
   `{"outcome": "found", "did", "attested_by", "issued", "others", "served_by"}`, where `served_by` lists, in `answers`
