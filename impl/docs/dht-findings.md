@@ -251,6 +251,49 @@ What the deployment showed:
 5. **Two views of one path.** Each browser reports the pair it nominated; in the cone run they differed (Alice
    through TURN, Bob direct). Both are right: the sides of a call may take different paths.
 
+## The browser client messaging across operators (client stage 6, 2026-10-11 UTC)
+
+Same hosts and origins as the stage 5 run, each relay's co-located `dsip-mailbox` now serving the browsers'
+`did:key` identities under the same Let's Encrypt certificate (`--serve-any 32`, spec-gap 115) and named in each
+origin's `config.json`. Alice (Firefox, home NAT, L1's origin) and Bob (Chromium on L3, L2's origin), two
+operators. Record: `dht-wan-results.jsonl` run `client-6`; driver `tools/wan/browser-message.mjs`.
+
+| step | Alice (L1) | Bob (L2) |
+|---|---|---|
+| page bound to relay / mailbox / personal group created | 3.06 s / 3.08 s / 3.74 s | 4.44 s / 4.92 s / 5.04 s |
+| hint published naming relay + mailbox | accepted, 3 peers | accepted, 3 peers |
+| introduction → grant (through relay B, named by Bob's hint) | 2.59 s | request shown with purpose and basis |
+| Bob's mailbox found through his hint (hint-sourced) | 1.07 s | — |
+| conversation created at mailbox A, add committed on the hub's accepted | 2.92 s | joined from the welcome mailbox B received |
+| text accepted by the hub / delivered receipt back / Bob's reply shown | 70 ms / 957 ms / 1,123 ms | reply accepted (seq 4), delivered receipt back |
+| reload | thread intact (2 messages, seqs 2 and 4) | — |
+| wasm bundle | 8,009,867 B (2,509,704 B gzipped) | |
+
+Findings:
+
+1. **A mailbox's `--ca` excluded the public roots.** `dsip-transport`'s client configuration trusted exactly the
+   file's certificates, right for a lab of self-signed services and wrong the moment one peer moved to Let's
+   Encrypt: mailbox A could not dial mailbox B for five minutes until the ISRG roots were appended to the file on
+   both hosts. The client configuration now trusts the platform's roots beside the file; the hosts run the earlier
+   binary with the roots in the file, which is the same trust store.
+2. **A welcome re-sent after a five-minute outage is refused for good** (spec-gap 118): the hub re-signs each
+   retry, so the `origin` it carries falls outside M§14.2's 300 s skew bound against the fresh deposit, and the
+   member mailbox answers `policy.blocked` on every retry. The first conversation of this run never reached Bob;
+   the second, after the trust fix, did in under three seconds. The bound should be one of age within the
+   pending-group retention, not of skew; vectors first.
+3. **Where an identity enrolled is not where it is reached** (spec-gap 116): the hub delivered to itself for a
+   member that had bound there first and advertised another mailbox since. Every fan-out now goes through the
+   member's document or newest verified hint, re-looked-up after a minute and at once when the hub's own mailbox
+   does not hold the group for the member.
+4. **A grant from the calling engine names the device** (spec-gap 117): the mailbox compared `from` with the
+   granting identity and refused the fetch; the credential check now takes the granter from the delegation that
+   binds the signer, as every other receiver does.
+5. **Introductions across operators** go through the relay the recipient's hint names, on a connection kept open
+   for the answer (closed when the grant arrives): the same hint lookup as a call, so first contact no longer
+   needs both people on one relay. Measured end to end from the introduction to the held grant: 2.6 s.
+6. **The mailbox's hints lookup was https-only** (the blob client's setting): a co-located node speaks plain HTTP
+   on the loopback, which is fine for signed records; the lookup client allows it.
+
 ## Things the PoC deliberately did not do
 
 - No relay participation yet: browsers and relays are expected to query/publish on behalf of

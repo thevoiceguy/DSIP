@@ -91,6 +91,17 @@ others (all Debian 13 x86-64): `scp -r root@L1:/var/lib/dsip/prebuilt /root/preb
 PREBUILT=/root/prebuilt ROLE=dht,relay,mailbox MAILBOX_OWNER=did:web:bob.example BOOTSTRAP=<BOOT1> ./node-setup.sh
 ```
 
+**For the browser client (client stages 5–6)** both relays run under a real certificate and serve the client, and
+both mailboxes enrol the browsers' `did:key` identities (spec-gap 115) under the same certificate:
+```bash
+ROLE=relay,mailbox PREBUILT=/root/pb RELAY_HOST=<name> RELAY_CERT=/etc/letsencrypt/live/<name>/fullchain.pem \
+  RELAY_KEY=/etc/letsencrypt/live/<name>/privkey.pem RELAY_WWW=/var/lib/dsip/www TURN_URI=turn:<L4>:3478 \
+  MAILBOX_OWNER=did:web:alice.example MAILBOX_SERVE_ANY=32 ./node-setup.sh
+```
+with `/var/lib/dsip/client.json` naming the nodes and `"mailbox": {"uri": "wss://<name>:9443/dsip", "did":
+"<service.did>"}` (`impl/web/README.md`, runbook). The mailbox reaches a member on the other operator through the
+hint on its co-located node (`--hints-node http://127.0.0.1:8090`).
+
 ### L3 — dht only
 ```bash
 PREBUILT=/root/prebuilt ROLE=dht BOOTSTRAP=<BOOT1> ./node-setup.sh
@@ -407,6 +418,15 @@ federation between them over the WAN, devices on E-A and E-B behind NAT. Identit
    for: the PUT goes to the `blob_endpoint` the mailbox advertises, which must name a public address.
 8. **Record:** `{"run":"6","commit":…,"deliver_ms":{"median":0,"max":0},"offline_sync_ms":0,
    "outage_recover_ms":0,"blob_bytes":0,"blob_put_ms":0,"blob_replicated":true,"pass":true}`.
+
+### Run 6b — the browser client messaging across operators (client stage 6)
+`tools/wan/browser-message.mjs`, the messaging counterpart of `browser-call.mjs`: Bob as a headless browser on one
+operator's origin (relay B + mailbox B as its served defaults), Alice on the other's. Alice introduces herself
+through the relay Bob's hint names, Bob grants, Alice finds his mailbox through the hint, fetches a KeyPackage there
+with his grant, the conversation is created at her mailbox and his welcome reaches mailbox B through the hint; text
+both ways with delivered receipts; Alice reloads and keeps the thread. Each side prints one JSON record (bound,
+mailbox bound, personal group, grant, mailbox lookup, conversation, accepted, delivered, reply, in ms). Recorded as
+`client-6` in `impl/docs/dht-wan-results.jsonl`.
 
 ---
 
