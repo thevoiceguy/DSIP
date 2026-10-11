@@ -8,6 +8,7 @@
 #   dsipctl relay-tail          follow the relay log (bound device / invite → leg / attempt outcome)
 #   dsipctl mailbox-tail        follow the mailbox + hub log
 #   dsipctl turn-tail           follow coturn's log (allocations show a TURN relay in use)
+#   dsipctl turn-cred [ttl]     mint TURN credentials from /var/lib/dsip/turn.secret (what the relay's /turn does for browsers)
 #   dsipctl cap-sig             tcpdump: libp2p + wss control traffic (DHT, relay, mailbox)
 #   dsipctl cap-rtp             tcpdump: UDP (ICE/STUN/TURN/SRTP) — run on an endpoint
 #   dsipctl ports               what is listening
@@ -26,6 +27,9 @@ case "${1:-}" in
   relay-tail)   tail -f /var/log/dsip/relay.log ;;
   mailbox-tail) tail -f /var/log/dsip/mailbox.log ;;
   turn-tail)    tail -f /var/log/turnserver/turn.log ;;
+  turn-cred)    # TURN REST API credentials from the shared secret, valid ${2:-3600} s: for dsip call/answer --turn-user/--turn-pass
+                S=$(cat /var/lib/dsip/turn.secret); U="$(( $(date +%s) + ${2:-3600} )):dsip"
+                echo "--turn-user $U --turn-pass $(printf '%s' "$U" | openssl dgst -sha1 -hmac "$S" -binary | base64)" ;;
   cap-sig) tcpdump -ni any -l 'tcp port 4001 or tcp port 8443 or tcp port 9443' ;;
   cap-rtp) tcpdump -ni any -l 'udp and not port 53 and not port 123' ;;
   ports)   ss -tulpn | grep -E 'dsip|turn|4001|8443|9443|3478' ;;
