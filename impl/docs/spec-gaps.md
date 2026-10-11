@@ -3442,8 +3442,8 @@ outages are shorter than the bound.
     committed the add the welcome belongs to. The replay guarantee the 300 s skew gave (a stale welcome cannot be
     re-presented much later) is already given by the group's registration: a second welcome for a registered
     group is a duplicate (spec-gap 66).
-- **Recommended: (c)**, not yet implemented: `ORIGIN_SKEW_S` in `dsip_messaging::mailbox` and the vectors that
-  pin it (`deposit-welcome-*`, the hub-forwarded welcome's `origin` checks) change together, vectors first, with
-  the demos' outages extended past 300 s to prove it. Until then an operator sees the symptom in the hub's log
-  (`refused our deposit: "policy.blocked"` on every retry) and the member can only be re-added. Found by
-  `tools/wan/browser-message.mjs`; recorded in `impl/docs/dht-findings.md`.
+- **Chosen: (c)** (2026-10-11, after PR #137): the M§14.2 text now in the draft; the three runners agree on the
+  new vectors `mailbox-welcome-hub-forwarded-origin-{after-outage-accepted, older-than-retention-refused,
+  at-retention-bound, at-future-bound, from-the-future-refused}` beside the kept `at-skew-bound` (300 s before:
+  accepted); `origin-stale-refused` (301 s before) is gone, since that is exactly the delivery the bound broke.
+  Found by `tools/wan/browser-message.mjs`; recorded in `impl/docs/dht-findings.md`.

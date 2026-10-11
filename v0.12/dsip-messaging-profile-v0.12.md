@@ -1532,16 +1532,21 @@ membership for its owner, when **any** of the following holds:
 
 For a hub-forwarded `welcome`, the mailbox MUST verify:
 
-- `origin`: the adder device's signed deposit, with a valid delegation, and `issued_at` within 300 s
-  of the hub deposit's `issued_at`
+- `origin`: the adder device's signed deposit, with a valid delegation, whose `issued_at` is no later
+  than the hub deposit's `issued_at` plus 300 s and no earlier than it by more than `pending_group_ttl`
+  (M§6.6)
 - that the grant's `to` equals the adder's identity
 
-(spec-gap 46) `origin` is verified as a credential (its own replay window does not apply; the 300 s
+(spec-gap 46) `origin` is verified as a credential (its own replay window does not apply; the age
 bound above replaces it). It MUST be a `handshake` deposit for the same `group`, and the adder is the
 identity its header delegation proves; nothing else in the welcome or on the hub's connection names
 the adder. A hub-forwarded `welcome` whose `origin` is absent, unverifiable, for another group, or
-outside the 300 s bound is refused with `policy.blocked`; one whose proven adder holds no
-authorization is refused with `policy.first-contact-required`, as for any other welcome.
+outside the age bound is refused with `policy.blocked`; one whose proven adder holds no
+authorization is refused with `policy.first-contact-required`, as for any other welcome. (spec-gap 118)
+The bound is one of age, not skew: the hub re-signs the `welcome` at every retry (M§6.5 rule 5), so a
+welcome delivered after an outage carries an `origin` as old as the outage; a welcome is held for
+`pending_group_ttl` anyway, and an `origin` of that age proves the same thing. The 300 s on the future
+side is clock skew.
 
 A grantee holding only `dsip.invite` may create a conversation so that it can leave voicemail. The
 recipient's client MUST restrict that conversation's rendered content to `purpose` `voicemail` and
