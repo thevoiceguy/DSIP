@@ -1,11 +1,12 @@
 {
-  "vector": "messaging/mailbox-welcome-hub-forwarded-origin-stale-refused",
+  "vector": "messaging/mailbox-welcome-hub-forwarded-origin-after-outage-accepted",
   "format": 1,
   "kind": "messaging",
-  "description": "An origin more than 300 s from the hub deposit proves nothing: policy.blocked.",
+  "description": "A welcome re-sent an hour after the commit (the hub retried through an outage) still proves its adder: the origin's age is bounded by the pending-group retention, not by 300 s (spec-gap 118).",
   "spec_ref": [
     "M§14.2",
-    "M§6.5"
+    "M§6.5",
+    "M§6.6"
   ],
   "context": {
     "component": "mailbox",
@@ -51,7 +52,7 @@
             "origin": {
               "identity": "did:web:carol.example",
               "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
-              "issued_at": 1759999699
+              "issued_at": 1759996400
             }
           }
         }
@@ -63,16 +64,20 @@
       {
         "emit": [
           {
-            "error": {
+            "accepted": {
               "to": "did:web:mbx.alice.example",
               "in_reply_to": "01K742SG0041EXMEJSTFY0873E",
-              "reason": "policy.blocked"
+              "cursor": "c:0000000000000001"
             }
           }
         ],
         "state": {
-          "items": [],
-          "groups": {},
+          "items": [
+            "c:0000000000000001"
+          ],
+          "groups": {
+            "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M": "pending"
+          },
           "key_packages": {}
         }
       }

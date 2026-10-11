@@ -2,7 +2,7 @@
   "vector": "messaging/mailbox-welcome-hub-forwarded-origin-at-skew-bound",
   "format": 1,
   "kind": "messaging",
-  "description": "An origin issued exactly 300 s from the hub deposit is still accepted.",
+  "description": "An origin issued 300 s before the hub deposit is accepted (spec-gap 118: age within the pending-group retention, not skew).",
   "spec_ref": [
     "M§14.2",
     "M§6.5"

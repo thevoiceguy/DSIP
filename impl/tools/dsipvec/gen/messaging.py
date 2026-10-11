@@ -744,12 +744,32 @@ def mailbox_vectors():
                          (hub_welcome(origin=origin(), grant_=grant()), [macc(HUB_A, "w1", c(1))], ms([c(1)], P)),
                      ]))
     out.append(trace("mailbox-welcome-hub-forwarded-origin-at-skew-bound",
-                     "An origin issued exactly 300 s from the hub deposit is still accepted.", g46, T, mbx_ctx(), [
+                     "An origin issued 300 s before the hub deposit is accepted (spec-gap 118: age within the pending-group "
+                     "retention, not skew).", g46, T, mbx_ctx(), [
                          (hub_welcome(origin=origin(issued_at=NOW - 300), grant_=grant()), [macc(HUB_A, "w1", c(1))], ms([c(1)], P)),
                      ]))
-    out.append(trace("mailbox-welcome-hub-forwarded-origin-stale-refused",
-                     "An origin more than 300 s from the hub deposit proves nothing: policy.blocked.", g46, T, mbx_ctx(), [
-                         (hub_welcome(origin=origin(issued_at=NOW - 301), grant_=grant()), [err(HUB_A, "w1", "policy.blocked")], ms()),
+    g118 = ["M§14.2", "M§6.5", "M§6.6"]
+    out.append(trace("mailbox-welcome-hub-forwarded-origin-after-outage-accepted",
+                     "A welcome re-sent an hour after the commit (the hub retried through an outage) still proves its adder: "
+                     "the origin's age is bounded by the pending-group retention, not by 300 s (spec-gap 118).", g118, T, mbx_ctx(), [
+                         (hub_welcome(origin=origin(issued_at=NOW - 3600), grant_=grant()), [macc(HUB_A, "w1", c(1))], ms([c(1)], P)),
+                     ]))
+    out.append(trace("mailbox-welcome-hub-forwarded-origin-older-than-retention-refused",
+                     "An origin older than pending_group_ttl before the hub deposit proves nothing: policy.blocked (spec-gap 118).",
+                     g118, T, mbx_ctx(), [
+                         (hub_welcome(origin=origin(issued_at=NOW - 604801), grant_=grant()), [err(HUB_A, "w1", "policy.blocked")], ms()),
+                     ]))
+    out.append(trace("mailbox-welcome-hub-forwarded-origin-at-retention-bound",
+                     "An origin exactly pending_group_ttl before the hub deposit is still accepted (spec-gap 118).", g118, T, mbx_ctx(), [
+                         (hub_welcome(origin=origin(issued_at=NOW - 604800), grant_=grant()), [macc(HUB_A, "w1", c(1))], ms([c(1)], P)),
+                     ]))
+    out.append(trace("mailbox-welcome-hub-forwarded-origin-at-future-bound",
+                     "An origin issued 300 s after the hub deposit (clock skew) is still accepted (spec-gap 118).", g118, T, mbx_ctx(), [
+                         (hub_welcome(origin=origin(issued_at=NOW + 300), grant_=grant()), [macc(HUB_A, "w1", c(1))], ms([c(1)], P)),
+                     ]))
+    out.append(trace("mailbox-welcome-hub-forwarded-origin-from-the-future-refused",
+                     "An origin more than 300 s after the hub deposit proves nothing: policy.blocked (spec-gap 118).", g118, T, mbx_ctx(), [
+                         (hub_welcome(origin=origin(issued_at=NOW + 301), grant_=grant()), [err(HUB_A, "w1", "policy.blocked")], ms()),
                      ]))
     out.append(trace("mailbox-welcome-hub-forwarded-without-origin-refused",
                      "A hub-forwarded welcome without origin is refused: the hub's own connection does not prove who added the owner.",

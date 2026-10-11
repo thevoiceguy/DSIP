@@ -34,7 +34,9 @@ EPHEMERAL_LIFETIME_S = 10      # M§11.2
 ULID_TOLERANCE_S = 300         # M§8.1 (§20.6 applied to content)
 REACTION_MAX_BYTES = 32        # M§8.2
 KEY_PACKAGES_PER_DEVICE = 100  # M§5.5 RECOMMENDED bound
-ORIGIN_SKEW_S = 300            # M§14.2: origin issued_at within 300 s of the hub deposit
+ORIGIN_SKEW_S = 300            # M§14.2 (spec-gap 118): origin issued_at no later than the hub deposit's + 300 s …
+                               # … and no older than pending_group_ttl before it (the hub re-signs each retry; a welcome
+                               # re-sent after an outage carries the same origin)
 HANDOVER_WAIT_S = 300          # M§7.4 (spec-gap 71): how long a mailbox holds a new hub off for the old hub's last items
 
 MESSAGE_SCHEMAS = ["deposit", "accepted", "sync", "items", "key-packages", "key-package-fetch", "blob-put",
@@ -559,9 +561,14 @@ class Mailbox:
         adder = e.get("adder_identity")
         if e.get("via_hub"):
             # M§14.2 (spec-gap 46): a hub-forwarded welcome proves its adder only by `origin`, the adder
-            # device's signed deposit for this group within 300 s of the hub's; the hub connection proves nothing
+            # device's signed deposit for this group; the hub connection proves nothing. Its age (spec-gap 118): not
+            # from the future beyond 300 s of skew, and not older than the pending-group retention — the hub re-signs
+            # every retry, so a welcome delivered after an outage carries an origin as old as the outage.
             o = e.get("origin")
-            if o is None or o["group"] != e["group"] or abs(o["issued_at"] - e["issued_at"]) > ORIGIN_SKEW_S:
+            if o is None or o["group"] != e["group"]:
+                return self._error(e["from"], e["id"], "policy.blocked")
+            age = e["issued_at"] - o["issued_at"]
+            if age < -ORIGIN_SKEW_S or age > self.pending_ttl:
                 return self._error(e["from"], e["id"], "policy.blocked")
             adder = o["identity"]
         succ = e.get("successor_of")

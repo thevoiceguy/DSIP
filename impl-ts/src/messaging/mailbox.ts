@@ -14,7 +14,9 @@
 import type { Json, JsonObject } from "../did.js";
 import type { Machine, Step } from "./device.js";
 
-/** Spec: M§14.2 — `origin` is within 300 s of the hub deposit. */
+/** Spec: M§14.2 — `origin` is no later than the hub deposit plus 300 s of skew, and no older than the pending-group
+ *  retention before it (spec-gap 118: the hub re-signs each retry; a welcome delivered after an outage carries an origin
+ *  as old as the outage). */
 const ORIGIN_SKEW_S = 300;
 /** Spec: M§7.4 (spec-gap 71) — RECOMMENDED; the mailbox's own choice. */
 const HANDOVER_WAIT_S = 300;
@@ -275,7 +277,8 @@ export class Mailbox implements Machine {
     if (w["via_hub"] === true) {
       // spec-gap 46: only `origin` — the adder's own signed handshake deposit — names the adder
       const origin = w["origin"] as JsonObject | undefined;
-      const fresh = origin && Math.abs((origin["issued_at"] as number) - (w["issued_at"] as number)) <= ORIGIN_SKEW_S;
+      const age = origin ? (w["issued_at"] as number) - (origin["issued_at"] as number) : NaN;
+      const fresh = origin !== undefined && age >= -ORIGIN_SKEW_S && age <= this.ctx.pending_group_ttl;
       if (!origin || origin["group"] !== group || !fresh) return this.error(from, id, "policy.blocked");
       adder = origin["identity"] as string;
     }
