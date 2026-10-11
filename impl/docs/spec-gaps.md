@@ -3349,3 +3349,101 @@ the first two as an expected gap: whether a relay may advertise ICE servers in i
   needed for ICE configuration, and the binding could cite the TURN REST convention as the way short-lived credentials
   are expected to reach a client. Pinned by `web/test/deploy.mjs` (served defaults in effect, minted credentials verify
   under the secret, a call through the relay another operator's hint names); no vector, because nothing is a message.
+
+## 115. M§4.1 / M§4.2 — how an identity with no document comes to be served by a mailbox
+
+**Found (2026-10-11, by the client's stage 6).** M§4.1 says a mailbox is a service identity and M§4.2 how an
+identity advertises the mailbox that serves it (a document entry, or for `did:key` a `DSIPMailbox` endpoint in its
+reachability hint). Nothing says how a mailbox comes to serve an identity: the reference mailbox served one
+configured owner, which a `did:key` identity made in a browser can never be ahead of time. The relay has the same
+question answered in §13.6 (open, or private to listed identities; spec-gap 100).
+
+- Choices:
+  - (a) static configuration only (`--owner`, repeatable);
+  - (b) enrolment at first use: an identity whose device binds with a verified `hello` under a delegation carrying
+    `dsip.messaging` (M§4.3) is served from its first owner operation (`sync`, `key-packages`, `mailbox-config`),
+    bounded by an operator cap; a binding alone enrols nothing (another identity's device binds to fetch
+    KeyPackages or deposit a welcome);
+  - (c) an operator-issued token presented in the first `mailbox-config`.
+- **Chosen: (a) and (b) together** in `dsip-mailbox` (`--owner` repeatable, `--serve-any <n>`). (b) is the relay's
+  open mode for mailboxes: the identity is what the delegation proves, the cap is the abuse bound, and what the
+  mailbox holds for it is bounded by its quota (spec-gap 99). (c) is deployment and can be added without touching
+  the profile. An enrolled identity is served exactly as a configured owner (its own machine, store and quota). The
+  profile could say in M§4.1 that a mailbox MAY serve identities that enrol by binding, that enrolment is an owner
+  operation and never a binding alone, and that the identity's hint, not its enrolment, says which mailbox it uses
+  (see 116). Pinned by `web/test/messaging.mjs` (two browsers enrol at two mailboxes); no vector, because the
+  decision is the host's policy, not a message rule.
+
+## 116. M§4.2 / M§6.5 — which mailbox a hub delivers to for a member that enrolled here but advertises another
+
+**Found (2026-10-11, by the client's stage 6).** A hub fans out to each member's mailbox, selected per M§4.2. The
+reference hub short-cut this for identities it served itself (in-process delivery). With enrolment by binding
+(115), an identity can be served by the mailbox it first bound to and advertise, in its hint, the one it moved to:
+the hub delivered to itself, its own mailbox refused `mailbox.unknown-group`, and the member never received the
+welcome. M§4.2 says hints never override a document and a client never moves an established conversation's mailbox
+on a hint alone; it does not say what a hub does when its own view (an enrolment) and the member's hint disagree.
+
+- Choices:
+  - (a) the hub delivers to every mailbox it believes serves the member (its own and the hinted one);
+  - (b) the hub delivers to the mailbox the member advertises — document, else the newest verified hint (§8.3) —
+    and to itself only when that resolution names it; the hint is looked up again after a bounded reuse time and at
+    once when its own mailbox does not hold the group for the member;
+  - (c) enrolment is withdrawn when a newer hint names another mailbox.
+- **Chosen: (b)** in `dsip-mailbox` (every fan-out is routed through the resolution, `HINT_REUSE_S` = 60 s, a local
+  `mailbox.unknown-group` drops the cached hint). (a) duplicates traffic and stores for a mailbox the member no
+  longer syncs; (c) makes a hint change registration state, which §8.1 rule 6 forbids. The profile could add to
+  M§6.5 rule 5 that the member's mailbox is resolved per M§4.2 at each delivery attempt, never taken from where the
+  member once bound. Pinned by `web/test/messaging.mjs` (Bob binds at mailbox A first, moves to B, and the welcome
+  reaches B).
+
+## 117. §10.2 / §19.4 / M§14.2 — `from` on a grant: the identity, or the device acting for it
+
+**Found (2026-10-11, by the client's stage 6).** The core engine (`dsip-endpoint`, the CLI and the browser) sets
+`from` to the device DID on every message and the receiver learns the identity from the delegation in the header
+(§13.2: a device acts for the identity it is bound as). The messaging console sets `from` to the identity and signs
+under the device with the delegation inline. Both verify under §10.2 and §7.4. A mailbox checking a presented grant
+(M§14.2: "a live grant from the owner whose `to` is that identity") compared `from` with the owner identity and
+refused every grant the core engine had issued — the grantee held a valid grant and could not fetch KeyPackages.
+
+- Choices:
+  - (a) `from` MUST be the identity on `introduction` and `grant` (the device signs, the delegation binds);
+  - (b) `from` MAY be the device; a verifier takes the granter as the identity the header delegation binds the
+    signer to, as it does for `hello`'s `on_behalf_of` and for every session message;
+  - (c) grants carry an explicit `granter` field.
+- **Chosen: (b)** in `dsip_messaging::verify::grant_credential` (the payload's `from` is replaced by the bound
+  identity when it names the signing device). (a) would make the core engine's existing grants invalid and split the
+  `from` rule by type; (c) adds a field for what the delegation already proves. §10.2 could state the rule once:
+  `from` names the device or the identity, and a receiver that needs the identity takes it from the delegation
+  binding, whatever the type. Pinned by the `verify` unit test in `dsip-messaging` and by `web/test/messaging.mjs`
+  (a grant issued by the browser's calling engine admits the KeyPackage fetch); a `messaging/` vector for the grant
+  check with a device `from` is the next step.
+
+## 118. M§14.2 / M§6.5 — a hub-forwarded welcome re-sent after an outage fails the `origin` freshness bound
+
+**Found (2026-10-11, on the WAN testbed by the client's stage 6).** M§14.2 has the member mailbox verify a
+hub-forwarded `welcome` by its `origin` — the adder's signed `handshake` deposit — with `issued_at` within 300 s of
+the hub deposit's `issued_at` (spec-gap 46). The hub re-signs the `welcome` deposit at every retry (M§6.5 rule 5,
+spec-gap 66: a fresh envelope, since the receiver's replay window and the profile's 60 s lifetime refuse an old
+one). When the first delivery fails for longer than 300 s — here a TLS trust problem between two mailboxes for five
+minutes — every later retry carries an `origin` too old for the bound and is refused `policy.blocked`, forever:
+the member never joins, and the hub keeps retrying. The welcome-retry and hub-outage demos pass because their
+outages are shorter than the bound.
+
+- Choices:
+  - (a) the hub stops retrying a welcome after 300 s and surfaces the failure to the adder, who re-adds (a new
+    commit, a new welcome): the conversation's creation depends on every member mailbox answering within five
+    minutes;
+  - (b) the bound compares `origin.issued_at` with the welcome's own `seq`-time as the hub recorded it, carried in
+    the deposit: a new field that only the hub attests, which the member mailbox cannot verify;
+  - (c) the bound is one of age, not skew: `origin.issued_at` MUST NOT be later than the hub deposit's `issued_at`
+    plus 300 s (no origin from the future), and MUST be within the pending-group retention
+    (`pending_group_ttl`, RECOMMENDED 604,800 s) before it — a welcome is held for that long anyway (M§6.6), so
+    an `origin` of the same age proves the same thing: that this adder, under a delegation live when it signed,
+    committed the add the welcome belongs to. The replay guarantee the 300 s skew gave (a stale welcome cannot be
+    re-presented much later) is already given by the group's registration: a second welcome for a registered
+    group is a duplicate (spec-gap 66).
+- **Recommended: (c)**, not yet implemented: `ORIGIN_SKEW_S` in `dsip_messaging::mailbox` and the vectors that
+  pin it (`deposit-welcome-*`, the hub-forwarded welcome's `origin` checks) change together, vectors first, with
+  the demos' outages extended past 300 s to prove it. Until then an operator sees the symptom in the hub's log
+  (`refused our deposit: "policy.blocked"` on every retry) and the member can only be re-added. Found by
+  `tools/wan/browser-message.mjs`; recorded in `impl/docs/dht-findings.md`.

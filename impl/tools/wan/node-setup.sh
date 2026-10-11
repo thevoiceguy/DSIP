@@ -16,7 +16,11 @@
 #                                            at /dsip/v1/ and serves $STATE/client.json as /config.json if present)
 #   TURN_URI=turn:<L4>:3478                  (optional, with RELAY_WWW: the relay mints TURN credentials at /turn from
 #                                            $STATE/turn.secret, the secret L4's coturn holds)
-#   MAILBOX_OWNER=<did>                     (required for ROLE=mailbox: the identity this mailbox serves)
+#   MAILBOX_OWNER=<did>[,<did>]             (ROLE=mailbox: identities this mailbox serves; and/or MAILBOX_SERVE_ANY)
+#   MAILBOX_SERVE_ANY=<n>                   (ROLE=mailbox: serve up to n identities that enrol by binding, spec-gap 115:
+#                                            the browser client's did:key identities; the mailbox is advertised to
+#                                            them in $STATE/client.json as "mailbox": {"uri", "did"}; with RELAY_CERT the
+#                                            mailbox serves under the same certificate, which browsers require)
 #   MAILBOX_DOCS="alice bob"                (names under /var/lib/dsip/docs/<name>.json the mailbox resolves from)
 #   TURN_SECRET=<string>                    (ROLE=turn: the TURN REST API secret, default: generated into $STATE/turn.secret;
 #                                            credentials are minted from it: `dsipctl turn-cred` or the relay's /turn)
@@ -124,7 +128,7 @@ RELAYARG=""
 if [ -n "${RELAY_CERT:-}" ]; then
   RELAYARG="$RELAYARG --cert $RELAY_CERT --key ${RELAY_KEY:?RELAY_CERT needs RELAY_KEY}"
   mkdir -p /etc/letsencrypt/renewal-hooks/deploy
-  printf '#!/bin/sh\nsystemctl restart dsip-relay\n' > /etc/letsencrypt/renewal-hooks/deploy/dsip-relay.sh
+  printf '#!/bin/sh\nsystemctl restart dsip-relay\nsystemctl try-restart dsip-mailbox\n' > /etc/letsencrypt/renewal-hooks/deploy/dsip-relay.sh
   chmod +x /etc/letsencrypt/renewal-hooks/deploy/dsip-relay.sh
 fi
 if [ -n "${RELAY_WWW:-}" ]; then
@@ -157,7 +161,12 @@ fi
 
 # ---- mailbox + hub (Messaging Profile 1.0) ------------------------------------
 if has mailbox; then
-  OWNER=${MAILBOX_OWNER:?ROLE=mailbox needs MAILBOX_OWNER=<identity DID>}
+  [ -n "${MAILBOX_OWNER:-}${MAILBOX_SERVE_ANY:-}" ] || { echo "ROLE=mailbox needs MAILBOX_OWNER=<did> and/or MAILBOX_SERVE_ANY=<n>"; exit 1; }
+  OWNERARG=""; for o in $(echo "${MAILBOX_OWNER:-}" | tr ',' ' '); do OWNERARG="$OWNERARG --owner $o"; done
+  [ -n "${MAILBOX_SERVE_ANY:-}" ] && OWNERARG="$OWNERARG --serve-any $MAILBOX_SERVE_ANY"
+  # a member with no document (a browser's did:key) is reached through its hint on the co-located node (M§4.2)
+  OWNERARG="$OWNERARG --hints-node http://127.0.0.1:8090"
+  [ -n "${RELAY_CERT:-}" ] && OWNERARG="$OWNERARG --cert $RELAY_CERT --key ${RELAY_KEY:?RELAY_CERT needs RELAY_KEY}"
   DOCARG=""; for n in ${MAILBOX_DOCS:-alice bob}; do DOCARG="$DOCARG --resolver-file $STATE/docs/$n.json"; done
   # The DID documents and the CA bundle are read when used, so both may arrive after the service starts.
   cat > /etc/systemd/system/dsip-mailbox.service <<UNIT
@@ -165,7 +174,7 @@ if has mailbox; then
 Description=DSIP mailbox and hub service (wss + blob endpoint, one TLS port)
 After=network-online.target chrony.service
 [Service]
-ExecStart=$BIN/dsip-mailbox --listen 0.0.0.0:$MAILBOX_PORT --state $STATE/mailbox --owner $OWNER $HOSTARG --ca $STATE/ca-all.pem $DOCARG
+ExecStart=$BIN/dsip-mailbox --listen 0.0.0.0:$MAILBOX_PORT --state $STATE/mailbox$OWNERARG $HOSTARG --ca $STATE/ca-all.pem $DOCARG
 Restart=always
 StandardOutput=append:$LOG/mailbox.log
 StandardError=append:$LOG/mailbox.log
@@ -175,7 +184,7 @@ UNIT
   systemctl daemon-reload; systemctl enable dsip-mailbox; systemctl restart dsip-mailbox
   sleep 1.5
   echo "Mailbox DID:  $(cat $STATE/mailbox/service.did)"
-  echo "Mailbox URI:  wss://$PUBLIC_IP:$MAILBOX_PORT/dsip   cert: $STATE/mailbox/cert.pem"
+  echo "Mailbox URI:  wss://${RELAY_HOST:-$PUBLIC_IP}:$MAILBOX_PORT/dsip   cert: ${RELAY_CERT:-$STATE/mailbox/cert.pem}"
 fi
 
 # ---- STUN / TURN (coturn) ------------------------------------------------------
