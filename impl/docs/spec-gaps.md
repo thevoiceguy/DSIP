@@ -3326,3 +3326,26 @@ of the identity, never the bound device) fails the "signer is the bound device" 
   acknowledges. Pinned by the client's headless test (`web/test/devices.mjs`: the revoked device is dropped and its next
   hello refused `delegation-revoked`, after a relay-side hold too); no vector yet, because the relay tracker has no
   revocation event, which is the next gap once the carriage is decided.
+
+## 114. §13.2 / B§ — how ICE servers, TURN credentials and hints nodes reach a client
+
+**Found (2026-10-11, by the client's stage 5).** A browser client needs three things no message carries: the ICE
+servers for its calls (B§: the binding assumes ICE, and a call across two NATs needs TURN), credentials for a TURN
+server (short-lived, so they cannot be static configuration), and the nodes of the hints tier it looks up and
+publishes on (DHT Hints Profile §10: "pointing a client at a node is configuration"). The client plan (§12) listed
+the first two as an expected gap: whether a relay may advertise ICE servers in its `hello` capabilities.
+
+- Choices:
+  - (a) the relay's `hello` capabilities carry `ice_servers` (with credentials minted per hello) and `hints_nodes`;
+  - (b) the origin that serves the client carries them beside it: a `config.json` of operator defaults and a `/turn`
+    that mints TURN REST API credentials (username `<expiry>:<name>`, password `HMAC-SHA1(secret, username)`, the
+    convention coturn implements), both outside the protocol;
+  - (c) manual configuration only.
+- **Chosen: (b), with (c) as the override** in `dsip-relay` (`--client-config`, `--turn-uri --turn-secret-file`) and
+  `impl/web` (Settings → Network shows what is in effect and where it came from; `none` overrides an operator
+  default). `hello` is untouched: capabilities describe the relay's own protocol behaviour (§13.2), and a relay is not
+  the only origin a client can be served from. (a) would tie credentials to the binding lifetime and give every relay
+  an opinion about media, which the core keeps out of signaling. The core could say in §13.2 that a relay MUST NOT be
+  needed for ICE configuration, and the binding could cite the TURN REST convention as the way short-lived credentials
+  are expected to reach a client. Pinned by `web/test/deploy.mjs` (served defaults in effect, minted credentials verify
+  under the secret, a call through the relay another operator's hint names); no vector, because nothing is a message.

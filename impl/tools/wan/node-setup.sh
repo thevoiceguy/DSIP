@@ -7,10 +7,19 @@
 #   PREBUILT=<dir>                          (optional: install binaries from here instead of building; see README §1)
 #   DHT_SEED=<32-byte hex>                  (optional: fixed PeerId so bootstrap addrs survive restarts)
 #   BOOTSTRAP=<multiaddr>[,<multiaddr>]     (required for ROLE=dht; omit for the bootstrap node itself)
-#   RELAY_HOST=<dns name>                   (optional: extra SAN on the relay's and the mailbox's self-signed cert)
+#   RELAY_HOST=<dns name>                   (optional: extra SAN on the relay's and the mailbox's self-signed cert; with
+#                                            RELAY_CERT the name the certificate is for)
+#   RELAY_CERT=<fullchain.pem> RELAY_KEY=<privkey.pem>  (optional: a real certificate for the relay, e.g. Let's Encrypt's
+#                                            /etc/letsencrypt/live/<name>/; a deploy hook restarts the relay on renewal)
+#   RELAY_WWW=<dir>                          (optional: the browser client to serve at https://<name>:8443/, see
+#                                            impl/web/README.md "Runbook"; with it the relay proxies the local dsip-node
+#                                            at /dsip/v1/ and serves $STATE/client.json as /config.json if present)
+#   TURN_URI=turn:<L4>:3478                  (optional, with RELAY_WWW: the relay mints TURN credentials at /turn from
+#                                            $STATE/turn.secret, the secret L4's coturn holds)
 #   MAILBOX_OWNER=<did>                     (required for ROLE=mailbox: the identity this mailbox serves)
 #   MAILBOX_DOCS="alice bob"                (names under /var/lib/dsip/docs/<name>.json the mailbox resolves from)
-#   TURN_USER / TURN_PASS                   (ROLE=turn: long-term credential; default dsip / a generated password)
+#   TURN_SECRET=<string>                    (ROLE=turn: the TURN REST API secret, default: generated into $STATE/turn.secret;
+#                                            credentials are minted from it: `dsipctl turn-cred` or the relay's /turn)
 #
 # Example:
 #   ROLE=bootstrap,relay,mailbox MAILBOX_OWNER=did:web:alice.example DHT_SEED=$(openssl rand -hex 32) ./node-setup.sh  # L1
@@ -109,13 +118,30 @@ fi
 
 # ---- relay -------------------------------------------------------------------
 HOSTARG="--host $PUBLIC_IP"; [ -n "${RELAY_HOST:-}" ] && HOSTARG="$HOSTARG --host $RELAY_HOST"
+# Stage 5 of the client plan: a real certificate, the client served, the operator's defaults, TURN credentials, the
+# local dsip-node reached through the relay's origin (impl/web/README.md "Runbook").
+RELAYARG=""
+if [ -n "${RELAY_CERT:-}" ]; then
+  RELAYARG="$RELAYARG --cert $RELAY_CERT --key ${RELAY_KEY:?RELAY_CERT needs RELAY_KEY}"
+  mkdir -p /etc/letsencrypt/renewal-hooks/deploy
+  printf '#!/bin/sh\nsystemctl restart dsip-relay\n' > /etc/letsencrypt/renewal-hooks/deploy/dsip-relay.sh
+  chmod +x /etc/letsencrypt/renewal-hooks/deploy/dsip-relay.sh
+fi
+if [ -n "${RELAY_WWW:-}" ]; then
+  RELAYARG="$RELAYARG --www $RELAY_WWW --node-proxy 127.0.0.1:8090"
+  [ -f $STATE/client.json ] && RELAYARG="$RELAYARG --client-config $STATE/client.json"
+  if [ -n "${TURN_URI:-}" ]; then
+    [ -f $STATE/turn.secret ] || { echo "TURN_URI needs $STATE/turn.secret (the secret coturn holds)"; exit 1; }
+    RELAYARG="$RELAYARG --turn-uri $TURN_URI --turn-secret-file $STATE/turn.secret"
+  fi
+fi
 if has relay; then
   cat > /etc/systemd/system/dsip-relay.service <<UNIT
 [Unit]
 Description=DSIP relay (wss)
 After=network-online.target chrony.service
 [Service]
-ExecStart=$BIN/dsip-relay --listen 0.0.0.0:$RELAY_PORT --state $STATE/relay $HOSTARG
+ExecStart=$BIN/dsip-relay --listen 0.0.0.0:$RELAY_PORT --state $STATE/relay $HOSTARG$RELAYARG
 Restart=always
 StandardOutput=append:$LOG/relay.log
 StandardError=append:$LOG/relay.log
@@ -124,8 +150,9 @@ WantedBy=multi-user.target
 UNIT
   systemctl daemon-reload; systemctl enable dsip-relay; systemctl restart dsip-relay
   sleep 1.5
-  echo "Relay cert (goes into every endpoint's CA bundle): $STATE/relay/cert.pem"
-  echo "Relay URL: wss://$PUBLIC_IP:$RELAY_PORT/dsip"
+  if [ -n "${RELAY_CERT:-}" ]; then echo "Relay certificate: $RELAY_CERT (public CA; endpoints need no --ca)"; else echo "Relay cert (goes into every endpoint's CA bundle): $STATE/relay/cert.pem"; fi
+  echo "Relay URL: wss://${RELAY_HOST:-$PUBLIC_IP}:$RELAY_PORT/dsip"
+  [ -n "${RELAY_WWW:-}" ] && echo "Client: https://${RELAY_HOST:-$PUBLIC_IP}:$RELAY_PORT/"
 fi
 
 # ---- mailbox + hub (Messaging Profile 1.0) ------------------------------------
@@ -165,10 +192,12 @@ if has stun || has turn; then
     # Two relay-only clients on this server are each other's peer at this server's own address
     echo "allowed-peer-ip=$PUBLIC_IP"
     if has turn; then
-      TURN_USER=${TURN_USER:-dsip}
-      TURN_PASS=${TURN_PASS:-$(cat $STATE/turn.pass 2>/dev/null || openssl rand -hex 12)}
-      echo "$TURN_PASS" > $STATE/turn.pass; chmod 600 $STATE/turn.pass
-      echo "lt-cred-mech"; echo "realm=dsip.test"; echo "user=$TURN_USER:$TURN_PASS"
+      # TURN REST API credentials (coturn `use-auth-secret`): a client's username is `<expiry>:<name>` and its
+      # password HMAC-SHA1(secret, username), minted by the relay at /turn for browsers and by `dsipctl turn-cred`
+      # for the CLI. coturn allows one mechanism at a time, so static users are gone with this.
+      TURN_SECRET=${TURN_SECRET:-$(cat $STATE/turn.secret 2>/dev/null || openssl rand -hex 24)}
+      (umask 077; echo "$TURN_SECRET" > $STATE/turn.secret)
+      echo "use-auth-secret"; echo "static-auth-secret=$TURN_SECRET"; echo "realm=dsip.test"
       echo "min-port=49160"; echo "max-port=49200"    # open this UDP range in the cloud firewall
     else
       echo "stun-only"
@@ -177,7 +206,7 @@ if has stun || has turn; then
   sed -i 's/^#TURNSERVER_ENABLED=1/TURNSERVER_ENABLED=1/' /etc/default/coturn 2>/dev/null || true
   systemctl enable coturn; systemctl restart coturn
   echo "STUN: $PUBLIC_IP:3478"
-  if has turn; then echo "TURN: turn:$PUBLIC_IP:3478  user $TURN_USER  pass $TURN_PASS   (relay ports 49160-49200/udp)"; fi
+  if has turn; then echo "TURN: turn:$PUBLIC_IP:3478  secret in $STATE/turn.secret (copy it to the relay hosts; credentials: dsipctl turn-cred)   (relay ports 49160-49200/udp)"; fi
 fi
 
 # ---- endpoint: identity dirs only --------------------------------------------

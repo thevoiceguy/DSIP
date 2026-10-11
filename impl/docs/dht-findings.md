@@ -213,6 +213,44 @@ What the WAN showed that localhost could not:
    A KRPC probe needs a 4-byte transaction id: `mainline` silently drops shorter ones, which first looked like a
    closed port.
 
+## The browser client on the WAN (client stage 5, 2026-10-11 UTC)
+
+The reference client (`impl/web`, plan `docs/dsip-client-plan.md`) deployed on the same testbed: L1's and L2's relays
+serve it under Let's Encrypt certificates for their Linode reverse-DNS names, with the operator's `config.json` beside
+it (the two nodes, publish a hint), TURN credentials minted at `/turn` from the secret L4's coturn holds, and each
+relay's co-located `dsip-node` proxied at `/dsip/v1/`. Alice is a headless Firefox behind the home NAT on L1's
+relay; Bob a headless Chromium behind `natlab.sh` on L3, cone then symmetric, on L2's relay. Nothing was
+pre-arranged between them but Bob's DID. Driver: `tools/wan/browser-call.mjs`; raw record: `dht-wan-results.jsonl`,
+run `client-5`.
+
+| what | result |
+|---|---|
+| page | the 5.0 MB wasm in 1.2–1.6 s; bound to the relay 3.1 s (Alice) / 3.9–4.2 s (Bob) after the page opened |
+| hint | each browser's record accepted by the first node with 3 peers acknowledging; the second node answered "a held record wins", holding the replica already |
+| lookup | Alice's `GET /dsip/v1/hints/<Bob>` through L1's origin 439 ms, through L2's 985 ms (the overlay query behind each); the winner verified against Bob's DID through his device's delegation, labelled hint-sourced on her call screen, and the invite went through L2's relay on a connection opened for the call |
+| cone NAT | ringing 2.4 s after the Call click (lookups included), ACTIVE 3.2 s, ICE 0.9 s (Alice) / 1.1 s (Bob); Alice's side nominated srflx↔relay, Bob's srflx↔srflx direct (rtt 213 ms): asymmetric, both carrying media; 890 packets in to Alice in 20 s |
+| symmetric NAT | ringing 2.3 s, ACTIVE 2.8 s, ICE 1.3 s / 1.6 s, relay↔relay through L4's TURN both ways (rtt 362 ms at Bob); 889 / 938 packets in over 20 s |
+
+What the deployment showed:
+
+1. **A relay change within one second lost to the hint it replaced.** `seq` is the issue time, as the CLI's; a
+   browser whose relay was changed in Settings re-published within the same second, tied on `seq` with the record the
+   node held, and lost (§8.3: same `seq`, both live, the existing one kept). The client now keeps the last `seq` it
+   issued, in storage, and goes past it. One identity on two devices at two relays is still two publishers racing
+   on `seq`, which the profile leaves to the publisher.
+2. **Mixed content.** A page served over `https` cannot fetch a node that speaks plain `http`, which the nodes do
+   (their README expects a TLS proxy). The relay proxies its co-located node at `/dsip/v1/`, so the page's lookups and
+   publishes stay on its origin; `config.json` lists the relays' origins as the nodes.
+3. **One TURN credential mechanism.** coturn's `use-auth-secret` (the TURN REST API: username `<expiry>:name`,
+   password an HMAC under a shared secret, which is how short-lived credentials reach a browser) excludes static
+   users, so the WAN README's `TURN_USER`/`TURN_PASS` are gone: `dsipctl turn-cred` mints the CLI's pair the way the
+   relay's `/turn` mints a browser's (spec-gap 114 for where this sits relative to the protocol: outside it).
+4. **A certificate without a domain.** `ip.linodeusercontent.com` is on the public suffix list, so Let's Encrypt
+   issues for a Linode's reverse-DNS name through HTTP-01 on port 80. The relay takes the chain and key as files; a
+   deploy hook restarts it on renewal.
+5. **Two views of one path.** Each browser reports the pair it nominated; in the cone run they differed (Alice
+   through TURN, Bob direct). Both are right: the sides of a call may take different paths.
+
 ## Things the PoC deliberately did not do
 
 - No relay participation yet: browsers and relays are expected to query/publish on behalf of

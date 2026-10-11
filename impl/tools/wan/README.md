@@ -100,7 +100,7 @@ PREBUILT=/root/prebuilt ROLE=dht BOOTSTRAP=<BOOT1> ./node-setup.sh
 ```bash
 PREBUILT=/root/prebuilt ROLE=dht,turn DHT_SEED=$(openssl rand -hex 32) BOOTSTRAP=<BOOT1> ./node-setup.sh
 cat /var/lib/dsip/my-multiaddr      # ← BOOT2 (used in Run 2)
-cat /var/lib/dsip/turn.pass         # ← TURN_PASS (user `dsip`)
+dsipctl turn-cred                   # ← `--turn-user <expiry>:dsip --turn-pass <hmac>`, minted from /var/lib/dsip/turn.secret (valid 1 h)
 ```
 
 ### E-A / E-B — endpoints
@@ -122,8 +122,8 @@ RELAY_A=wss://<L1>:8443/dsip
 RELAY_B=wss://<L2>:8443/dsip
 STUN=<L4>:3478
 TURN=turn:<L4>:3478
-TURN_USER=dsip
-TURN_PASS=<L4:/var/lib/dsip/turn.pass>
+TURN_USER=<from `dsipctl turn-cred` on L4: <expiry>:dsip>      # TURN REST API credentials (coturn use-auth-secret), valid 1 h;
+TURN_PASS=<from the same line>                                 # mint a fresh pair for each run (the browser client gets its own from the relay's /turn)
 CA=$HOME/dsip-wan/ca-all.pem
 MBX_A=wss://<L1>:9443/dsip
 MBX_B=wss://<L2>:9443/dsip
@@ -419,7 +419,8 @@ printf '{"op":"shutdown"}\n' | nc -q1 127.0.0.1 4101; systemctl restart dsip-dht
 #            state/mailbox/blobs/ — and remove the devices' --state dirs with it, or they resume into a group the
 #            mailbox has forgotten
 # endpoints: call identities persist; recordings in /tmp
-# L4: coturn keeps no state worth resetting; rotate TURN_PASS by deleting /var/lib/dsip/turn.pass and re-running setup
+# L4: coturn keeps no state worth resetting; rotate the secret by deleting /var/lib/dsip/turn.secret and re-running setup
+#     (then copy the new secret to the relay hosts' /var/lib/dsip/turn.secret and restart their relays)
 ```
 
 ---
