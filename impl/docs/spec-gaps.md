@@ -3490,3 +3490,55 @@ commits, the later of which loses its conflict and is not re-proposed because it
 - **Recommended: (a)**, one sentence in M§6.8. The browser client waits 30 s after binding when it knows of a
   sibling and then joins every group its mailbox holds a GroupInfo for, personal group first (an `Impl:` note in
   `impl/web/app.js`); a device that knows of no sibling creates the personal group at once (M§7.1), as before.
+
+## 121. C§6 / M§8 / §20.7 — an organisation's call records have no endpoint-side path, and a recording leg cannot carry metadata alone
+
+**Found (2026-10-12, asked how an enterprise collects call detail records for compliance).** DSIP has no central
+switch. The records an organisation can collect today come from infrastructure it runs: its relay sees every
+session message of the devices bound to it (§10.4, §20.7), its gateway sees PSTN legs, its mailboxes see deposits.
+The draft core Appendix D (`impl/docs/v0.13-cdr-appendix-draft.md`) describes that. Two things it cannot cover:
+
+- **Calls the organisation's relay never sees.** A device MAY hold connections to several relays (§13.2), a
+  roaming device may bind elsewhere, and nothing in the protocol pins a delegated device to its organisation's
+  relay. Those calls leave no record anywhere the organisation runs.
+- **A disclosed record at the organisation's recorder without media.** The Recording Profile's recorder leg (C§6)
+  carries RFC 7865-shaped metadata, but only beside media: "At least one stream is required", and an `invite`
+  requires at least one media descriptor (`invite.schema.json`, `media` `minItems: 1`). A party that must log every
+  call but record none has no profile path to its recorder.
+
+Choices:
+
+- **(a)** Records at infrastructure only (Appendix D); no change. Coverage depends on deployment policy pinning
+  devices to the organisation's relay, which the protocol cannot enforce.
+- **(b)** A metadata-only recording session: C§6 allows `streams: []`, and the invite schema admits an empty `media`
+  for an invite carrying `recording_session`. Live: the recorder must be online at every call's start, each call
+  costs a second session, and `media` loses a core invariant for one profile's sake.
+- **(c)** A `call-record` object (M§8.1), sent by the recording party's device after every session it took part in,
+  to a direct conversation with the organisation's recorder identity (C§1: a service identity whose devices carry
+  `dsip.record`). Store-and-forward through the mailboxes, so a recorder that is down loses nothing; encrypted end to
+  end; authenticated by the device's MLS leaf; covering calls on any relay. Shape, mirroring `call-event` (M§13.3) and
+  RFC 7865's participants:
+
+  ```json
+  {"object": "call-record", "session": "01J…", "direction": "outbound", "peer": "did:web:carol.example",
+   "device": "did:key:z6Mk…", "relay": "did:web:relay.acme.example",
+   "invited_at": 1790000000, "answered_at": 1790000004, "ended_at": 1790000310,
+   "outcome": "answered", "reason": "user.hangup", "ended_by": "remote", "media": ["audio"],
+   "recording": {"state": "off"}, "evidence": ["<sha-256 of each signed envelope, hex>"]}
+  ```
+
+  `outcome` is `answered`, `missed`, `declined`, `rejected`, `cancelled` or `failed`; `reason` is the token that
+  ended it (§15); `evidence` lets a record be checked against the signed envelopes the relay or the peer kept
+  (Appendix D.4). The recorder's client verifies the object like any content and renders nothing to anyone.
+
+Disclosure, for (b) and (c): the C§3 declaration covers the sender's **recording**, and the record holds what the
+sender's own relay already sees (who, when, how it ended). The recommendation is that metadata records need no
+per-call declaration, as SIP CDRs do not, and that the organisation discloses them as a standing policy (its
+privacy notice); content recording keeps C§3–C§6 unchanged. A profile that wants a per-call disclosure adds a
+`purpose: compliance-metadata` declaration instead.
+
+- **Recommended: (c)**, with (a) as the baseline Appendix D describes. Like all endpoint-side compliance in the
+  Recording Profile, it trusts clients the organisation controls (C intro): a modified client can omit records, which
+  is why the infrastructure records stay the cross-check. (b) is the smaller text change but the worse protocol: it
+  needs the recorder online at call time and weakens a core schema invariant. Not implemented; a `call-record` vector
+  set (object shape, the recorder-conversation rule, `evidence` matching) comes first if adopted.
