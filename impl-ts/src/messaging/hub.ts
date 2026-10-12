@@ -47,7 +47,12 @@ export interface HubContext {
   owner?: string;
   /** A new hub continues after the moving commit's seq (`handover_seq` + 1). */
   next_seq?: number;
+  /** How long a member identity may acknowledge nothing before its queues are dropped (spec-gap 119). */
+  mls_retention_s?: number;
 }
+
+/** M§4.4's RECOMMENDED `mls_retention_s`, the hub's default bound (spec-gap 119). */
+export const MLS_RETENTION_S = 2_592_000;
 
 /** One group at its hub. */
 export class Hub implements Machine {
@@ -64,8 +69,14 @@ export class Hub implements Machine {
   private groupInfo = false;
   private movedTo: string | null = null;
   private emit: Json[] = [];
+  private now: number;
+  private readonly retention: number;
+  /** spec-gap 119: per identity with anything queued, when its queues last went from empty to not or saw a head acknowledged. */
+  private readonly waiting = new Map<string, number>();
 
   constructor(private readonly ctx: HubContext) {
+    this.now = ctx.now;
+    this.retention = ctx.mls_retention_s ?? MLS_RETENTION_S;
     this.epoch = ctx.epoch;
     this.nextSeq = ctx.next_seq ?? 1;
     this.roster = structuredClone(ctx.roster);
@@ -75,6 +86,7 @@ export class Hub implements Machine {
     this.emit = [];
     if ("deposit" in e) this.deposit(e["deposit"] as unknown as Deposit);
     else if ("ack" in e) this.ack(e["ack"] as { identity: string; seq: number; class?: string });
+    else if ("advance" in e) this.advance(e["advance"] as number);
     else if ("restart" in e) {
       // spec-gap 59: state survives; the head of every unacknowledged queue is re-sent, welcomes included
       this.sent = new Set();
@@ -99,7 +111,7 @@ export class Hub implements Machine {
     // rule 1: a hub orders handshake and application, forwards ephemeral, keeps group-info; nothing else
     if (!["handshake", "application", "ephemeral", "group-info"].includes(d.class)) return this.refuse(d, "mailbox.unsupported-class");
     // M§11.2: activity past its expires_at is dropped silently, whoever sent it
-    if (d.class === "ephemeral" && d.expires_at !== undefined && d.expires_at < this.ctx.now) return;
+    if (d.class === "ephemeral" && d.expires_at !== undefined && d.expires_at < this.now) return;
     // M§9.3: the same MLS bytes again get the original seq and fan out nothing. A sequenced item is
     // recognised before anything else is asked of it: its bytes were authenticated when first accepted.
     const known = d.class === "handshake" || d.class === "application" ? this.digests.get(d.digest) : undefined;
@@ -156,9 +168,29 @@ export class Hub implements Machine {
     this.digests.set(d.digest, seq);
     this.classes.set(seq, d.class);
     this.emit.push({ accepted: { to: d.device, in_reply_to: d.id, seq } });
+    for (const to of [...recipients, ...welcomed]) if (!this.waiting.has(to)) this.waiting.set(to, this.now);   // spec-gap 119
     for (const to of recipients) (this.pending[to] ??= []).push(seq);
     for (const to of welcomed) (this.welcomes[to] ??= []).push(seq);
     this.flush();
+  }
+
+  /**
+   * Time passes. A member identity that has acknowledged nothing for `mls_retention_s` while something was queued for it
+   * loses every queue it has here, welcome included, and its welcome hold; it stays in the roster.
+   *
+   * Spec: M§6.5 rule 5, M§4.4. Impl (spec-gap 119): the clock restarts at every acknowledgement of a head; a returning
+   * device re-joins by external commit (M§6.8).
+   */
+  private advance(n: number): void {
+    this.now += n;
+    const due = [...this.waiting].filter(([, since]) => this.now - since >= this.retention).map(([who]) => who).sort();
+    for (const who of due) {
+      this.emit.push({ dropped: { identity: who, pending: this.pending[who] ?? [], welcomes: this.welcomes[who] ?? [] } });
+      delete this.pending[who];
+      delete this.welcomes[who];
+      this.unregistered.delete(who);
+      this.waiting.delete(who);
+    }
   }
 
   /** M§7.3 device-ownership rule and M§6.8, on the public commit; MLS validity is the trace's `valid`. */
@@ -191,6 +223,9 @@ export class Hub implements Machine {
     if (list.length) queue[a.identity] = list;
     else delete queue[a.identity];
     if (a.class === "welcome" && !this.welcomes[a.identity]) this.unregistered.delete(a.identity);
+    // spec-gap 119: progress restarts the clock; nothing left queued stops it
+    if (this.pending[a.identity] || this.welcomes[a.identity]) this.waiting.set(a.identity, this.now);
+    else this.waiting.delete(a.identity);
     this.flush();
   }
 

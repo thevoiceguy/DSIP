@@ -3469,9 +3469,19 @@ the hub has nothing comparable.
     group's GroupInfo (M§6.8), which is what the same bound already means at its mailbox;
   - (c) the hub removes the member from the group (a commit of its own): the hub is an ordering authority, never a
     member, and must not change membership (M§6.10, M§15.3).
-- **Recommended: (b)**, not yet implemented: a `Hub` vector first (the queue dropped at the bound, the member's
-  later external join accepted), then the three machines and the service's retry loop. (a) is a resource leak an
-  operator sees in the log; (c) crosses the line the profile draws for hubs.
+- **Recommended: (b)**. (a) is a resource leak an operator sees in the log; (c) crosses the line the profile draws
+  for hubs.
+- **Implemented (2026-10-12), (b).** Vectors first: `hub-queue-dropped-at-retention`,
+  `hub-queue-clock-restarts-on-acknowledgement`, `hub-welcome-dropped-at-retention-member-rejoins` (the `hub-trace`
+  row of `impl/vectors/README.md` states the rule, `mls_retention_s` in the context, `dropped {identity, pending,
+  welcomes}` emitted). The clock is per member identity: it runs while anything, items or welcome, is queued for it,
+  and restarts at every acknowledgement of a head, so a slow mailbox that keeps acknowledging is never dropped. A
+  dropped identity stays in the roster and loses its welcome hold; later items are queued for it afresh under the same
+  bound. The three machines agree, and `fuzz.py`'s hub traces now advance time; the probes found that `impl-ts`
+  judged ephemeral expiry against the starting clock, now the vector `hub-ephemeral-expiry-judged-at-the-hubs-clock`.
+  `dsip-mailbox --mls-retention` sets the bound (2,592,000 s by default), and the service advances every hub's clock on
+  its retry tick; `demos/hub-retention-demo.sh` shows it on the wire. One case the text should say: an identity whose
+  welcome was dropped never joined, so it has no GroupInfo to re-join from and must be added again.
 
 ## 120. M§6.8 / M§12.3 — when a device decides no sibling will add it
 

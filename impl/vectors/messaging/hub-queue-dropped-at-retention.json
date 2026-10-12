@@ -1,0 +1,378 @@
+{
+  "vector": "messaging/hub-queue-dropped-at-retention",
+  "format": 1,
+  "kind": "messaging",
+  "description": "A member identity that acknowledges nothing for mls_retention_s has its fan-out queue dropped; it stays a member, and what is sequenced later is fanned out to it afresh (spec-gap 119).",
+  "spec_ref": [
+    "M§6.5",
+    "M§4.4"
+  ],
+  "context": {
+    "component": "hub",
+    "hub": "did:web:mbx.alice.example",
+    "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+    "kind": "direct",
+    "now": 1760000000,
+    "epoch": 1,
+    "roster": {
+      "did:web:alice.example": [
+        "did:key:z6MkfhenvjQ7awdpVWzPaeBuPkXCBLwzJKyosCrTL3huMb66",
+        "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu"
+      ],
+      "did:web:example.com:users:bob": [
+        "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+      ]
+    },
+    "mls_retention_s": 100
+  },
+  "input": {
+    "check": "hub-trace",
+    "steps": [
+      {
+        "event": {
+          "deposit": {
+            "id": "01K742SG00VD6RG3ANPVBWAGTY",
+            "device": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+            "identity": "did:web:alice.example",
+            "class": "application",
+            "epoch": 1,
+            "digest": "a1"
+          }
+        }
+      },
+      {
+        "event": {
+          "ack": {
+            "identity": "did:web:alice.example",
+            "seq": 1
+          }
+        }
+      },
+      {
+        "event": {
+          "deposit": {
+            "id": "01K742SG00GARXDS2ZDEMM6AVD",
+            "device": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+            "identity": "did:web:alice.example",
+            "class": "application",
+            "epoch": 1,
+            "digest": "a2"
+          }
+        }
+      },
+      {
+        "event": {
+          "advance": 60
+        }
+      },
+      {
+        "event": {
+          "ack": {
+            "identity": "did:web:alice.example",
+            "seq": 2
+          }
+        }
+      },
+      {
+        "event": {
+          "advance": 39
+        }
+      },
+      {
+        "event": {
+          "advance": 1
+        }
+      },
+      {
+        "event": {
+          "deposit": {
+            "id": "01K742SG00JVVJSRV8JRXMDJ4B",
+            "device": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+            "identity": "did:web:alice.example",
+            "class": "application",
+            "epoch": 1,
+            "digest": "a3"
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "accepted": {
+              "to": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+              "in_reply_to": "01K742SG00VD6RG3ANPVBWAGTY",
+              "seq": 1
+            }
+          },
+          {
+            "fanout": {
+              "to": "did:web:alice.example",
+              "seq": 1,
+              "class": "application"
+            }
+          },
+          {
+            "fanout": {
+              "to": "did:web:example.com:users:bob",
+              "seq": 1,
+              "class": "application"
+            }
+          }
+        ],
+        "state": {
+          "epoch": 1,
+          "next_seq": 2,
+          "roster": {
+            "did:web:alice.example": [
+              "did:key:z6MkfhenvjQ7awdpVWzPaeBuPkXCBLwzJKyosCrTL3huMb66",
+              "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu"
+            ],
+            "did:web:example.com:users:bob": [
+              "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+            ]
+          },
+          "pending": {
+            "did:web:alice.example": [
+              1
+            ],
+            "did:web:example.com:users:bob": [
+              1
+            ]
+          },
+          "group_info": false,
+          "moved_to": null,
+          "welcomes": {}
+        }
+      },
+      {
+        "emit": [],
+        "state": {
+          "epoch": 1,
+          "next_seq": 2,
+          "roster": {
+            "did:web:alice.example": [
+              "did:key:z6MkfhenvjQ7awdpVWzPaeBuPkXCBLwzJKyosCrTL3huMb66",
+              "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu"
+            ],
+            "did:web:example.com:users:bob": [
+              "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+            ]
+          },
+          "pending": {
+            "did:web:example.com:users:bob": [
+              1
+            ]
+          },
+          "group_info": false,
+          "moved_to": null,
+          "welcomes": {}
+        }
+      },
+      {
+        "emit": [
+          {
+            "accepted": {
+              "to": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+              "in_reply_to": "01K742SG00GARXDS2ZDEMM6AVD",
+              "seq": 2
+            }
+          },
+          {
+            "fanout": {
+              "to": "did:web:alice.example",
+              "seq": 2,
+              "class": "application"
+            }
+          }
+        ],
+        "state": {
+          "epoch": 1,
+          "next_seq": 3,
+          "roster": {
+            "did:web:alice.example": [
+              "did:key:z6MkfhenvjQ7awdpVWzPaeBuPkXCBLwzJKyosCrTL3huMb66",
+              "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu"
+            ],
+            "did:web:example.com:users:bob": [
+              "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+            ]
+          },
+          "pending": {
+            "did:web:alice.example": [
+              2
+            ],
+            "did:web:example.com:users:bob": [
+              1,
+              2
+            ]
+          },
+          "group_info": false,
+          "moved_to": null,
+          "welcomes": {}
+        }
+      },
+      {
+        "emit": [],
+        "state": {
+          "epoch": 1,
+          "next_seq": 3,
+          "roster": {
+            "did:web:alice.example": [
+              "did:key:z6MkfhenvjQ7awdpVWzPaeBuPkXCBLwzJKyosCrTL3huMb66",
+              "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu"
+            ],
+            "did:web:example.com:users:bob": [
+              "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+            ]
+          },
+          "pending": {
+            "did:web:alice.example": [
+              2
+            ],
+            "did:web:example.com:users:bob": [
+              1,
+              2
+            ]
+          },
+          "group_info": false,
+          "moved_to": null,
+          "welcomes": {}
+        }
+      },
+      {
+        "emit": [],
+        "state": {
+          "epoch": 1,
+          "next_seq": 3,
+          "roster": {
+            "did:web:alice.example": [
+              "did:key:z6MkfhenvjQ7awdpVWzPaeBuPkXCBLwzJKyosCrTL3huMb66",
+              "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu"
+            ],
+            "did:web:example.com:users:bob": [
+              "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+            ]
+          },
+          "pending": {
+            "did:web:example.com:users:bob": [
+              1,
+              2
+            ]
+          },
+          "group_info": false,
+          "moved_to": null,
+          "welcomes": {}
+        }
+      },
+      {
+        "emit": [],
+        "state": {
+          "epoch": 1,
+          "next_seq": 3,
+          "roster": {
+            "did:web:alice.example": [
+              "did:key:z6MkfhenvjQ7awdpVWzPaeBuPkXCBLwzJKyosCrTL3huMb66",
+              "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu"
+            ],
+            "did:web:example.com:users:bob": [
+              "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+            ]
+          },
+          "pending": {
+            "did:web:example.com:users:bob": [
+              1,
+              2
+            ]
+          },
+          "group_info": false,
+          "moved_to": null,
+          "welcomes": {}
+        }
+      },
+      {
+        "emit": [
+          {
+            "dropped": {
+              "identity": "did:web:example.com:users:bob",
+              "pending": [
+                1,
+                2
+              ],
+              "welcomes": []
+            }
+          }
+        ],
+        "state": {
+          "epoch": 1,
+          "next_seq": 3,
+          "roster": {
+            "did:web:alice.example": [
+              "did:key:z6MkfhenvjQ7awdpVWzPaeBuPkXCBLwzJKyosCrTL3huMb66",
+              "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu"
+            ],
+            "did:web:example.com:users:bob": [
+              "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+            ]
+          },
+          "pending": {},
+          "group_info": false,
+          "moved_to": null,
+          "welcomes": {}
+        }
+      },
+      {
+        "emit": [
+          {
+            "accepted": {
+              "to": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+              "in_reply_to": "01K742SG00JVVJSRV8JRXMDJ4B",
+              "seq": 3
+            }
+          },
+          {
+            "fanout": {
+              "to": "did:web:alice.example",
+              "seq": 3,
+              "class": "application"
+            }
+          },
+          {
+            "fanout": {
+              "to": "did:web:example.com:users:bob",
+              "seq": 3,
+              "class": "application"
+            }
+          }
+        ],
+        "state": {
+          "epoch": 1,
+          "next_seq": 4,
+          "roster": {
+            "did:web:alice.example": [
+              "did:key:z6MkfhenvjQ7awdpVWzPaeBuPkXCBLwzJKyosCrTL3huMb66",
+              "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu"
+            ],
+            "did:web:example.com:users:bob": [
+              "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+            ]
+          },
+          "pending": {
+            "did:web:alice.example": [
+              3
+            ],
+            "did:web:example.com:users:bob": [
+              3
+            ]
+          },
+          "group_info": false,
+          "moved_to": null,
+          "welcomes": {}
+        }
+      }
+    ]
+  }
+}

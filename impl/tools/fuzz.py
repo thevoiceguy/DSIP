@@ -136,6 +136,8 @@ def gen_hub(r: random.Random):
                                **({"class": "welcome"} if r.random() < 0.25 else {})}})
         elif x < 0.3:
             ev.append({"restart": {}})
+        elif x < 0.4:
+            ev.append({"advance": r.choice([1, 5, 9, 10, 20])})   # spec-gap 119: the retention bound
         else:
             ident = r.choice([ALICE, ALICE, BOB, BOB, CAROL, MALLORY])
             d = r.choice(DEVICES[ident])
@@ -165,6 +167,8 @@ def gen_hub(r: random.Random):
             ev.append({"deposit": dep})
     ctx = {"component": "hub", "hub": HUB_A, "group": G1, "kind": "group", "now": NOW, "epoch": 2,
            "roster": {ALICE: [A1, A2], BOB: [B1]}}
+    if r.random() < 0.6:
+        ctx["mls_retention_s"] = r.choice([10, 20])
     return "messaging", "hub-trace", ctx, ev
 
 

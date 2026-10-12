@@ -304,12 +304,18 @@ def object_vectors():
 
 # ---------------------------------------------------------------- hub traces (M§6.5–M§6.8, M§7.3, M§9.3, M§11.2)
 
-def hub_ctx(epoch=1, roster=None, kind="direct", owner=None):
+def hub_ctx(epoch=1, roster=None, kind="direct", owner=None, retention=None):
     ctx = {"component": "hub", "hub": HUB_A, "group": GROUP, "kind": kind, "now": NOW, "epoch": epoch,
            "roster": roster if roster is not None else {ALICE: [ALA, APH], BOB: [BPH]}}
     if owner:
         ctx["owner"] = owner
+    if retention is not None:
+        ctx["mls_retention_s"] = retention
     return ctx
+
+
+def dropped(identity, pending=(), welcomes=()):
+    return {"dropped": {"identity": identity, "pending": list(pending), "welcomes": list(welcomes)}}
 
 
 def hs(epoch, next_seq, roster, pending=None, group_info=False, moved_to=None, welcomes=None):
@@ -426,6 +432,58 @@ def hub_vectors():
                          ({"ack": {"identity": CAROL, "seq": 1, "class": "welcome"}}, [fan(CAROL, 2)],
                           hs(2, 3, RC, {ALICE: [1, 2], BOB: [1, 2], CAROL: [2]})),
                          ({"ack": {"identity": CAROL, "seq": 2}}, [], hs(2, 3, RC, {ALICE: [1, 2], BOB: [1, 2]})),
+                     ]))
+    # spec-gap 119: a member's queues are bounded by mls_retention_s from the last acknowledgement
+    ack_ = lambda i, n, cls=None: {"ack": dict({"identity": i, "seq": n}, **({"class": cls} if cls else {}))}
+    out.append(trace("hub-queue-dropped-at-retention",
+                     "A member identity that acknowledges nothing for mls_retention_s has its fan-out queue dropped; it stays "
+                     "a member, and what is sequenced later is fanned out to it afresh (spec-gap 119).",
+                     refs + ["M§4.4"], "hub-trace", hub_ctx(retention=100), [
+                         (dep("a1", APH, ALICE, "application", 1), [acc(APH, "a1", 1), fan(ALICE, 1), fan(BOB, 1)],
+                          hs(1, 2, R, {ALICE: [1], BOB: [1]})),
+                         (ack_(ALICE, 1), [], hs(1, 2, R, {BOB: [1]})),
+                         (dep("a2", APH, ALICE, "application", 1), [acc(APH, "a2", 2), fan(ALICE, 2)],
+                          hs(1, 3, R, {ALICE: [2], BOB: [1, 2]})),
+                         ({"advance": 60}, [], hs(1, 3, R, {ALICE: [2], BOB: [1, 2]})),
+                         (ack_(ALICE, 2), [], hs(1, 3, R, {BOB: [1, 2]})),
+                         ({"advance": 39}, [], hs(1, 3, R, {BOB: [1, 2]})),
+                         ({"advance": 1}, [dropped(BOB, [1, 2])], hs(1, 3, R, {})),
+                         (dep("a3", APH, ALICE, "application", 1), [acc(APH, "a3", 3), fan(ALICE, 3), fan(BOB, 3)],
+                          hs(1, 4, R, {ALICE: [3], BOB: [3]})),
+                     ]))
+    out.append(trace("hub-queue-clock-restarts-on-acknowledgement",
+                     "The retention bound counts from the member's last acknowledgement, not from the oldest item: a slow "
+                     "mailbox that keeps acknowledging is never dropped (spec-gap 119).",
+                     refs + ["M§4.4"], "hub-trace", hub_ctx(retention=100), [
+                         (dep("a1", APH, ALICE, "application", 1), [acc(APH, "a1", 1), fan(ALICE, 1), fan(BOB, 1)],
+                          hs(1, 2, R, {ALICE: [1], BOB: [1]})),
+                         (dep("a2", APH, ALICE, "application", 1), [acc(APH, "a2", 2)], hs(1, 3, R, {ALICE: [1, 2], BOB: [1, 2]})),
+                         (ack_(ALICE, 1), [fan(ALICE, 2)], hs(1, 3, R, {ALICE: [2], BOB: [1, 2]})),
+                         (ack_(ALICE, 2), [], hs(1, 3, R, {BOB: [1, 2]})),
+                         ({"advance": 90}, [], hs(1, 3, R, {BOB: [1, 2]})),
+                         (ack_(BOB, 1), [fan(BOB, 2)], hs(1, 3, R, {BOB: [2]})),
+                         ({"advance": 99}, [], hs(1, 3, R, {BOB: [2]})),
+                         ({"advance": 1}, [dropped(BOB, [2])], hs(1, 3, R, {})),
+                     ]))
+    out.append(trace("hub-welcome-dropped-at-retention-member-rejoins",
+                     "An added identity whose welcome is never acknowledged has its welcome and the items held behind it dropped "
+                     "at mls_retention_s; it stays a member, no longer held, and later rejoins by external commit (M§6.8, "
+                     "spec-gap 119).",
+                     refs + ["M§4.4", "M§6.8"], "hub-trace", hub_ctx(kind="group", retention=100), [
+                         (addc, [acc(APH, "add-carol", 1), fan(ALICE, 1, "handshake"), fan(BOB, 1, "handshake"), fan(CAROL, 1, "welcome")],
+                          hs(2, 2, RC, {ALICE: [1], BOB: [1]}, welcomes={CAROL: [1]})),
+                         (ack_(ALICE, 1), [], hs(2, 2, RC, {BOB: [1]}, welcomes={CAROL: [1]})),
+                         (ack_(BOB, 1), [], hs(2, 2, RC, {}, welcomes={CAROL: [1]})),
+                         (dep("a1", APH, ALICE, "application", 2), [acc(APH, "a1", 2), fan(ALICE, 2), fan(BOB, 2)],
+                          hs(2, 3, RC, {ALICE: [2], BOB: [2], CAROL: [2]}, welcomes={CAROL: [1]})),
+                         (ack_(ALICE, 2), [], hs(2, 3, RC, {BOB: [2], CAROL: [2]}, welcomes={CAROL: [1]})),
+                         (ack_(BOB, 2), [], hs(2, 3, RC, {CAROL: [2]}, welcomes={CAROL: [1]})),
+                         ({"advance": 100}, [dropped(CAROL, [2], [1])], hs(2, 3, RC, {})),
+                         (dep("cj", CPH, CAROL, "handshake", 2, commit={"external": True, "adds": [{"identity": CAROL, "device": CPH}],
+                                                                         "removes": [{"identity": CAROL, "device": CPH}]}),
+                          # fan-out goes in identity order: Carol's DID sorts before Bob's
+                          [acc(CPH, "cj", 3), fan(ALICE, 3, "handshake"), fan(CAROL, 3, "handshake"), fan(BOB, 3, "handshake")],
+                          hs(3, 4, RC, {ALICE: [3], BOB: [3], CAROL: [3]})),
                      ]))
     out.append(trace("hub-welcome-resent-after-restart",
                      "A hub restart re-sends an unacknowledged welcome, so a member added while its mailbox was down still gets it "
@@ -546,6 +604,15 @@ def hub_vectors():
     out.append(trace("hub-ephemeral-expired-dropped", "Expired activity is dropped silently.",
                      ["M§11.2"], "hub-trace", hub_ctx(), [
                          (dep("typ-old", APH, ALICE, "ephemeral", expires_at=NOW - 1), [], hs(1, 1, R)),
+                     ]))
+    out.append(trace("hub-ephemeral-expiry-judged-at-the-hubs-clock",
+                     "Expiry is judged at the hub's clock as time passes, not at the time it started: activity that was live at "
+                     "the start is dropped once the hub's clock has passed its expires_at (found by fuzz.py, 2026-10-12).",
+                     ["M§11.2"], "hub-trace", hub_ctx(), [
+                         ({"advance": 20}, [], hs(1, 1, R)),
+                         (dep("typ-late", APH, ALICE, "ephemeral", expires_at=NOW + 10), [], hs(1, 1, R)),
+                         (dep("typ-live", APH, ALICE, "ephemeral", expires_at=NOW + 30), [{"forward": {"to": BOB, "class": "ephemeral"}}],
+                          hs(1, 1, R)),
                      ]))
     # --- the order of a hub's refusals when several apply (spec-gap 81)
     out.append(trace("hub-refusal-order-class-before-membership",
