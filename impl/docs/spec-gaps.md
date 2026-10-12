@@ -3472,3 +3472,21 @@ the hub has nothing comparable.
 - **Recommended: (b)**, not yet implemented: a `Hub` vector first (the queue dropped at the bound, the member's
   later external join accepted), then the three machines and the service's retry loop. (a) is a resource leak an
   operator sees in the log; (c) crosses the line the profile draws for hubs.
+
+## 120. M§6.8 / M§12.3 — when a device decides no sibling will add it
+
+**Found (2026-10-12, by the browser client's round 2C).** M§6.8 lets a device join by external commit "a new device
+with no surviving sibling online", and M§12.3 has a sibling add a new device. Neither says how the new device tells
+the two apart: it cannot see whether a sibling is online, and a sibling that is online adds it within seconds, while
+one that is not may never. M§7.5 settles the same question for successor groups in a sentence ("when a hub counts as
+permanently unreachable is the member's decision (this profile sets no timer)"); M§6.8 has no counterpart. Nothing
+on the wire depends on the answer: an external join of a device whose sibling then also adds it is two valid
+commits, the later of which loses its conflict and is not re-proposed because it is no longer needed (spec-gap 58).
+
+- Choices:
+  - (a) say it is the device's decision, as M§7.5 does, with no timer;
+  - (b) set a wait (say 30 s after the first sync) before a device that knows of siblings joins on its own;
+  - (c) require the user to ask for it.
+- **Recommended: (a)**, one sentence in M§6.8. The browser client waits 30 s after binding when it knows of a
+  sibling and then joins every group its mailbox holds a GroupInfo for, personal group first (an `Impl:` note in
+  `impl/web/app.js`); a device that knows of no sibling creates the personal group at once (M§7.1), as before.
