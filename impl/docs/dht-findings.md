@@ -274,8 +274,12 @@ Findings:
 1. **A mailbox's `--ca` excluded the public roots.** `dsip-transport`'s client configuration trusted exactly the
    file's certificates, right for a lab of self-signed services and wrong the moment one peer moved to Let's
    Encrypt: mailbox A could not dial mailbox B for five minutes until the ISRG roots were appended to the file on
-   both hosts. The client configuration now trusts the platform's roots beside the file; the hosts run the earlier
-   binary with the roots in the file, which is the same trust store.
+   both hosts. The client configuration now trusts the platform's roots beside the file. Later the same day the hosts
+   were given the mailbox built from main `46d3e48` (this fix and spec-gap 118's) with their original trust files
+   restored, and a pair across the operators ran again: grant 2.6 s, conversation 3.3 s, delivered 1.4 s, reply
+   1.4 s. One leftover of the morning: the hub on L1 still retries the first conversation's welcome once a minute
+   for a member whose browser is gone and whose hint has expired (`no mailbox for …`); a hub's fan-out queue for
+   an unreachable member has no bound in the profile.
 2. **A welcome re-sent after a five-minute outage is refused for good** (spec-gap 118): the hub re-signs each
    retry, so the `origin` it carries falls outside M§14.2's 300 s skew bound against the fresh deposit, and the
    member mailbox answers `policy.blocked` on every retry. The first conversation of this run never reached Bob;
