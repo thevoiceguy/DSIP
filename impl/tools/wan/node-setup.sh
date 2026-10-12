@@ -121,7 +121,8 @@ UNIT
 fi
 
 # ---- relay -------------------------------------------------------------------
-HOSTARG="--host $PUBLIC_IP"; [ -n "${RELAY_HOST:-}" ] && HOSTARG="$HOSTARG --host $RELAY_HOST"
+# the first --host is the one the mailbox advertises as its blob endpoint (M§4.3): the name a browser's TLS accepts
+HOSTARG="--host $PUBLIC_IP"; [ -n "${RELAY_HOST:-}" ] && HOSTARG="--host $RELAY_HOST --host $PUBLIC_IP"
 # Stage 5 of the client plan: a real certificate, the client served, the operator's defaults, TURN credentials, the
 # local dsip-node reached through the relay's origin (impl/web/README.md "Runbook").
 RELAYARG=""
