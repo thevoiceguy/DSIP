@@ -3542,3 +3542,32 @@ privacy notice); content recording keeps C§3–C§6 unchanged. A profile that w
   is why the infrastructure records stay the cross-check. (b) is the smaller text change but the worse protocol: it
   needs the recorder online at call time and weakens a core schema invariant. Not implemented; a `call-record` vector
   set (object shape, the recorder-conversation rule, `evidence` matching) comes first if adopted.
+
+## 122. M§4.1 / M§6.6 — what a device does when its identity moves to another mailbox
+
+**Found (2026-10-12, by the browser client's round 2D).** M§4.1 says "which mailbox an identity uses is what it
+advertises (M§4.2), never where it enrolled", so an identity may move: its operator closes, or its old mailbox is
+gone for good, which is the case M§7.5 exists for. Nothing says what its devices do on arrival:
+
+- **Registrations.** Hubs resolve a member's mailbox at each fan-out (M§6.5 rule 5, spec-gap 116), so they find the
+  new one. But the new mailbox has none of the identity's groups registered, so it refuses their fan-out (M§6.6), and
+  it cannot serve a successor's `key-package-fetch` or admit its `welcome` without a grant, since both rest on the
+  predecessor being registered for the target (M§7.5, spec-gap 61).
+- **Cursors.** A sync cursor is the old mailbox's (M§5.4); the new one does not know it.
+- **Answers in flight.** A deposit sent through the old mailbox and not yet answered gets no answer.
+
+Choices:
+
+- **(a)** On its first binding at the new mailbox, a device registers every group it is in with one `mailbox-config`
+  (`state: joined`, each group's `hub` and `hub_uri`), syncs from the start (as after `mailbox.cursor-invalid`), and
+  re-deposits what it had pending (M§9.3: same bytes, so a duplicate is harmless);
+- **(b)** a hand-off between the two mailboxes (an export of registrations and stored items): needs the old one alive,
+  which is exactly when it matters least;
+- **(c)** treat the move as a new device: re-join every group by external commit (M§6.8) from the new mailbox's
+  GroupInfo, which it does not have yet.
+- **Recommended: (a)**, a paragraph in M§4.1 or M§6.6. The browser client implements the registration and the fresh
+  sync (an `Impl:` note in `dsip-wasm`'s messaging engine); it re-deposits pending application items but not a pending
+  `group-info` or `mailbox-config`, so a move during the personal group's creation leaves it unconfirmed — the
+  headless test moves only after creation. Its outbox for the dead hub's groups then runs M§9.4 as usual, and the
+  successor's creator fetches the moved identity's KeyPackages from the new mailbox on the strength of that
+  registration (`impl/web/test/messaging-successor.mjs`).
