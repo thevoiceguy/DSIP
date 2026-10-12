@@ -132,6 +132,13 @@ per-instance device key delegated by that identity (§7.4) — the same pattern 
 Every envelope a mailbox sends (`accepted`, `items`, `key-packages`, fan-out `deposit`, `error`)
 is signed by that key.
 
+**Whom a mailbox serves** (v0.12, spec-gap 115). A mailbox serves the identities its operator configures, and MAY
+serve identities that enrol: a device bound with a verified `hello` under a delegation carrying `dsip.messaging`
+(M§4.3) enrols its identity with its first owner operation (`sync`, `key-packages`, `mailbox-config`), within a
+bound the operator sets. A binding alone enrols nothing: other identities' devices bind to fetch KeyPackages or to
+deposit welcomes. An enrolled identity is served exactly as a configured one (its own retention and quota, M§4.4).
+Which mailbox an identity uses is what it advertises (M§4.2), never where it enrolled.
+
 ### M§4.2 Discovery (§8.1)
 
 An identity advertises its mailbox in its **DID document** as a service entry. This is the
@@ -702,7 +709,9 @@ The hub MUST:
    join sends none, since the joiner joined by its own commit. (spec-gap 50) "Added identity" means
    every identity that gains a device the group did not have, including a member identity adding its
    own new device (M§6.7, M§12.3): that device is not in the group yet and learns of it only by the
-   `welcome`.
+   `welcome`. (v0.12, spec-gap 116) The member's mailbox is resolved per M§4.2 at each delivery
+   attempt — its document, else its newest verified hint (§8.1, §8.3) — never taken from where the
+   member once bound; a hub whose own mailbox the resolution names delivers in-process.
 6. **Keep only what ordering needs.** The hub retains the epoch, the public tree, the latest
    GroupInfo, and its retry queue. It is not a history store. A group's creator publishes the first
    GroupInfo before its first commit: that is what bootstraps the hub's public view, and every
@@ -1838,4 +1847,13 @@ Within v0.10:
 | spec-gap | where | what |
 |---|---|---|
 | 107 | M§8.1, M§10.5 | the `recording-acceptance` object (Recording Profile C§5): personal group only, naming the recorded conversation |
+
+Within v0.12:
+
+| spec-gap | where | what |
+|---|---|---|
+| 115 | M§4.1 | a mailbox may serve identities that enrol by binding, within a bound; a binding alone enrols nothing |
+| 116 | M§6.5 rule 5 | the member's mailbox is resolved per M§4.2 at each delivery, never from where it once bound |
+| 117 | M§14.2, §10.2 | a grant whose `from` is the device is the identity's that the delegation names |
+| 118 | M§14.2 | a hub-forwarded welcome's `origin` is bounded by age (not later than +300 s, not older than `pending_group_ttl`), so a retry after an outage still proves its adder |
 

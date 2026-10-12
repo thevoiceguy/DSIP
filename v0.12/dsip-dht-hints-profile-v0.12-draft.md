@@ -221,5 +221,6 @@ Pkarr relays.
 - **`/dsip/v1/hints` is the overlay's.** A posted record is verified as §4 requires before it is stored or put on the
   overlay, and §8.3 decides between it and a held record.
 - **Answers** carry `Access-Control-Allow-Origin: *`. A node MAY limit request rates, answering 429.
-- **Pointing a client at a node** is configuration, like a Pkarr relay. Nothing in DSIP makes any node authoritative.
+- **Pointing a client at a node** is configuration, like a Pkarr relay (spec-gap 114: a client is given its nodes by
+  the origin that serves it or by hand, never by its relay's `hello`). Nothing in DSIP makes any node authoritative.
 

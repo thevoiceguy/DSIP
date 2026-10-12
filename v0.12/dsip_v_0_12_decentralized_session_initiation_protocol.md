@@ -2,12 +2,12 @@
 
 ## A Narrow Core for Trusted Real-Time Media Sessions
 
-**Version:** Draft v0.12
+**Version:** v0.12
 **Status:** Design Proposal
 **Editor:** James Ferris
 **Date:** October 2026
 **Supersedes:** v0.11
-**Companion documents:** WebRTC Media Binding 1.0 (`dsip-webrtc-media-binding-v0.12.md`); Gateway Profile 1.0 (`dsip-gateway-profile-v0.12.md`); Messaging Profile 1.0 (`dsip-messaging-profile-v0.12.md`, with its schema set `dsip-messaging-schemas-draft/`); RTP/SRTP Media Binding (draft, `dsip-rtp-srtp-media-binding-v0.12-draft.md`); DHT Hints Profile (draft, `dsip-dht-hints-profile-v0.12-draft.md`); Alias Transparency Profile (draft, `dsip-alias-transparency-profile-v0.12-draft.md`); Device Events Profile (draft, `dsip-device-events-profile-v0.12-draft.md`); Recording Profile (draft, `dsip-recording-profile-v0.12-draft.md`); Number Attestation Profile (draft, `dsip-number-attestation-profile-v0.12-draft.md`); JSON Schema set v0.12 (`dsip-schemas-v0.12-draft/`); conformance vectors (`impl/vectors/`, 1,924 vectors on which the Python harness, the Rust reference implementation and the independent TypeScript implementation agree)
+**Companion documents:** WebRTC Media Binding 1.0 (`dsip-webrtc-media-binding-v0.12.md`); Gateway Profile 1.0 (`dsip-gateway-profile-v0.12.md`); Messaging Profile 1.0 (`dsip-messaging-profile-v0.12.md`, with its schema set `dsip-messaging-schemas-draft/`); RTP/SRTP Media Binding (draft, `dsip-rtp-srtp-media-binding-v0.12-draft.md`); DHT Hints Profile (draft, `dsip-dht-hints-profile-v0.12-draft.md`); Alias Transparency Profile (draft, `dsip-alias-transparency-profile-v0.12-draft.md`); Device Events Profile (draft, `dsip-device-events-profile-v0.12-draft.md`); Recording Profile (draft, `dsip-recording-profile-v0.12-draft.md`); Number Attestation Profile (draft, `dsip-number-attestation-profile-v0.12-draft.md`); JSON Schema set v0.12 (`dsip-schemas-v0.12-draft/`); conformance vectors (`impl/vectors/`, 1,956 vectors on which the Python harness, the Rust reference implementation and the independent TypeScript implementation agree)
 
 ---
 
@@ -381,7 +381,7 @@ Rules:
 - `reason` is a registered token (registry `dsip-revocation-reason`; initial values `lost`, `compromised`, `retired`, `policy`).
 - Verifiers find revocations in the subject's DID document property `dsipDelegationRevocations` (an array of compact envelopes; authoritative, §8.1) and in any store they hold, however obtained. A validly signed revocation can only remove authority, so its source does not matter. The record is a credential: it is verified by its signature and subject, not by a delivery window.
 - A delegation covered by a revocation fails with `delegation-revoked`, after the signature, capability and validity checks. A service that is handed a revocation for a device it has bound SHOULD end that binding at once; the device's next `hello` is refused (`transport.hello-rejected`).
-- `did:key` subjects have no document. Their revocations reach verifiers only by distribution — to the identity's own services, or presented alongside.
+- `did:key` subjects have no document. Their revocations reach verifiers only by distribution — to the identity's own services, or presented alongside. (v0.12, spec-gap 113) Over `ws/1.0` any bound device of the subject MAY send the record itself as a frame (§13.2): the relay verifies that a key of the subject signed it, holds it for every later verification, ends the binding of the device it names, and answers only when it refuses the record (a signed `error`). The Messaging Profile carries revocations to a mailbox in `mailbox-config` (M§5.7).
 
 ### 7.5 Key Rotation
 
@@ -687,6 +687,8 @@ The signature must cover the exact payload bytes. Implementations must not rely 
 ```
 
 Mandatory algorithm set for v1.0: **Ed25519 (EdDSA) MUST be implemented; ES256 MAY be implemented; all other algorithms MUST be rejected.** Algorithm agility beyond this set is a documented v2 concern, not a v1 feature — algorithm sprawl is where signature interop dies. The `kid` of the protected header MUST be a DID URL identifying the verification method (identity key or delegated device key) used to sign; verifiers resolve `kid` through the DID document and delegation credentials (§7.4).
+
+**`from` and the acting identity (v0.12, spec-gap 117).** `from` names the signer: a device acting for an identity under a delegation (§7.4), or the identity itself. The two forms verify the same, and a receiver that needs the identity takes it from the delegation that binds the signer — as it does for `hello`'s `on_behalf_of` (§13.2) and for every session message — whatever the message type. A `grant` or `introduction` whose `from` is a device is from the identity its delegation names, and is checked as that identity's where consent is checked (§19.4, M§14.2).
 
 ### 10.3 Payload Rules
 
@@ -1189,6 +1191,8 @@ Rules:
 
 - Once a `hello` is verified, the relay MUST deliver inbound envelopes addressed to the bound device (or to its identity, subject to forking rules in §12.7) on this connection, preserving arrival order per sender.
 - If the addressed device has no live connection, behavior is governed by the relay's store-and-forward policy (§13.3). From this binding's perspective, an envelope handed to the transport on a live connection is delivered or the connection fails.
+- (v0.12, spec-gap 113) A `delegation-revocation` record received on a bound connection is not routed: it carries no `to`. The relay verifies it as §7.4 says, holds it, and ends the binding of the device it names; a record it refuses is answered with a signed `error`, an accepted one with nothing.
+- (v0.12, spec-gap 114) Nothing a client needs for media (ICE servers, TURN credentials) or for the hints tier (which nodes to ask) comes from the relay's `hello`: capabilities describe the relay's own protocol behaviour. These reach a client from the origin that serves it, or from its own configuration; the WebRTC Media Binding (§4) names the convention for short-lived TURN credentials, and the DHT Hints Profile (§10) says the same of nodes.
 - A relay MUST NOT silently drop envelopes on a live connection. If it refuses to route an envelope (policy, rate limit, unknown recipient), it MUST respond with a signed `error` (`transport.routing-refused`, `transport.unknown-recipient`, or `transport.rate-limited`) — **except for `introduction`**, where §19.4 anti-enumeration governs: a relay MUST accept an introduction for any recipient without a routing response, MAY hold it (bounded per recipient inbox) until its `expires_at`, and delivers it on the recipient's next binding. A refused payload whose reason is a registered token of its own (e.g. `policy.subscription-lifetime`, §9.3) is answered with that token rather than the generic routing refusal.
 
 #### Keepalive and reconnection
@@ -2503,6 +2507,23 @@ v0.11 is final at tag `poc-v0.11`. Each v0.12 item is listed here as it lands, w
   the authorities it is configured with, pools their answers with route 1's, chooses by N§7 and keeps the names of
   the authorities that served the answer. The Alias Transparency Profile's T§3 gains the `tel:` label (a global tel
   URI, E.164 digits), so the log entry route 2 calls for is defined; verifying it waits for T§6 (KEYTRANS -06).
+- A node holding a Pkarr packet looks for a newer one before serving it past its TTL (DHT Hints Profile §10;
+  spec-gap 109).
+- A `did:key` identity hands its relay a revocation as a frame on a bound connection; the relay holds it and ends
+  the named device's binding (§7.4, §13.2; spec-gap 113).
+- ICE servers, TURN credentials and hints nodes reach a client from the origin that serves it or from
+  configuration, never from the relay's `hello` (§13.2, WebRTC Media Binding §4, DHT Hints Profile §10; spec-gap
+  114).
+- `from` names the signer, device or identity; the acting identity comes from the delegation, whatever the type
+  (§10.2; spec-gap 117).
+- Messaging Profile: a mailbox may serve identities that enrol by binding (M§4.1; spec-gap 115); a hub resolves
+  each member's mailbox per M§4.2 at every delivery, never from where the member once bound (M§6.5 rule 5;
+  spec-gap 116); a hub-forwarded welcome's `origin` is bounded by age, not skew (M§14.2; spec-gap 118).
+
+No wire-format change: `dsip.core` stays `1.0`; the schema sets are unchanged from v0.11. Every item is pinned by
+the v0.12 conformance suite (1,956 vectors; the Python harness, the Rust reference implementation and the
+independent TypeScript implementation agree on every one), or by the browser client's headless tests where the
+decision is a host's and no message changes (113, 114, 115, 116).
 
 ---
 
