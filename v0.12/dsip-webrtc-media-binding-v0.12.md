@@ -141,6 +141,11 @@ Payload-type numbers are SDP-local and never appear in DSIP descriptors.
 
 ### 4.1 Trickle is the only mode
 
+**ICE servers and TURN credentials** (v0.12, spec-gap 114). STUN and TURN servers reach an endpoint as
+configuration; nothing in DSIP signaling carries them, and a relay's `hello` does not (§13.2). Short-lived TURN
+credentials are expected to reach a client by the TURN REST API convention (username `<expiry>:<name>`, password
+`HMAC-SHA1(secret, username)`), minted by the origin that serves the client or by its operator's own means.
+
 Binding 1.0 requires full ICE (RFC 8445) with trickle (RFC 8838). An endpoint MAY inline
 candidates it has already gathered into the SDP; every candidate gathered afterwards, and the
 end-of-candidates indication, ride in `info` as defined below. An endpoint that has finished

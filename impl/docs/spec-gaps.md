@@ -3326,6 +3326,7 @@ of the identity, never the bound device) fails the "signer is the bound device" 
   acknowledges. Pinned by the client's headless test (`web/test/devices.mjs`: the revoked device is dropped and its next
   hello refused `delegation-revoked`, after a relay-side hold too); no vector yet, because the relay tracker has no
   revocation event, which is the next gap once the carriage is decided.
+- **Text:** in v0.12 (§7.4 and §13.2), 2026-10-11.
 
 ## 114. §13.2 / B§ — how ICE servers, TURN credentials and hints nodes reach a client
 
@@ -3349,6 +3350,7 @@ the first two as an expected gap: whether a relay may advertise ICE servers in i
   needed for ICE configuration, and the binding could cite the TURN REST convention as the way short-lived credentials
   are expected to reach a client. Pinned by `web/test/deploy.mjs` (served defaults in effect, minted credentials verify
   under the secret, a call through the relay another operator's hint names); no vector, because nothing is a message.
+- **Text:** in v0.12 (§13.2, WebRTC Media Binding §4, DHT Hints Profile §10), 2026-10-11.
 
 ## 115. M§4.1 / M§4.2 — how an identity with no document comes to be served by a mailbox
 
@@ -3373,6 +3375,7 @@ question answered in §13.6 (open, or private to listed identities; spec-gap 100
   operation and never a binding alone, and that the identity's hint, not its enrolment, says which mailbox it uses
   (see 116). Pinned by `web/test/messaging.mjs` (two browsers enrol at two mailboxes); no vector, because the
   decision is the host's policy, not a message rule.
+- **Text:** in v0.12 (M§4.1), 2026-10-11.
 
 ## 116. M§4.2 / M§6.5 — which mailbox a hub delivers to for a member that enrolled here but advertises another
 
@@ -3395,6 +3398,7 @@ on a hint alone; it does not say what a hub does when its own view (an enrolment
   M§6.5 rule 5 that the member's mailbox is resolved per M§4.2 at each delivery attempt, never taken from where the
   member once bound. Pinned by `web/test/messaging.mjs` (Bob binds at mailbox A first, moves to B, and the welcome
   reaches B).
+- **Text:** in v0.12 (M§6.5 rule 5), 2026-10-11.
 
 ## 117. §10.2 / §19.4 / M§14.2 — `from` on a grant: the identity, or the device acting for it
 
@@ -3417,6 +3421,7 @@ refused every grant the core engine had issued — the grantee held a valid gran
   binding, whatever the type. Pinned by the `verify` unit test in `dsip-messaging` and by `web/test/messaging.mjs`
   (a grant issued by the browser's calling engine admits the KeyPackage fetch); a `messaging/` vector for the grant
   check with a device `from` is the next step.
+- **Text:** in v0.12 (§10.2), 2026-10-11.
 
 ## 118. M§14.2 / M§6.5 — a hub-forwarded welcome re-sent after an outage fails the `origin` freshness bound
 
@@ -3447,3 +3452,23 @@ outages are shorter than the bound.
   at-retention-bound, at-future-bound, from-the-future-refused}` beside the kept `at-skew-bound` (300 s before:
   accepted); `origin-stale-refused` (301 s before) is gone, since that is exactly the delivery the bound broke.
   Found by `tools/wan/browser-message.mjs`; recorded in `impl/docs/dht-findings.md`.
+
+## 119. M§6.5 rule 5 / M§6.6 — a hub's fan-out queue for a member that has gone has no bound
+
+**Found (2026-10-11, on the WAN testbed by the client's stage 6).** M§6.5 rule 5 has the hub retry an
+unacknowledged fan-out before sending later ones, and spec-gap 59 has it re-send every unacknowledged head after a
+restart with backoff. Nothing bounds how long. A member whose device is gone for good and whose hint has expired
+(`did:key`, no document) is retried once a minute forever: the hub keeps its queue, its welcome and its payloads,
+and logs a failed resolution each time. Mailboxes have `mls_retention_s` and `pending_group_ttl` (M§4.4, M§6.6);
+the hub has nothing comparable.
+
+- Choices:
+  - (a) no bound: a queue lives as long as the group (today);
+  - (b) a queue whose head has been unacknowledged for `mls_retention_s` (RECOMMENDED 2,592,000 s, 30 days) is
+    dropped, welcome and payloads included; a member that returns later re-joins by external commit from the
+    group's GroupInfo (M§6.8), which is what the same bound already means at its mailbox;
+  - (c) the hub removes the member from the group (a commit of its own): the hub is an ordering authority, never a
+    member, and must not change membership (M§6.10, M§15.3).
+- **Recommended: (b)**, not yet implemented: a `Hub` vector first (the queue dropped at the bound, the member's
+  later external join accepted), then the three machines and the service's retry loop. (a) is a resource leak an
+  operator sees in the log; (c) crosses the line the profile draws for hubs.
