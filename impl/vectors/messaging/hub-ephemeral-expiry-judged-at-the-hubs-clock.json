@@ -1,0 +1,131 @@
+{
+  "vector": "messaging/hub-ephemeral-expiry-judged-at-the-hubs-clock",
+  "format": 1,
+  "kind": "messaging",
+  "description": "Expiry is judged at the hub's clock as time passes, not at the time it started: activity that was live at the start is dropped once the hub's clock has passed its expires_at (found by fuzz.py, 2026-10-12).",
+  "spec_ref": [
+    "M§11.2"
+  ],
+  "context": {
+    "component": "hub",
+    "hub": "did:web:mbx.alice.example",
+    "group": "MDFLNzQyU0cwMEhBWlpDS0MxMzFFQzBQR1M",
+    "kind": "direct",
+    "now": 1760000000,
+    "epoch": 1,
+    "roster": {
+      "did:web:alice.example": [
+        "did:key:z6MkfhenvjQ7awdpVWzPaeBuPkXCBLwzJKyosCrTL3huMb66",
+        "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu"
+      ],
+      "did:web:example.com:users:bob": [
+        "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+      ]
+    }
+  },
+  "input": {
+    "check": "hub-trace",
+    "steps": [
+      {
+        "event": {
+          "advance": 20
+        }
+      },
+      {
+        "event": {
+          "deposit": {
+            "id": "01K742SG00JK864D53SS3SBV6A",
+            "device": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+            "identity": "did:web:alice.example",
+            "class": "ephemeral",
+            "digest": "typ-late",
+            "expires_at": 1760000010
+          }
+        }
+      },
+      {
+        "event": {
+          "deposit": {
+            "id": "01K742SG00370SFSXZANFH1PN8",
+            "device": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+            "identity": "did:web:alice.example",
+            "class": "ephemeral",
+            "digest": "typ-live",
+            "expires_at": 1760000030
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [],
+        "state": {
+          "epoch": 1,
+          "next_seq": 1,
+          "roster": {
+            "did:web:alice.example": [
+              "did:key:z6MkfhenvjQ7awdpVWzPaeBuPkXCBLwzJKyosCrTL3huMb66",
+              "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu"
+            ],
+            "did:web:example.com:users:bob": [
+              "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+            ]
+          },
+          "pending": {},
+          "group_info": false,
+          "moved_to": null,
+          "welcomes": {}
+        }
+      },
+      {
+        "emit": [],
+        "state": {
+          "epoch": 1,
+          "next_seq": 1,
+          "roster": {
+            "did:web:alice.example": [
+              "did:key:z6MkfhenvjQ7awdpVWzPaeBuPkXCBLwzJKyosCrTL3huMb66",
+              "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu"
+            ],
+            "did:web:example.com:users:bob": [
+              "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+            ]
+          },
+          "pending": {},
+          "group_info": false,
+          "moved_to": null,
+          "welcomes": {}
+        }
+      },
+      {
+        "emit": [
+          {
+            "forward": {
+              "to": "did:web:example.com:users:bob",
+              "class": "ephemeral"
+            }
+          }
+        ],
+        "state": {
+          "epoch": 1,
+          "next_seq": 1,
+          "roster": {
+            "did:web:alice.example": [
+              "did:key:z6MkfhenvjQ7awdpVWzPaeBuPkXCBLwzJKyosCrTL3huMb66",
+              "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu"
+            ],
+            "did:web:example.com:users:bob": [
+              "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+            ]
+          },
+          "pending": {},
+          "group_info": false,
+          "moved_to": null,
+          "welcomes": {}
+        }
+      }
+    ]
+  }
+}

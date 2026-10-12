@@ -283,11 +283,28 @@ class Hub:
         # the group and would refuse a sequenced item (M§6.6), so their queue is held (spec-gap 66). A member that
         # gained a device is not among them (spec-gap 87).
         self.unregistered: set[str] = set()
+        # spec-gap 119: per identity, when its queues last went from empty to not or saw a head acknowledged
+        self.retention = ctx.get("mls_retention_s", 2592000)
+        self.waiting: dict[str, int] = {}
+
+    def _queued(self, ident: str) -> bool:
+        return bool(self.pending.get(ident)) or bool(self.welcomes.get(ident))
+
+    def _start_clock(self, ident: str) -> None:
+        if ident not in self.waiting:
+            self.waiting[ident] = self.now
 
     def step(self, ev: dict) -> list:
         if "advance" in ev:
             self.now += ev["advance"]
-            return []
+            # spec-gap 119: a member that acknowledged nothing for mls_retention_s has its queues dropped
+            out = []
+            for i in sorted(i for i, t in self.waiting.items() if self.now - t >= self.retention):
+                out.append({"dropped": {"identity": i, "pending": list(self.pending.pop(i, [])),
+                                        "welcomes": list(self.welcomes.pop(i, []))}})
+                self.unregistered.discard(i)
+                del self.waiting[i]
+            return out
         if "ack" in ev:
             return self._ack(ev["ack"]["identity"], ev["ack"]["seq"], ev["ack"].get("class", ""))
         if "restart" in ev:
@@ -382,6 +399,7 @@ class Hub:
                 # spec-gap 66: a welcome is queued and retried like any other fan-out, so an identity whose mailbox is
                 # down when it is added still learns of the group. Its own queue: a member adding its own device needs
                 # both the commit (its other devices) and the welcome (the new one) for the same seq.
+                self._start_clock(i)
                 q = self.welcomes.setdefault(i, [])
                 q.append(seq)
                 if len(q) == 1:
@@ -395,8 +413,10 @@ class Hub:
             "now": self.now, "kind": self.kind, "owner": self.owner, "epoch": self.epoch, "next_seq": self.next_seq,
             "roster": {i: sorted(d) for i, d in self.roster.items()}, "digests": self.digests,
             "seq_class": {str(k): v for k, v in self.seq_class.items()}, "pending": self.pending, "group_info": self.group_info,
-            "moved_to": self.moved_to, "welcomes": self.welcomes, "unregistered": sorted(self.unregistered)}))
-        for k in ("now", "kind", "owner", "epoch", "next_seq", "digests", "pending", "group_info", "moved_to", "welcomes"):
+            "moved_to": self.moved_to, "welcomes": self.welcomes, "unregistered": sorted(self.unregistered),
+            "retention": self.retention, "waiting": self.waiting}))
+        for k in ("now", "kind", "owner", "epoch", "next_seq", "digests", "pending", "group_info", "moved_to", "welcomes",
+                  "retention", "waiting"):
             setattr(self, k, state[k])
         self.roster = {i: set(d) for i, d in state["roster"].items()}
         self.seq_class = {int(k): v for k, v in state["seq_class"].items()}
@@ -412,6 +432,7 @@ class Hub:
         self.seq_class[seq] = d["class"]
         out = [{"accepted": {"to": d["device"], "in_reply_to": d["id"], "seq": seq}}]
         for i in targets:  # M§6.5 rule 5: per-mailbox seq order, retry before later items
+            self._start_clock(i)
             q = self.pending.setdefault(i, [])
             q.append(seq)
             # spec-gap 66: nothing goes to a mailbox the commit brought in before it acknowledges its welcome — until then
@@ -426,6 +447,11 @@ class Hub:
         if not q or q[0] != seq:
             return []
         q.pop(0)
+        # spec-gap 119: progress restarts the clock; nothing left queued stops it
+        if self._queued(ident):
+            self.waiting[ident] = self.now
+        else:
+            self.waiting.pop(ident, None)
         if q and (cls == "welcome" or ident not in self.unregistered):
             # the hold behind an unacknowledged welcome applies here too: the queue moves, nothing is sent (spec-gap 87)
             return [{"fanout": {"to": ident, "seq": q[0], "class": cls or self.seq_class[q[0]]}}]

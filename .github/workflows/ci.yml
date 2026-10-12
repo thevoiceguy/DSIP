@@ -278,6 +278,11 @@ jobs:
         # overtakes it, and the retried welcome does not become a second invitation.
         run: timeout 300 bash demos/welcome-retry-demo.sh | tail -20
         working-directory: impl
+      - name: hub retention
+        # Self-verifying: a member that acknowledges nothing for mls_retention_s has its queue dropped at the hub, welcome
+        # included; the hub stops retrying what it held, and the other members carry on (spec-gap 119).
+        run: timeout 300 bash demos/hub-retention-demo.sh | tail -20
+        working-directory: impl
       - name: re-joining when a gap will not fill
         # Self-verifying: the mailbox loses an item, the device holds the commit beyond the gap, re-joins by external
         # commit on its own timer, and carries on from the current epoch.
