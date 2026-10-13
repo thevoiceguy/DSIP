@@ -7,7 +7,7 @@
 **Editor:** James Ferris
 **Date:** October 2026
 **Supersedes:** v0.13
-**Companion documents:** WebRTC Media Binding 1.0 (`dsip-webrtc-media-binding-v0.14.md`); Gateway Profile 1.0 (`dsip-gateway-profile-v0.14.md`); Messaging Profile 1.0 (`dsip-messaging-profile-v0.14.md`, with its schema set `dsip-messaging-schemas-draft/`); RTP/SRTP Media Binding (draft, `dsip-rtp-srtp-media-binding-v0.14-draft.md`); DHT Hints Profile (draft, `dsip-dht-hints-profile-v0.14-draft.md`); Alias Transparency Profile (draft, `dsip-alias-transparency-profile-v0.14-draft.md`); Device Events Profile (draft, `dsip-device-events-profile-v0.14-draft.md`); Recording Profile (draft, `dsip-recording-profile-v0.14-draft.md`); Number Attestation Profile (draft, `dsip-number-attestation-profile-v0.14-draft.md`); JSON Schema set v0.13 (`dsip-schemas-v0.14-draft/`); conformance vectors (`impl/vectors/`, 2,002 vectors on which the Python harness, the Rust reference implementation and the independent TypeScript implementation agree)
+**Companion documents:** WebRTC Media Binding 1.0 (`dsip-webrtc-media-binding-v0.14.md`); Gateway Profile 1.0 (`dsip-gateway-profile-v0.14.md`); Messaging Profile 1.0 (`dsip-messaging-profile-v0.14.md`, with its schema set `dsip-messaging-schemas-draft/`); RTP/SRTP Media Binding (draft, `dsip-rtp-srtp-media-binding-v0.14-draft.md`); DHT Hints Profile (draft, `dsip-dht-hints-profile-v0.14-draft.md`); Alias Transparency Profile (draft, `dsip-alias-transparency-profile-v0.14-draft.md`); Device Events Profile (draft, `dsip-device-events-profile-v0.14-draft.md`); Recording Profile (draft, `dsip-recording-profile-v0.14-draft.md`); Number Attestation Profile (draft, `dsip-number-attestation-profile-v0.14-draft.md`); JSON Schema set v0.14 (`dsip-schemas-v0.14-draft/`); conformance vectors (`impl/vectors/`, 2,079 vectors on which the Python harness, the Rust reference implementation and the independent TypeScript implementation agree)
 
 ---
 
@@ -2545,7 +2545,7 @@ v0.12 is final at tag `poc-v0.12`; v0.13 is final at tag `poc-v0.13`. Each v0.13
 
 ### A.11 From v0.13 to v0.14
 
-v0.13 is final at tag `poc-v0.13`. Each v0.14 item is listed here as it lands, with its spec-gap number.
+v0.13 is final at tag `poc-v0.13`; v0.14 is final at tag `poc-v0.14`. Each v0.14 item is listed with its spec-gap number.
 
 - Alias transparency, the DSIP side of stage 2 (spec-gap 124): the provider's query endpoint answers an absent
   alias, a hidden one and a non-owner's monitor request with one `not-found`, after a rate limit that counts every
