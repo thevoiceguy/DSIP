@@ -1,6 +1,6 @@
 # DSIP Gateway Profile 1.0 — DSIP ↔ SIP/PSTN
 
-**Status:** Companion profile to DSIP v0.12 — normative 1.0 for a conformant DSIP↔SIP gateway
+**Status:** Companion profile to DSIP v0.13 — normative 1.0 for a conformant DSIP↔SIP gateway
 (conformance piece `DSIP Gateway Profile 1.0`, §24.4). **Conformance:** the `gateway/` category of the DSIP vector suite
 (`impl/vectors/gateway/`, 66 vectors; the Python harness, the Rust reference implementation and an independent
 TypeScript implementation agree on every one) pins the reason tables (G§4), SDP

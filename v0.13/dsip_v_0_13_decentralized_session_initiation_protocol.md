@@ -7,7 +7,7 @@
 **Editor:** James Ferris
 **Date:** October 2026
 **Supersedes:** v0.12
-**Companion documents:** WebRTC Media Binding 1.0 (`dsip-webrtc-media-binding-v0.13.md`); Gateway Profile 1.0 (`dsip-gateway-profile-v0.13.md`); Messaging Profile 1.0 (`dsip-messaging-profile-v0.13.md`, with its schema set `dsip-messaging-schemas-draft/`); RTP/SRTP Media Binding (draft, `dsip-rtp-srtp-media-binding-v0.13-draft.md`); DHT Hints Profile (draft, `dsip-dht-hints-profile-v0.13-draft.md`); Alias Transparency Profile (draft, `dsip-alias-transparency-profile-v0.13-draft.md`); Device Events Profile (draft, `dsip-device-events-profile-v0.13-draft.md`); Recording Profile (draft, `dsip-recording-profile-v0.13-draft.md`); Number Attestation Profile (draft, `dsip-number-attestation-profile-v0.13-draft.md`); JSON Schema set v0.12 (`dsip-schemas-v0.13-draft/`); conformance vectors (`impl/vectors/`, 1,956 vectors on which the Python harness, the Rust reference implementation and the independent TypeScript implementation agree)
+**Companion documents:** WebRTC Media Binding 1.0 (`dsip-webrtc-media-binding-v0.13.md`); Gateway Profile 1.0 (`dsip-gateway-profile-v0.13.md`); Messaging Profile 1.0 (`dsip-messaging-profile-v0.13.md`, with its schema set `dsip-messaging-schemas-draft/`); RTP/SRTP Media Binding (draft, `dsip-rtp-srtp-media-binding-v0.13-draft.md`); DHT Hints Profile (draft, `dsip-dht-hints-profile-v0.13-draft.md`); Alias Transparency Profile (draft, `dsip-alias-transparency-profile-v0.13-draft.md`); Device Events Profile (draft, `dsip-device-events-profile-v0.13-draft.md`); Recording Profile (draft, `dsip-recording-profile-v0.13-draft.md`); Number Attestation Profile (draft, `dsip-number-attestation-profile-v0.13-draft.md`); JSON Schema set v0.13 (`dsip-schemas-v0.13-draft/`); conformance vectors (`impl/vectors/`, 2,002 vectors on which the Python harness, the Rust reference implementation and the independent TypeScript implementation agree)
 
 ---
 
@@ -2529,7 +2529,7 @@ decision is a host's and no message changes (113, 114, 115, 116).
 
 ### A.10 From v0.12 to v0.13
 
-v0.12 is final at tag `poc-v0.12`. Each v0.13 item is listed here as it lands, with its spec-gap number.
+v0.12 is final at tag `poc-v0.12`; v0.13 is final at tag `poc-v0.13`. Each v0.13 item is listed with its spec-gap number.
 
 - Messaging Profile: a hub keeps a member identity's fan-out queues for at most `mls_retention_s` without an
   acknowledgement, then drops them, welcome included (M§6.5; spec-gap 119); whether a new device waits for a sibling
