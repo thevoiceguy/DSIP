@@ -1,0 +1,22 @@
+{
+  "vector": "alias-transparency/lookup-fork-before-unverifiable",
+  "format": 1,
+  "kind": "alias-transparency",
+  "description": "A fork is reported before anything about the proof.",
+  "spec_ref": [
+    "T§10"
+  ],
+  "context": {},
+  "input": {
+    "check": "alias-lookup-result",
+    "answer": "found",
+    "proof": "unverifiable",
+    "terminal_entry": 3,
+    "rightmost_distinguished": 10,
+    "fork": true
+  },
+  "expect": {
+    "result": "unaudited",
+    "reason": "fork"
+  }
+}

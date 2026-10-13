@@ -9,6 +9,7 @@ are accepted.
 """
 from __future__ import annotations
 
+import base64
 import hashlib
 import hmac
 import re
@@ -216,6 +217,87 @@ def base_ladder(t):
 
 # --- vectors -----------------------------------------------------------------------------------
 
+B64URL = re.compile(r"[A-Za-z0-9_-]*")
+DID = re.compile(r"did:[a-z0-9]+:[A-Za-z0-9.%_:-]+")
+
+
+def b64url_strict(x) -> bytes | None:
+    """The vectors README's base64url: the URL-safe alphabet, no `=`, a length not 1 more than a multiple of 4;
+    non-zero unused bits accepted (RFC 4648 §3.5)."""
+    if not isinstance(x, str) or not B64URL.fullmatch(x) or len(x) % 4 == 1:
+        return None
+    return base64.urlsafe_b64decode(x + "=" * (-len(x) % 4))
+
+
+def alias_query(i: dict) -> dict:
+    """T§7: the provider's answer. The rate limit first, then the request, the alias's syntax, existence."""
+    if i["over_limit"]:
+        return {"status": 429, "answer": "rate-limited"}
+    if i["request"] not in ("search", "monitor"):
+        return {"status": 400, "answer": "bad-request"}
+    if normalize_alias(i["alias"]) is None:
+        return {"status": 400, "answer": "alias-invalid"}
+    if i["request"] == "search" and i["exists"] and i["visible"]:
+        return {"status": 200, "answer": "search-response"}
+    if i["request"] == "monitor" and i["exists"] and i["authorized"]:
+        return {"status": 200, "answer": "monitor-response"}
+    return {"status": 404, "answer": "not-found"}
+
+
+def alias_monitor(i: dict) -> dict:
+    """T§8: the provider's checks of a verified alias-monitor payload."""
+    p = i["payload"]
+    if p["to"] != i["provider"]:
+        return {"verdict": "refuse", "code": "wrong-audience"}
+    label = normalize_alias(p["alias"])
+    if label is None:
+        return {"verdict": "refuse", "code": "alias-invalid"}
+    if p["from"] not in i["values"]:
+        return {"verdict": "refuse", "code": "not-owner"}
+    return {"verdict": "accept", "label": label}
+
+
+def alias_head(i: dict) -> dict:
+    """T§9: a received alias-log-head claim against the receiver's pinned Configuration and held heads."""
+    c = i["claim"]
+    malformed = {"outcome": "invalid", "reason": "malformed"}
+    if not isinstance(c, dict) or c.get("type") != "alias-log-head":
+        return malformed
+    if not isinstance(c.get("provider"), str) or not DID.fullmatch(c["provider"]):
+        return malformed
+    th, root = b64url_strict(c.get("tree_head")), b64url_strict(c.get("root"))
+    if th is None or root is None or len(root) != 32 or len(th) < 10:
+        return malformed
+    size = struct.unpack(">Q", th[:8])[0]
+    n = struct.unpack(">H", th[8:10])[0]
+    if len(th) != 10 + n or size > 2**53 - 1:
+        return malformed
+    if i["configuration"] is None:
+        return {"outcome": "ignored", "reason": "unknown-log"}
+    if not tree_head_valid(bytes.fromhex(i["configuration"]), size, root, th[10:]):
+        return {"outcome": "invalid", "reason": "bad-signature"}
+    for held in i["held"]:
+        if held["tree_size"] == size:
+            if b64url_strict(held["root"]) != root:
+                return {"outcome": "fork", "tree_size": size, "held_root": held["root"], "claimed_root": c["root"]}
+            return {"outcome": "consistent", "tree_size": size}
+    return {"outcome": "new", "tree_size": size}
+
+
+def alias_lookup_result(i: dict) -> dict:
+    """T§10: what a lookup result counts as."""
+    if i["answer"] == "not-found":
+        return {"result": "not-found"}
+    if i["fork"]:
+        return {"result": "unaudited", "reason": "fork"}
+    if i["proof"] == "unverifiable":
+        return {"result": "unaudited", "reason": "unverifiable"}
+    rd = i["rightmost_distinguished"]
+    if rd is None or i["terminal_entry"] > rd:
+        return {"result": "unaudited", "reason": "pending"}
+    return {"result": "audited"}
+
+
 def run(v: dict):
     i = v["input"]
     c = i["check"]
@@ -258,6 +340,14 @@ def run(v: dict):
             return {"root": bst_root(i["n"]), "frontier": frontier(i["n"])}
         if c == "ladder":
             return {"ladder": base_ladder(i["version"])}
+        if c == "alias-query":
+            return alias_query(i)
+        if c == "alias-monitor":
+            return alias_monitor(i)
+        if c == "alias-head":
+            return alias_head(i)
+        if c == "alias-lookup-result":
+            return alias_lookup_result(i)
     except ValueError as e:
         return {"error": str(e)}
     raise KeyError(c)

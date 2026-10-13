@@ -1,0 +1,25 @@
+{
+  "vector": "alias-transparency/head-malformed-tree-size-beyond-2p53",
+  "format": 1,
+  "kind": "alias-transparency",
+  "description": "A tree size above 2^53−1 is not portable as a JSON number.",
+  "spec_ref": [
+    "T§9"
+  ],
+  "context": {},
+  "input": {
+    "check": "alias-head",
+    "claim": {
+      "type": "alias-log-head",
+      "provider": "did:web:example.com",
+      "tree_head": "ACAAAAAAAAAAQCWBM_BX97IV0dVJe1dYprKt9B_zCWqnjtVbTwoQE1vN2XoUUDc5zzlrItIYO8BhBGNu7UYk0DoGhgrmwrvFDgo",
+      "root": "P9AgzlbWUlkQFJ1ox5YxMOgR2YZh-w9d3FKylzKHRrc"
+    },
+    "configuration": "0002010020ed165424dca4afd4623e37a04e28d59e3e5f7ffe89562aeafbad88c176cbb75f0020d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a000000000000ea600000000005265c00000000000036ee8000",
+    "held": []
+  },
+  "expect": {
+    "outcome": "invalid",
+    "reason": "malformed"
+  }
+}

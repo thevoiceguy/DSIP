@@ -9,6 +9,23 @@
         {
           "properties": {
             "type": {
+              "const": "alias-monitor"
+            }
+          },
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "$ref": "alias-monitor.schema.json"
+        }
+      ]
+    },
+    {
+      "allOf": [
+        {
+          "properties": {
+            "type": {
               "const": "answer"
             }
           },

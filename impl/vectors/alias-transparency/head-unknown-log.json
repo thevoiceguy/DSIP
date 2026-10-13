@@ -1,0 +1,25 @@
+{
+  "vector": "alias-transparency/head-unknown-log",
+  "format": 1,
+  "kind": "alias-transparency",
+  "description": "A log the receiver has not pinned: nothing to check against.",
+  "spec_ref": [
+    "T§9"
+  ],
+  "context": {},
+  "input": {
+    "check": "alias-head",
+    "claim": {
+      "type": "alias-log-head",
+      "provider": "did:web:example.com",
+      "tree_head": "AAAAAAAAAAUAQBkfjuTVQJSDJ7ZV2R5gIQPVVdQxHpjcMo1mP3ESeiTZISLzNF6CEg6uCcnq6WA8L_vbww_Nz3Yqe8jbMKkjVw4",
+      "root": "P9AgzlbWUlkQFJ1ox5YxMOgR2YZh-w9d3FKylzKHRrc"
+    },
+    "configuration": null,
+    "held": []
+  },
+  "expect": {
+    "outcome": "ignored",
+    "reason": "unknown-log"
+  }
+}

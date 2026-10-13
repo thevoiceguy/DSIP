@@ -1,0 +1,23 @@
+{
+  "vector": "alias-transparency/query-search-absent",
+  "format": 1,
+  "kind": "alias-transparency",
+  "description": "An absent alias: not-found, with no proof of absence.",
+  "spec_ref": [
+    "T§7"
+  ],
+  "context": {},
+  "input": {
+    "check": "alias-query",
+    "request": "search",
+    "over_limit": false,
+    "alias": "alice@example.com",
+    "exists": false,
+    "visible": false,
+    "authorized": false
+  },
+  "expect": {
+    "status": 404,
+    "answer": "not-found"
+  }
+}

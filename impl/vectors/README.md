@@ -1452,6 +1452,58 @@ Each vector has `input.check`. The checks and their outputs:
   - Then binary-search between the last two: repeatedly append `mid = ⌊(lo + hi)/2⌋` while `lo + 1 < hi`, setting
     `lo = mid` if `mid ≤ version` and `hi = mid` otherwise.
 
+**Stage 2, the DSIP side** (v0.14, T§7–T§10, spec-gap 124). These checks need no KEYTRANS proof bytes. Their inputs
+are what the provider or the client knows once those proofs are done (T§6).
+
+- **`alias-query`** (T§7: the provider's answer) — input `{request, over_limit, alias, exists, visible, authorized}`
+  → `{"status", "answer"}`. The first rule that applies:
+  1. `over_limit` is true → `{"status": 429, "answer": "rate-limited"}`;
+  2. `request` is neither `search` nor `monitor` → `{"status": 400, "answer": "bad-request"}`;
+  3. `alias` does not normalize (check `alias` above) → `{"status": 400, "answer": "alias-invalid"}`;
+  4. a `search` with `exists` and `visible` both true → `{"status": 200, "answer": "search-response"}`;
+  5. a `monitor` with `exists` and `authorized` both true → `{"status": 200, "answer": "monitor-response"}`;
+  6. otherwise → `{"status": 404, "answer": "not-found"}`.
+
+  `visible` matters only to a search, `authorized` only to a monitor request.
+- **`alias-monitor`** (T§8: the provider's checks of a verified `alias-monitor` payload) — input `{payload, provider,
+  values}`. `values` lists every DID the alias has had, oldest first; it is empty when the alias is absent. The
+  output is `{"verdict": "accept", "label": <normalized alias>}` or `{"verdict": "refuse", "code"}`, the first that
+  applies:
+  1. `payload.to` ≠ `provider` → `wrong-audience`;
+  2. `payload.alias` does not normalize → `alias-invalid`;
+  3. `payload.from` is not in `values` → `not-owner`.
+- **`alias-head`** (T§9: a received `alias-log-head` claim) — input `{claim, configuration, held}`.
+  `configuration` is the hex Configuration the receiver pinned for `claim.provider`, or null; it is always one
+  `configuration-accept` accepts. `held` is `[{tree_size, root}]`, the heads the receiver holds, at most one per size,
+  `root` in base64url. The output is the first that applies:
+  1. `{"outcome": "invalid", "reason": "malformed"}` when:
+     - `claim.type` is not `alias-log-head`;
+     - `claim.provider` is not a string that matches `^did:[a-z0-9]+:[A-Za-z0-9.%_:-]+$`;
+     - `claim.tree_head` or `claim.root` is not a base64url string (the alphabet `A–Z a–z 0–9 - _`, no `=`, a length
+       that is not 1 more than a multiple of 4; non-zero unused bits are accepted);
+     - the decoded `root` is not 32 bytes;
+     - the decoded `tree_head` is not exactly a `TreeHead`: `u64(tree_size) ‖ u16(n) ‖ n bytes`, nothing after;
+     - `tree_size` is above 2^53−1 (portable as a JSON number, as in `configuration-accept`).
+  2. `configuration` is null → `{"outcome": "ignored", "reason": "unknown-log"}`;
+  3. the TreeHead's signature is not a valid Ed25519 signature by the configuration's `signature_public_key` over
+     `configuration ‖ u64(tree_size) ‖ root` (check `tree-head` above) → `{"outcome": "invalid", "reason":
+     "bad-signature"}`;
+  4. `held` has this `tree_size` with another root → `{"outcome": "fork", "tree_size", "held_root", "claimed_root"}`,
+     both roots in base64url as given;
+  5. `held` has this `tree_size` with the same root → `{"outcome": "consistent", "tree_size"}`;
+  6. otherwise → `{"outcome": "new", "tree_size"}`.
+
+  Roots are compared as decoded bytes.
+- **`alias-lookup-result`** (T§10) — input `{answer, proof, terminal_entry, rightmost_distinguished, fork}`. `answer`
+  is `found` or `not-found`; `proof` is `verified` or `unverifiable`; `rightmost_distinguished` is an integer or null.
+  The output is the first that applies:
+  1. `answer` is `not-found` → `{"result": "not-found"}`;
+  2. `fork` is true → `{"result": "unaudited", "reason": "fork"}`;
+  3. `proof` is `unverifiable` → `{"result": "unaudited", "reason": "unverifiable"}`;
+  4. `rightmost_distinguished` is null, or `terminal_entry > rightmost_distinguished` →
+     `{"result": "unaudited", "reason": "pending"}`;
+  5. otherwise → `{"result": "audited"}`.
+
 ## Kind: `pkarr`
 
 Reachability hints carried on Pkarr: BEP 44 mutable items on the BitTorrent Mainline DHT (v0.9; DHT Hints Profile §9;

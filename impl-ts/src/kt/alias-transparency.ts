@@ -1,14 +1,16 @@
 /**
  * Alias Transparency Profile (`alias-transparency/0.1`, draft), stage 1: alias normalization and the
  * KEYTRANS building blocks — VRF input and index, commitments, the prefix tree, the log tree, the
- * Configuration and tree head, the implicit binary search tree and the binary ladder.
+ * Configuration and tree head, the implicit binary search tree and the binary ladder. Stage 2's DSIP side (v0.14):
+ * the query endpoint's answer, who may monitor, tree heads between peers, what a lookup result counts as.
  *
- * Spec: T§2, T§3, T§4, T§5 (`v0.14/dsip-alias-transparency-profile-v0.14-draft.md`); draft-ietf-keytrans-protocol
+ * Spec: T§2, T§3, T§4, T§5, T§7, T§8, T§9, T§10 (`v0.14/dsip-alias-transparency-profile-v0.14-draft.md`); draft-ietf-keytrans-protocol
  * for the structures. The exact byte layouts and output shapes are the vectors README's, "Kind: `alias-transparency`".
  */
 import { createHash, createHmac, createPublicKey, verify as cryptoVerify } from "node:crypto";
 import type { Json, JsonObject } from "../did.js";
 import { vrfVerify } from "./vrf.js";
+import { b64urlDecode } from "../encoding.js";
 
 const hex = (s: string): Buffer => Buffer.from(s, "hex");
 const sha256 = (...parts: Uint8Array[]): Buffer => {
@@ -267,6 +269,71 @@ export function ladder(version: number): number[] {
 }
 
 /** Run one `alias-transparency` vector's check. Spec: T§2–T§5; README "Kind: `alias-transparency`" */
+/** The provider's answer at its log endpoint: the rate limit first, then the request, the alias's syntax, and one
+ * `not-found` for absent, hidden and unauthorized. Spec: T§7 (v0.14) */
+export function aliasQuery(input: JsonObject): JsonObject {
+  const request = input["request"];
+  if (input["over_limit"] === true) return { status: 429, answer: "rate-limited" };
+  if (request !== "search" && request !== "monitor") return { status: 400, answer: "bad-request" };
+  if (typeof input["alias"] !== "string" || normalizeAlias(input["alias"]) === null) return { status: 400, answer: "alias-invalid" };
+  if (request === "search" && input["exists"] === true && input["visible"] === true) return { status: 200, answer: "search-response" };
+  if (request === "monitor" && input["exists"] === true && input["authorized"] === true) return { status: 200, answer: "monitor-response" };
+  return { status: 404, answer: "not-found" };
+}
+
+/** The provider's checks of a verified `alias-monitor` payload; `values` is every DID the alias has had, so a former
+ * owner may monitor too. Spec: T§8 (v0.14) */
+export function aliasMonitor(input: JsonObject): JsonObject {
+  const p = input["payload"] as JsonObject;
+  if (p["to"] !== input["provider"]) return { verdict: "refuse", code: "wrong-audience" };
+  const label = typeof p["alias"] === "string" ? normalizeAlias(p["alias"]) : null;
+  if (label === null) return { verdict: "refuse", code: "alias-invalid" };
+  const values = Array.isArray(input["values"]) ? input["values"] : [];
+  if (!values.includes(p["from"] as Json)) return { verdict: "refuse", code: "not-owner" };
+  return { verdict: "accept", label };
+}
+
+const DID_PATTERN = /^did:[a-z0-9]+:[A-Za-z0-9.%_:-]+$/;
+const MAX_SAFE = 2n ** 53n - 1n;
+
+/** A received `alias-log-head` claim against the receiver's pinned Configuration (hex or null) and held heads.
+ * Spec: T§9 (v0.14); T§5 item 7 */
+export function aliasHead(input: JsonObject): JsonObject {
+  const c = input["claim"] as JsonObject;
+  const malformed = { outcome: "invalid", reason: "malformed" };
+  if (c === null || typeof c !== "object" || Array.isArray(c) || c["type"] !== "alias-log-head") return malformed;
+  if (typeof c["provider"] !== "string" || !DID_PATTERN.test(c["provider"])) return malformed;
+  const th = typeof c["tree_head"] === "string" ? b64urlDecode(c["tree_head"]) : null;
+  const root = typeof c["root"] === "string" ? b64urlDecode(c["root"]) : null;
+  if (th === null || root === null || root.length !== 32 || th.length < 10) return malformed;
+  const size = th.readBigUInt64BE(0);
+  const n = th.readUInt16BE(8);
+  if (th.length !== 10 + n || size > MAX_SAFE) return malformed;
+  const treeSize = Number(size);
+  if (input["configuration"] === null || input["configuration"] === undefined) return { outcome: "ignored", reason: "unknown-log" };
+  const verdict = verifyTreeHead(hex(input["configuration"] as string), treeSize, root, th.subarray(10));
+  if (verdict["valid"] !== true) return { outcome: "invalid", reason: "bad-signature" };
+  for (const held of (input["held"] as JsonObject[]) ?? []) {
+    if (held["tree_size"] !== treeSize) continue;
+    const heldRoot = typeof held["root"] === "string" ? b64urlDecode(held["root"]) : null;
+    if (heldRoot === null || !heldRoot.equals(root)) {
+      return { outcome: "fork", tree_size: treeSize, held_root: held["root"] as Json, claimed_root: c["root"] as Json };
+    }
+    return { outcome: "consistent", tree_size: treeSize };
+  }
+  return { outcome: "new", tree_size: treeSize };
+}
+
+/** What an alias lookup counts as; a version right of the rightmost distinguished entry is pending. Spec: T§10 (v0.14) */
+export function aliasLookupResult(input: JsonObject): JsonObject {
+  if (input["answer"] === "not-found") return { result: "not-found" };
+  if (input["fork"] === true) return { result: "unaudited", reason: "fork" };
+  if (input["proof"] === "unverifiable") return { result: "unaudited", reason: "unverifiable" };
+  const rd = input["rightmost_distinguished"];
+  if (typeof rd !== "number" || (input["terminal_entry"] as number) > rd) return { result: "unaudited", reason: "pending" };
+  return { result: "audited" };
+}
+
 export function runAliasTransparency(input: JsonObject): Json | undefined {
   switch (input["check"]) {
     case "alias": {
@@ -333,6 +400,14 @@ export function runAliasTransparency(input: JsonObject): Json | undefined {
       return searchTree(input["n"] as number);
     case "ladder":
       return { ladder: ladder(input["version"] as number) };
+    case "alias-query":
+      return aliasQuery(input);
+    case "alias-monitor":
+      return aliasMonitor(input);
+    case "alias-head":
+      return aliasHead(input);
+    case "alias-lookup-result":
+      return aliasLookupResult(input);
     default:
       return undefined;
   }

@@ -747,6 +747,67 @@ def gen_call_record_outcome(r: random.Random):
                             "session.timeout", "endpoint.busy", "transport.no-response", "transport.x", "policy.y"])}
 
 
+ALIASES = ["alice@example.com", "alice@EXAMPLE.com", "alice", "@example.com", "a@b", "tel:+15551234567", "tel:+0155",
+           "bob@ex-ample.co", "x@-bad.com", "", "a b@example.com", "alice@example.com."]
+
+
+def gen_alias_query(r: random.Random):
+    """The provider's answer (Alias Transparency T§7; README `check: "alias-query"`)."""
+    return "alias-transparency", "alias-query", {}, {
+        "request": r.choice(["search", "monitor", "search", "monitor", "audit", ""]), "over_limit": r.random() < 0.2,
+        "alias": r.choice(ALIASES), "exists": r.random() < 0.6, "visible": r.random() < 0.6, "authorized": r.random() < 0.5}
+
+
+def gen_alias_monitor(r: random.Random):
+    """Who may monitor (T§8; README `check: "alias-monitor"`)."""
+    dids = ["did:web:alice.example", "did:web:mallory.example", "did:web:carol.example", "did:key:z6MkAlice"]
+    prov = "did:web:example.com"
+    payload = {"dsip": {"core": "1.0", "min_core": "1.0", "profiles": [], "extensions": [], "critical": []}, "type": "alias-monitor",
+               "id": "01K742SG00ALIASMQN1T0R0001", "from": r.choice(dids), "issued_at": 1790000000, "expires_at": 1790000060,
+               "to": prov if r.random() < 0.8 else r.choice(["did:web:other.example", "did:web:EXAMPLE.com"]), "alias": r.choice(ALIASES)}
+    return "alias-transparency", "alias-monitor", {}, {"payload": payload, "provider": prov,
+                                                      "values": r.sample(dids, r.randint(0, 3))}
+
+
+def gen_alias_head(r: random.Random):
+    """A tree head from a peer (T§9; README `check: "alias-head"`): signed heads, then field and byte mutations."""
+    sys.path.insert(0, str(REPO / "impl/tools"))
+    from dsipvec import kt
+    from dsipvec.crypto import keypair_from_seed_name, b64url_encode as b64
+    from dsipvec.gen.kt import VRF_PK
+    sig = keypair_from_seed_name("kt-provider")
+    cfg = bytes.fromhex("0002" + "01" + "0020" + sig.public.hex() + "0020" + VRF_PK
+                        + "%016x" % 60000 + "%016x" % 86400000 + "%016x" % 3600000 + "00")
+    roots = [kt.sha(bytes([n])) for n in range(4)]
+    size = r.choice([0, 1, 5, 5, 7, 2**53 - 1, 2**53, 2**64 - 1])
+    root = r.choice(roots)
+    signer = sig if r.random() < 0.85 else keypair_from_seed_name("kt-impostor")
+    sgn = signer.sign(cfg + kt.u64(r.choice([size, size, size, 6])) + r.choice([root, root, root, roots[0]]))
+    if r.random() < 0.1:
+        sgn = sgn[:r.randint(0, 64)]
+    th = kt.u64(size) + kt.u16(len(sgn)) + sgn
+    if r.random() < 0.1:
+        th = r.choice([th[:-1], th + b"\x00", th[:r.randint(0, 12)]])
+    rb = root if r.random() < 0.9 else root[:r.randint(0, 33)]
+    claim = {"type": "alias-log-head", "provider": "did:web:example.com", "tree_head": b64(th), "root": b64(rb)}
+    if r.random() < 0.15:
+        k = r.choice(["type", "provider", "tree_head", "root"])
+        claim[k] = r.choice([None, 5, "", "alias-log-heads", "example.com", claim[k] + "=", claim[k] + "AA", claim[k][:-1],
+                             claim[k][:-1] + r.choice("AQgw_-+/")])
+    if r.random() < 0.05:
+        claim.pop(r.choice(list(claim)))
+    held = [{"tree_size": n, "root": b64(r.choice(roots))} for n in r.sample([0, 1, 5, 7, 2**53 - 1], r.randint(0, 3))]
+    return "alias-transparency", "alias-head", {}, {"claim": claim, "configuration": cfg.hex() if r.random() < 0.9 else None,
+                                                     "held": held}
+
+
+def gen_alias_lookup(r: random.Random):
+    """What a lookup counts as (T§10; README `check: "alias-lookup-result"`)."""
+    return "alias-transparency", "alias-lookup-result", {}, {
+        "answer": r.choice(["found", "found", "not-found"]), "proof": r.choice(["verified", "verified", "unverifiable"]),
+        "terminal_entry": r.randint(0, 20), "rightmost_distinguished": r.choice([None, 0, 5, 10, 15, 20]), "fork": r.random() < 0.15}
+
+
 def gen_tnbinding(r: random.Random):
     """A number binding (N§3.4): random TNAuthLists, CA constraints, chains, clocks, claims and byte mutations."""
     sys.path.insert(0, str(REPO / "impl/tools"))
@@ -959,6 +1020,8 @@ TARGETS = {
     "successor": gen_successor, "client": gen_client, "hub": gen_hub, "mailbox": gen_mailbox, "endpoint": gen_endpoint,
     "relay": gen_relay, "deposit-fields": gen_deposit_fields, "gateway-reason": gen_gateway_reason,
     "call-record": gen_call_record, "call-record-outcome": gen_call_record_outcome,
+    "alias-query": gen_alias_query, "alias-monitor": gen_alias_monitor, "alias-head": gen_alias_head,
+    "alias-lookup": gen_alias_lookup,
 }
 
 # Targets where the implementations are known to differ and the difference is a protocol decision, not a bug

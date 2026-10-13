@@ -1,0 +1,25 @@
+{
+  "vector": "alias-transparency/head-unknown-log-before-signature",
+  "format": 1,
+  "kind": "alias-transparency",
+  "description": "An unpinned log is ignored before any signature check.",
+  "spec_ref": [
+    "T§9"
+  ],
+  "context": {},
+  "input": {
+    "check": "alias-head",
+    "claim": {
+      "type": "alias-log-head",
+      "provider": "did:web:example.com",
+      "tree_head": "AAAAAAAAAAUAQCC85fLftnNRgvkXIZ9Q3tYY2FOFgruJXpXjKX9NToFLbiBxmIGgACy9Ls0JWGFcnZP9gkB7NLtB1V90nG8p4wU",
+      "root": "P9AgzlbWUlkQFJ1ox5YxMOgR2YZh-w9d3FKylzKHRrc"
+    },
+    "configuration": null,
+    "held": []
+  },
+  "expect": {
+    "outcome": "ignored",
+    "reason": "unknown-log"
+  }
+}

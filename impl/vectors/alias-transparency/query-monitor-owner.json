@@ -1,0 +1,23 @@
+{
+  "vector": "alias-transparency/query-monitor-owner",
+  "format": 1,
+  "kind": "alias-transparency",
+  "description": "A monitor request authorized by T§8.",
+  "spec_ref": [
+    "T§7"
+  ],
+  "context": {},
+  "input": {
+    "check": "alias-query",
+    "request": "monitor",
+    "over_limit": false,
+    "alias": "alice@example.com",
+    "exists": true,
+    "visible": true,
+    "authorized": true
+  },
+  "expect": {
+    "status": 200,
+    "answer": "monitor-response"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "vector": "alias-transparency/query-alias-invalid",
+  "format": 1,
+  "kind": "alias-transparency",
+  "description": "An alias that does not normalize (no domain): syntax reveals nothing about existence.",
+  "spec_ref": [
+    "T§7"
+  ],
+  "context": {},
+  "input": {
+    "check": "alias-query",
+    "request": "search",
+    "over_limit": false,
+    "alias": "alice",
+    "exists": true,
+    "visible": true,
+    "authorized": false
+  },
+  "expect": {
+    "status": 400,
+    "answer": "alias-invalid"
+  }
+}

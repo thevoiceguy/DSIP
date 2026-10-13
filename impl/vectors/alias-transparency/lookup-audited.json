@@ -1,0 +1,21 @@
+{
+  "vector": "alias-transparency/lookup-audited",
+  "format": 1,
+  "kind": "alias-transparency",
+  "description": "A verified version left of the rightmost distinguished entry.",
+  "spec_ref": [
+    "T§10"
+  ],
+  "context": {},
+  "input": {
+    "check": "alias-lookup-result",
+    "answer": "found",
+    "proof": "verified",
+    "terminal_entry": 3,
+    "rightmost_distinguished": 10,
+    "fork": false
+  },
+  "expect": {
+    "result": "audited"
+  }
+}

@@ -95,6 +95,7 @@ MESSAGE_TYPES = (
     "introduction", "grant", "publish", "subscribe", "notify", "unpublish", "error", "hello",
     "provenance", "key-rotation", "reachability-hint",   # v0.7: §22.3, §7.5, DHT Hints Profile
     "delegation-revocation",                             # v0.8: §7.4 (spec-gap 57)
+    "alias-monitor",                                     # v0.14: Alias Transparency T§8 (spec-gap 124)
 )
 INTEGRITY_MODES = ("metadata-only", "derivative-bound")   # dsip-integrity-mode (§22.2); unknown → metadata-only
 ROTATION_REASONS = ("scheduled", "compromised", "lost", "policy")   # dsip-rotation-reason (§7.5)

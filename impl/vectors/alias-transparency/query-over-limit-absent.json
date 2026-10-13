@@ -1,0 +1,23 @@
+{
+  "vector": "alias-transparency/query-over-limit-absent",
+  "format": 1,
+  "kind": "alias-transparency",
+  "description": "Over budget: rate-limited, whether or not the alias exists.",
+  "spec_ref": [
+    "T§7"
+  ],
+  "context": {},
+  "input": {
+    "check": "alias-query",
+    "request": "search",
+    "over_limit": true,
+    "alias": "alice@example.com",
+    "exists": false,
+    "visible": false,
+    "authorized": false
+  },
+  "expect": {
+    "status": 429,
+    "answer": "rate-limited"
+  }
+}

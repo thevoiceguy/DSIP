@@ -1,0 +1,23 @@
+{
+  "vector": "alias-transparency/query-tel-alias-found",
+  "format": 1,
+  "kind": "alias-transparency",
+  "description": "A tel: alias (N§6 route 2) is an alias like any other.",
+  "spec_ref": [
+    "T§7"
+  ],
+  "context": {},
+  "input": {
+    "check": "alias-query",
+    "request": "search",
+    "over_limit": false,
+    "alias": "tel:+15551234567",
+    "exists": true,
+    "visible": true,
+    "authorized": false
+  },
+  "expect": {
+    "status": 200,
+    "answer": "search-response"
+  }
+}

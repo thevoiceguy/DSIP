@@ -6,8 +6,10 @@ track A, item 3): a KEYTRANS-shaped log with VRF-blinded labels, written as a DS
 This revision therefore makes normative the profile choices and the cryptographic building blocks, following the
 editors' copy of 2026-09-16 (what -06 is expected to publish). They match -05 except the mode-1 Configuration, which
 no longer carries a `leaf_public_key`; the editors removed it on 2026-07-28 (spec-gap 104). They also match the
-editor's reference implementation, katie (commit `e1640671`). Lookup verification, owner monitoring and fork detection (T§6) follow when
--06 is published. Conformance: the `alias-transparency/` vectors.
+editor's reference implementation, katie (commit `e1640671`). v0.14 adds the DSIP side of lookup, monitoring and fork
+detection, which does not depend on KEYTRANS's proof bytes (T§7–T§10, spec-gap 124): the query endpoint, how an owner
+authenticates to monitor, tree heads exchanged between peers, and what a lookup result counts as. Verifying the
+proofs themselves (T§6) follows when -06 is published. Conformance: the `alias-transparency/` vectors.
 
 ## T§1 Purpose
 
@@ -74,7 +76,7 @@ the provider's DID document. The provider of `alice@example.com` is `did:web:exa
 - A client pins the Configuration on first use. A different Configuration later is a different log, handled as
   `[KTA]` §5.2 log migration, never a silent replacement.
 - This rests on `did:web`, which rests on the Web PKI (§8.4): a provider who can rewrite its DID document can point
-  clients at a new log. Pinning and owner monitoring (T§6) make that detectable.
+  clients at a new log. Pinning and owner monitoring (T§8, with its proofs in T§6) make that detectable.
 
 ## T§5 The building blocks (normative now)
 
@@ -108,18 +110,99 @@ All values are as `[KT]` defines them. Their exact byte layouts are in the vecto
 
 ## T§6 Staged for the next revision (after KEYTRANS -06)
 
-- **Lookup:** greatest-version search (`[KT]` §6, §13.1), verified offline from a `SearchResponse`.
-  - An alias version whose terminal entry lies right of the rightmost distinguished entry is **pending**. It MUST NOT
-    be used as authority until a distinguished entry covers it. `[KTA]` §7.1 permits this restriction, and it spares
-    callers from contact monitoring.
-  - A verified result is the alias tier of §8.1. A pending or unverifiable one gets the unverified-alias treatment.
-    The DID document stays authoritative for keys and endpoints.
-- **Owner monitoring:** the DID holder's endpoint (`[KT]` §8.3, §9.1). It authenticates to the provider with a DSIP
-  envelope signed by the bound DID.
-- **Fork detection:** distinguished tree heads (`[KT]` §10) exchanged peer-to-peer in DSIP signaling, as an optional
-  field, so a provider showing different logs to different users is caught.
-- **Anti-enumeration at the query endpoint:** the VRF hides aliases in the log, not at the provider's search
-  endpoint. A provider MUST answer "no such alias" and "not permitted" identically and rate-limit queries, in the
-  spirit of §19.4.
+What still waits for KEYTRANS's proof format. Each item is verified offline from KEYTRANS bytes:
+
+- **Lookup proof:** greatest-version search (`[KT]` §6, §13.1), verified from a `SearchResponse`. Its result feeds
+  T§10: whether the proof verified, the version's terminal entry and the rightmost distinguished entry.
+- **Monitoring proof:** the owner's `MonitorResponse` (`[KT]` §8.3, §9.1), sent once T§8 admits the owner.
+- **Consistency between tree heads of different sizes** (`[KT]` §10), so a head received from a peer (T§9) is checked
+  against the client's own heads of other sizes, not only one of the same size.
 - **Credentials** (`[KT]` §14) in introductions, so a callee need not query the caller's provider. Planned for
   v1.0.
+
+## T§7 The query endpoint (v0.14, spec-gap 124)
+
+The `DSIPAliasLog` endpoint's `uri` (T§4) takes KEYTRANS requests by HTTPS `POST`, the request's TLS bytes as the body
+(T§2). A provider answers in this order, pinned by `check: "alias-query"`:
+
+1. **Rate limit.** Every query counts against the requester's budget, whether the alias exists or not. Over budget,
+   the answer is `429` (`rate-limited`). The budget is the provider's choice, in the spirit of §19.4's introduction
+   budget. Counting before anything else means the limit reveals nothing about which aliases exist.
+2. **A request that is neither a search nor a monitor** is answered `400` (`bad-request`).
+3. **An alias that does not normalize** (T§3) is answered `400` (`alias-invalid`). Syntax reveals nothing about
+   existence.
+4. **A search** for an alias that is in the log and that the provider lets this requester see is answered `200` with
+   the search response. Any other search is answered `404` (`not-found`).
+5. **A monitor request** for an alias in the log, authorized by T§8, is answered `200` with the monitor response. Any
+   other monitor request, whatever T§8 refused, is answered `404` (`not-found`).
+
+**One not-found.** An absent alias, one the requester may not see, and a monitor request from someone who is not its
+owner get the same answer: status `404`, the same headers, an empty body. A provider MUST NOT answer a search with
+KEYTRANS's proof of absence, since that would tell an absent alias from a hidden one. It SHOULD take the same time
+for each. The VRF hides aliases in the log (T§2); this rule hides them at the endpoint.
+
+## T§8 Owner monitoring (v0.14, spec-gap 124)
+
+An alias's owner proves who it is with an `alias-monitor` message, sent as `Authorization: DSIP <compact envelope>` on
+the monitor `POST`, as `blob-put` is (M§5.6). The body stays the raw KEYTRANS request: the DSIP message authorizes it,
+and never wraps it (T§2).
+
+```json
+{"dsip": {…}, "type": "alias-monitor", "id": "01J…", "from": "did:web:alice.example", "to": "did:web:example.com",
+ "issued_at": 1790000000, "expires_at": 1790000060, "alias": "alice@example.com"}
+```
+
+- The envelope is verified like any DSIP message (§10.2): the signature over the bytes, the delegation when a device
+  signs, the replay window, the schema (`alias-monitor.schema.json`). `from` is the identity (§10.2).
+- **Who may monitor:** an identity that is, or was, the value of some version of the alias. A former owner keeps the
+  right, so an owner whose alias was rebound to another DID can still see the rebinding, which is the case
+  monitoring exists for.
+- The provider's checks after verification, in order, pinned by `check: "alias-monitor"`: `to` is not the provider
+  (`wrong-audience`); the alias does not normalize (`alias-invalid`); `from` has never been the alias's value
+  (`not-owner`). Every refusal is answered `not-found` (T§7).
+
+## T§9 Fork detection: tree heads between peers (v0.14, spec-gap 124)
+
+A provider that shows different logs to different users is caught when two of them compare signed tree heads. DSIP
+carries a head as a claim in `identity.claims` of an `invite` or `introduction` (§17, the claims list where N§4's
+number claims ride), so no core schema changes:
+
+```json
+{"type": "alias-log-head", "provider": "did:web:example.com", "tree_head": "<base64url of the TLS-encoded TreeHead>",
+ "root": "<base64url of the 32-byte root>"}
+```
+
+- A sender MAY include heads of logs it holds, its own provider's at least. `tree_head` is KEYTRANS's `TreeHead`, raw
+  (T§2); `root` is the log root it was signed over, which a `TreeHead` does not carry.
+- A receiver that does not know the claim type ignores it, like any unknown claim. One that does checks it, in order,
+  pinned by `check: "alias-head"`:
+  1. a claim that does not parse (a field missing or not base64url, a `TreeHead` with trailing bytes, a root that is
+     not 32 bytes) is `invalid` (`malformed`);
+  2. a log whose Configuration the receiver has not pinned (T§4) is `ignored` (`unknown-log`): it has nothing to check
+     against;
+  3. a signature that does not verify over `TreeHeadTBS` (T§5 item 7) is `invalid` (`bad-signature`);
+  4. a head of a size the receiver holds, with a different root, is a **`fork`**;
+  5. the same size and root is `consistent`;
+  6. any other size is `new`: the receiver keeps it. Checking it against heads of other sizes needs KEYTRANS's
+     consistency proofs (T§6).
+- **A fork is proof.** Two heads of one size with different roots, both signed by the provider's own key, show that
+  it served different logs. The receiver keeps both, treats every answer from that log as unaudited (T§10), and
+  SHOULD show the user the evidence.
+
+## T§10 What a lookup result counts as (v0.14, spec-gap 124)
+
+A client resolving an alias (§8.1 step 3) classifies the result, pinned by `check: "alias-lookup-result"`:
+
+1. **`not-found`:** the endpoint answered `not-found` (T§7). The alias resolves to nothing.
+2. **`unaudited` (`fork`):** a fork is known for that log (T§9).
+3. **`unaudited` (`unverifiable`):** the lookup proof did not verify (T§6).
+4. **`unaudited` (`pending`):** the version's terminal entry lies right of the rightmost distinguished entry, or no
+   entry is distinguished yet. `[KTA]` §7.1 permits this restriction, and it spares callers from contact monitoring.
+5. **`audited`:** otherwise.
+
+- An `audited` alias is the alias tier of §8.1 with this profile's assurance: the answer is the one in the log
+  everyone sees.
+- An `unaudited` one is what an alias is without this profile: the provider's word. A client MUST NOT present it as
+  verified, and SHOULD look it up again once a distinguished entry covers it.
+- Either way the DID is what the alias resolves to. The DID document stays authoritative for keys and endpoints
+  (§8.1 step 4), and this profile never overrides it.

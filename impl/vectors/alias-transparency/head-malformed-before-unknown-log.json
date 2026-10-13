@@ -1,0 +1,25 @@
+{
+  "vector": "alias-transparency/head-malformed-before-unknown-log",
+  "format": 1,
+  "kind": "alias-transparency",
+  "description": "A malformed claim is malformed even for an unpinned log.",
+  "spec_ref": [
+    "T§9"
+  ],
+  "context": {},
+  "input": {
+    "check": "alias-head",
+    "claim": {
+      "type": "alias-log-head",
+      "provider": "did:web:example.com",
+      "tree_head": "AAAAAAAAAAUAQBkfjuTVQJSDJ7ZV2R5gIQPVVdQxHpjcMo1mP3ESeiTZISLzNF6CEg6uCcnq6WA8L_vbww_Nz3Yqe8jbMKkjVw4",
+      "root": "P9AgzlbWUlkQFJ1ox5YxMOgR2YZh-w9d3FKylzKHRg"
+    },
+    "configuration": null,
+    "held": []
+  },
+  "expect": {
+    "outcome": "invalid",
+    "reason": "malformed"
+  }
+}

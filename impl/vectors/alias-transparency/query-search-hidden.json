@@ -1,0 +1,23 @@
+{
+  "vector": "alias-transparency/query-search-hidden",
+  "format": 1,
+  "kind": "alias-transparency",
+  "description": "An alias in the log the requester may not see gets the absent alias's answer.",
+  "spec_ref": [
+    "T§7"
+  ],
+  "context": {},
+  "input": {
+    "check": "alias-query",
+    "request": "search",
+    "over_limit": false,
+    "alias": "alice@example.com",
+    "exists": true,
+    "visible": false,
+    "authorized": false
+  },
+  "expect": {
+    "status": 404,
+    "answer": "not-found"
+  }
+}

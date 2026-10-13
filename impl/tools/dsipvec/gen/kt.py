@@ -204,4 +204,147 @@ def vectors() -> list[dict]:
                       {"root": root_, "frontier": front}))
     for t, lad in [(6, [0, 1, 3, 7, 5, 6]), (2, [0, 1, 3, 2]), (0, [0, 1]), (7, [0, 1, 3, 7, 15, 11, 9, 8])]:
         out.append(kv(f"ladder-{t}", f"[KT] §5: the base binary ladder for version {t}.", {"check": "ladder", "version": t}, {"ladder": lad}))
+    out += stage2_vectors(sig, hand)
+    return out
+
+
+def stage2_vectors(sig, hand: str) -> list[dict]:
+    """T§7–T§10 (v0.14, spec-gap 124): the DSIP side of stage 2. Every expectation is written by hand from the text."""
+    out = []
+    from ..crypto import b64url_encode as b64
+
+    # --- T§7 the query endpoint ------------------------------------------------------------------------
+    def q(vid, desc, want, request="search", over_limit=False, alias="alice@example.com", exists=True, visible=True,
+          authorized=False):
+        status, answer = want
+        out.append(kv(f"query-{vid}", desc, {"check": "alias-query", "request": request, "over_limit": over_limit, "alias": alias,
+                      "exists": exists, "visible": visible, "authorized": authorized}, {"status": status, "answer": answer}, ["T§7"]))
+    q("search-found", "A search for an alias in the log that the requester may see.", (200, "search-response"))
+    q("search-absent", "An absent alias: not-found, with no proof of absence.", (404, "not-found"), exists=False, visible=False)
+    q("search-hidden", "An alias in the log the requester may not see gets the absent alias's answer.", (404, "not-found"),
+      visible=False)
+    q("search-ignores-authorized", "A monitor authorization does not make an alias visible to a search.", (404, "not-found"),
+      visible=False, authorized=True)
+    q("over-limit-absent", "Over budget: rate-limited, whether or not the alias exists.", (429, "rate-limited"), over_limit=True,
+      exists=False, visible=False)
+    q("over-limit-found", "The rate limit comes first: over budget, even a visible alias is rate-limited.", (429, "rate-limited"),
+      over_limit=True)
+    q("monitor-owner", "A monitor request authorized by T§8.", (200, "monitor-response"), request="monitor", authorized=True)
+    q("monitor-not-owner", "A monitor request T§8 refused: the answer of an absent alias.", (404, "not-found"), request="monitor")
+    q("monitor-absent", "A monitor request for an absent alias.", (404, "not-found"), request="monitor", exists=False, authorized=True)
+    q("monitor-ignores-visible", "Visibility to searches does not matter to the owner's monitoring.", (200, "monitor-response"),
+      request="monitor", visible=False, authorized=True)
+    q("bad-request", "A request that is neither a search nor a monitor.", (400, "bad-request"), request="audit")
+    q("bad-request-before-alias", "An unknown request is refused before its alias is looked at.", (400, "bad-request"),
+      request="audit", alias="alice")
+    q("alias-invalid", "An alias that does not normalize (no domain): syntax reveals nothing about existence.",
+      (400, "alias-invalid"), alias="alice")
+    q("alias-invalid-over-limit", "The rate limit comes before the syntax check.", (429, "rate-limited"), over_limit=True,
+      alias="alice")
+    q("tel-alias-found", "A tel: alias (N§6 route 2) is an alias like any other.", (200, "search-response"), alias="tel:+15551234567")
+
+    # --- T§8 owner monitoring ---------------------------------------------------------------------------
+    ALICE, MALLORY, CAROL, PROV = "did:web:alice.example", "did:web:mallory.example", "did:web:carol.example", "did:web:example.com"
+    base = {"dsip": {"core": "1.0", "min_core": "1.0", "profiles": [], "extensions": [], "critical": []}, "type": "alias-monitor",
+            "id": "01K742SG00ALIASMQN1T0R0001", "from": ALICE, "to": PROV, "issued_at": 1790000000, "expires_at": 1790000060,
+            "alias": "alice@example.com"}
+
+    def m(vid, desc, want, values=(ALICE,), **over):
+        out.append(kv(f"monitor-{vid}", desc, {"check": "alias-monitor", "payload": {**base, **over}, "provider": PROV,
+                      "values": list(values)}, want, ["T§8"]))
+    m("owner", "The alias's current value monitors it.", {"verdict": "accept", "label": "alice@example.com"})
+    m("alias-normalized", "The alias is normalized before the checks (T§3): the domain is lowercased.",
+      {"verdict": "accept", "label": "alice@example.com"}, alias="alice@EXAMPLE.com")
+    m("former-owner", "Rebound to another DID, the former owner may still monitor, and so sees the rebinding.",
+      {"verdict": "accept", "label": "alice@example.com"}, values=(ALICE, MALLORY))
+    m("current-owner-after-rebind", "The current value after a rebinding may monitor too.",
+      {"verdict": "accept", "label": "alice@example.com"}, values=(ALICE, MALLORY), **{"from": MALLORY})
+    m("not-owner", "An identity that was never the alias's value.", {"verdict": "refuse", "code": "not-owner"}, **{"from": CAROL})
+    m("absent", "An alias with no versions has no owner.", {"verdict": "refuse", "code": "not-owner"}, values=())
+    m("wrong-audience", "Addressed to another provider.", {"verdict": "refuse", "code": "wrong-audience"}, to="did:web:other.example")
+    m("wrong-audience-first", "Several failures: the audience is checked first.", {"verdict": "refuse", "code": "wrong-audience"},
+      to="did:web:other.example", alias="alice", **{"from": CAROL})
+    m("alias-invalid", "An alias that does not normalize.", {"verdict": "refuse", "code": "alias-invalid"}, alias="alice")
+    m("alias-invalid-before-owner", "The alias is checked before ownership.", {"verdict": "refuse", "code": "alias-invalid"},
+      alias="alice", **{"from": CAROL})
+
+    # --- T§9 tree heads between peers -------------------------------------------------------------------
+    cb = bytes.fromhex(hand)
+    r5, r5b, r7, r3 = (kt.sha(x) for x in (b"root-5", b"root-5-fork", b"root-7", b"root-3"))
+
+    def head(size, root, signer=sig, sign_size=None, sig_len=None):
+        sgn = signer.sign(cb + kt.u64(sign_size if sign_size is not None else size) + root)
+        if sig_len is not None:
+            sgn = sgn[:sig_len]
+        return kt.u64(size) + kt.u16(len(sgn)) + sgn
+
+    def claim(th: bytes, root: bytes, **over):
+        return {"type": "alias-log-head", "provider": PROV, "tree_head": b64(th), "root": b64(root), **over}
+
+    def h(vid, desc, c, want, held=(), configuration=hand):
+        out.append(kv(f"head-{vid}", desc, {"check": "alias-head", "claim": c, "configuration": configuration,
+                      "held": [{"tree_size": n, "root": b64(r)} for n, r in held]}, want, ["T§9"]))
+    good = claim(head(5, r5), r5)
+    h("new", "A valid head of a size the receiver does not hold: kept.", good, {"outcome": "new", "tree_size": 5})
+    h("consistent", "The same size and root as a head the receiver holds.", good, {"outcome": "consistent", "tree_size": 5},
+      held=[(5, r5)])
+    h("fork", "Two signed heads of one size with different roots: proof the provider served different logs.", good,
+      {"outcome": "fork", "tree_size": 5, "held_root": b64(r5b), "claimed_root": b64(r5)}, held=[(5, r5b)])
+    h("fork-among-several", "A fork against one of several held heads.", good,
+      {"outcome": "fork", "tree_size": 5, "held_root": b64(r5b), "claimed_root": b64(r5)}, held=[(3, r3), (5, r5b), (7, r7)])
+    h("other-size-is-new", "Another size cannot be compared without consistency proofs (T§6): new.", good,
+      {"outcome": "new", "tree_size": 5}, held=[(7, r7)])
+    h("unknown-log", "A log the receiver has not pinned: nothing to check against.", good,
+      {"outcome": "ignored", "reason": "unknown-log"}, configuration=None)
+    h("unknown-log-before-signature", "An unpinned log is ignored before any signature check.", claim(head(5, r5b), r5),
+      {"outcome": "ignored", "reason": "unknown-log"}, configuration=None)
+    h("bad-signature", "A signature over another root.", claim(head(5, r5b), r5), {"outcome": "invalid", "reason": "bad-signature"})
+    h("bad-signature-size", "A signature over another tree size.", claim(head(6, r5, sign_size=5), r5),
+      {"outcome": "invalid", "reason": "bad-signature"})
+    h("bad-signature-before-fork", "A forged head proves nothing: its signature is checked before any comparison.",
+      claim(head(5, r5b), r5), {"outcome": "invalid", "reason": "bad-signature"}, held=[(5, r5b)])
+    h("bad-signature-other-key", "Signed by a key other than the pinned Configuration's.",
+      claim(head(5, r5, signer=keypair_from_seed_name("kt-impostor")), r5), {"outcome": "invalid", "reason": "bad-signature"})
+    h("short-signature", "A TreeHead with a 63-byte signature parses, and does not verify.", claim(head(5, r5, sig_len=63), r5),
+      {"outcome": "invalid", "reason": "bad-signature"})
+    # the root's last character, its low (unused) bit set: the same 32 bytes decoded
+    import base64
+    bumped = good["root"][:-1] + chr(ord(good["root"][-1]) + 1)
+    assert base64.urlsafe_b64decode(bumped + "=") == r5 and bumped != good["root"]
+    h("unused-bits-accepted", "Non-zero unused bits in the root's last base64url character are accepted; the root is its "
+      "decoded bytes.", {**good, "root": bumped}, {"outcome": "new", "tree_size": 5})
+    M = {"outcome": "invalid", "reason": "malformed"}
+    h("malformed-type", "Not an alias-log-head claim.", {**good, "type": "alias-log-heads"}, M)
+    h("malformed-provider", "The provider is not a DID.", {**good, "provider": "example.com"}, M)
+    h("malformed-root-31", "A root of 31 bytes.", claim(head(5, r5), r5[:31]), M)
+    h("malformed-root-not-string", "A root that is not a string.", {**good, "root": 5}, M)
+    h("malformed-root-length", "A base64url length one more than a multiple of 4.", {**good, "root": good["root"] + "AA"}, M)
+    h("malformed-padding", "Padding is not base64url here.", {**good, "tree_head": good["tree_head"] + "="}, M)
+    h("malformed-trailing-byte", "A TreeHead with a byte after its end.", claim(head(5, r5) + b"\x00", r5), M)
+    h("malformed-truncated", "A TreeHead cut short.", claim(head(5, r5)[:-1], r5), M)
+    h("malformed-tree-size-beyond-2p53", "A tree size above 2^53−1 is not portable as a JSON number.",
+      claim(head(2**53, r5), r5), M)
+    h("malformed-missing-root", "A claim without its root.", {k: v for k, v in good.items() if k != "root"}, M)
+    h("malformed-before-unknown-log", "A malformed claim is malformed even for an unpinned log.", claim(head(5, r5), r5[:31]), M,
+      configuration=None)
+
+    # --- T§10 what a lookup result counts as -----------------------------------------------------------
+    def r(vid, desc, want, answer="found", proof="verified", terminal=3, rightmost=10, fork=False):
+        out.append(kv(f"lookup-{vid}", desc, {"check": "alias-lookup-result", "answer": answer, "proof": proof,
+                      "terminal_entry": terminal, "rightmost_distinguished": rightmost, "fork": fork}, want, ["T§10"]))
+    r("audited", "A verified version left of the rightmost distinguished entry.", {"result": "audited"})
+    r("audited-at-distinguished", "A terminal entry that is the rightmost distinguished entry is covered.", {"result": "audited"},
+      terminal=10)
+    r("pending", "A terminal entry right of the rightmost distinguished entry is pending, not authority.",
+      {"result": "unaudited", "reason": "pending"}, terminal=12)
+    r("pending-none-distinguished", "No entry is distinguished yet.", {"result": "unaudited", "reason": "pending"}, terminal=0,
+      rightmost=None)
+    r("unverifiable", "A proof that does not verify.", {"result": "unaudited", "reason": "unverifiable"}, proof="unverifiable")
+    r("unverifiable-before-pending", "Unverifiable is reported before pending.", {"result": "unaudited", "reason": "unverifiable"},
+      proof="unverifiable", terminal=12)
+    r("fork", "A known fork makes every answer of that log unaudited.", {"result": "unaudited", "reason": "fork"}, fork=True)
+    r("fork-before-unverifiable", "A fork is reported before anything about the proof.", {"result": "unaudited", "reason": "fork"},
+      proof="unverifiable", fork=True)
+    r("not-found", "The endpoint answered not-found: the alias resolves to nothing.", {"result": "not-found"}, answer="not-found",
+      proof="unverifiable", fork=True)
     return out

@@ -2547,6 +2547,13 @@ v0.12 is final at tag `poc-v0.12`; v0.13 is final at tag `poc-v0.13`. Each v0.13
 
 v0.13 is final at tag `poc-v0.13`. Each v0.14 item is listed here as it lands, with its spec-gap number.
 
+- Alias transparency, the DSIP side of stage 2 (spec-gap 124): the provider's query endpoint answers an absent
+  alias, a hidden one and a non-owner's monitor request with one `not-found`, after a rate limit that counts every
+  query (T§7); an owner, current or former, authorizes monitoring with an `alias-monitor` message (T§8, the one
+  core schema addition); signed tree heads travel between peers as an `alias-log-head` claim, and two heads of one
+  size with different roots prove a fork (T§9); a lookup result is `audited`, `unaudited` or `not-found` (T§10).
+  Verifying KEYTRANS's proofs stays staged for -06 (T§6).
+
 ---
 
 ## Appendix B: Emergency Services and Regulated Profiles

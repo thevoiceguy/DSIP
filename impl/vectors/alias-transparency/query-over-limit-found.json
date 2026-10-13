@@ -1,0 +1,23 @@
+{
+  "vector": "alias-transparency/query-over-limit-found",
+  "format": 1,
+  "kind": "alias-transparency",
+  "description": "The rate limit comes first: over budget, even a visible alias is rate-limited.",
+  "spec_ref": [
+    "T§7"
+  ],
+  "context": {},
+  "input": {
+    "check": "alias-query",
+    "request": "search",
+    "over_limit": true,
+    "alias": "alice@example.com",
+    "exists": true,
+    "visible": true,
+    "authorized": false
+  },
+  "expect": {
+    "status": 429,
+    "answer": "rate-limited"
+  }
+}
