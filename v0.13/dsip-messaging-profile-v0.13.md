@@ -1,6 +1,6 @@
 # DSIP Messaging Profile 1.0 — Unified Messaging, Mailboxes, and Voicemail
 
-**Status:** Companion profile to DSIP v0.12 — normative 1.0. This document was written *before* the
+**Status:** Companion profile to DSIP v0.13 — normative 1.0. This document was written *before* the
 reference implementation and then corrected by it: the `messaging/` vector category (457 vectors)
 pins it, and the Python harness, the Rust reference implementation and an independent TypeScript
 implementation agree on every one; the reference implementation runs it over the wire on real MLS and HPKE
