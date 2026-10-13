@@ -3576,8 +3576,10 @@ Choices:
 - **(c)** treat the move as a new device: re-join every group by external commit (M§6.8) from the new mailbox's
   GroupInfo, which it does not have yet.
 - **Recommended: (a)**, a paragraph in M§4.1 or M§6.6. The browser client implements the registration and the fresh
-  sync (an `Impl:` note in `dsip-wasm`'s messaging engine); it re-deposits pending application items but not a pending
-  `group-info` or `mailbox-config`, so a move during the personal group's creation leaves it unconfirmed — the
-  headless test moves only after creation. Its outbox for the dead hub's groups then runs M§9.4 as usual, and the
+  sync (an `Impl:` note in `dsip-wasm`'s messaging engine), and re-deposits everything pending under fresh
+  envelopes: application items from the outbox, a GroupInfo as a new export, a commit as the same MLS bytes, an
+  archive record to the new mailbox; a pending `mailbox-config` at the old one is superseded by the registration.
+  Pending deposits are kept across a restart too, so a reload does the same (`impl/web/test/messaging-pending.mjs`
+  loses the personal group's GroupInfo, then reloads one identity and moves the other). Its outbox for the dead hub's groups then runs M§9.4 as usual, and the
   successor's creator fetches the moved identity's KeyPackages from the new mailbox on the strength of that
   registration (`impl/web/test/messaging-successor.mjs`).
