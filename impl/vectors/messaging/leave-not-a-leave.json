@@ -1,0 +1,51 @@
+{
+  "vector": "messaging/leave-not-a-leave",
+  "format": 1,
+  "kind": "messaging",
+  "description": "A proposal of another kind pending beside the removals: not a leave.",
+  "spec_ref": [
+    "M§7.3"
+  ],
+  "context": {},
+  "input": {
+    "check": "leave-proposals",
+    "me": "did:web:example.com:users:bob",
+    "proposer": {
+      "identity": "did:web:alice.example",
+      "device": "did:key:z6MkAlicePhoneLeaveLeaveLeaveLeaveLeave1"
+    },
+    "removes": [
+      {
+        "identity": "did:web:alice.example",
+        "device": "did:key:z6MkAlicePhoneLeaveLeaveLeaveLeaveLeave1"
+      },
+      {
+        "identity": "did:web:alice.example",
+        "device": "did:key:z6MkAliceLaptopLeaveLeaveLeaveLeaveLeave2"
+      }
+    ],
+    "others": 1,
+    "roster": [
+      {
+        "identity": "did:web:alice.example",
+        "device": "did:key:z6MkAlicePhoneLeaveLeaveLeaveLeaveLeave1"
+      },
+      {
+        "identity": "did:web:alice.example",
+        "device": "did:key:z6MkAliceLaptopLeaveLeaveLeaveLeaveLeave2"
+      },
+      {
+        "identity": "did:web:example.com:users:bob",
+        "device": "did:key:z6MkBobPhoneLeaveLeaveLeaveLeaveLeaveLeave"
+      },
+      {
+        "identity": "did:web:carol.example",
+        "device": "did:key:z6MkCarolPhoneLeaveLeaveLeaveLeaveLeave"
+      }
+    ]
+  },
+  "expect": {
+    "action": "ignore",
+    "reason": "not-a-leave"
+  }
+}

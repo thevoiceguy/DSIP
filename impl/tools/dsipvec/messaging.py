@@ -264,6 +264,24 @@ def check_conversation_ext(ext: dict) -> dict:
 
 # ---------------------------------------------------------------- hub (M§6.5–M§6.8, M§7.3)
 
+def leave_proposals(inp: dict) -> dict:
+    """M§7.3 "Leaving" (spec-gap 125): a member's device and an identity's pending Remove proposals."""
+    if inp["others"] > 0:
+        return {"action": "ignore", "reason": "not-a-leave"}
+    who = inp["proposer"]["identity"]
+    leaves = {r["device"] for r in inp["roster"] if r["identity"] == who}
+    removed = set()
+    for r in inp["removes"]:
+        if r["identity"] != who or r["device"] not in leaves:
+            return {"action": "ignore", "reason": "not-own-leaves"}
+        removed.add(r["device"])
+    if removed != leaves:
+        return {"action": "wait"}
+    if who == inp["me"]:
+        return {"action": "left"}
+    return {"action": "commit"}
+
+
 def check_external_join(inp: dict) -> dict:
     """M§6.8 (spec-gap 62): what an external commit may do, checked alike by the hub and by every member.
 
@@ -2044,6 +2062,8 @@ def run(v: dict) -> dict:
         return peer_timeline(inp)
     if check == "external-join":
         return check_external_join(inp)
+    if check == "leave-proposals":
+        return leave_proposals(inp)
     if check == "successor-check":
         return check_successor(inp)
     if check == "successor-select":

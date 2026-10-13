@@ -144,3 +144,19 @@ export function externalJoin(i: { kind: string; owner?: string; roster: string[]
 export function registrationOnRemoval(me: string, remainingIdentities: string[]): JsonObject {
   return { left: !remainingIdentities.includes(me) };
 }
+
+/** What a member's device does with an identity's pending Remove proposals.
+ * Spec: M§7.3 "Leaving" (v0.14, spec-gap 125) — a leaver proposes every leaf of its identity; another member commits. */
+export function leaveProposals(i: { me: string; proposer: Leaf; removes: Leaf[]; others: number; roster: Leaf[] }): Record<string, string> {
+  if (i.others > 0) return { action: "ignore", reason: "not-a-leave" };
+  const who = i.proposer.identity;
+  const leaves = new Set(i.roster.filter((r) => r.identity === who).map((r) => r.device));
+  const removed = new Set<string>();
+  for (const r of i.removes) {
+    if (r.identity !== who || !leaves.has(r.device)) return { action: "ignore", reason: "not-own-leaves" };
+    removed.add(r.device);
+  }
+  if (removed.size !== leaves.size) return { action: "wait" };
+  if (who === i.me) return { action: "left" };
+  return { action: "commit" };
+}

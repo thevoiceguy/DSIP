@@ -11,7 +11,7 @@ Attestation) stay drafts.
 | `dsip-schemas-v0.14-draft/` | Core JSON Schema set | generated; adds `alias-monitor` (T§8) |
 | `dsip-webrtc-media-binding-v0.14.md` | WebRTC Media Binding 1.0 | normative, unchanged |
 | `dsip-gateway-profile-v0.14.md` | Gateway Profile 1.0 | normative, unchanged |
-| `dsip-messaging-profile-v0.14.md` | Messaging Profile 1.0 and Mailbox 1.0 | normative, unchanged |
+| `dsip-messaging-profile-v0.14.md` | Messaging Profile 1.0 and Mailbox 1.0 | normative; leaving a conversation (M§7.3, spec-gap 125) |
 | `dsip-messaging-schemas-draft/` | Messaging Profile schema set | generated; unchanged |
 | `dsip-rtp-srtp-media-binding-v0.14-draft.md` | RTP/SRTP Media Binding | draft |
 | `dsip-dht-hints-profile-v0.14-draft.md` | DHT Reachability Hints Profile | draft |

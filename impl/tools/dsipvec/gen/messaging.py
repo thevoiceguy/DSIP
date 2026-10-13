@@ -98,6 +98,7 @@ def vectors() -> list[dict]:
     out += hub_outage_vectors()
     out += successor_vectors()
     out += external_join_vectors()
+    out += leave_vectors()
     out += call_history_vectors()
     out += blob_replication_vectors()
     return out
@@ -3346,4 +3347,45 @@ def blob_replication_vectors():
        "A manifest entry for a different hash or size is not a source for this blob (the manifest is not encrypted; the content is).",
        [{"uri": f"{OWN}/{'2' * 64}", "sha256": "2" * 64, "size": 482220}, {"uri": f"{OWN}/{SHA}", "sha256": SHA, "size": 1}], [ORIGIN])
     bs("blob-sources-no-manifest", "An item with no manifest: the original.", None, [ORIGIN])
+    return out
+
+
+# ---------------------------------------------------------------- leaving (M§7.3; spec-gap 125)
+
+def leave_vectors():
+    """M§7.3 "Leaving": what a member's device does with an identity's pending Remove proposals. By hand."""
+    out = []
+    A1, A2 = "did:key:z6MkAlicePhoneLeaveLeaveLeaveLeaveLeave1", "did:key:z6MkAliceLaptopLeaveLeaveLeaveLeaveLeave2"
+    B1, C1 = "did:key:z6MkBobPhoneLeaveLeaveLeaveLeaveLeaveLeave", "did:key:z6MkCarolPhoneLeaveLeaveLeaveLeaveLeave"
+    roster = [{"identity": ALICE, "device": A1}, {"identity": ALICE, "device": A2}, {"identity": BOB, "device": B1},
+              {"identity": CAROL, "device": C1}]
+
+    def lv(vid, desc, want, me=BOB, proposer=(ALICE, A1), removes=((ALICE, A1), (ALICE, A2)), others=0):
+        out.append(mv(f"leave-{vid}", desc, ["M§7.3"], {"check": "leave-proposals", "me": me,
+                      "proposer": {"identity": proposer[0], "device": proposer[1]},
+                      "removes": [{"identity": i, "device": d} for i, d in removes], "others": others, "roster": roster}, want))
+    lv("commit-all-leaves", "Every leaf of the proposer's identity is proposed for removal: another member commits.", {"action": "commit"})
+    lv("commit-single-device", "An identity with one device leaves with one proposal.", {"action": "commit"},
+       proposer=(CAROL, C1), removes=((CAROL, C1),))
+    lv("commit-proposed-by-the-other-device", "Any device of the identity may propose all of its leaves.", {"action": "commit"},
+       proposer=(ALICE, A2))
+    lv("commit-duplicate-proposal", "A leaf proposed twice is still one leaf: all are covered.", {"action": "commit"},
+       removes=((ALICE, A1), (ALICE, A1), (ALICE, A2)))
+    lv("wait-first-of-two", "One proposal of two has arrived: wait for the rest.", {"action": "wait"}, removes=((ALICE, A1),))
+    lv("wait-other-first", "The other leaf's proposal arrived first: wait.", {"action": "wait"}, removes=((ALICE, A2),))
+    lv("left-sibling", "A device of the leaving identity itself: the conversation is left, nothing is committed.", {"action": "left"},
+       me=ALICE, proposer=(ALICE, A2))
+    lv("wait-before-left", "A sibling waits for all the proposals too.", {"action": "wait"}, me=ALICE, removes=((ALICE, A1),))
+    lv("not-own-leaves-other-identity", "Proposing another identity's removal is not leaving.", {"action": "ignore", "reason": "not-own-leaves"},
+       removes=((BOB, B1),))
+    lv("not-own-leaves-mixed", "A leave that also removes another identity's leaf is not a leave.",
+       {"action": "ignore", "reason": "not-own-leaves"}, me=CAROL, removes=((ALICE, A1), (ALICE, A2), (BOB, B1)))
+    lv("not-own-leaves-unknown-device", "A removal naming a device that is not a leaf of the identity.",
+       {"action": "ignore", "reason": "not-own-leaves"}, removes=((ALICE, A1), (ALICE, "did:key:z6MkAliceOldLeaveLeaveLeaveLeaveLeave")))
+    lv("not-own-leaves-before-left", "Not own leaves is checked before a sibling would treat it as left.",
+       {"action": "ignore", "reason": "not-own-leaves"}, me=ALICE, removes=((BOB, B1),))
+    lv("not-a-leave", "A proposal of another kind pending beside the removals: not a leave.", {"action": "ignore", "reason": "not-a-leave"},
+       others=1)
+    lv("not-a-leave-first", "Another kind of proposal is checked first.", {"action": "ignore", "reason": "not-a-leave"}, others=2,
+       removes=((BOB, B1),))
     return out

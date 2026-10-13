@@ -1,0 +1,55 @@
+{
+  "vector": "messaging/leave-not-own-leaves-mixed",
+  "format": 1,
+  "kind": "messaging",
+  "description": "A leave that also removes another identity's leaf is not a leave.",
+  "spec_ref": [
+    "M§7.3"
+  ],
+  "context": {},
+  "input": {
+    "check": "leave-proposals",
+    "me": "did:web:carol.example",
+    "proposer": {
+      "identity": "did:web:alice.example",
+      "device": "did:key:z6MkAlicePhoneLeaveLeaveLeaveLeaveLeave1"
+    },
+    "removes": [
+      {
+        "identity": "did:web:alice.example",
+        "device": "did:key:z6MkAlicePhoneLeaveLeaveLeaveLeaveLeave1"
+      },
+      {
+        "identity": "did:web:alice.example",
+        "device": "did:key:z6MkAliceLaptopLeaveLeaveLeaveLeaveLeave2"
+      },
+      {
+        "identity": "did:web:example.com:users:bob",
+        "device": "did:key:z6MkBobPhoneLeaveLeaveLeaveLeaveLeaveLeave"
+      }
+    ],
+    "others": 0,
+    "roster": [
+      {
+        "identity": "did:web:alice.example",
+        "device": "did:key:z6MkAlicePhoneLeaveLeaveLeaveLeaveLeave1"
+      },
+      {
+        "identity": "did:web:alice.example",
+        "device": "did:key:z6MkAliceLaptopLeaveLeaveLeaveLeaveLeave2"
+      },
+      {
+        "identity": "did:web:example.com:users:bob",
+        "device": "did:key:z6MkBobPhoneLeaveLeaveLeaveLeaveLeaveLeave"
+      },
+      {
+        "identity": "did:web:carol.example",
+        "device": "did:key:z6MkCarolPhoneLeaveLeaveLeaveLeaveLeave"
+      }
+    ]
+  },
+  "expect": {
+    "action": "ignore",
+    "reason": "not-own-leaves"
+  }
+}

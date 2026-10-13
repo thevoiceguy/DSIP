@@ -1,0 +1,50 @@
+{
+  "vector": "messaging/leave-left-sibling",
+  "format": 1,
+  "kind": "messaging",
+  "description": "A device of the leaving identity itself: the conversation is left, nothing is committed.",
+  "spec_ref": [
+    "M§7.3"
+  ],
+  "context": {},
+  "input": {
+    "check": "leave-proposals",
+    "me": "did:web:alice.example",
+    "proposer": {
+      "identity": "did:web:alice.example",
+      "device": "did:key:z6MkAliceLaptopLeaveLeaveLeaveLeaveLeave2"
+    },
+    "removes": [
+      {
+        "identity": "did:web:alice.example",
+        "device": "did:key:z6MkAlicePhoneLeaveLeaveLeaveLeaveLeave1"
+      },
+      {
+        "identity": "did:web:alice.example",
+        "device": "did:key:z6MkAliceLaptopLeaveLeaveLeaveLeaveLeave2"
+      }
+    ],
+    "others": 0,
+    "roster": [
+      {
+        "identity": "did:web:alice.example",
+        "device": "did:key:z6MkAlicePhoneLeaveLeaveLeaveLeaveLeave1"
+      },
+      {
+        "identity": "did:web:alice.example",
+        "device": "did:key:z6MkAliceLaptopLeaveLeaveLeaveLeaveLeave2"
+      },
+      {
+        "identity": "did:web:example.com:users:bob",
+        "device": "did:key:z6MkBobPhoneLeaveLeaveLeaveLeaveLeaveLeave"
+      },
+      {
+        "identity": "did:web:carol.example",
+        "device": "did:key:z6MkCarolPhoneLeaveLeaveLeaveLeaveLeave"
+      }
+    ]
+  },
+  "expect": {
+    "action": "left"
+  }
+}
