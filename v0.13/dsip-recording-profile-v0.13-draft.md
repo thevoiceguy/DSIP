@@ -190,6 +190,13 @@ endpoint-side record that covers every call, on any relay. It carries metadata, 
   devices carry `dsip.record` (C§1). The party's devices keep a direct conversation with it (M§7.2). Like every
   recorder, the record-keeper is a member the party's own client shows (C§5), and its devices never speak in the
   conversation; a party's records are the only thing sent there.
+- **Who opens the conversation (v0.13, spec-gap 123).** The record-keeper does. A party cannot: every device of the
+  record-keeper is a recorder, and a recorder is never added without one of its identity's other devices
+  (`recorder-only`, C§5). The record-keeper's device creates the direct conversation at its own mailbox, adding every
+  device of the party (M§7.2), and asks for the party's grant (M§14.2) like any first contact. A party's client sends
+  records only to the conversation with the record-keeper its organisation names, and holds them until that
+  conversation exists. A `call-record` is not content: a party sends it without the acceptance C§5 asks before
+  content, and sends no content there unless the user accepts the recorder.
 - **One record per leg.** After every session leg a device took part in, it sends a `call-record` object to that
   conversation. Every call is covered, whether recorded or not, and whatever relay carried it. A forked call
   (§12.7) yields one record per leg of the party's own devices; the record-keeper correlates them by `session`.

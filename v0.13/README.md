@@ -17,5 +17,5 @@ drafts.
 | `dsip-dht-hints-profile-v0.13-draft.md` | DHT Reachability Hints Profile | draft |
 | `dsip-alias-transparency-profile-v0.13-draft.md` | Alias Transparency Profile (`alias-transparency/0.1`), cited `T§n` | draft, stage 1; stage 2 waits for KEYTRANS -06 |
 | `dsip-device-events-profile-v0.13-draft.md` | Device Events Profile (`device-events/0.1`), cited `E§n` | draft |
-| `dsip-recording-profile-v0.13-draft.md` | Recording Profile (`recording/0.1`), cited `C§n` | draft; C§9 call records (spec-gap 121) |
+| `dsip-recording-profile-v0.13-draft.md` | Recording Profile (`recording/0.1`), cited `C§n` | draft; C§9 call records (spec-gap 121), opened by the record-keeper (123) |
 | `dsip-number-attestation-profile-v0.13-draft.md` | Number Attestation Profile (`tn-binding/0.1`), cited `N§n` | draft, stages 1–4; stage 5 needs a pilot partner |

@@ -1,0 +1,32 @@
+{
+  "vector": "recording/add-devices-party-cannot-add-record-keeper",
+  "format": 1,
+  "kind": "recording",
+  "description": "A party adding its record-keeper finds only recorder devices: refused, so the record-keeper opens the conversation (C§9).",
+  "spec_ref": [
+    "C§5",
+    "C§9",
+    "M§7.2"
+  ],
+  "context": {},
+  "input": {
+    "check": "add-devices",
+    "target": "did:web:rec.acme.example",
+    "self_identity": "did:web:alice.example",
+    "self_device": "did:key:z6MkAlicePhone",
+    "purpose": "conversation",
+    "key_packages": [
+      {
+        "device": "did:key:z6MkKeeper",
+        "identity": "did:web:rec.acme.example",
+        "capabilities": [
+          "dsip.messaging",
+          "dsip.record"
+        ]
+      }
+    ]
+  },
+  "expect": {
+    "refused": "recorder-only"
+  }
+}
