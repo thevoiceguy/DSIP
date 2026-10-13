@@ -3,7 +3,7 @@
  * KEYTRANS building blocks — VRF input and index, commitments, the prefix tree, the log tree, the
  * Configuration and tree head, the implicit binary search tree and the binary ladder.
  *
- * Spec: T§2, T§3, T§4, T§5 (`v0.13/dsip-alias-transparency-profile-v0.13-draft.md`); draft-ietf-keytrans-protocol
+ * Spec: T§2, T§3, T§4, T§5 (`v0.14/dsip-alias-transparency-profile-v0.14-draft.md`); draft-ietf-keytrans-protocol
  * for the structures. The exact byte layouts and output shapes are the vectors README's, "Kind: `alias-transparency`".
  */
 import { createHash, createHmac, createPublicKey, verify as cryptoVerify } from "node:crypto";
