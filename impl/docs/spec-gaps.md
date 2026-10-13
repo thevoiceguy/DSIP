@@ -3622,8 +3622,9 @@ Choices:
 - **Implementation (browser client).** The browser sends a record after each leg to the record-keeper named in
   Settings, holding records while no conversation exists. A browser identity can be a record-keeper: its device is
   re-delegated with `dsip.record`, never makes a personal group (C§5), and lists the records it receives. A
-  conversation with a recorder of another identity is shown as recorded and sends no content: the client has no
-  acceptance screen, so it never sends content there (C§5). Test: `impl/web/test/call-records.mjs`.
+  conversation with a recorder of another identity is shown as recorded and takes no content or receipt until the
+  user accepts its recorders; the acceptance is sent to the personal group (C§5). Test:
+  `impl/web/test/call-records.mjs`.
 
 ## 124. T§6 / §8.1 / §19.4 — alias transparency stage 2 without KEYTRANS -06: the DSIP side
 
