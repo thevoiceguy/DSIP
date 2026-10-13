@@ -153,6 +153,8 @@ function messaging(v: Vector): Json | undefined {
       return rules.successorCheck(i["predecessor_roster"] as string[], i["creator"] as string, i["roster"] as string[]);
     case "external-join":
       return rules.externalJoin(i as never);
+    case "leave-proposals":
+      return rules.leaveProposals(i as never);
     case "registration-on-removal":
       return rules.registrationOnRemoval(i["me"] as string, i["remaining_identities"] as string[]);
     case "blob-put":

@@ -2553,6 +2553,8 @@ v0.13 is final at tag `poc-v0.13`. Each v0.14 item is listed here as it lands, w
   core schema addition); signed tree heads travel between peers as an `alias-log-head` claim, and two heads of one
   size with different roots prove a fork (T§9); a lookup result is `audited`, `unaudited` or `not-found` (T§10).
   Verifying KEYTRANS's proofs stays staged for -06 (T§6).
+- Messaging Profile: leaving a conversation (M§7.3; spec-gap 125). The leaver proposes the removal of its identity's
+  leaves, since MLS forbids committing one's own removal, and another member commits them.
 
 ---
 

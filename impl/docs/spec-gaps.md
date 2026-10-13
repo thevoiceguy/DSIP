@@ -3654,3 +3654,31 @@ Choices, and what the user decided:
 `dsip-kt` and impl-ts agree. `fuzz.py` gains `alias-query`, `alias-monitor`, `alias-head` (signed heads, then field and
 byte mutations) and `alias-lookup`: 6,000 random probes, 0 divergences. A head's `tree_size` above 2^53−1 is
 `malformed`, as `configuration-accept` treats durations, so every implementation can return it as a JSON number.
+
+## 125. M§7.3 — "any identity MAY leave (commit removing all its own leaves)" is impossible in MLS
+
+**Found (2026-10-13, adding a way to decline a recorder by leaving, C§5).** M§7.3 says an identity leaves by a
+commit removing all its own leaves. RFC 9420 forbids a commit that removes its committer (§12.4), so no device can
+leave that way. Nothing else in the profile says how to leave. The browser client had no leave at all; a local
+"forget the group" would leave the device's leaf in the group, with every member still encrypting to it.
+
+Choices:
+
+- **(a)** The leaver deposits MLS Remove proposals for all its identity's leaves, and any other member's device
+  that receives them commits them; first commit wins at the hub (M§6.5). The leaver re-proposes at each new epoch
+  until it is removed.
+- **(b)** The leaver sends an application object asking to be removed, and other members commit an ordinary removal.
+  Simpler to pin, but the request is content: it can be lost or ignored, and it is not MLS's own mechanism.
+- **(c)** Leave it out of 1.0; fix the text only.
+- **Decided (the user, 2026-10-13): (a).** Text in v0.14 M§7.3 "Leaving", A.11, M-B. The members' decision is pinned
+  by `check: "leave-proposals"` (messaging vectors): `not-a-leave`, `not-own-leaves`, `wait` (only some leaves
+  proposed so far), `left` (a device of the leaving identity), `commit`. The hub needed no change of rule: it
+  already sequences standalone proposals and orders removals of a whole identity. The mailbox, though, handed every
+  handshake to its commit observer, which refused a proposal as an invalid commit; it now stores the proposal in its
+  view of the group, so the commit that references it validates.
+- **Implementation:** `dsip-messaging` `leave_proposals`, the Python harness and impl-ts agree (14 vectors; fuzz
+  target `leave-proposals`). `dsip-mls`'s hub view stores a standalone proposal (`observe_commit` →
+  `{proposal: true}`), and `tests/e2e.rs` `leave_on_real_mls` runs the whole path on OpenMLS: two proposals, the hub's
+  view across a reload, wait then commit, a sibling's `left`, a whole-identity removal at the hub. The browser
+  Messenger has `leave()`, re-proposes at each new epoch, and commits others' leaves; "Leave" and "Decline and leave"
+  in the client; `impl/web/test/call-records.mjs` step 10 (Bob declines Kim's recorder by leaving).

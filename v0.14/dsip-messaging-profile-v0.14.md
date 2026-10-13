@@ -950,12 +950,32 @@ In 1.0:
 
 - Any member identity MAY add another identity, subject to M§14.2 authorization (the adder holds
   a `dsip.message` grant from the added identity, or that identity's mailbox admits `open`).
-- Any member identity MAY remove another identity, and any identity MAY leave (commit removing all
-  its own leaves).
+- Any member identity MAY remove another identity, and any identity MAY leave (below: MLS forbids a
+  commit that removes its own committer, so a leaver proposes and another member commits).
 - Adding or removing **devices** of an identity is reserved to that identity's own devices, except
   that any member MAY remove a leaf whose delegation no longer verifies (M§6.2).
 - Every roster change MUST be rendered to members, attributed to the committing identity.
 - Administrative roles (who may add or remove whom) are reserved (`group-admin/1.0`, M§19).
+
+**Leaving** (v0.14, spec-gap 125). A device leaves on behalf of its identity:
+
+1. It deposits, as `handshake` items, one MLS Remove proposal (a PublicMessage, M§6.4) for each leaf of its
+   identity, its own included. MLS lets a member propose its own removal but not commit it (RFC 9420 §12.4).
+2. It stops sending to the group and shows the conversation as left, but keeps processing the group until a
+   commit removes its identity: at each new epoch that still holds its leaves, it proposes again, since a proposal
+   lapses with its epoch. When the commit removing it arrives, it ends its registration with `left` (M§5.7), as any
+   removed member does; ending it earlier would cut it off from the epochs it must propose in.
+3. Every other member's device that holds the proposals decides by the pinned rule (`check: "leave-proposals"`):
+   - a batch with any other kind of proposal is not a leave (`not-a-leave`), and one whose removals are not leaves of
+     the proposer's own identity is ignored (`not-own-leaves`);
+   - while proposals for only some of that identity's leaves have arrived, it waits for the rest (`wait`);
+   - a device of the leaving identity itself treats the conversation as left (`left`), sending nothing more;
+   - any other device commits the proposals. Several may commit at once; the hub orders the first, refuses the rest
+     as a conflict (M§6.5 rule 2), and a refused committer drops its commit once the leaver is gone.
+
+The hub sequences a standalone proposal without changing the epoch, and orders the commit as a removal of a whole
+identity (both already above). A leaver whose conversation has no other member present stays in the group until one
+commits; the hub's `mls_retention_s` bound applies to it as to any member (M§6.5).
 
 The hub enforces the device-ownership rule and the credential rule on the public commit. Members
 MUST enforce all of M§7.3 themselves: the hub check is defense in depth, not the authority.
@@ -1902,3 +1922,9 @@ Within v0.13:
 | 121 | M§8.1 | the `call-record` object (Recording Profile C§9), direct conversations only |
 | 122 | M§4.1, M§5.7 | an identity that moves registers every group at the new mailbox, syncs from `null` and re-deposits what was unanswered; `joined` with a `hub` registers a group the mailbox has none for |
 
+
+Within v0.14:
+
+| spec-gap | where | what |
+|---|---|---|
+| 125 | M§7.3 | leaving: the leaver proposes the removal of its identity's leaves (MLS forbids committing one's own removal), and another member's device commits them; the pinned decision is `check: "leave-proposals"` |
