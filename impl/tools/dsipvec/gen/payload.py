@@ -255,6 +255,20 @@ def vectors() -> list[dict]:
     out.append(pv("reachability-hint-service-not-a-type-name", "reachability-hint", "service is a DID service type name.", ["§8.5"],
                   {**hint, "endpoints": [{**hint["endpoints"][0], "service": "dsip mailbox"}]}, ok=False))
 
+    # Alias Transparency T§8 (v0.14, spec-gap 124): an owner's monitoring authorization
+    mon = {"dsip": V, "type": "alias-monitor", "id": uid("alias-monitor"), "from": "did:web:alice.example", "to": "did:web:example.com",
+           "issued_at": NOW, "expires_at": NOW + 60, "alias": "alice@example.com"}
+    out.append(pv("alias-monitor-valid", "alias-monitor", "An owner's monitoring authorization, addressed to the provider (T§8).",
+                  ["T§8"], mon))
+    out.append(pv("alias-monitor-missing-alias", "alias-monitor", "alias-monitor names the alias.", ["T§8"],
+                  {k: v for k, v in mon.items() if k != "alias"}, ok=False))
+    out.append(pv("alias-monitor-missing-to", "alias-monitor", "alias-monitor is addressed to the provider.", ["T§8"],
+                  {k: v for k, v in mon.items() if k != "to"}, ok=False))
+    out.append(pv("alias-monitor-alias-too-long", "alias-monitor", "An alias is at most 255 characters (T§3).", ["T§8", "T§3"],
+                  {**mon, "alias": "a" * 244 + "@example.com"}, ok=False))
+    out.append(pv("alias-monitor-extra-field", "alias-monitor", "alias-monitor takes no other field (the KEYTRANS request is the "
+                  "HTTP body, never in the payload, T§2).", ["T§8", "T§2"], {**mon, "request": "AAAA"}, ok=False))
+
     # JSON Schema patterns are ECMA-262 (draft 2020-12 §6.4): `$` is the end of the string, never before a final LF
     out.append(pv("invite-id-trailing-newline", "invite", "An id with a trailing LF fails the ULID pattern: `$` is the end "
                   "of the string (ECMA-262), not before a final newline.", ["§10.3", "§20.6"], {**inv, "id": inv["id"] + "\n"},

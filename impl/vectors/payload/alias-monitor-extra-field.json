@@ -1,0 +1,37 @@
+{
+  "vector": "payload/alias-monitor-extra-field",
+  "format": 1,
+  "kind": "payload",
+  "description": "alias-monitor takes no other field (the KEYTRANS request is the HTTP body, never in the payload, T§2).",
+  "spec_ref": [
+    "T§8",
+    "T§2"
+  ],
+  "context": {},
+  "input": {
+    "schema": "alias-monitor",
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "interactive-media/1.0"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "alias-monitor",
+      "id": "01K742SG001N5YBF4T254G31TT",
+      "from": "did:web:alice.example",
+      "to": "did:web:example.com",
+      "issued_at": 1760000000,
+      "expires_at": 1760000060,
+      "alias": "alice@example.com",
+      "request": "AAAA"
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "schema-invalid"
+  }
+}

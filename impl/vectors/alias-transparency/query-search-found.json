@@ -1,0 +1,23 @@
+{
+  "vector": "alias-transparency/query-search-found",
+  "format": 1,
+  "kind": "alias-transparency",
+  "description": "A search for an alias in the log that the requester may see.",
+  "spec_ref": [
+    "T§7"
+  ],
+  "context": {},
+  "input": {
+    "check": "alias-query",
+    "request": "search",
+    "over_limit": false,
+    "alias": "alice@example.com",
+    "exists": true,
+    "visible": true,
+    "authorized": false
+  },
+  "expect": {
+    "status": 200,
+    "answer": "search-response"
+  }
+}

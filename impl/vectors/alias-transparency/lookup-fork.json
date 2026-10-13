@@ -1,0 +1,22 @@
+{
+  "vector": "alias-transparency/lookup-fork",
+  "format": 1,
+  "kind": "alias-transparency",
+  "description": "A known fork makes every answer of that log unaudited.",
+  "spec_ref": [
+    "T§10"
+  ],
+  "context": {},
+  "input": {
+    "check": "alias-lookup-result",
+    "answer": "found",
+    "proof": "verified",
+    "terminal_entry": 3,
+    "rightmost_distinguished": 10,
+    "fork": true
+  },
+  "expect": {
+    "result": "unaudited",
+    "reason": "fork"
+  }
+}

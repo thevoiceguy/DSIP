@@ -1,0 +1,23 @@
+{
+  "vector": "alias-transparency/query-monitor-not-owner",
+  "format": 1,
+  "kind": "alias-transparency",
+  "description": "A monitor request T§8 refused: the answer of an absent alias.",
+  "spec_ref": [
+    "T§7"
+  ],
+  "context": {},
+  "input": {
+    "check": "alias-query",
+    "request": "monitor",
+    "over_limit": false,
+    "alias": "alice@example.com",
+    "exists": true,
+    "visible": true,
+    "authorized": false
+  },
+  "expect": {
+    "status": 404,
+    "answer": "not-found"
+  }
+}

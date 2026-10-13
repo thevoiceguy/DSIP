@@ -14,6 +14,7 @@ each file validates standalone in any conforming validator, with no $ref
 resolution setup required.
 
 Usage: python3 generate_schemas.py <output_dir>
+v0.14 adds `alias-monitor` (Alias Transparency Profile T§8, spec-gap 124).
 """
 import json
 import sys
@@ -437,6 +438,16 @@ schemas["reachability-hint"] = base(
         "seq": {"type": "integer", "minimum": 0},
     },
     extra_required=["subject", "endpoints", "seq"],
+)
+
+schemas["alias-monitor"] = base(
+    "alias-monitor", session_scoped=False,
+    description="Authorizes an alias owner's KEYTRANS monitor request at the alias provider's log endpoint (Alias Transparency Profile T§8, v0.14); carried over HTTPS as Authorization: DSIP beside the raw request. `to` is the provider; `from` must be an identity that is or was the alias's value.",
+    extra_props={
+        "alias": {"type": "string", "minLength": 1, "maxLength": 255,
+                  "description": "The alias, normalized by the provider before its checks (T§3)."},
+    },
+    extra_required=["alias"],
 )
 
 schemas["subscribe"] = base(

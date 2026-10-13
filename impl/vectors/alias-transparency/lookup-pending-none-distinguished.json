@@ -1,0 +1,22 @@
+{
+  "vector": "alias-transparency/lookup-pending-none-distinguished",
+  "format": 1,
+  "kind": "alias-transparency",
+  "description": "No entry is distinguished yet.",
+  "spec_ref": [
+    "T§10"
+  ],
+  "context": {},
+  "input": {
+    "check": "alias-lookup-result",
+    "answer": "found",
+    "proof": "verified",
+    "terminal_entry": 0,
+    "rightmost_distinguished": null,
+    "fork": false
+  },
+  "expect": {
+    "result": "unaudited",
+    "reason": "pending"
+  }
+}

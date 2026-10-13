@@ -3624,3 +3624,32 @@ Choices:
   re-delegated with `dsip.record`, never makes a personal group (C§5), and lists the records it receives. A
   conversation with a recorder of another identity is shown as recorded and sends no content: the client has no
   acceptance screen, so it never sends content there (C§5). Test: `impl/web/test/call-records.mjs`.
+
+## 124. T§6 / §8.1 / §19.4 — alias transparency stage 2 without KEYTRANS -06: the DSIP side
+
+**Found (2026-10-13, KEYTRANS -06 still unpublished).** T§6 staged five things for after -06. Four of them are
+DSIP's own, and none needs KEYTRANS's proof bytes: how the provider's endpoint keeps aliases from being enumerated,
+how an owner authenticates to monitor, how tree heads travel between peers, and what a lookup result counts as. The
+draft named them but did not say how. The user chose to do this half now (2026-10-13).
+
+Choices, and what the user decided:
+
+- **Tree-head carriage:** (a) a claim `{"type": "alias-log-head", provider, tree_head, root}` in `identity.claims` of
+  `invite` and `introduction`, as N§4's number claims ride; (b) a new optional top-level field, a core schema change;
+  (c) an `info` frame, which only works inside a session. **Decided: (a).**
+- **Monitor authentication:** (a) an `alias-monitor` message as `Authorization: DSIP` beside the raw KEYTRANS
+  request, as `blob-put` (M§5.6); (b) a DSIP envelope whose payload carries the request, which re-wraps KEYTRANS
+  bytes, against T§2. **Decided: (a).** Any identity that is or was the alias's value may monitor, so an owner whose
+  alias was rebound can still see it.
+- **Anti-enumeration:** (a) one `not-found` (404, empty body) for an absent alias, a hidden one and a non-owner's
+  monitor request, never a proof of absence, after a rate limit that counts every query; (b) a proof of absence to
+  permitted callers, which makes the provider's "permitted" part of the profile. **Decided: (a).**
+- **What a lookup counts as:** T§6 already decided the rule (a pending version is not authority, `[KTA]` §7.1). It is
+  written as `audited` / `unaudited` (`fork`, `unverifiable`, `pending`) / `not-found`, in that order.
+
+**Text:** v0.14 T§7–T§10, T§6 trimmed to what still waits for -06, A.11. **Schema:** `alias-monitor` in the core set.
+**Vectors:** 58 `alias-transparency/` vectors, with `check: "alias-query"`, `"alias-monitor"`, `"alias-head"` and
+`"alias-lookup-result"`, plus 5 `payload/alias-monitor-*`, all hand-authored; 2,065 in all. The Python harness,
+`dsip-kt` and impl-ts agree. `fuzz.py` gains `alias-query`, `alias-monitor`, `alias-head` (signed heads, then field and
+byte mutations) and `alias-lookup`: 6,000 random probes, 0 divergences. A head's `tree_size` above 2^53−1 is
+`malformed`, as `configuration-accept` treats durations, so every implementation can return it as a JSON number.

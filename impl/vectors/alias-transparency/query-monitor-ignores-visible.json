@@ -1,0 +1,23 @@
+{
+  "vector": "alias-transparency/query-monitor-ignores-visible",
+  "format": 1,
+  "kind": "alias-transparency",
+  "description": "Visibility to searches does not matter to the owner's monitoring.",
+  "spec_ref": [
+    "T§7"
+  ],
+  "context": {},
+  "input": {
+    "check": "alias-query",
+    "request": "monitor",
+    "over_limit": false,
+    "alias": "alice@example.com",
+    "exists": true,
+    "visible": false,
+    "authorized": true
+  },
+  "expect": {
+    "status": 200,
+    "answer": "monitor-response"
+  }
+}

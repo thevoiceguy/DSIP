@@ -1,0 +1,34 @@
+{
+  "vector": "payload/alias-monitor-missing-alias",
+  "format": 1,
+  "kind": "payload",
+  "description": "alias-monitor names the alias.",
+  "spec_ref": [
+    "T§8"
+  ],
+  "context": {},
+  "input": {
+    "schema": "alias-monitor",
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "interactive-media/1.0"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "alias-monitor",
+      "id": "01K742SG001N5YBF4T254G31TT",
+      "from": "did:web:alice.example",
+      "to": "did:web:example.com",
+      "issued_at": 1760000000,
+      "expires_at": 1760000060
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "schema-invalid"
+  }
+}

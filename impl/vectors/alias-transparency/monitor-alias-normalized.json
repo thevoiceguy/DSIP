@@ -1,0 +1,37 @@
+{
+  "vector": "alias-transparency/monitor-alias-normalized",
+  "format": 1,
+  "kind": "alias-transparency",
+  "description": "The alias is normalized before the checks (T§3): the domain is lowercased.",
+  "spec_ref": [
+    "T§8"
+  ],
+  "context": {},
+  "input": {
+    "check": "alias-monitor",
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "alias-monitor",
+      "id": "01K742SG00ALIASMQN1T0R0001",
+      "from": "did:web:alice.example",
+      "to": "did:web:example.com",
+      "issued_at": 1790000000,
+      "expires_at": 1790000060,
+      "alias": "alice@EXAMPLE.com"
+    },
+    "provider": "did:web:example.com",
+    "values": [
+      "did:web:alice.example"
+    ]
+  },
+  "expect": {
+    "verdict": "accept",
+    "label": "alice@example.com"
+  }
+}

@@ -15,7 +15,7 @@ Profile, `M§n` Messaging Profile, `R§n` RTP/SRTP Media Binding.
 | §3 | dsip-dht/node.rs, dsip-events/ber.rs | — |
 | §3.1 | dsip-events/lib.rs, dsip-events/tsm.rs, dsip-events/usm.rs | — |
 | §3.2 | dsip-events/usm.rs | — |
-| §3.5 | dsip-events/syslog_sign.rs, dsip-number/lib.rs | — |
+| §3.5 | dsip-events/syslog_sign.rs, dsip-kt/lib.rs, dsip-number/lib.rs | — |
 | §4 | dsip-core/pkarr.rs, dsip-dht/node.rs, dsip-events/usm.rs, dsip-gateway/host/numbers.rs, dsip-mailbox/bin/dsip-msg.rs, dsip-node/config.rs, dsip-node/lib.rs | — |
 | §4.1 | dsip-kt/lib.rs | — |
 | §4.1.1.2 | dsip-number/lib.rs | — |
@@ -45,7 +45,7 @@ Profile, `M§n` Messaging Profile, `R§n` RTP/SRTP Media Binding.
 | §6.2.3 | dsip-number/lib.rs | — |
 | §6.3 | dsip-cli/console.rs, dsip-core/trust.rs, dsip-gateway/host/media.rs, dsip-gateway/host/sip_leg.rs, dsip-gateway/lib.rs | 9 vector(s): gateway/claims-attestation-a-verified, gateway/downgrade-error-none, gateway/downgrade-error-plain-trunk, gateway/downgrade-inbound-no-attestation, gateway/downgrade-outbound-asserted-srtp, gateway/downgrade-outbound-plain-trunk … |
 | §7 | dsip-media/backend/webrtc_rs.rs, dsip-media/leg.rs, dsip-media/lib.rs | — |
-| §7.1 | — | 1 vector(s): payload/invite-from-trailing-newline |
+| §7.1 | dsip-kt/lib.rs | 1 vector(s): payload/invite-from-trailing-newline |
 | §7.1.3 | dsip-core/hpke.rs | — |
 | §7.2 | dsip-cli/main.rs, dsip-core/did.rs, dsip-core/hpke.rs, dsip-core/keys.rs, dsip-core/lib.rs, dsip-core/webvh.rs, dsip-endpoint/core.rs, dsip-relay/main.rs, dsip-transport/identity.rs, dsip-transport/lib.rs, dsip-transport/resolver.rs, dsip-wasm/lib.rs | 69 vector(s): did-webvh/cache-at-latest-resolves, did-webvh/cache-behind-advances, did-webvh/cache-malformed-is-absent, did-webvh/carries-dsip-document-properties, did-webvh/create-resolves, did-webvh/deactivated … |
 | §7.3 | dsip-core/keys.rs, dsip-transport/identity.rs | — |
@@ -218,9 +218,13 @@ Profile, `M§n` Messaging Profile, `R§n` RTP/SRTP Media Binding.
 | E§4 | dsip-events/lib.rs, dsip-events/syslog.rs, dsip-mailbox/bin/dsip-msg.rs | 30 vector(s): device-events/holddown-clear-that-holds, device-events/holddown-events-pass, device-events/holddown-flap-is-one-alarm, device-events/holddown-off, device-events/holddown-other-alarm-unaffected, device-events/holddown-qualifier-default … |
 | E§5 | dsip-events/lib.rs, dsip-mailbox/bin/dsip-msg.rs, dsip-messaging/checks.rs | 14 vector(s): device-events/alarm-ack-then-closed-is-final, device-events/alarm-ack-unknown-ignored, device-events/alarm-ack-without-by, device-events/alarm-clear-unknown-creates-nothing, device-events/alarm-raise-repeat-clear, device-events/alarm-reraise-reopens-and-resets-ack … |
 | E§6 | dsip-events/lib.rs, dsip-mailbox/bin/dsip-msg.rs | 8 vector(s): device-events/alarm-unknown-severity-orders-lowest, device-events/escalate-again-after-reopen, device-events/escalate-below-threshold-never, device-events/escalate-cancelled-by-ack, device-events/escalate-cancelled-by-clear, device-events/escalate-order-by-due-then-key … |
-| T§2 | dsip-kt/lib.rs | 13 vector(s): alias-transparency/configuration-05-leaf-key-is-trailing, alias-transparency/configuration-accept, alias-transparency/configuration-accept-lifetime, alias-transparency/configuration-duration-beyond-2p53, alias-transparency/configuration-mode3-refused, alias-transparency/configuration-optional-flag-2 … |
-| T§3 | dsip-kt/lib.rs | 27 vector(s): alias-transparency/alias-a-label-domain, alias-transparency/alias-at-limit, alias-transparency/alias-domain-lowercased, alias-transparency/alias-empty-local, alias-transparency/alias-label-inner-hyphen, alias-transparency/alias-label-leading-hyphen … |
+| T§2 | dsip-kt/lib.rs | 14 vector(s): alias-transparency/configuration-05-leaf-key-is-trailing, alias-transparency/configuration-accept, alias-transparency/configuration-accept-lifetime, alias-transparency/configuration-duration-beyond-2p53, alias-transparency/configuration-mode3-refused, alias-transparency/configuration-optional-flag-2 … |
+| T§3 | dsip-kt/lib.rs | 28 vector(s): alias-transparency/alias-a-label-domain, alias-transparency/alias-at-limit, alias-transparency/alias-domain-lowercased, alias-transparency/alias-empty-local, alias-transparency/alias-label-inner-hyphen, alias-transparency/alias-label-leading-hyphen … |
 | T§5 | dsip-kt/lib.rs | 45 vector(s): alias-transparency/commitment-alice-v0, alias-transparency/commitment-alice-v1, alias-transparency/commitment-katie-vector-1, alias-transparency/commitment-label-too-long, alias-transparency/commitment-opening-not-16, alias-transparency/configuration-mode1 … |
+| T§7 | dsip-kt/lib.rs | 15 vector(s): alias-transparency/query-alias-invalid, alias-transparency/query-alias-invalid-over-limit, alias-transparency/query-bad-request, alias-transparency/query-bad-request-before-alias, alias-transparency/query-monitor-absent, alias-transparency/query-monitor-ignores-visible … |
+| T§8 | dsip-core/registry.rs, dsip-kt/lib.rs | 15 vector(s): alias-transparency/monitor-absent, alias-transparency/monitor-alias-invalid, alias-transparency/monitor-alias-invalid-before-owner, alias-transparency/monitor-alias-normalized, alias-transparency/monitor-current-owner-after-rebind, alias-transparency/monitor-former-owner … |
+| T§9 | dsip-kt/lib.rs | 24 vector(s): alias-transparency/head-bad-signature, alias-transparency/head-bad-signature-before-fork, alias-transparency/head-bad-signature-other-key, alias-transparency/head-bad-signature-size, alias-transparency/head-consistent, alias-transparency/head-fork … |
+| T§10 | dsip-kt/lib.rs | 9 vector(s): alias-transparency/lookup-audited, alias-transparency/lookup-audited-at-distinguished, alias-transparency/lookup-fork, alias-transparency/lookup-fork-before-unverifiable, alias-transparency/lookup-not-found, alias-transparency/lookup-pending … |
 | C§1 | dsip-cli/main.rs, dsip-cli/recorder.rs, dsip-recording/lib.rs, dsip-transport/identity.rs | — |
 | C§2 | dsip-recording/lib.rs | — |
 | C§3 | dsip-cli/console.rs, dsip-cli/main.rs, dsip-endpoint/core.rs, dsip-transport/agent.rs | 2 vector(s): semantic/recording-declaration-valid, semantic/recording-declaration-without-recorder |

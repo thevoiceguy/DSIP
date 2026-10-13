@@ -1,0 +1,22 @@
+{
+  "vector": "alias-transparency/lookup-pending",
+  "format": 1,
+  "kind": "alias-transparency",
+  "description": "A terminal entry right of the rightmost distinguished entry is pending, not authority.",
+  "spec_ref": [
+    "T§10"
+  ],
+  "context": {},
+  "input": {
+    "check": "alias-lookup-result",
+    "answer": "found",
+    "proof": "verified",
+    "terminal_entry": 12,
+    "rightmost_distinguished": 10,
+    "fork": false
+  },
+  "expect": {
+    "result": "unaudited",
+    "reason": "pending"
+  }
+}

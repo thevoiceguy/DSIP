@@ -1,0 +1,40 @@
+{
+  "vector": "alias-transparency/head-fork-among-several",
+  "format": 1,
+  "kind": "alias-transparency",
+  "description": "A fork against one of several held heads.",
+  "spec_ref": [
+    "T§9"
+  ],
+  "context": {},
+  "input": {
+    "check": "alias-head",
+    "claim": {
+      "type": "alias-log-head",
+      "provider": "did:web:example.com",
+      "tree_head": "AAAAAAAAAAUAQBkfjuTVQJSDJ7ZV2R5gIQPVVdQxHpjcMo1mP3ESeiTZISLzNF6CEg6uCcnq6WA8L_vbww_Nz3Yqe8jbMKkjVw4",
+      "root": "P9AgzlbWUlkQFJ1ox5YxMOgR2YZh-w9d3FKylzKHRrc"
+    },
+    "configuration": "0002010020ed165424dca4afd4623e37a04e28d59e3e5f7ffe89562aeafbad88c176cbb75f0020d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a000000000000ea600000000005265c00000000000036ee8000",
+    "held": [
+      {
+        "tree_size": 3,
+        "root": "sdAjs1YFrT2m3OM4lQZ59eAAJ1V2pjUuiWVPpf6P9TY"
+      },
+      {
+        "tree_size": 5,
+        "root": "Lik1ORWSr3Fuo43irPlgMsrgT6mMr74cZKmd_XcY2RE"
+      },
+      {
+        "tree_size": 7,
+        "root": "kdEO7uwOSGxKFjG-ccKrwpDXYaonjrtoW0GxVj6SrVg"
+      }
+    ]
+  },
+  "expect": {
+    "outcome": "fork",
+    "tree_size": 5,
+    "held_root": "Lik1ORWSr3Fuo43irPlgMsrgT6mMr74cZKmd_XcY2RE",
+    "claimed_root": "P9AgzlbWUlkQFJ1ox5YxMOgR2YZh-w9d3FKylzKHRrc"
+  }
+}

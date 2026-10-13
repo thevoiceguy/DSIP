@@ -1,0 +1,23 @@
+{
+  "vector": "alias-transparency/query-search-ignores-authorized",
+  "format": 1,
+  "kind": "alias-transparency",
+  "description": "A monitor authorization does not make an alias visible to a search.",
+  "spec_ref": [
+    "T§7"
+  ],
+  "context": {},
+  "input": {
+    "check": "alias-query",
+    "request": "search",
+    "over_limit": false,
+    "alias": "alice@example.com",
+    "exists": true,
+    "visible": false,
+    "authorized": true
+  },
+  "expect": {
+    "status": 404,
+    "answer": "not-found"
+  }
+}

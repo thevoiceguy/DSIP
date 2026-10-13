@@ -1,0 +1,22 @@
+{
+  "vector": "alias-transparency/lookup-unverifiable-before-pending",
+  "format": 1,
+  "kind": "alias-transparency",
+  "description": "Unverifiable is reported before pending.",
+  "spec_ref": [
+    "T§10"
+  ],
+  "context": {},
+  "input": {
+    "check": "alias-lookup-result",
+    "answer": "found",
+    "proof": "unverifiable",
+    "terminal_entry": 12,
+    "rightmost_distinguished": 10,
+    "fork": false
+  },
+  "expect": {
+    "result": "unaudited",
+    "reason": "unverifiable"
+  }
+}

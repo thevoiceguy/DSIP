@@ -1,0 +1,23 @@
+{
+  "vector": "alias-transparency/query-bad-request",
+  "format": 1,
+  "kind": "alias-transparency",
+  "description": "A request that is neither a search nor a monitor.",
+  "spec_ref": [
+    "T§7"
+  ],
+  "context": {},
+  "input": {
+    "check": "alias-query",
+    "request": "audit",
+    "over_limit": false,
+    "alias": "alice@example.com",
+    "exists": true,
+    "visible": true,
+    "authorized": false
+  },
+  "expect": {
+    "status": 400,
+    "answer": "bad-request"
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "vector": "alias-transparency/monitor-current-owner-after-rebind",
+  "format": 1,
+  "kind": "alias-transparency",
+  "description": "The current value after a rebinding may monitor too.",
+  "spec_ref": [
+    "T§8"
+  ],
+  "context": {},
+  "input": {
+    "check": "alias-monitor",
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "alias-monitor",
+      "id": "01K742SG00ALIASMQN1T0R0001",
+      "from": "did:web:mallory.example",
+      "to": "did:web:example.com",
+      "issued_at": 1790000000,
+      "expires_at": 1790000060,
+      "alias": "alice@example.com"
+    },
+    "provider": "did:web:example.com",
+    "values": [
+      "did:web:alice.example",
+      "did:web:mallory.example"
+    ]
+  },
+  "expect": {
+    "verdict": "accept",
+    "label": "alice@example.com"
+  }
+}

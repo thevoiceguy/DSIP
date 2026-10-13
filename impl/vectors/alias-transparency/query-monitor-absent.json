@@ -1,0 +1,23 @@
+{
+  "vector": "alias-transparency/query-monitor-absent",
+  "format": 1,
+  "kind": "alias-transparency",
+  "description": "A monitor request for an absent alias.",
+  "spec_ref": [
+    "T§7"
+  ],
+  "context": {},
+  "input": {
+    "check": "alias-query",
+    "request": "monitor",
+    "over_limit": false,
+    "alias": "alice@example.com",
+    "exists": false,
+    "visible": true,
+    "authorized": true
+  },
+  "expect": {
+    "status": 404,
+    "answer": "not-found"
+  }
+}

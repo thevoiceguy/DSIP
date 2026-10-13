@@ -1,0 +1,21 @@
+{
+  "vector": "alias-transparency/lookup-not-found",
+  "format": 1,
+  "kind": "alias-transparency",
+  "description": "The endpoint answered not-found: the alias resolves to nothing.",
+  "spec_ref": [
+    "T§10"
+  ],
+  "context": {},
+  "input": {
+    "check": "alias-lookup-result",
+    "answer": "not-found",
+    "proof": "unverifiable",
+    "terminal_entry": 3,
+    "rightmost_distinguished": 10,
+    "fork": true
+  },
+  "expect": {
+    "result": "not-found"
+  }
+}
