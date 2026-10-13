@@ -252,8 +252,8 @@ def add_devices_vectors() -> list[dict]:
     BOB_LAPTOP = {"device": "did:key:z6MkBobLaptop", "identity": BOB, "capabilities": ["dsip.signaling", "dsip.messaging"]}
     BOB_REC = {"device": "did:key:z6MkBobRec", "identity": BOB, "capabilities": ["dsip.signaling", "dsip.messaging", "dsip.record"]}
 
-    def av(vid, desc, inp, want):
-        out.append(rv(f"add-devices-{vid}", desc, R, {"check": "add-devices", **inp}, want))
+    def av(vid, desc, inp, want, refs=R):
+        out.append(rv(f"add-devices-{vid}", desc, refs, {"check": "add-devices", **inp}, want))
     def conv(kps, self_device="did:key:z6MkAlicePhone", target=BOB, purpose="conversation"):
         me = BOB if "Bob" in self_device else "did:web:alice.example"
         return {"target": target, "self_identity": me, "self_device": self_device, "purpose": purpose, "key_packages": kps}
@@ -275,6 +275,17 @@ def add_devices_vectors() -> list[dict]:
        {"add": ["did:key:z6MkBobPhone"]})
     av("duplicate-device-once", "A device with two KeyPackages (one-time and last resort) is added once.",
        conv([BOB_PHONE, BOB_PHONE, BOB_LAPTOP]), {"add": ["did:key:z6MkBobPhone", "did:key:z6MkBobLaptop"]})
+    # C§9 (v0.13, spec-gap 123): a record-keeper's devices all carry dsip.record, so the party cannot add it; the
+    # record-keeper opens the conversation instead, its recorder device adding the party's devices.
+    KEEPER = {"device": "did:key:z6MkKeeper", "identity": REC, "capabilities": ["dsip.messaging", "dsip.record"]}
+    av("party-cannot-add-record-keeper", "A party adding its record-keeper finds only recorder devices: refused, so the "
+       "record-keeper opens the conversation (C§9).", {"target": REC, "self_identity": "did:web:alice.example",
+       "self_device": "did:key:z6MkAlicePhone", "purpose": "conversation", "key_packages": [KEEPER]}, {"refused": "recorder-only"},
+       ["C§5", "C§9", "M§7.2"])
+    av("record-keeper-opens", "The record-keeper's recorder device opens the conversation with a party: every device of "
+       "the party is added (C§9).", {"target": BOB, "self_identity": REC, "self_device": "did:key:z6MkKeeper",
+       "purpose": "conversation", "key_packages": [BOB_PHONE, BOB_LAPTOP, KEEPER]},
+       {"add": ["did:key:z6MkBobPhone", "did:key:z6MkBobLaptop"]}, ["C§5", "C§9", "M§7.2"])
     return out
 
 

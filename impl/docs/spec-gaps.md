@@ -3561,7 +3561,7 @@ privacy notice); content recording keeps C§3–C§6 unchanged. A profile that w
   `recorder-conversation-only` → `call-record-invalid` → kept, never rendered), 17 `recording/call-record-outcome-*`
   and 7 `recording/call-record-evidence-*` (SHA-256 of the frame's bytes as kept; a re-serialised frame does not
   match). The Python harness, `dsip-messaging`/`dsip-recording` and `impl-ts` agree (2,000 vectors); `fuzz.py` gains
-  `call-record` and `call-record-outcome`. Sending records from the browser client is not done.
+  `call-record` and `call-record-outcome`. The browser client sends records (spec-gap 123).
 
 ## 122. M§4.1 / M§6.6 — what a device does when its identity moves to another mailbox
 
@@ -3594,3 +3594,33 @@ Choices:
   successor's creator fetches the moved identity's KeyPackages from the new mailbox on the strength of that
   registration (`impl/web/test/messaging-successor.mjs`).
 - **Text:** in v0.13 (M§4.1 "Moving to another mailbox", M§5.7 `joined` with a `hub` registers), 2026-10-13.
+
+## 123. C§9 / C§5 — a party cannot open the conversation to its record-keeper
+
+**Found (2026-10-13, building the browser client's call records).** C§9 makes the record-keeper "a service identity
+whose devices carry `dsip.record`" and has "the party's devices keep a direct conversation with it (M§7.2)". But C§5
+says a device adds a recorder only together with at least one of that identity's other devices, unless that identity
+is the adder's own: "If only recorder devices are available, the identity is not added (`recorder-only`)", pinned by
+`recording/add-devices-recorder-only`. Every device of a record-keeper is a recorder, so the party's attempt to open
+the conversation is always refused, and C§9 does not say who else opens it.
+
+Choices:
+
+- **(a)** The record-keeper opens it: its device creates the direct conversation at its own mailbox and adds every
+  device of the party, which C§5 allows (the targets are not recorders). It asks for the party's grant (M§14.2) like
+  any first contact. The party's client sends records only to the conversation with the record-keeper its
+  organisation names, and holds them until that conversation exists. No rule changes.
+- **(b)** An exception in C§5's add rule for the identity the party's organisation names as record-keeper; the party
+  opens the conversation. This changes a pinned rule: `add-devices` takes a new input, so new vectors and changes in
+  all three implementations.
+- **(c)** The record-keeper's devices do not carry `dsip.record`. The conversation is then not recorded in C§5's
+  sense, and the party's client stops naming who keeps the records.
+- **Decided (the user, 2026-10-13): (a).** Text in v0.13 C§9 ("Who opens the conversation") and A.10. It also says
+  that a `call-record` is not content, so a party sends it without the acceptance C§5 asks before content. Two
+  vectors pin both directions: `recording/add-devices-party-cannot-add-record-keeper` (refused, `recorder-only`) and
+  `recording/add-devices-record-keeper-opens` (the keeper's recorder device adds every device of the party).
+- **Implementation (browser client).** The browser sends a record after each leg to the record-keeper named in
+  Settings, holding records while no conversation exists. A browser identity can be a record-keeper: its device is
+  re-delegated with `dsip.record`, never makes a personal group (C§5), and lists the records it receives. A
+  conversation with a recorder of another identity is shown as recorded and sends no content: the client has no
+  acceptance screen, so it never sends content there (C§5). Test: `impl/web/test/call-records.mjs`.

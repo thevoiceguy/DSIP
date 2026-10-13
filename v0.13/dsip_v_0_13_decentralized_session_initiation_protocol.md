@@ -2539,6 +2539,8 @@ v0.12 is final at tag `poc-v0.12`. Each v0.13 item is listed here as it lands, w
   mailboxes can record of its calls, and what they cannot; the Recording Profile's C§9 adds the endpoint-side
   `call-record` object, sent by each device to its organisation's record-keeper after every call leg, which the
   Messaging Profile lists (M§8.1) and its schema set defines (`call-record.schema.json`, the one schema change).
+  The record-keeper opens the conversation with each party, since a party cannot add an identity whose devices are
+  all recorders (C§5, C§9; spec-gap 123).
 
 ---
 
