@@ -139,6 +139,21 @@ bound the operator sets. A binding alone enrols nothing: other identities' devic
 deposit welcomes. An enrolled identity is served exactly as a configured one (its own retention and quota, M§4.4).
 Which mailbox an identity uses is what it advertises (M§4.2), never where it enrolled.
 
+**Moving to another mailbox** (v0.13, spec-gap 122). An identity moves by advertising another mailbox (M§4.2): its
+operator closes, or the old mailbox is gone for good, the case M§7.5 exists for. Nothing passes between the two
+mailboxes; the old one may no longer answer. On its first binding at the new mailbox, a device of the identity:
+
+1. registers every group it is in with one `mailbox-config`, each entry `state: joined` with the group's `hub` and
+   `hub_uri` (M§5.7), so the new mailbox admits the hubs' fan-out (M§6.6) and can serve a successor's
+   `key-package-fetch` and `welcome` for those groups (M§7.5);
+2. syncs from `null` (M§5.4): its cursors were the old mailbox's;
+3. deposits again, through the new mailbox, whatever it had sent without an answer (M§9.3): the same MLS bytes, so a
+   hub that ordered them already answers `duplicate`. A `mailbox-config` pending at the old mailbox is not re-sent; the
+   registration of step 1 supersedes it.
+
+Hubs find the new mailbox at their next delivery (M§6.5 rule 5). Items a hub had delivered to the old mailbox and the
+device had not yet read are lost with it; a gap the device then sees is handled by M§6.5's gap rule.
+
 ### M§4.2 Discovery (§8.1)
 
 An identity advertises its mailbox in its **DID document** as a service entry. This is the
@@ -588,8 +603,10 @@ An owner device configures its own mailbox:
   stored value (for `groups`, per group entry).
 - `admit` ∈ {`grant`, `open`} (default `grant`): whether first contact requires a grant (M§14.2).
   `open` suits businesses and public services.
-- `groups[].state` ∈ {`joined`, `left`}: confirms a pending registration (M§6.6) or ends one. A
-  registration belongs to the identity, not to a device (spec-gap 53): a device removed from a group
+- `groups[].state` ∈ {`joined`, `left`}: confirms a pending registration (M§6.6) or ends one. (v0.13,
+  spec-gap 122) `joined` with a `hub` for a group the mailbox holds no registration for registers it as joined:
+  that is how a group's creator registers its own group, and how an identity that moved registers its groups at the
+  new mailbox (M§4.1). A registration belongs to the identity, not to a device (spec-gap 53): a device removed from a group
   sends `left` only when no leaf of its identity remains in the group, so its siblings keep receiving.
 - `introductions_sent` (spec-gap 81) lists the ids of introductions the owner has sent (at most 256 per message; the
   mailbox adds them to what it holds). A `grant` deposit whose `session` names one is the answer the owner asked for
@@ -752,6 +769,19 @@ A hub that lost this state would re-number items or accept a second commit for a
 group. Retrying an unacknowledged deposit (rule 5) means a member mailbox can receive an item it already
 stored whenever the acknowledgement was lost; M§6.6 makes that harmless.
 
+**How long a queue is kept** (v0.13, spec-gap 119). A hub keeps what it has queued for a member identity, sequenced
+items and welcome alike, for at most `mls_retention_s` (M§4.4, RECOMMENDED 2,592,000 s; the hub's operator sets it)
+without an acknowledgement from that identity's mailbox. The clock is per member identity: it starts when something
+is queued for an identity that had nothing queued, restarts at every acknowledgement of the head of one of its queues,
+and stops when nothing is left queued, so a slow mailbox that keeps acknowledging is never dropped. When the clock
+reaches the bound, the hub drops everything queued for the identity, welcome included, and lifts the hold on its
+queue (spec-gap 66). The identity stays in the roster, since only a member's commit changes membership (M§15.3), and
+items sequenced later are queued for it afresh under the same bound. The clocks are hub state, kept across a restart
+(spec-gap 59).
+A member whose items were dropped re-joins by external commit (M§6.8), as a device offline past the same bound at its
+own mailbox does (M§4.4). An identity whose welcome was dropped never joined: it holds no GroupInfo to re-join from,
+and a member adds it again (M§6.7).
+
 A committing member MUST NOT apply its own commit until it holds the hub's `accepted`. On
 `mailbox.commit-conflict` it syncs, processes the winning commit, and re-proposes if still needed.
 (spec-gap 58) Precisely: on `mailbox.commit-conflict` or `mailbox.stale-epoch` the member discards its
@@ -842,6 +872,11 @@ A device MAY join by external commit, using the latest `group-info` item from it
 
 The hub MUST refuse any other external commit (`policy.blocked`). Every member MUST verify the same
 condition and MUST render the join ("Bob's new tablet joined") like any roster change (M§7.3).
+
+(v0.13, spec-gap 120) Whether a new device waits for a sibling to add it (M§12.3) or joins by external commit is the
+device's decision: it cannot see whether a sibling is online, and this profile sets no timer, as for an unreachable
+hub (M§7.5). Nothing on the wire depends on it. A device that joins while a sibling also adds it produces two valid
+commits; the later one loses its conflict and is not re-proposed, since it is no longer needed (M§6.5, spec-gap 58).
 
 (spec-gap 62) Precisely, the condition the hub and every member check:
 
@@ -1856,4 +1891,12 @@ Within v0.12:
 | 116 | M§6.5 rule 5 | the member's mailbox is resolved per M§4.2 at each delivery, never from where it once bound |
 | 117 | M§14.2, §10.2 | a grant whose `from` is the device is the identity's that the delegation names |
 | 118 | M§14.2 | a hub-forwarded welcome's `origin` is bounded by age (not later than +300 s, not older than `pending_group_ttl`), so a retry after an outage still proves its adder |
+
+Within v0.13:
+
+| spec-gap | where | what |
+|---|---|---|
+| 119 | M§6.5 | a hub keeps a member identity's queues for at most `mls_retention_s` without an acknowledgement, then drops them, welcome included; the identity stays in the roster |
+| 120 | M§6.8 | whether a new device waits for a sibling or joins by external commit is the device's decision; no timer |
+| 122 | M§4.1, M§5.7 | an identity that moves registers every group at the new mailbox, syncs from `null` and re-deposits what was unanswered; `joined` with a `hub` registers a group the mailbox has none for |
 

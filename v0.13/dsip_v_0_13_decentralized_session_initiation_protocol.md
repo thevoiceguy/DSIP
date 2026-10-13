@@ -2531,6 +2531,11 @@ decision is a host's and no message changes (113, 114, 115, 116).
 
 v0.12 is final at tag `poc-v0.12`. Each v0.13 item is listed here as it lands, with its spec-gap number.
 
+- Messaging Profile: a hub keeps a member identity's fan-out queues for at most `mls_retention_s` without an
+  acknowledgement, then drops them, welcome included (M§6.5; spec-gap 119); whether a new device waits for a sibling
+  or joins by external commit is its own decision (M§6.8; spec-gap 120); what a device does when its identity moves
+  to another mailbox (M§4.1, M§5.7; spec-gap 122).
+
 ---
 
 ## Appendix B: Emergency Services and Regulated Profiles

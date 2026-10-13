@@ -178,8 +178,8 @@ export class Hub implements Machine {
    * Time passes. A member identity that has acknowledged nothing for `mls_retention_s` while something was queued for it
    * loses every queue it has here, welcome included, and its welcome hold; it stays in the roster.
    *
-   * Spec: M§6.5 rule 5, M§4.4. Impl (spec-gap 119): the clock restarts at every acknowledgement of a head; a returning
-   * device re-joins by external commit (M§6.8).
+   * Spec: M§6.5 "How long a queue is kept" (v0.13, spec-gap 119): the clock restarts at every acknowledgement of a
+   * head; a returning device re-joins by external commit (M§6.8).
    */
   private advance(n: number): void {
     this.now += n;

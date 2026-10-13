@@ -3482,6 +3482,7 @@ the hub has nothing comparable.
   `dsip-mailbox --mls-retention` sets the bound (2,592,000 s by default), and the service advances every hub's clock on
   its retry tick; `demos/hub-retention-demo.sh` shows it on the wire. One case the text should say: an identity whose
   welcome was dropped never joined, so it has no GroupInfo to re-join from and must be added again.
+- **Text:** in v0.13 (M§6.5 "How long a queue is kept", M-B), 2026-10-13, with the dropped-welcome case.
 
 ## 120. M§6.8 / M§12.3 — when a device decides no sibling will add it
 
@@ -3500,6 +3501,7 @@ commits, the later of which loses its conflict and is not re-proposed because it
 - **Recommended: (a)**, one sentence in M§6.8. The browser client waits 30 s after binding when it knows of a
   sibling and then joins every group its mailbox holds a GroupInfo for, personal group first (an `Impl:` note in
   `impl/web/app.js`); a device that knows of no sibling creates the personal group at once (M§7.1), as before.
+- **Text:** in v0.13 (M§6.8), 2026-10-13.
 
 ## 121. C§6 / M§8 / §20.7 — an organisation's call records have no endpoint-side path, and a recording leg cannot carry metadata alone
 
@@ -3583,3 +3585,4 @@ Choices:
   loses the personal group's GroupInfo, then reloads one identity and moves the other). Its outbox for the dead hub's groups then runs M§9.4 as usual, and the
   successor's creator fetches the moved identity's KeyPackages from the new mailbox on the strength of that
   registration (`impl/web/test/messaging-successor.mjs`).
+- **Text:** in v0.13 (M§4.1 "Moving to another mailbox", M§5.7 `joined` with a `hub` registers), 2026-10-13.

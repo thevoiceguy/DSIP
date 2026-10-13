@@ -7,11 +7,11 @@ drafts.
 
 | document | what | status |
 |---|---|---|
-| `dsip_v_0_13_decentralized_session_initiation_protocol.md` | DSIP core | v0.13 draft (v0.12 text + A.10) |
+| `dsip_v_0_13_decentralized_session_initiation_protocol.md` | DSIP core | v0.13 draft (v0.12 text + A.10; Appendix D, call detail records, comes with spec-gap 121) |
 | `dsip-schemas-v0.13-draft/` | Core JSON Schema set | generated; unchanged from v0.12 |
 | `dsip-webrtc-media-binding-v0.13.md` | WebRTC Media Binding 1.0 | normative, unchanged |
 | `dsip-gateway-profile-v0.13.md` | Gateway Profile 1.0 | normative, unchanged |
-| `dsip-messaging-profile-v0.13.md` | Messaging Profile 1.0 and Mailbox 1.0 | normative |
+| `dsip-messaging-profile-v0.13.md` | Messaging Profile 1.0 and Mailbox 1.0 | normative; a hub's queues bounded by `mls_retention_s` (M§6.5, spec-gap 119), joining without a sibling is the device's decision (M§6.8, 120), moving to another mailbox (M§4.1, M§5.7, 122) |
 | `dsip-messaging-schemas-draft/` | Messaging Profile schema set | generated; unchanged |
 | `dsip-rtp-srtp-media-binding-v0.13-draft.md` | RTP/SRTP Media Binding | draft |
 | `dsip-dht-hints-profile-v0.13-draft.md` | DHT Reachability Hints Profile | draft |
