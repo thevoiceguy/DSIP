@@ -1,0 +1,24 @@
+{
+  "vector": "recording/call-record-evidence-no-frames",
+  "format": 1,
+  "kind": "recording",
+  "description": "With nothing kept, nothing matches.",
+  "spec_ref": [
+    "C§9",
+    "§10.2"
+  ],
+  "context": {},
+  "input": {
+    "check": "call-record-evidence",
+    "evidence": [
+      "124eb75b11859f165eabfc1d395a118f4ce5576d4e636bc229d3fdcac9fe1e2e"
+    ],
+    "frames": []
+  },
+  "expect": {
+    "matched": [],
+    "unmatched": [
+      "124eb75b11859f165eabfc1d395a118f4ce5576d4e636bc229d3fdcac9fe1e2e"
+    ]
+  }
+}

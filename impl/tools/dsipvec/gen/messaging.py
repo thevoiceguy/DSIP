@@ -282,6 +282,49 @@ def object_vectors():
       ["C§5", "M§8.1"], ra, reject("personal-group-only"))
     o("recording-acceptance-no-recorders", "An acceptance must name at least one recorder.", ["C§5"],
       {**ra, "recorders": []}, reject("schema-invalid"), ctx={**OBJ_CTX, "conversation_kind": "personal"})
+    # Recording Profile C§9 (v0.13, spec-gap 121): a call record, in the direct conversation with the record-keeper
+    rc_ctx = {**OBJ_CTX, "leaf_device": "did:key:z6MkAlicePhone"}
+    rc = {"object": "call-record", "session": uid("rec-call"), "device": "did:key:z6MkAlicePhone", "direction": "outbound",
+          "peer": CAROL, "relay": "did:web:relay.alice.example", "invited_at": NOW, "answered_at": NOW + 4,
+          "ended_at": NOW + 310, "outcome": "answered", "ended_by": "remote", "reason": "user.hangup", "media": ["audio"],
+          "recording": {"state": "off"}, "evidence": ["a" * 64, "0123456789abcdef" * 4]}
+    stored = accept(effective={"render": "ignore", "store": "call-record"})
+    unanswered = {k: v for k, v in rc.items() if k != "answered_at"}
+    o("call-record-valid", "A call record from the sending leaf's own device, in a direct conversation, is kept and never "
+      "rendered (C§9).", ["C§9", "M§8.1"], rc, stored, ctx=rc_ctx)
+    o("call-record-minimal", "Only session, device, direction, peer, the invite and end times, outcome and ended_by are "
+      "required; a missed leg has no answered_at.", ["C§9"],
+      {"object": "call-record", "session": uid("rec-call"), "device": "did:key:z6MkAlicePhone", "direction": "inbound",
+       "peer": CAROL, "invited_at": NOW, "ended_at": NOW + 30, "outcome": "missed", "ended_by": "remote"}, stored, ctx=rc_ctx)
+    o("call-record-times-equal", "invited_at, answered_at and ended_at may be equal: they only never decrease.", ["C§9"],
+      {**rc, "answered_at": NOW, "ended_at": NOW}, stored, ctx=rc_ctx)
+    o("call-record-unknown-outcome-kept", "An outcome outside the registry is kept as given (C§7: open registry).",
+      ["C§9", "C§7"], {**unanswered, "outcome": "forwarded"}, stored, ctx=rc_ctx)
+    o("call-record-device-not-sender-leaf", "A record's device must be the MLS sender leaf's device: a device cannot "
+      "file another's records.", ["C§9", "M§6.2"], {**rc, "device": "did:key:z6MkAliceLaptop"}, reject("sender-mismatch"),
+      ctx=rc_ctx)
+    o("call-record-sender-checked-before-conversation", "Both wrong: the sender is checked first.", ["C§9"],
+      {**rc, "device": "did:key:z6MkAliceLaptop"}, reject("sender-mismatch"), ctx={**rc_ctx, "conversation_kind": "personal"})
+    o("call-record-in-personal-group-refused", "Call records go to the record-keeper's direct conversation, never the "
+      "personal group.", ["C§9"], rc, reject("recorder-conversation-only"), ctx={**rc_ctx, "conversation_kind": "personal"})
+    o("call-record-in-group-conversation-refused", "Nor a group conversation, whose other members would see them.",
+      ["C§9"], rc, reject("recorder-conversation-only"), ctx={**rc_ctx, "conversation_kind": "group"})
+    o("call-record-answered-without-answered-at", "An answered leg must carry answered_at.", ["C§9"], {**unanswered},
+      reject("call-record-invalid"), ctx=rc_ctx)
+    o("call-record-answered-at-on-missed-leg", "answered_at is present only on an answered leg.", ["C§9"],
+      {**rc, "outcome": "missed", "direction": "inbound"}, reject("call-record-invalid"), ctx=rc_ctx)
+    o("call-record-answered-before-invited", "Times never decrease: answered before invited is invalid.", ["C§9"],
+      {**rc, "answered_at": NOW - 1}, reject("call-record-invalid"), ctx=rc_ctx)
+    o("call-record-ended-before-answered", "Times never decrease: ended before answered is invalid.", ["C§9"],
+      {**rc, "ended_at": NOW + 3}, reject("call-record-invalid"), ctx=rc_ctx)
+    o("call-record-ended-before-invited", "Times never decrease, on a leg that was not answered too.", ["C§9"],
+      {**unanswered, "outcome": "cancelled", "ended_at": NOW - 1}, reject("call-record-invalid"), ctx=rc_ctx)
+    o("call-record-evidence-uppercase-refused", "Evidence is lowercase hex SHA-256.", ["C§9"],
+      {**rc, "evidence": ["A" * 64]}, reject("schema-invalid"), ctx=rc_ctx)
+    o("call-record-bad-ended-by-refused", "ended_by is local, remote or transport.", ["C§9"],
+      {**rc, "ended_by": "peer"}, reject("schema-invalid"), ctx=rc_ctx)
+    o("call-record-reason-not-a-reason-token", "reason is a category.condition token (§15).", ["C§9", "§15"],
+      {**rc, "reason": "hangup"}, reject("schema-invalid"), ctx=rc_ctx)
     rd = {"object": "receipt", "id": uid("rp1"), "conversation": uid("other-conv"), "sender": ALICE, "sent_at": NOW,
           "kind": "read", "through": uid("m1")}
     o("receipt-read-in-personal-group-names-its-conversation",

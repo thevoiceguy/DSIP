@@ -5,13 +5,15 @@ track C (spec-gaps 107, 108).
 
 Compliance recording under end-to-end encryption happens **at endpoints the organisation controls, and it is
 disclosed**. It never happens by decrypting at relays, by key escrow, or through a lawful-intercept interface (§3).
-This profile defines four things:
+This profile defines five things:
 
 - a signed **recording declaration** for calls (C§3), shaped like SIPREC's `a=record` (RFC 7866 §7.1.2);
 - what a **counterparty's client** must do about it: render it, and act only after acceptance (C§4);
 - a **recorder device** role for messaging, which is disclosed and receive-only (C§5);
 - a **recorder leg** for calls: a DSIP session from the recording party to its recorder, carrying the media and
-  RFC 7865-shaped metadata (C§6).
+  RFC 7865-shaped metadata (C§6);
+- a **call record** each device sends its organisation's record-keeper after every call, carrying metadata only
+  (C§9, v0.13).
 
 **What disclosure can and cannot do.** A declaration binds the party that makes it. Nothing stops a participant from
 recording their own screen or speaker in secret, and no protocol can. The profile gives honest recorders a way to
@@ -164,6 +166,8 @@ of one communication session. It may open them from any of its devices.
 - `dsip-policy-value` for the key `recording`: `allowed`, `consent-required`, `forbidden`.
 - `dsip-recording-state`: `on`, `paused`, `off`.
 - `dsip-recording-purpose`: `compliance`, `quality`, `personal`. Open, with shape `[a-z][a-z0-9-]*`.
+- `dsip-call-record-outcome` (C§9, v0.13): `answered`, `answered-elsewhere`, `failed`, `declined`, `missed`,
+  `cancelled`, `rejected`. Open, with shape `[a-z][a-z0-9-]*`; a record-keeper keeps an unknown outcome as given.
 
 ## C§8 Prior art
 
@@ -174,3 +178,62 @@ of one communication session. It may open them from any of its devices.
 - **Wire legal hold** (MLS): a disclosed recording device on the subject's account, with an indicator in every
   conversation and next to the user. Non-consenting users are kept out of conversations a legal-hold device is in.
   This profile keeps the disclosed device and makes consent per user and per conversation, not per team.
+
+## C§9 Call records (v0.13, spec-gap 121)
+
+An organisation that must keep a record of its people's calls (who, when, for how long, how each ended) gets one
+from the infrastructure it runs: its relay, its gateway, its mailboxes (core Appendix D). A device can also bind to
+relays the organisation does not run (§13.2), so the infrastructure records can miss calls. This section adds an
+endpoint-side record that covers every call, on any relay. It carries metadata, never media or content.
+
+- **The recorder.** The organisation names a **record-keeper** for a recording party: a service identity whose
+  devices carry `dsip.record` (C§1). The party's devices keep a direct conversation with it (M§7.2). Like every
+  recorder, the record-keeper is a member the party's own client shows (C§5), and its devices never speak in the
+  conversation; a party's records are the only thing sent there.
+- **One record per leg.** After every session leg a device took part in, it sends a `call-record` object to that
+  conversation. Every call is covered, whether recorded or not, and whatever relay carried it. A forked call
+  (§12.7) yields one record per leg of the party's own devices; the record-keeper correlates them by `session`.
+  Records travel through the mailboxes (M§9), so a record-keeper that is offline loses nothing.
+- **Disclosure.** A record holds what the party's own relay already sees of the call (§20.7). It needs no per-call
+  declaration (C§3), as an operator's records of calls it routes do not; the organisation discloses the practice as
+  a standing policy. Recording content still needs the declaration and acceptance of C§3–C§6.
+- **Trust.** Like all endpoint-side recording, a record is as complete as the client that sends it: a modified
+  client can omit one. The infrastructure's records (Appendix D) are the cross-check, and `evidence` lets each
+  record be matched against the signed messages they kept.
+
+```json
+{"object": "call-record", "session": "01J…", "device": "did:key:z6Mk…", "direction": "outbound",
+ "peer": "did:web:carol.example", "relay": "did:web:relay.acme.example",
+ "invited_at": 1790000000, "answered_at": 1790000004, "ended_at": 1790000310,
+ "outcome": "answered", "ended_by": "remote", "reason": "user.hangup", "media": ["audio"],
+ "recording": {"state": "off"}, "evidence": ["<SHA-256 of each signed envelope, lowercase hex>"]}
+```
+
+- `session` is the session's id; `device` the sending device, which MUST be the MLS sender leaf's device (M§6.2);
+  `direction` is `inbound` or `outbound`; `peer` the other party's identity; `relay` the relay the leg used, when
+  known.
+- `invited_at` is the invite's `issued_at`; `answered_at`, present exactly when `outcome` is `answered`, the
+  applied answer's; `ended_at` when the leg ended. They never decrease in that order.
+- `ended_by` is `local`, `remote`, or `transport` when the leg ended without a message (§13.2); `reason` is the
+  token that ended it (§15), as received.
+- `media` lists the media types of the applied answer; `recording` is the party's last declaration (C§3) in the
+  session.
+- `evidence` lists the SHA-256 of signed envelopes of the session, over the bytes of each text frame exactly as sent
+  or received (§10.2: never re-serialised). A record-keeper matches a record against envelopes kept by a relay, a
+  gateway or the peer: an entry matches an envelope whose bytes hash to it.
+
+**Outcome.** A device derives its leg's `outcome`, in this order:
+
+1. `answered`: the leg was answered (this device was in the session when it became active).
+2. `answered-elsewhere`: the leg ended with `session.answered-elsewhere` (§12.7).
+3. `failed`: `ended_by` is `transport`, or the reason's category is `transport`.
+4. `declined`: the reason is `user.declined`, and the leg is inbound and ended locally (this device's user) or
+   outbound and ended remotely (the callee's).
+5. `missed`: any other inbound leg.
+6. `cancelled`: an outbound leg ended locally.
+7. `rejected`: any other outbound leg.
+
+**At the record-keeper.** A `call-record` is accepted only in a direct conversation (`recorder-conversation-only`);
+its `device` must be the sender leaf's (`sender-mismatch`) and its times must agree with the rules above
+(`call-record-invalid`). It is never rendered as content. The checks and their order are `check: "object"`,
+`check: "call-record-outcome"` and `check: "call-record-evidence"` in `impl/vectors/README.md`.

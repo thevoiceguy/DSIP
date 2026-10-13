@@ -4,7 +4,7 @@
  * Spec: M§8.1 (objects, sender/conversation/ULID rules), M§8.2 (kind and purpose, with fallback),
  * M§10 (receipts), M§10.5 (the personal-group read watermark, spec-gap 52), M§11.1 (activity),
  * M§12 / M§13.3 (archive keys and call events live in the personal group only), C§5 (recording acceptances
- * too, v0.10), §10.3 (no floats).
+ * too, v0.10), C§9 (call records, at the record-keeper only, v0.13), §10.3 (no floats).
  */
 import type { Json, JsonObject } from "../did.js";
 import { ulidSeconds } from "../encoding.js";
@@ -14,7 +14,7 @@ import { messagingSchemas } from "./schemas.js";
 /** Spec: M§8.1 — object discriminator → schema; anything else is ignored. */
 const OBJECTS: Record<string, string> = {
   content: "content", receipt: "receipt", activity: "activity", "archive-key": "archive-key", "call-event": "call-event",
-  "recording-acceptance": "recording-acceptance",
+  "recording-acceptance": "recording-acceptance", "call-record": "call-record",
 };
 /** Spec: M§12, M§13.3, C§5 — objects that would disclose the identity's own state to a peer anywhere else. */
 const PERSONAL_ONLY = ["archive-key", "call-event", "recording-acceptance"];
@@ -50,6 +50,8 @@ export interface ObjectContext {
   conversation_kind: string;
   /** The identity of the MLS sender leaf (M§6.2). */
   leaf_identity: string;
+  /** The device of the MLS sender leaf: what a call record's `device` must be (C§9). */
+  leaf_device?: string;
 }
 
 /** Check one decrypted object. */
@@ -75,6 +77,7 @@ export function checkObject(object: JsonObject, ctx: ObjectContext): Verdict {
   }
   if (PERSONAL_ONLY.includes(schema) && ctx.conversation_kind !== "personal") return reject("personal-group-only");
 
+  if (schema === "call-record") return checkCallRecord(object, ctx);
   if (schema === "content") return checkContent(object);
   if (schema === "receipt") return checkReceipt(object);
   if (schema === "activity") {
@@ -115,4 +118,20 @@ function checkReceipt(o: JsonObject): Verdict {
   // M§10.3: read carries `through` instead of `targets`
   const shaped = kind === "read" ? "through" in o && !("targets" in o) : "targets" in o && !("through" in o);
   return shaped ? { verdict: "accept", effective: { receipt: kind } } : reject("receipt-shape");
+}
+
+/**
+ * A call record at the record-keeper: the sender leaf's own device, a direct conversation, `answered_at` exactly on an
+ * answered leg, and invited ≤ answered ≤ ended. Kept, never rendered.
+ *
+ * Spec: Recording Profile C§9 (v0.13, spec-gap 121).
+ */
+function checkCallRecord(record: JsonObject, ctx: ObjectContext): Verdict {
+  if (record["device"] !== ctx.leaf_device) return reject("sender-mismatch");
+  if (ctx.conversation_kind !== "direct") return reject("recorder-conversation-only");
+  const hasAnswer = "answered_at" in record;
+  const times = [record["invited_at"], ...(hasAnswer ? [record["answered_at"]] : []), record["ended_at"]] as number[];
+  const ordered = times.every((t, i) => i === 0 || times[i - 1]! <= t);
+  if (hasAnswer !== (record["outcome"] === "answered") || !ordered) return reject("call-record-invalid");
+  return { verdict: "accept", effective: { render: "ignore", store: "call-record" } };
 }

@@ -1,0 +1,49 @@
+{
+  "vector": "messaging/call-record-unknown-outcome-kept",
+  "format": 1,
+  "kind": "messaging",
+  "description": "An outcome outside the registry is kept as given (C§7: open registry).",
+  "spec_ref": [
+    "C§9",
+    "C§7"
+  ],
+  "context": {
+    "conversation": "01K742SG00AX1F6HVTRWBW227R",
+    "conversation_kind": "direct",
+    "leaf_identity": "did:web:alice.example",
+    "leaf_device": "did:key:z6MkAlicePhone"
+  },
+  "input": {
+    "check": "object",
+    "object": {
+      "object": "call-record",
+      "session": "01K742SG00XZRF7H1Z8WN9CGAD",
+      "device": "did:key:z6MkAlicePhone",
+      "direction": "outbound",
+      "peer": "did:web:carol.example",
+      "relay": "did:web:relay.alice.example",
+      "invited_at": 1760000000,
+      "ended_at": 1760000310,
+      "outcome": "forwarded",
+      "ended_by": "remote",
+      "reason": "user.hangup",
+      "media": [
+        "audio"
+      ],
+      "recording": {
+        "state": "off"
+      },
+      "evidence": [
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+      ]
+    }
+  },
+  "expect": {
+    "verdict": "accept",
+    "effective": {
+      "render": "ignore",
+      "store": "call-record"
+    }
+  }
+}

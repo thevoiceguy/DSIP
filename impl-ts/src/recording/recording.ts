@@ -5,6 +5,7 @@
  * Spec: C§4, C§5, C§6 (`v0.13/dsip-recording-profile-v0.13-draft.md`). Contract: `impl/vectors/README.md`,
  * "Kind: `recording`".
  */
+import { createHash } from "node:crypto";
 import type { Json, JsonObject } from "../did.js";
 
 /** The reason a declining client sends. Spec: C§4, C§7 (`dsip-reason`). */
@@ -268,9 +269,9 @@ export function checkAddDevices(input: JsonObject): JsonObject {
 
 /**
  * Runner for kind `recording`: a consent trace (`input.steps`), or `input.check` of `conversation`,
- * `recording-session` or `add-devices`.
+ * `recording-session`, `add-devices`, `call-record-outcome` or `call-record-evidence`.
  *
- * Spec: C§4, C§5, C§6.
+ * Spec: C§4, C§5, C§6, C§9.
  */
 export function runRecording(context: JsonObject, input: JsonObject): Json {
   if (Array.isArray(input["steps"])) {
@@ -284,7 +285,40 @@ export function runRecording(context: JsonObject, input: JsonObject): Json {
       return checkRecordingSession(input);
     case "add-devices":
       return checkAddDevices(input);
+    case "call-record-outcome":
+      return { outcome: callRecordOutcome(input) };
+    case "call-record-evidence":
+      return callRecordEvidence(input);
     default:
       throw new Error(`unknown recording check ${String(input["check"])}`);
   }
+}
+
+/**
+ * The outcome a device puts on its leg's call record: the first of answered, answered-elsewhere, failed, declined,
+ * missed (inbound), cancelled (outbound ended here), rejected.
+ *
+ * Spec: C§9 (v0.13, spec-gap 121); §12.7; §15.1 (a reason's category is what precedes the first dot).
+ */
+export function callRecordOutcome(input: JsonObject): string {
+  const reason = String(input["reason"]);
+  const inbound = input["direction"] === "inbound";
+  const endedBy = input["ended_by"];
+  if (input["answered"] === true) return "answered";
+  if (reason === "session.answered-elsewhere") return "answered-elsewhere";
+  if (endedBy === "transport" || reason.split(".")[0] === "transport") return "failed";
+  if (reason === "user.declined" && endedBy === (inbound ? "local" : "remote")) return "declined";
+  if (inbound) return "missed";
+  return endedBy === "local" ? "cancelled" : "rejected";
+}
+
+/**
+ * A call record's evidence against kept frames: an entry matches a frame whose bytes, exactly as kept, hash to it.
+ *
+ * Spec: C§9 (v0.13, spec-gap 121); §10.2 (bytes as received, never re-serialised).
+ */
+export function callRecordEvidence(input: JsonObject): JsonObject {
+  const kept = new Set((input["frames"] as string[]).map((f) => createHash("sha256").update(f, "utf8").digest("hex")));
+  const evidence = input["evidence"] as string[];
+  return { matched: evidence.filter((e) => kept.has(e)), unmatched: evidence.filter((e) => !kept.has(e)) };
 }

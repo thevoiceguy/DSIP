@@ -1,0 +1,46 @@
+{
+  "vector": "messaging/call-record-sender-checked-before-conversation",
+  "format": 1,
+  "kind": "messaging",
+  "description": "Both wrong: the sender is checked first.",
+  "spec_ref": [
+    "C§9"
+  ],
+  "context": {
+    "conversation": "01K742SG00AX1F6HVTRWBW227R",
+    "conversation_kind": "personal",
+    "leaf_identity": "did:web:alice.example",
+    "leaf_device": "did:key:z6MkAlicePhone"
+  },
+  "input": {
+    "check": "object",
+    "object": {
+      "object": "call-record",
+      "session": "01K742SG00XZRF7H1Z8WN9CGAD",
+      "device": "did:key:z6MkAliceLaptop",
+      "direction": "outbound",
+      "peer": "did:web:carol.example",
+      "relay": "did:web:relay.alice.example",
+      "invited_at": 1760000000,
+      "answered_at": 1760000004,
+      "ended_at": 1760000310,
+      "outcome": "answered",
+      "ended_by": "remote",
+      "reason": "user.hangup",
+      "media": [
+        "audio"
+      ],
+      "recording": {
+        "state": "off"
+      },
+      "evidence": [
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+      ]
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "sender-mismatch"
+  }
+}

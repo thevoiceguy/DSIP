@@ -1,0 +1,27 @@
+{
+  "vector": "recording/call-record-evidence-spaced-frame-matches-its-own-bytes",
+  "format": 1,
+  "kind": "recording",
+  "description": "The digest is of the bytes as kept, whatever their spacing.",
+  "spec_ref": [
+    "C§9",
+    "§10.2"
+  ],
+  "context": {},
+  "input": {
+    "check": "call-record-evidence",
+    "evidence": [
+      "20b40eb85a2250b4d57c70abf7634bdc844ac2000653fff41be161fdcdce37ec"
+    ],
+    "frames": [
+      "{\"protected\":\"eyJhbGciOiJFZERTQSJ9\",\"payload\":\"eyJ0eXBlIjoiaW52aXRlIn0\",\"signature\":\"c2ln\"}",
+      "{\"protected\": \"eyJhbGciOiJFZERTQSJ9\", \"payload\": \"eyJ0eXBlIjoiaW52aXRlIn0\", \"signature\": \"c2ln\"}"
+    ]
+  },
+  "expect": {
+    "matched": [
+      "20b40eb85a2250b4d57c70abf7634bdc844ac2000653fff41be161fdcdce37ec"
+    ],
+    "unmatched": []
+  }
+}
