@@ -1,6 +1,8 @@
 """`recording/` vectors — Recording Profile draft (C§4–C§6; spec-gap 107). Expectations are written out by hand."""
 from __future__ import annotations
 
+import hashlib
+
 from .common import vector
 
 REC = "did:web:rec.acme.example"
@@ -276,5 +278,66 @@ def add_devices_vectors() -> list[dict]:
     return out
 
 
+def call_record_vectors() -> list[dict]:
+    """C§9 (v0.13, spec-gap 121): a leg's outcome, and matching a record's evidence against kept frames."""
+    out = []
+
+    def oc(vid, desc, direction, answered, ended_by, reason, want):
+        out.append(rv(f"call-record-outcome-{vid}", desc, ["C§9"], {"check": "call-record-outcome", "direction": direction,
+                   "answered": answered, "ended_by": ended_by, "reason": reason}, {"outcome": want}))
+
+    oc("outbound-answered", "An answered outbound leg.", "outbound", True, "remote", "user.hangup", "answered")
+    oc("inbound-answered", "An inbound leg answered on this device.", "inbound", True, "local", "user.hangup", "answered")
+    oc("answered-then-transport", "Answered first: a call that later lost its connection was still answered.",
+       "outbound", True, "transport", "transport.no-response", "answered")
+    oc("answered-elsewhere", "An inbound leg cancelled because another device answered (§12.7).", "inbound", False,
+       "remote", "session.answered-elsewhere", "answered-elsewhere")
+    oc("ended-by-transport", "A leg that ended with no message failed.", "inbound", False, "transport",
+       "transport.no-response", "failed")
+    oc("transport-category", "A transport-category reason fails the leg, whoever sent it.", "outbound", False, "remote",
+       "transport.no-response", "failed")
+    oc("unknown-transport-condition", "An unregistered transport condition still has the transport category (§15).",
+       "outbound", False, "remote", "transport.carrier-pigeon-lost", "failed")
+    oc("inbound-declined-here", "The user declined on this device.", "inbound", False, "local", "user.declined", "declined")
+    oc("inbound-declined-on-sibling", "Declined on another of the party's devices: this leg was missed.", "inbound", False,
+       "remote", "user.declined", "missed")
+    oc("outbound-declined-by-callee", "The callee declined.", "outbound", False, "remote", "user.declined", "declined")
+    oc("outbound-local-declined-is-cancelled", "A caller ending its own call is cancelling, whatever token it used.",
+       "outbound", False, "local", "user.declined", "cancelled")
+    oc("inbound-caller-cancelled", "The caller gave up: missed.", "inbound", False, "remote", "session.cancelled", "missed")
+    oc("inbound-ring-timeout", "Nobody answered before the ring timer: missed.", "inbound", False, "local",
+       "session.timeout", "missed")
+    oc("inbound-busy", "A leg this device refused as busy was still a call the party missed.", "inbound", False, "local",
+       "endpoint.busy", "missed")
+    oc("outbound-cancelled", "The caller hung up before an answer.", "outbound", False, "local", "session.cancelled",
+       "cancelled")
+    oc("outbound-busy", "The callee was busy.", "outbound", False, "remote", "endpoint.busy", "rejected")
+    oc("outbound-unknown-reason", "An unregistered reason from the callee: rejected.", "outbound", False, "remote",
+       "policy.something-new", "rejected")
+
+    f1 = '{"protected":"eyJhbGciOiJFZERTQSJ9","payload":"eyJ0eXBlIjoiaW52aXRlIn0","signature":"c2ln"}'
+    f2 = '{"protected":"eyJhbGciOiJFZERTQSJ9","payload":"eyJ0eXBlIjoiYW5zd2VyIn0","signature":"c2ln"}'
+    f1_spaced = '{"protected": "eyJhbGciOiJFZERTQSJ9", "payload": "eyJ0eXBlIjoiaW52aXRlIn0", "signature": "c2ln"}'
+    h = lambda f: hashlib.sha256(f.encode()).hexdigest()  # noqa: E731 — SHA-256 of the bytes, the rule itself
+    other = "f" * 64
+
+    def ev(vid, desc, evidence, frames, matched, unmatched):
+        out.append(rv(f"call-record-evidence-{vid}", desc, ["C§9", "§10.2"], {"check": "call-record-evidence",
+                   "evidence": evidence, "frames": frames}, {"matched": matched, "unmatched": unmatched}))
+
+    ev("all-matched", "Each entry matches a kept frame by the SHA-256 of its bytes.", [h(f1), h(f2)], [f2, f1],
+       [h(f1), h(f2)], [])
+    ev("one-missing", "An entry no kept frame hashes to is unmatched; input order is kept.", [h(f1), other, h(f2)], [f1, f2],
+       [h(f1), h(f2)], [other])
+    ev("reserialised-frame-does-not-match", "A frame that differs only in whitespace is different bytes: re-serialising "
+       "loses the match (§10.2).", [h(f1)], [f1_spaced], [], [h(f1)])
+    ev("spaced-frame-matches-its-own-bytes", "The digest is of the bytes as kept, whatever their spacing.", [h(f1_spaced)],
+       [f1, f1_spaced], [h(f1_spaced)], [])
+    ev("repeated-entry", "A repeated entry is listed each time.", [h(f1), h(f1)], [f1], [h(f1), h(f1)], [])
+    ev("no-frames", "With nothing kept, nothing matches.", [h(f1)], [], [], [h(f1)])
+    ev("no-evidence", "A record without evidence matches nothing.", [], [f1], [], [])
+    return out
+
+
 def vectors() -> list[dict]:
-    return consent_vectors() + conversation_vectors() + session_vectors() + add_devices_vectors()
+    return consent_vectors() + conversation_vectors() + session_vectors() + add_devices_vectors() + call_record_vectors()

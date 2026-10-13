@@ -1,0 +1,20 @@
+{
+  "vector": "recording/call-record-outcome-outbound-local-declined-is-cancelled",
+  "format": 1,
+  "kind": "recording",
+  "description": "A caller ending its own call is cancelling, whatever token it used.",
+  "spec_ref": [
+    "C§9"
+  ],
+  "context": {},
+  "input": {
+    "check": "call-record-outcome",
+    "direction": "outbound",
+    "answered": false,
+    "ended_by": "local",
+    "reason": "user.declined"
+  },
+  "expect": {
+    "outcome": "cancelled"
+  }
+}

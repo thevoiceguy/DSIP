@@ -715,6 +715,38 @@ def gen_recording(r: random.Random):
     return "recording", None, ctx, steps
 
 
+def gen_call_record(r: random.Random):
+    """A call record at the record-keeper (Recording Profile C§9; README `check: "object"`): devices, conversation
+    kinds, outcomes and times in every order, some fields missing or malformed."""
+    dev, other = "did:key:z6MkAlicePhone", "did:key:z6MkAliceLaptop"
+    t = [NOW + r.choice([0, 0, 1, 5, -3]) for _ in range(3)]
+    o = {"object": "call-record", "session": ulid(1), "device": r.choice([dev, dev, dev, other]),
+         "direction": r.choice(["inbound", "outbound", "outbound", "sideways"]), "peer": BOB,
+         "invited_at": t[0], "ended_at": t[2], "outcome": r.choice(["answered", "missed", "cancelled", "forwarded", "Bad"]),
+         "ended_by": r.choice(["local", "remote", "transport"])}
+    if r.random() < 0.5:
+        o["answered_at"] = t[1]
+    for f, v in (("reason", r.choice(["user.hangup", "user.declined", "hangup"])), ("relay", "did:web:relay.example"),
+                 ("media", ["audio"]), ("recording", {"state": "off"}),
+                 ("evidence", [r.choice(["ab" * 32, "AB" * 32, "ab"])])):
+        if r.random() < 0.3:
+            o[f] = v
+    if r.random() < 0.1:
+        del o[r.choice(["session", "device", "ended_at", "outcome"])]
+    ctx = {"conversation": ulid(9), "conversation_kind": r.choice(["direct", "direct", "personal", "group"]),
+           "leaf_identity": ALICE, "leaf_device": dev}
+    return "messaging", "object", ctx, {"object": o}
+
+
+def gen_call_record_outcome(r: random.Random):
+    """A leg's outcome (Recording Profile C§9; README `check: "call-record-outcome"`)."""
+    return "recording", "call-record-outcome", {}, {
+        "direction": r.choice(["inbound", "outbound"]), "answered": r.random() < 0.3,
+        "ended_by": r.choice(["local", "remote", "transport"]),
+        "reason": r.choice(["user.hangup", "user.declined", "session.answered-elsewhere", "session.cancelled",
+                            "session.timeout", "endpoint.busy", "transport.no-response", "transport.x", "policy.y"])}
+
+
 def gen_tnbinding(r: random.Random):
     """A number binding (N§3.4): random TNAuthLists, CA constraints, chains, clocks, claims and byte mutations."""
     sys.path.insert(0, str(REPO / "impl/tools"))
@@ -926,6 +958,7 @@ TARGETS = {
     "gap": gen_gap, "commit-retry": gen_commit_retry, "hub-outage": gen_hub_outage, "resume": gen_resume, "history": gen_history,
     "successor": gen_successor, "client": gen_client, "hub": gen_hub, "mailbox": gen_mailbox, "endpoint": gen_endpoint,
     "relay": gen_relay, "deposit-fields": gen_deposit_fields, "gateway-reason": gen_gateway_reason,
+    "call-record": gen_call_record, "call-record-outcome": gen_call_record_outcome,
 }
 
 # Targets where the implementations are known to differ and the difference is a protocol decision, not a bug

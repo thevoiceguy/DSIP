@@ -1,0 +1,20 @@
+{
+  "vector": "recording/call-record-outcome-outbound-answered",
+  "format": 1,
+  "kind": "recording",
+  "description": "An answered outbound leg.",
+  "spec_ref": [
+    "C§9"
+  ],
+  "context": {},
+  "input": {
+    "check": "call-record-outcome",
+    "direction": "outbound",
+    "answered": true,
+    "ended_by": "remote",
+    "reason": "user.hangup"
+  },
+  "expect": {
+    "outcome": "answered"
+  }
+}

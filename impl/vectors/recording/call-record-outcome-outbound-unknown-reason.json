@@ -1,0 +1,20 @@
+{
+  "vector": "recording/call-record-outcome-outbound-unknown-reason",
+  "format": 1,
+  "kind": "recording",
+  "description": "An unregistered reason from the callee: rejected.",
+  "spec_ref": [
+    "C§9"
+  ],
+  "context": {},
+  "input": {
+    "check": "call-record-outcome",
+    "direction": "outbound",
+    "answered": false,
+    "ended_by": "remote",
+    "reason": "policy.something-new"
+  },
+  "expect": {
+    "outcome": "rejected"
+  }
+}

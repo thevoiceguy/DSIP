@@ -3508,7 +3508,7 @@ commits, the later of which loses its conflict and is not re-proposed because it
 **Found (2026-10-12, asked how an enterprise collects call detail records for compliance).** DSIP has no central
 switch. The records an organisation can collect today come from infrastructure it runs: its relay sees every
 session message of the devices bound to it (§10.4, §20.7), its gateway sees PSTN legs, its mailboxes see deposits.
-The draft core Appendix D (`impl/docs/v0.13-cdr-appendix-draft.md`) describes that. Two things it cannot cover:
+The draft core Appendix D (then `impl/docs/v0.13-cdr-appendix-draft.md`, now in the v0.13 core) describes that. Two things it cannot cover:
 
 - **Calls the organisation's relay never sees.** A device MAY hold connections to several relays (§13.2), a
   roaming device may bind elsewhere, and nothing in the protocol pins a delegated device to its organisation's
@@ -3554,6 +3554,14 @@ privacy notice); content recording keeps C§3–C§6 unchanged. A profile that w
   is why the infrastructure records stay the cross-check. (b) is the smaller text change but the worse protocol: it
   needs the recorder online at call time and weakens a core schema invariant. Not implemented; a `call-record` vector
   set (object shape, the recorder-conversation rule, `evidence` matching) comes first if adopted.
+- **Text and implementation:** in v0.13, 2026-10-13, (c) with (a) as the baseline. Core Appendix D (informative) from
+  the draft; Recording Profile C§9 (appended after C§8 so nothing is renumbered) defines the record-keeper, one
+  record per leg, the outcome order and `evidence`; M§8.1 lists the object; `call-record.schema.json` in the messaging
+  set. Vectors first: 16 `messaging/call-record-*` (`check: "object"` with `context.leaf_device`: `sender-mismatch` →
+  `recorder-conversation-only` → `call-record-invalid` → kept, never rendered), 17 `recording/call-record-outcome-*`
+  and 7 `recording/call-record-evidence-*` (SHA-256 of the frame's bytes as kept; a re-serialised frame does not
+  match). The Python harness, `dsip-messaging`/`dsip-recording` and `impl-ts` agree (2,000 vectors); `fuzz.py` gains
+  `call-record` and `call-record-outcome`. Sending records from the browser client is not done.
 
 ## 122. M§4.1 / M§6.6 — what a device does when its identity moves to another mailbox
 

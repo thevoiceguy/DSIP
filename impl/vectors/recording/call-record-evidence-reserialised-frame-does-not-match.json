@@ -1,0 +1,26 @@
+{
+  "vector": "recording/call-record-evidence-reserialised-frame-does-not-match",
+  "format": 1,
+  "kind": "recording",
+  "description": "A frame that differs only in whitespace is different bytes: re-serialising loses the match (§10.2).",
+  "spec_ref": [
+    "C§9",
+    "§10.2"
+  ],
+  "context": {},
+  "input": {
+    "check": "call-record-evidence",
+    "evidence": [
+      "124eb75b11859f165eabfc1d395a118f4ce5576d4e636bc229d3fdcac9fe1e2e"
+    ],
+    "frames": [
+      "{\"protected\": \"eyJhbGciOiJFZERTQSJ9\", \"payload\": \"eyJ0eXBlIjoiaW52aXRlIn0\", \"signature\": \"c2ln\"}"
+    ]
+  },
+  "expect": {
+    "matched": [],
+    "unmatched": [
+      "124eb75b11859f165eabfc1d395a118f4ce5576d4e636bc229d3fdcac9fe1e2e"
+    ]
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "vector": "recording/call-record-outcome-inbound-declined-here",
+  "format": 1,
+  "kind": "recording",
+  "description": "The user declined on this device.",
+  "spec_ref": [
+    "C§9"
+  ],
+  "context": {},
+  "input": {
+    "check": "call-record-outcome",
+    "direction": "inbound",
+    "answered": false,
+    "ended_by": "local",
+    "reason": "user.declined"
+  },
+  "expect": {
+    "outcome": "declined"
+  }
+}

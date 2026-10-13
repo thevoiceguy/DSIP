@@ -41,7 +41,8 @@ HANDOVER_WAIT_S = 300          # M§7.4 (spec-gap 71): how long a mailbox holds 
 
 MESSAGE_SCHEMAS = ["deposit", "accepted", "sync", "items", "key-packages", "key-package-fetch", "blob-put",
                    "mailbox-config"]
-OBJECT_SCHEMAS = ["content", "receipt", "activity", "archive-key", "call-event", "archive-record", "recording-acceptance"]
+OBJECT_SCHEMAS = ["content", "receipt", "activity", "archive-key", "call-event", "archive-record", "recording-acceptance",
+                  "call-record"]
 MESSAGING_PROFILE = "messaging/1.0"
 
 # Registries (M§17). Membership is checked here; the schemas only check token shape.
@@ -185,6 +186,8 @@ def check_object(o: dict, ctx: dict) -> dict:
             return reject("ulid-sent-at-mismatch")
     if name in ("archive-key", "call-event", "recording-acceptance") and ctx.get("conversation_kind") != "personal":  # M§12.1, M§13.3, C§5
         return reject("personal-group-only")
+    if name == "call-record":
+        return check_call_record(o, ctx)
     if name == "content":
         return check_content(o)
     if name == "receipt":
@@ -198,6 +201,19 @@ def check_object(o: dict, ctx: dict) -> dict:
     if name == "activity":
         return accept(effective={"activity": o["activity"] if o["activity"] in ACTIVITIES else "active"})
     return accept()
+
+
+def check_call_record(o: dict, ctx: dict) -> dict:
+    """Recording Profile C§9 (v0.13, spec-gap 121): a leg's record at the record-keeper."""
+    if o["device"] != ctx.get("leaf_device"):  # the sender leaf's own device
+        return reject("sender-mismatch")
+    if ctx.get("conversation_kind") != "direct":  # the record-keeper's direct conversation only
+        return reject("recorder-conversation-only")
+    answered = o["outcome"] == "answered"
+    times = [o["invited_at"]] + ([o["answered_at"]] if "answered_at" in o else []) + [o["ended_at"]]
+    if ("answered_at" in o) != answered or times != sorted(times):
+        return reject("call-record-invalid")
+    return accept(effective={"render": "ignore", "store": "call-record"})
 
 
 _KIND_BODY = {
