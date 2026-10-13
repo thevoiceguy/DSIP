@@ -1,0 +1,20 @@
+{
+  "vector": "recording/call-record-outcome-ended-by-transport",
+  "format": 1,
+  "kind": "recording",
+  "description": "A leg that ended with no message failed.",
+  "spec_ref": [
+    "C§9"
+  ],
+  "context": {},
+  "input": {
+    "check": "call-record-outcome",
+    "direction": "inbound",
+    "answered": false,
+    "ended_by": "transport",
+    "reason": "transport.no-response"
+  },
+  "expect": {
+    "outcome": "failed"
+  }
+}

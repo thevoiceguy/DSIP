@@ -1,12 +1,15 @@
 """Recording Profile (draft, `recording/0.1`) — reference for the `recording/` vectors.
 
 Spec: C§4 (a counterparty's consent: render, hold until acceptance, decline with policy.recording-declined),
-C§5 (a recorded conversation; a recorder is receive-only), C§6 (the recorder leg's checks). Contract:
+C§5 (a recorded conversation; a recorder is receive-only), C§6 (the recorder leg's checks), C§9 (a call record's
+outcome and evidence, v0.13). Contract:
 impl/vectors/README.md, kind `recording`.
 
 Impl (spec-gap 107): an unregistered recording state is read as `on`; acceptance is per session and per recorder.
 """
 from __future__ import annotations
+
+import hashlib
 
 DECLINED = "policy.recording-declined"
 
@@ -130,6 +133,10 @@ def run(v: dict):
         return recording_session(i)
     if i.get("check") == "add-devices":
         return add_devices(i)
+    if i.get("check") == "call-record-outcome":
+        return {"outcome": call_record_outcome(i)}
+    if i.get("check") == "call-record-evidence":
+        return call_record_evidence(i)
     m = Consent(v["context"])
     return [{"emit": m.step(st["event"]), **m.snapshot()} for st in i["steps"]]
 
@@ -149,3 +156,25 @@ def add_devices(i: dict) -> dict:
     if all("dsip.record" in k.get("capabilities", []) for k in cands) and i["target"] != i.get("self_identity"):
         return {"refused": "recorder-only"}
     return {"add": [k["device"] for k in cands]}
+
+
+def call_record_outcome(i: dict) -> str:
+    """C§9: the outcome of one leg, the first rule that applies."""
+    reason, inbound = i["reason"], i["direction"] == "inbound"
+    if i["answered"]:
+        return "answered"
+    if reason == "session.answered-elsewhere":  # §12.7
+        return "answered-elsewhere"
+    if i["ended_by"] == "transport" or reason.split(".")[0] == "transport":
+        return "failed"
+    if reason == "user.declined" and i["ended_by"] == ("local" if inbound else "remote"):
+        return "declined"
+    if inbound:
+        return "missed"
+    return "cancelled" if i["ended_by"] == "local" else "rejected"
+
+
+def call_record_evidence(i: dict) -> dict:
+    """C§9, §10.2: evidence entries matched against kept frames by the SHA-256 of their bytes as kept."""
+    kept = {hashlib.sha256(f.encode("utf-8")).hexdigest() for f in i["frames"]}
+    return {"matched": [e for e in i["evidence"] if e in kept], "unmatched": [e for e in i["evidence"] if e not in kept]}

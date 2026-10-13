@@ -1,0 +1,22 @@
+{
+  "vector": "recording/call-record-evidence-no-evidence",
+  "format": 1,
+  "kind": "recording",
+  "description": "A record without evidence matches nothing.",
+  "spec_ref": [
+    "C§9",
+    "§10.2"
+  ],
+  "context": {},
+  "input": {
+    "check": "call-record-evidence",
+    "evidence": [],
+    "frames": [
+      "{\"protected\":\"eyJhbGciOiJFZERTQSJ9\",\"payload\":\"eyJ0eXBlIjoiaW52aXRlIn0\",\"signature\":\"c2ln\"}"
+    ]
+  },
+  "expect": {
+    "matched": [],
+    "unmatched": []
+  }
+}

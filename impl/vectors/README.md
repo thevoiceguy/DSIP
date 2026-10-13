@@ -143,6 +143,7 @@ implementation under test MUST emit that token when it signals the failure.
 | `revocation-subject-mismatch` / `revocation-signer-not-subject` | `delegation-revocation.from` ≠ `subject`; signed by a key other than the subject's (§7.4, v0.8; `context.signer_kid`) | |
 | `lifetime-exceeded` / `deposit-class-unsupported` / `deposit-fields` / `object-too-large` / `mailbox-mode-unsupported` / `key-packages-empty` | Messaging Profile message rules (M§5; kind `messaging`) | `mailbox.unsupported-class` / — / — / `mailbox.object-too-large` / `mailbox.unsupported-mode` / — |
 | `sender-mismatch` / `conversation-mismatch` / `ulid-sent-at-mismatch` / `personal-group-only` / `content-body` / `reaction-invalid` / `receipt-shape` | Messaging Profile content-object rules (M§8, M§10, M§12; kind `messaging`) | |
+| `recorder-conversation-only` / `call-record-invalid` | the `call-record` object (Recording Profile C§9, v0.13; kind `messaging`) | |
 | `successor-invalid` | successor group not created by a predecessor member, or adding outsiders (M§7.5; kind `messaging`) | |
 | `mls-truncated` / `mls-length-invalid` / `mls-length-non-minimal` / `mls-trailing-bytes` | MLS extension wire encoding (RFC 9420 §2.1.2; kind `messaging`) | |
 | `credential-type` / `credential-identity` / `delegation-missing` / `credential-key-mismatch` | MLS leaf authentication (M§6.2; kind `messaging`; also uses `delegation-invalid`/`-capability`/`-expired`) | |
@@ -545,7 +546,7 @@ digest of the MLS bytes), just as relay traces abstract signatures. `input.check
 |---|---|---|
 | `payload` | `schema`, `payload` | `accept` / `schema-invalid` |
 | `message` | a profile message `payload` | `accept`, or the first failing rule: `unknown-type` → `schema-invalid` → `lifetime-exceeded` (> 60 s; ephemeral > 10 s) → `deposit-class-unsupported` (`mailbox.unsupported-class`) → `deposit-fields` (M§5.2 class table) → `object-too-large` (`mailbox.object-too-large`, decoded length > 24,576 computed as `len·3/4`); `mailbox-mode-unsupported` (`mailbox.unsupported-mode`); `key-packages-empty` |
-| `object` | a decrypted content `object`; `context.conversation`, `conversation_kind`, `leaf_identity` | `payload-float` → unknown object `accept {effective: {render: ignore}}` → `schema-invalid` → `sender-mismatch` → `conversation-mismatch` → `ulid-sent-at-mismatch` (> 300 s) → `personal-group-only` (`archive-key`, `call-event`, `recording-acceptance`); `sender-mismatch` and `conversation-mismatch` apply to `content`, `receipt` and `activity` only (a `read` receipt in the personal group, and every `recording-acceptance`, name the conversation they describe, M§10.5, C§5); content: `content-body`, `reaction-invalid`, `accept {effective: {kind, purpose}}` (unknown kind → `file` with a blob, else `unsupported`; unknown purpose → `message`); receipt: `receipt-shape`, `effective.receipt` or `render: ignore`; activity: `effective.activity` (unknown → `active`) |
+| `object` | a decrypted content `object`; `context.conversation`, `conversation_kind`, `leaf_identity` | `payload-float` → unknown object `accept {effective: {render: ignore}}` → `schema-invalid` → `sender-mismatch` → `conversation-mismatch` → `ulid-sent-at-mismatch` (> 300 s) → `personal-group-only` (`archive-key`, `call-event`, `recording-acceptance`); `sender-mismatch` and `conversation-mismatch` apply to `content`, `receipt` and `activity` only (a `read` receipt in the personal group, and every `recording-acceptance`, name the conversation they describe, M§10.5, C§5); content: `content-body`, `reaction-invalid`, `accept {effective: {kind, purpose}}` (unknown kind → `file` with a blob, else `unsupported`; unknown purpose → `message`); receipt: `receipt-shape`, `effective.receipt` or `render: ignore`; activity: `effective.activity` (unknown → `active`); `call-record` (C§9, v0.13), after `schema-invalid`, with `context.leaf_device`: `sender-mismatch` when its `device` is not `leaf_device` → `recorder-conversation-only` when `conversation_kind` is not `direct` → `call-record-invalid` when `answered_at` is present and `outcome` is not `answered`, or absent and `outcome` is `answered`, or `invited_at` ≤ `answered_at` (when present) ≤ `ended_at` does not hold → `accept {effective: {render: ignore, store: call-record}}` |
 | `conversation-ext` | `extension` | `schema-invalid` or `effective.kind` (unknown → `group`) |
 | `blob-replicate` | `mode`, `max_blob_bytes`, `stored`, `entry {uri, sha256, size}`, `fetched? {status, sha256, size}`, `attempt?`, `max_attempts?` | `{action: fetch\|skip\|store\|discard, reason?, retry?}` (M§8.4 rule 6, spec-gaps 65 and 67) |
 | `blob-fetch` | `blob {sha256, size}` (the content's), `tried [{uri, status, sha256?, size?}]` (each source's result, in the order tried), `attempt?` (default 1), `max_attempts?` (default 5) | the first `tried` with status 200 and matching `sha256` and `size` → `{action: play, source: uri}`; otherwise, if any `tried` has a status other than 200, or `tried` is empty → `{action: retry, reason: unavailable}` while `attempt < max_attempts`, else `{action: give-up, reason: unavailable}`; otherwise (every source served other bytes) → `{action: give-up, reason: mismatch}` (M§8.4 "Fetching", spec-gap 106) |
@@ -1312,6 +1313,26 @@ given:
 - `recorded` is whether `recorders` is non-empty;
 - `may_send` is whether every recorder's device is in `accepted` (a recorder that leaves asks nothing new);
 - `render_sender` is false when `sender` is no leaf's device, or its leaf carries `dsip.record`, and true otherwise.
+
+**`check: "call-record-outcome"`** (C§9, v0.13) is the `outcome` a device puts on its leg's record. The input is
+`{direction: "inbound" | "outbound", answered, ended_by: "local" | "remote" | "transport", reason}` and the output is
+`{"outcome": <token>}`, the first that applies:
+
+1. `answered` when `answered` is true;
+2. `answered-elsewhere` when `reason` is `session.answered-elsewhere`;
+3. `failed` when `ended_by` is `transport` or `reason`'s category (the part before the first `.`) is `transport`;
+4. `declined` when `reason` is `user.declined` and either `direction` is `inbound` with `ended_by` `local`, or
+   `outbound` with `ended_by` `remote`;
+5. `missed` for any other `inbound`;
+6. `cancelled` for any other `outbound` with `ended_by` `local`;
+7. `rejected` otherwise.
+
+**`check: "call-record-evidence"`** (C§9, v0.13) matches a record's `evidence` against envelopes kept elsewhere.
+The input is `{evidence: [<64 lowercase hex>, …], frames: [<text frame>, …]}`. A frame's digest is the SHA-256 of its
+UTF-8 bytes exactly as given: never parsed and re-serialised (§10.2), so two frames that differ only in whitespace
+have different digests. The output is `{"matched": [...], "unmatched": [...]}`: each `evidence` entry, in input
+order, goes to `matched` when some frame's digest equals it and to `unmatched` otherwise. A repeated entry appears
+each time it is listed.
 
 **`check: "recording-session"`** (C§6), with `declared` (`{session, state?, recorder?}`: the recording party's
 declaration in the recorded session), `recorder` (`{identity, capabilities}`: the recorder's verified delegation) and

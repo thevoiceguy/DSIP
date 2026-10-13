@@ -1053,6 +1053,7 @@ only, no floats). Its `object` member discriminates:
 | `archive-key` | a new archive key, personal group only | M§12 |
 | `call-event` | call history, personal group only | M§13.3 |
 | `recording-acceptance` | the user's acceptance of a recorded conversation, personal group only (v0.10) | Recording Profile C§5 |
+| `call-record` | one call leg's record for the organisation's record-keeper, direct conversations only (v0.13) | Recording Profile C§9 |
 
 An unknown `object` MUST be ignored (not rendered, not an error).
 
@@ -1898,5 +1899,6 @@ Within v0.13:
 |---|---|---|
 | 119 | M§6.5 | a hub keeps a member identity's queues for at most `mls_retention_s` without an acknowledgement, then drops them, welcome included; the identity stays in the roster |
 | 120 | M§6.8 | whether a new device waits for a sibling or joins by external commit is the device's decision; no timer |
+| 121 | M§8.1 | the `call-record` object (Recording Profile C§9), direct conversations only |
 | 122 | M§4.1, M§5.7 | an identity that moves registers every group at the new mailbox, syncs from `null` and re-deposits what was unanswered; `joined` with a `hub` registers a group the mailbox has none for |
 

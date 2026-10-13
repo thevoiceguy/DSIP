@@ -1,0 +1,28 @@
+{
+  "vector": "recording/call-record-evidence-repeated-entry",
+  "format": 1,
+  "kind": "recording",
+  "description": "A repeated entry is listed each time.",
+  "spec_ref": [
+    "C§9",
+    "§10.2"
+  ],
+  "context": {},
+  "input": {
+    "check": "call-record-evidence",
+    "evidence": [
+      "124eb75b11859f165eabfc1d395a118f4ce5576d4e636bc229d3fdcac9fe1e2e",
+      "124eb75b11859f165eabfc1d395a118f4ce5576d4e636bc229d3fdcac9fe1e2e"
+    ],
+    "frames": [
+      "{\"protected\":\"eyJhbGciOiJFZERTQSJ9\",\"payload\":\"eyJ0eXBlIjoiaW52aXRlIn0\",\"signature\":\"c2ln\"}"
+    ]
+  },
+  "expect": {
+    "matched": [
+      "124eb75b11859f165eabfc1d395a118f4ce5576d4e636bc229d3fdcac9fe1e2e",
+      "124eb75b11859f165eabfc1d395a118f4ce5576d4e636bc229d3fdcac9fe1e2e"
+    ],
+    "unmatched": []
+  }
+}

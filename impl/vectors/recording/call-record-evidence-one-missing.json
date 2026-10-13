@@ -1,0 +1,32 @@
+{
+  "vector": "recording/call-record-evidence-one-missing",
+  "format": 1,
+  "kind": "recording",
+  "description": "An entry no kept frame hashes to is unmatched; input order is kept.",
+  "spec_ref": [
+    "C§9",
+    "§10.2"
+  ],
+  "context": {},
+  "input": {
+    "check": "call-record-evidence",
+    "evidence": [
+      "124eb75b11859f165eabfc1d395a118f4ce5576d4e636bc229d3fdcac9fe1e2e",
+      "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "6e19a0d0666c4a761f640e13aa477d4207ff1704734332b2eed226cfcc096341"
+    ],
+    "frames": [
+      "{\"protected\":\"eyJhbGciOiJFZERTQSJ9\",\"payload\":\"eyJ0eXBlIjoiaW52aXRlIn0\",\"signature\":\"c2ln\"}",
+      "{\"protected\":\"eyJhbGciOiJFZERTQSJ9\",\"payload\":\"eyJ0eXBlIjoiYW5zd2VyIn0\",\"signature\":\"c2ln\"}"
+    ]
+  },
+  "expect": {
+    "matched": [
+      "124eb75b11859f165eabfc1d395a118f4ce5576d4e636bc229d3fdcac9fe1e2e",
+      "6e19a0d0666c4a761f640e13aa477d4207ff1704734332b2eed226cfcc096341"
+    ],
+    "unmatched": [
+      "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    ]
+  }
+}

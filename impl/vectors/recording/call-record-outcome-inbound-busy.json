@@ -1,0 +1,20 @@
+{
+  "vector": "recording/call-record-outcome-inbound-busy",
+  "format": 1,
+  "kind": "recording",
+  "description": "A leg this device refused as busy was still a call the party missed.",
+  "spec_ref": [
+    "C§9"
+  ],
+  "context": {},
+  "input": {
+    "check": "call-record-outcome",
+    "direction": "inbound",
+    "answered": false,
+    "ended_by": "local",
+    "reason": "endpoint.busy"
+  },
+  "expect": {
+    "outcome": "missed"
+  }
+}

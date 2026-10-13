@@ -1,0 +1,20 @@
+{
+  "vector": "recording/call-record-outcome-answered-then-transport",
+  "format": 1,
+  "kind": "recording",
+  "description": "Answered first: a call that later lost its connection was still answered.",
+  "spec_ref": [
+    "C§9"
+  ],
+  "context": {},
+  "input": {
+    "check": "call-record-outcome",
+    "direction": "outbound",
+    "answered": true,
+    "ended_by": "transport",
+    "reason": "transport.no-response"
+  },
+  "expect": {
+    "outcome": "answered"
+  }
+}
