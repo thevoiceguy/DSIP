@@ -129,6 +129,9 @@ def gen_hub_outage(r: random.Random):
 
 def gen_hub(r: random.Random):
     ev = []
+    if r.random() < 0.35:   # spec-gap 128: start moved away, so what follows probes the return
+        ev.append({"deposit": {"id": ulid(99), "device": B1, "identity": BOB, "class": "handshake", "digest": "mv", "epoch": 2,
+                               "commit": {"adds": [], "removes": [], "moves_to": HUB_B}}})
     for n in range(r.randint(3, 9)):
         x = r.random()
         if x < 0.25:
@@ -147,6 +150,10 @@ def gen_hub(r: random.Random):
                 dep["epoch"] = r.choice([1, 1, 2, 2, 3])
             if cls == "ephemeral":
                 dep["expires_at"] = r.choice([NOW - 1, NOW + 10])
+            if cls == "group-info" and r.random() < 0.6:   # spec-gap 128: a moved group coming back
+                dep["handover_seq"] = r.randint(0, 6)
+                dep["view"] = {"epoch": r.choice([3, 4, 5]),
+                               "roster": r.choice([{ALICE: [A1, A2], BOB: [B1]}, {ALICE: [A1], CAROL: [C1]}, {BOB: [B1, B2]}])}
             if cls == "handshake" and r.random() < 0.8:
                 c, y = {"adds": [], "removes": []}, r.random()
                 if y < 0.2:
@@ -159,9 +166,9 @@ def gen_hub(r: random.Random):
                     c["removes"] = [{"identity": ALICE, "device": A1, **({"delegation_valid": False} if r.random() < 0.5 else {})}]
                 elif y < 0.6:
                     c.update({"external": True, "adds": [{"identity": ident, "device": d}]})
-                elif y < 0.65:
+                elif y < 0.72:
                     c["moves_to"] = HUB_B
-                elif y < 0.7:
+                elif y < 0.77:
                     c["valid"] = False
                 dep["commit"] = c
             ev.append({"deposit": dep})

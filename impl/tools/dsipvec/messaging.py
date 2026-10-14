@@ -375,6 +375,8 @@ class Hub:
 
     def _deposit(self, d: dict) -> list:
         cls, ident = d["class"], d["identity"]
+        if self.moved_to is not None and cls == "group-info" and "handover_seq" in d:
+            return self._returned(d)
         if self.moved_to is not None:
             # M§7.4: after ordering the commit that moved the group, the old hub refuses further deposits for it
             return self._error(d, "mailbox.unknown-group")
@@ -473,6 +475,25 @@ class Hub:
         heads = [{"fanout": {"to": i, "seq": q[0], "class": self.seq_class[q[0]]}}
                  for i, q in sorted(self.pending.items()) if q and i not in self.unregistered]
         return heads + [{"fanout": {"to": i, "seq": q[0], "class": "welcome"}} for i, q in sorted(self.welcomes.items()) if q]
+
+    def _returned(self, d: dict) -> list:
+        """spec-gap 128: the group comes back to this hub, which it left. `view` is the epoch and roster of the GroupInfo
+        the daemon read (it names this hub); numbering goes on from `handover_seq` + 1, never reusing a seq this hub gave
+        (M§12.2), and what was ordered before the group left keeps draining."""
+        view = d.get("view") or {}
+        roster = {i: set(devs) for i, devs in (view.get("roster") or {}).items()}
+        if d["identity"] not in roster:
+            return self._error(d, "policy.blocked")
+        if d["handover_seq"] < self.next_seq:
+            return self._error(d, "policy.blocked")
+        self.moved_to = None
+        self.epoch = view["epoch"]
+        self.roster = roster
+        self.next_seq = d["handover_seq"] + 1
+        self.group_info = True
+        return [{"accepted": {"to": d["device"], "in_reply_to": d["id"]}}] + [
+            {"fanout": {"to": i, "class": "group-info"}} for i in sorted(self.roster)
+        ]
 
     def _sequence(self, d: dict, targets: list) -> list:
         seq = self.next_seq

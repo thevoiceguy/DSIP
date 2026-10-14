@@ -36,6 +36,10 @@ interface Deposit {
   digest: string;
   commit?: Commit;
   expires_at?: number;
+  /** spec-gap 128: on a `group-info` that brings a moved group back, the seq the other hub gave the moving commit. */
+  handover_seq?: number;
+  /** spec-gap 128: the epoch and roster of that GroupInfo, which names this hub. */
+  view?: { epoch: number; roster: Record<string, string[]> };
 }
 
 /** Trace context for a hub. */
@@ -58,7 +62,7 @@ export const MLS_RETENTION_S = 2_592_000;
 export class Hub implements Machine {
   private epoch: number;
   private nextSeq: number;
-  private readonly roster: Record<string, string[]>;
+  private roster: Record<string, string[]>;
   private readonly pending: Record<string, number[]> = {};
   private readonly welcomes: Record<string, number[]> = {};
   private readonly classes = new Map<number, string>();
@@ -105,7 +109,27 @@ export class Hub implements Machine {
     this.emit.push({ error: { to: d.device, in_reply_to: d.id, reason } });
   }
 
+  /**
+   * The group comes back to this hub, which it left: the view's epoch and roster, numbering from `handover_seq` + 1;
+   * the queues it still holds drain as before.
+   *
+   * Spec: M§7.4, M§12.2. Impl (spec-gap 128): a `handover_seq` below `next_seq` would give a seq twice.
+   */
+  private returned(d: Deposit): void {
+    const view = d.view ?? { epoch: this.epoch, roster: {} };
+    if (!(d.identity in view.roster) || d.handover_seq! < this.nextSeq) return this.refuse(d, "policy.blocked");
+    this.movedTo = null;
+    this.epoch = view.epoch;
+    this.roster = Object.fromEntries(Object.entries(view.roster).map(([i, devs]) => [i, [...devs].sort()]));
+    this.nextSeq = d.handover_seq! + 1;
+    this.groupInfo = true;
+    this.emit.push({ accepted: { to: d.device, in_reply_to: d.id } });
+    for (const to of Object.keys(this.roster).sort()) this.emit.push({ fanout: { to, class: "group-info" } });
+  }
+
   private deposit(d: Deposit): void {
+    // spec-gap 128: a member's handover group-info brings a moved group back
+    if (this.movedTo !== null && d.class === "group-info" && d.handover_seq !== undefined) return this.returned(d);
     // M§7.4: a group that has moved is refused here, whatever the deposit
     if (this.movedTo !== null) return this.refuse(d, "mailbox.unknown-group");
     // rule 1: a hub orders handshake and application, forwards ephemeral, keeps group-info; nothing else

@@ -2826,6 +2826,51 @@ def hub_change_vectors():
                           hs(2, 4, R, {ALICE: [3], BOB: [3]})),
                      ]))
 
+    # spec-gap 128: the group comes back to a hub it left. The daemon has read the GroupInfo (it names this hub) and
+    # hands the machine its epoch and roster as `view`, with the `handover_seq` the other hub gave the moving commit.
+    gi_fan = [{"fanout": {"to": ALICE, "class": "group-info"}}, {"fanout": {"to": BOB, "class": "group-info"}}]
+    back = {"epoch": 4, "roster": R}
+    out.append(trace("hub-move-back-returns-the-group",
+                     "A group that moved away comes back: the committer's group-info deposit carries handover_seq and names this "
+                     "hub again, so the hub hosts it from the GroupInfo's epoch and roster and numbers on from handover_seq + 1. "
+                     "What it ordered before the group left still drains first, in order (spec-gap 128).",
+                     refs + ["M§6.5"], "hub-trace", hub_ctx(), [
+                         (dep("a1", APH, ALICE, "application", 1), [acc(APH, "a1", 1), fan(ALICE, 1), fan(BOB, 1)],
+                          hs(1, 2, R, {ALICE: [1], BOB: [1]})),
+                         (dep("mv", BPH, BOB, "handshake", 1, commit=move), [acc(BPH, "mv", 2)],
+                          hs(2, 3, R, {ALICE: [1, 2], BOB: [1, 2]}, moved_to=HUB_B)),
+                         ({"ack": {"identity": BOB, "seq": 1}}, [fan(BOB, 2, "handshake")], hs(2, 3, R, {ALICE: [1, 2], BOB: [2]}, moved_to=HUB_B)),
+                         (dep("gi", APH, ALICE, "group-info", handover_seq=5, view=back), [acc_nc(APH, "gi")] + gi_fan,
+                          hs(4, 6, R, {ALICE: [1, 2], BOB: [2]}, group_info=True)),
+                         (dep("a6", APH, ALICE, "application", 4), [acc(APH, "a6", 6)],
+                          hs(4, 7, R, {ALICE: [1, 2, 6], BOB: [2, 6]}, group_info=True)),
+                         ({"ack": {"identity": BOB, "seq": 2}}, [fan(BOB, 6)], hs(4, 7, R, {ALICE: [1, 2, 6], BOB: [6]}, group_info=True)),
+                         ({"ack": {"identity": ALICE, "seq": 1}}, [fan(ALICE, 2, "handshake")], hs(4, 7, R, {ALICE: [2, 6], BOB: [6]}, group_info=True)),
+                     ]))
+    out.append(trace("hub-move-back-renumbering-refused",
+                     "A return whose handover_seq is below the hub's next seq would give a seq twice for the group, so it is "
+                     "refused policy.blocked and the group stays moved; a group-info with no handover_seq is still answered "
+                     "mailbox.unknown-group (spec-gap 128, M§12.2: (group, seq) is unique).",
+                     refs + ["M§12.2"], "hub-trace", hub_ctx(), [
+                         (dep("mv", BPH, BOB, "handshake", 1, commit=move), [acc(BPH, "mv", 1), fan(ALICE, 1, "handshake"), fan(BOB, 1, "handshake")],
+                          hs(2, 2, R, {ALICE: [1], BOB: [1]}, moved_to=HUB_B)),
+                         (dep("g1", APH, ALICE, "group-info", handover_seq=1, view=back), [err(APH, "g1", "policy.blocked")],
+                          hs(2, 2, R, {ALICE: [1], BOB: [1]}, moved_to=HUB_B)),
+                         (dep("g2", APH, ALICE, "group-info"), [err(APH, "g2", "mailbox.unknown-group")],
+                          hs(2, 2, R, {ALICE: [1], BOB: [1]}, moved_to=HUB_B)),
+                         (dep("g3", APH, ALICE, "group-info", handover_seq=2, view=back), [acc_nc(APH, "g3")] + gi_fan,
+                          hs(4, 3, R, {ALICE: [1], BOB: [1]}, group_info=True)),
+                     ]))
+    out.append(trace("hub-move-back-by-a-non-member-refused",
+                     "Only a member of the returning group may bring it back: a depositor whose identity is not in the "
+                     "GroupInfo's roster is refused policy.blocked, as any non-member's group-info is (spec-gap 128).",
+                     refs, "hub-trace", hub_ctx(), [
+                         (dep("mv", BPH, BOB, "handshake", 1, commit=move), [acc(BPH, "mv", 1), fan(ALICE, 1, "handshake"), fan(BOB, 1, "handshake")],
+                          hs(2, 2, R, {ALICE: [1], BOB: [1]}, moved_to=HUB_B)),
+                         (dep("gi", BPH, BOB, "group-info", handover_seq=3, view={"epoch": 4, "roster": {ALICE: [ALA, APH]}}),
+                          [err(BPH, "gi", "policy.blocked")], hs(2, 2, R, {ALICE: [1], BOB: [1]}, moved_to=HUB_B)),
+                     ]))
+
     # --- member mailboxes
     T = "mailbox-trace"
     J = {GROUP: "joined"}
