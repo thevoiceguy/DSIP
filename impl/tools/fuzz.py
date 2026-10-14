@@ -820,6 +820,24 @@ def gen_leave(r: random.Random):
                                                 "removes": removes, "others": r.choice([0, 0, 0, 1, 2]), "roster": roster}
 
 
+def gen_roster_change(r: random.Random):
+    """A commit's adds and removes against a roster, from a member's view (M§7.3; README `check: "roster-change"`)."""
+    ids = ["did:web:alice.example", "did:web:bob.example", "did:web:carol.example", "did:web:dave.example"]
+    devs = {i: [f"did:key:z6Mk{i[8:13]}Dev{n}" for n in range(4)] for i in ids}
+    roster = [{"identity": i, "device": d} for i in ids[:3] for d in devs[i][:r.randint(1, 3)]]
+    committer = r.choice(ids[:3] + [""])
+    leaf = lambda: {"identity": (i := r.choice(ids)), "device": r.choice(devs[i])}
+    adds = [leaf() for _ in range(r.choice([0, 0, 1, 2]))]
+    pool = roster * 2 + [leaf()]
+    removes = []
+    for _ in range(r.choice([0, 1, 2, 3, 4])):
+        x = dict(r.choice(pool))
+        if r.random() < 0.3:
+            x["delegation_valid"] = r.choice([False, False, True])
+        removes.append(x)
+    return "messaging", "roster-change", {}, {"committer": committer, "roster": roster, "adds": adds, "removes": removes}
+
+
 def gen_tnbinding(r: random.Random):
     """A number binding (N§3.4): random TNAuthLists, CA constraints, chains, clocks, claims and byte mutations."""
     sys.path.insert(0, str(REPO / "impl/tools"))
@@ -1033,7 +1051,7 @@ TARGETS = {
     "relay": gen_relay, "deposit-fields": gen_deposit_fields, "gateway-reason": gen_gateway_reason,
     "call-record": gen_call_record, "call-record-outcome": gen_call_record_outcome,
     "alias-query": gen_alias_query, "alias-monitor": gen_alias_monitor, "alias-head": gen_alias_head,
-    "alias-lookup": gen_alias_lookup, "leave-proposals": gen_leave,
+    "alias-lookup": gen_alias_lookup, "leave-proposals": gen_leave, "roster-change": gen_roster_change,
 }
 
 # Targets where the implementations are known to differ and the difference is a protocol decision, not a bug

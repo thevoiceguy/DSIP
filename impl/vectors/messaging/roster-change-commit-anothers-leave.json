@@ -1,0 +1,50 @@
+{
+  "vector": "messaging/roster-change-commit-anothers-leave",
+  "format": 1,
+  "kind": "messaging",
+  "description": "Committing a leaver's proposals removes its whole identity.",
+  "spec_ref": [
+    "M§7.3"
+  ],
+  "context": {},
+  "input": {
+    "check": "roster-change",
+    "committer": "did:web:carol.example",
+    "roster": [
+      {
+        "identity": "did:web:alice.example",
+        "device": "did:key:z6MkAlicePhoneRosterRosterRosterRosterRo1"
+      },
+      {
+        "identity": "did:web:alice.example",
+        "device": "did:key:z6MkAliceLaptopRosterRosterRosterRoster2"
+      },
+      {
+        "identity": "did:web:example.com:users:bob",
+        "device": "did:key:z6MkBobPhoneRosterRosterRosterRosterRost1"
+      },
+      {
+        "identity": "did:web:example.com:users:bob",
+        "device": "did:key:z6MkBobTabletRosterRosterRosterRosterRo2"
+      },
+      {
+        "identity": "did:web:carol.example",
+        "device": "did:key:z6MkCarolPhoneRosterRosterRosterRosterR1"
+      }
+    ],
+    "adds": [],
+    "removes": [
+      {
+        "identity": "did:web:alice.example",
+        "device": "did:key:z6MkAlicePhoneRosterRosterRosterRosterRo1"
+      },
+      {
+        "identity": "did:web:alice.example",
+        "device": "did:key:z6MkAliceLaptopRosterRosterRosterRoster2"
+      }
+    ]
+  },
+  "expect": {
+    "verdict": "accept"
+  }
+}

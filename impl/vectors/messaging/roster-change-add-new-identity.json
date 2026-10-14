@@ -1,0 +1,42 @@
+{
+  "vector": "messaging/roster-change-add-new-identity",
+  "format": 1,
+  "kind": "messaging",
+  "description": "Any member identity may add another identity, all of its devices.",
+  "spec_ref": [
+    "M§7.3"
+  ],
+  "context": {},
+  "input": {
+    "check": "roster-change",
+    "committer": "did:web:alice.example",
+    "roster": [
+      {
+        "identity": "did:web:alice.example",
+        "device": "did:key:z6MkAlicePhoneRosterRosterRosterRosterRo1"
+      },
+      {
+        "identity": "did:web:alice.example",
+        "device": "did:key:z6MkAliceLaptopRosterRosterRosterRoster2"
+      },
+      {
+        "identity": "did:web:example.com:users:bob",
+        "device": "did:key:z6MkBobPhoneRosterRosterRosterRosterRost1"
+      },
+      {
+        "identity": "did:web:example.com:users:bob",
+        "device": "did:key:z6MkBobTabletRosterRosterRosterRosterRo2"
+      }
+    ],
+    "adds": [
+      {
+        "identity": "did:web:dave.example",
+        "device": "did:key:z6MkDavePhoneRosterRosterRosterRosterRost1"
+      }
+    ],
+    "removes": []
+  },
+  "expect": {
+    "verdict": "accept"
+  }
+}

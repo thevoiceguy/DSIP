@@ -282,6 +282,30 @@ def leave_proposals(inp: dict) -> dict:
     return {"action": "commit"}
 
 
+def check_roster_change(inp: dict) -> dict:
+    """M§7.3 (spec-gap 126): the roster rules a member checks on a commit, the hub's being defense in depth.
+
+    Another member identity's devices are added only by that identity; another identity's leaves are removed all
+    together, or each because its delegation no longer verifies (M§6.2). The committer's own identity is free.
+    """
+    me = inp["committer"]
+    members = {r["identity"] for r in inp["roster"]}
+    if any(a["identity"] in members and a["identity"] != me for a in inp["adds"]):
+        return reject("roster-adds-other-devices")
+    by_ident: dict[str, list] = {}
+    for r in inp["removes"]:
+        by_ident.setdefault(r["identity"], []).append(r)
+    for who, rs in by_ident.items():
+        if who == me:
+            continue
+        leaves = {r["device"] for r in inp["roster"] if r["identity"] == who}
+        whole = leaves <= {r["device"] for r in rs}
+        lapsed = all(r.get("delegation_valid", True) is False for r in rs)
+        if not (whole or lapsed):
+            return reject("roster-removes-part-of-identity")
+    return accept()
+
+
 def check_external_join(inp: dict) -> dict:
     """M§6.8 (spec-gap 62): what an external commit may do, checked alike by the hub and by every member.
 
@@ -396,19 +420,10 @@ class Hub:
             return self._sequence(d, sorted(self.roster))
         if not commit.get("valid", True):
             return self._error(d, "policy.blocked")
-        for a in commit.get("adds", []):  # M§7.3: another member identity's devices are its own business
-            if a["identity"] in self.roster and a["identity"] != ident:
-                return self._error(d, "policy.blocked")
-        by_ident: dict[str, list] = {}
-        for r in commit.get("removes", []):
-            by_ident.setdefault(r["identity"], []).append(r)
-        for x, rs in by_ident.items():
-            if x == ident:
-                continue
-            whole = {r["device"] for r in rs} >= self.roster.get(x, set())
-            lapsed = all(r.get("delegation_valid", True) is False for r in rs)
-            if not (whole or lapsed):
-                return self._error(d, "policy.blocked")
+        roster = [{"identity": i, "device": dev} for i, devs in self.roster.items() for dev in devs]
+        if check_roster_change({"committer": ident, "roster": roster, "adds": commit.get("adds", []),
+                                "removes": commit.get("removes", [])})["verdict"] != "accept":
+            return self._error(d, "policy.blocked")  # M§7.3: the rule every member checks too (spec-gap 126)
         targets = sorted(self.roster)
         out = self._sequence(d, targets)
         before = {i: set(devs) for i, devs in self.roster.items()}
@@ -2064,6 +2079,8 @@ def run(v: dict) -> dict:
         return check_external_join(inp)
     if check == "leave-proposals":
         return leave_proposals(inp)
+    if check == "roster-change":
+        return check_roster_change(inp)
     if check == "successor-check":
         return check_successor(inp)
     if check == "successor-select":

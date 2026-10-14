@@ -3682,3 +3682,38 @@ Choices:
   view across a reload, wait then commit, a sibling's `left`, a whole-identity removal at the hub. The browser
   Messenger has `leave()`, re-proposes at each new epoch, and commits others' leaves; "Leave" and "Decline and leave"
   in the client; `impl/web/test/call-records.mjs` step 10 (Bob declines Kim's recorder by leaving).
+
+## 126. M§7.3 — members "MUST enforce all of M§7.3 themselves", and no member did
+
+**Found (2026-10-13, scoping group conversations in the browser).** M§7.3 makes the hub's roster check defense in
+depth: "Members MUST enforce all of M§7.3 themselves." Only the hub enforced it (`dsip-messaging` `hub.rs`, the
+`hub-add-*` / `hub-remove-*` vectors). The console (`dsip-msg`) and the browser merged any commit the hub ordered,
+so a faulty or hostile hub could have a member add a device to another identity, or cut one of its devices out,
+and every member would follow. The text also leaves two things to infer: what exactly a member checks (the hub's
+rule is not written as a member check), and what a member does with an ordered commit that fails it.
+
+Choices:
+
+- **What is checked.** (a) The hub's rule, as one check the hub and every member make: an add of a device of
+  another member identity is refused; another identity's leaves are removed all together, or each because its
+  delegation no longer verifies (M§6.2); the committer's own identity is unconstrained. (b) Also M§14.2
+  authorization of each added identity at the member: a member cannot see the grant the adder presented at the
+  hub's mailbox, so it is not checkable there.
+- **On failure.** (a) The commit is not merged and is surfaced, as an external join failing M§6.8 (spec-gap 62 (4)).
+  The member then cannot follow the group past that epoch: a hub that orders a commit its members refuse has forked
+  the group, and the members' later recovery is a successor (M§7.5). (b) Merge and warn: the rule would not be
+  enforced.
+- **Draft choice: (a) and (a).** Pinned by `check: "roster-change"` (messaging vectors, 16): `roster-adds-other-devices`
+  before `roster-removes-part-of-identity`, the committer's identity empty when its leaf no longer authenticates.
+  The hub now calls the same check, so the rule has one definition. A leaver's proposals committed by another
+  member remove a whole identity and pass.
+- **Implementation:** `dsip-messaging` `check_roster_change`, the Python harness and impl-ts agree (fuzz target
+  `roster-change`). `dsip-mls` `roster_change` describes a staged commit for the check; the console and the browser
+  Messenger run it on every commit before merging and drop one that fails (`commit refused: <code>`). Real MLS
+  (`dsip-mls` `tests/e2e.rs` `roster_rules_enforced_by_members_on_real_mls`): removing one of Bob's two devices and
+  adding a device of Bob's are refused at Alice, removing all of Bob is accepted.
+
+**Suggested fix (v0.15).** In M§7.3, after "Members MUST enforce all of M§7.3 themselves": "A member checks each
+commit before merging it: no add of a device of another member identity than the committer's, and for each other
+identity, the commit removes all of its leaves or only leaves whose delegation no longer verifies. A commit that
+fails is not merged (as M§6.8)."

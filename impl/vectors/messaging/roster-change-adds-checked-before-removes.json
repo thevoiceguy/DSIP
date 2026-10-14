@@ -1,0 +1,52 @@
+{
+  "vector": "messaging/roster-change-adds-checked-before-removes",
+  "format": 1,
+  "kind": "messaging",
+  "description": "An add of another identity's device is reported before a partial removal.",
+  "spec_ref": [
+    "M§7.3"
+  ],
+  "context": {},
+  "input": {
+    "check": "roster-change",
+    "committer": "did:web:alice.example",
+    "roster": [
+      {
+        "identity": "did:web:alice.example",
+        "device": "did:key:z6MkAlicePhoneRosterRosterRosterRosterRo1"
+      },
+      {
+        "identity": "did:web:alice.example",
+        "device": "did:key:z6MkAliceLaptopRosterRosterRosterRoster2"
+      },
+      {
+        "identity": "did:web:example.com:users:bob",
+        "device": "did:key:z6MkBobPhoneRosterRosterRosterRosterRost1"
+      },
+      {
+        "identity": "did:web:example.com:users:bob",
+        "device": "did:key:z6MkBobTabletRosterRosterRosterRosterRo2"
+      },
+      {
+        "identity": "did:web:carol.example",
+        "device": "did:key:z6MkCarolPhoneRosterRosterRosterRosterR1"
+      }
+    ],
+    "adds": [
+      {
+        "identity": "did:web:carol.example",
+        "device": "did:key:z6MkCarolLaptopRosterRosterRosterRoste2"
+      }
+    ],
+    "removes": [
+      {
+        "identity": "did:web:example.com:users:bob",
+        "device": "did:key:z6MkBobPhoneRosterRosterRosterRosterRost1"
+      }
+    ]
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "roster-adds-other-devices"
+  }
+}
