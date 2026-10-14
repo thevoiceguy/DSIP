@@ -265,6 +265,8 @@ def gen_resume(r: random.Random):
             ev.append({"sent": {"group": G1, "seq": r.randint(1, 6)}})
         elif x < 0.72:
             ev.append({"rejoined": {"group": G1, "seq": r.randint(1, 6)}})
+        elif x < 0.78:
+            ev.append({"removed": {"group": r.choice([G1, G2])}})  # spec-gap 127
         else:
             ev.append({r.choice(["sync", "restart", "cursor_invalid"]): {}})
     return "messaging", "resume-trace", {"component": "resume", "cursor": None, "groups": {}, "joined": []}, ev

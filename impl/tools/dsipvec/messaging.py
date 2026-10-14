@@ -1559,6 +1559,12 @@ class Resume:
         self.joined.add(e["group"])
         return []
 
+    def _removed(self, e: dict) -> list:
+        """M§7.3 (spec-gap 127): a commit removed this device's identity. The group is no longer joined, so a welcome
+        adding it back is a join; its seq positions stay, so items already processed remain duplicates."""
+        self.joined.discard(e["group"])
+        return []
+
     def _position(self, group: str, seq: int) -> None:
         if group not in self.groups:
             # spec-gap 69, the fallback of spec-gap 83: with no position from a welcome, a device counts from where it

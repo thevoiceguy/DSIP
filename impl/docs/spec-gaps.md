@@ -3717,3 +3717,38 @@ Choices:
 commit before merging it: no add of a device of another member identity than the committer's, and for each other
 identity, the commit removes all of its leaves or only leaves whose delegation no longer verifies. A commit that
 fails is not merged (as M§6.8)."
+
+## 127. M§8.5 / M§7.3 — a removed device is never told the group is over, so adding it back fails
+
+**Found (2026-10-13, group conversations in the browser: Alice removes Carol, then adds her back).** M§8.5 and the
+pinned resume rule (spec-gap 44) make a welcome for a group the device has joined a duplicate: a redelivered welcome
+must not be processed twice. Nothing says what removal does to that. A device whose identity a commit removed kept
+the group as "joined" and kept its seq-gap tracking there, so a member adding it back (M§7.3: any member identity
+MAY add another) got nowhere: the new welcome was dropped as a duplicate, and once that was fixed, MLS refused it
+because the device still stored the old group under the same group id, and then the device held every later item
+behind the seq gap of the items sent while it was out.
+
+Choices:
+
+- **(a)** Removal ends the join: the group is no longer joined, so a later welcome for it is a join from its own seq
+  (spec-gap 83); the seq positions stay, so items already processed stay duplicates; the device deletes the group's
+  MLS state and its gap tracking. **Chosen.**
+- **(b)** A re-add must use a successor group (M§7.5) with a new group id. Works with no change, but turns an ordinary
+  re-add into the outage machinery and loses the conversation's group id.
+- **(c)** Forget the group's positions as well. A redelivery of the old items would then be processed again; MLS can no
+  longer decrypt them, so they fail rather than duplicate.
+
+**Draft choice: (a).** Pinned by a new `resume-trace` step `{removed: {group}}` (4 vectors: re-add is a join,
+positions kept, survives a restart, other groups untouched); the Python harness, Rust and impl-ts agree; the
+`resume` fuzz target draws `removed` steps. The browser Messenger and the console call it when a commit removes their
+identity, and drop the group's MLS state and gap tracking with it. Real MLS: `dsip-mls` `tests/e2e.rs`
+`readd_after_removal_on_real_mls` (Carol removed, her group state deleted, a new welcome into the same group id joined,
+the adder named by the welcome's GroupInfo signer, a message after read). Browser: `impl/web/test/messaging-group.mjs`.
+
+**Also found here (implementation, no spec change):** the mailbox daemon checked a welcome against the first grant in
+the deposit's `grants` that verified, not the one from the welcome's recipient; with two identities added in one
+commit, the second was refused `policy.first-contact-required`. It now picks the grant whose `from` is the recipient
+(M§14.2).
+
+**Suggested fix (v0.15).** In M§8.5, after the duplicate rule: "A device whose identity a commit removes from a group
+is no longer joined to it: a later welcome for the group is processed as a join. Seq positions are kept."

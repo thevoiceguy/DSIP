@@ -1680,6 +1680,39 @@ def resume_vectors():
                          ({"cursor_invalid": {}}, sync(None), st()),
                          (items(it(1, "group-info")), [{"process": c(1)}], st(1)),
                      ]))
+    # spec-gap 127: a device whose identity a commit removed is no longer in the group; a later welcome re-adding it is a join
+    out.append(trace("resume-removed-then-welcome-is-a-join",
+                     "A commit removed this device's identity (M§7.3); when a member adds it back, the new welcome is a join "
+                     "from its seq, not a duplicate of the first one (spec-gap 127).", refs + ["M§7.3", "M§6.6"], T, ctx, [
+                         (items(W, it(2, seq=1)), [{"process": c(1)}, {"process": c(2)}], st(2, {GROUP: (1,)}, [GROUP])),
+                         ({"removed": {"group": GROUP}}, [], st(2, {GROUP: (1,)}, [])),
+                         (items(it(3, "welcome", seq=14)), [{"process": c(3)}], st(3, {GROUP: (14,)}, [GROUP])),
+                         (items(it(4, seq=15)), [{"process": c(4)}], st(4, {GROUP: (15,)}, [GROUP])),
+                     ]))
+    out.append(trace("resume-removed-keeps-seq-positions",
+                     "Removal ends the join, not the seq positions: items already processed stay duplicates when redelivered "
+                     "(spec-gap 127).", refs + ["M§7.3"], T, ctx, [
+                         (items(W, it(2, seq=1), it(3, seq=2)), [{"process": c(1)}, {"process": c(2)}, {"process": c(3)}],
+                          st(3, {GROUP: (2,)}, [GROUP])),
+                         ({"removed": {"group": GROUP}}, [], st(3, {GROUP: (2,)}, [])),
+                         ({"cursor_invalid": {}}, sync(None), st(None, {GROUP: (2,)}, [])),
+                         (items(it(5, seq=1), it(6, seq=2)), [{"duplicate": c(5)}, {"duplicate": c(6)}], st(6, {GROUP: (2,)}, [])),
+                     ]))
+    out.append(trace("resume-removed-survives-restart",
+                     "The removal is durable state: after a restart a welcome for the group is still a join (spec-gap 127).",
+                     refs + ["M§7.3"], T, ctx, [
+                         (items(W), [{"process": c(1)}], st(1, joined=[GROUP])),
+                         ({"removed": {"group": GROUP}}, [], st(1)),
+                         ({"restart": {}}, sync(1), st(1)),
+                         (items(it(2, "welcome", seq=9)), [{"process": c(2)}], st(2, {GROUP: (9,)}, [GROUP])),
+                     ]))
+    out.append(trace("resume-removed-other-group-unaffected",
+                     "Removal from one group leaves every other group joined.", refs + ["M§7.3"], T, ctx, [
+                         (items(W, it(2, "welcome", group=GROUP2)), [{"process": c(1)}, {"process": c(2)}],
+                          st(2, {}, sorted([GROUP, GROUP2]))),
+                         ({"removed": {"group": GROUP}}, [], st(2, {}, [GROUP2])),
+                         (items(it(3, "welcome", group=GROUP2)), [{"duplicate": c(3)}], st(3, {}, [GROUP2])),
+                     ]))
     return out
 
 
