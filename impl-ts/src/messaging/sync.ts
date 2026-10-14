@@ -54,6 +54,10 @@ export class Resume implements Machine {
       p.contiguous = Math.max(p.contiguous, seq, ...p.seen);
       p.seen = [];
       if (!this.joined.includes(group)) this.joined = [...this.joined, group].sort(); // an external commit is a join
+    } else if ("removed" in e) {
+      // spec-gap 127: a commit removed this identity; a welcome adding it back is a join, the seq positions stay
+      const { group } = e["removed"] as { group: string };
+      this.joined = this.joined.filter((g) => g !== group);
     } else {
       if ("cursor_invalid" in e) this.cursor = null; // mailbox.cursor-invalid: re-sync from null
       emit.push({ sync: this.cursor === null ? { since: null } : { since: this.cursor, ack_through: this.cursor } });
