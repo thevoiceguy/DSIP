@@ -1,0 +1,47 @@
+{
+  "vector": "messaging/roster-change-unauthenticated-committer-adds-refused",
+  "format": 1,
+  "kind": "messaging",
+  "description": "A committer whose leaf no longer authenticates has no identity: adding a member's device is refused.",
+  "spec_ref": [
+    "M§7.3"
+  ],
+  "context": {},
+  "input": {
+    "check": "roster-change",
+    "committer": "",
+    "roster": [
+      {
+        "identity": "did:web:alice.example",
+        "device": "did:key:z6MkAlicePhoneRosterRosterRosterRosterRo1"
+      },
+      {
+        "identity": "did:web:alice.example",
+        "device": "did:key:z6MkAliceLaptopRosterRosterRosterRoster2"
+      },
+      {
+        "identity": "did:web:example.com:users:bob",
+        "device": "did:key:z6MkBobPhoneRosterRosterRosterRosterRost1"
+      },
+      {
+        "identity": "did:web:example.com:users:bob",
+        "device": "did:key:z6MkBobTabletRosterRosterRosterRosterRo2"
+      },
+      {
+        "identity": "did:web:carol.example",
+        "device": "did:key:z6MkCarolPhoneRosterRosterRosterRosterR1"
+      }
+    ],
+    "adds": [
+      {
+        "identity": "did:web:alice.example",
+        "device": "did:key:z6MkAliceDeskRosterRosterRosterRosterRos3"
+      }
+    ],
+    "removes": []
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "roster-adds-other-devices"
+  }
+}

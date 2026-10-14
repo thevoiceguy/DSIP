@@ -1,0 +1,51 @@
+{
+  "vector": "messaging/roster-change-add-other-identitys-device-refused-beside-new",
+  "format": 1,
+  "kind": "messaging",
+  "description": "One device of another member identity among new ones is refused too.",
+  "spec_ref": [
+    "M§7.3"
+  ],
+  "context": {},
+  "input": {
+    "check": "roster-change",
+    "committer": "did:web:alice.example",
+    "roster": [
+      {
+        "identity": "did:web:alice.example",
+        "device": "did:key:z6MkAlicePhoneRosterRosterRosterRosterRo1"
+      },
+      {
+        "identity": "did:web:alice.example",
+        "device": "did:key:z6MkAliceLaptopRosterRosterRosterRoster2"
+      },
+      {
+        "identity": "did:web:example.com:users:bob",
+        "device": "did:key:z6MkBobPhoneRosterRosterRosterRosterRost1"
+      },
+      {
+        "identity": "did:web:example.com:users:bob",
+        "device": "did:key:z6MkBobTabletRosterRosterRosterRosterRo2"
+      },
+      {
+        "identity": "did:web:carol.example",
+        "device": "did:key:z6MkCarolPhoneRosterRosterRosterRosterR1"
+      }
+    ],
+    "adds": [
+      {
+        "identity": "did:web:dave.example",
+        "device": "did:key:z6MkDavePhoneRosterRosterRosterRosterRost1"
+      },
+      {
+        "identity": "did:web:carol.example",
+        "device": "did:key:z6MkCarolLaptopRosterRosterRosterRoste2"
+      }
+    ],
+    "removes": []
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "roster-adds-other-devices"
+  }
+}

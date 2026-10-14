@@ -99,6 +99,7 @@ def vectors() -> list[dict]:
     out += successor_vectors()
     out += external_join_vectors()
     out += leave_vectors()
+    out += roster_change_vectors()
     out += call_history_vectors()
     out += blob_replication_vectors()
     return out
@@ -3388,4 +3389,57 @@ def leave_vectors():
        others=1)
     lv("not-a-leave-first", "Another kind of proposal is checked first.", {"action": "ignore", "reason": "not-a-leave"}, others=2,
        removes=((BOB, B1),))
+    return out
+
+
+# ---------------------------------------------------------------- member enforcement of M§7.3 (spec-gap 126)
+
+def roster_change_vectors():
+    """M§7.3: the roster rules every member checks on a commit the hub ordered, as the hub does. By hand."""
+    out = []
+    A1, A2 = "did:key:z6MkAlicePhoneRosterRosterRosterRosterRo1", "did:key:z6MkAliceLaptopRosterRosterRosterRoster2"
+    B1, B2 = "did:key:z6MkBobPhoneRosterRosterRosterRosterRost1", "did:key:z6MkBobTabletRosterRosterRosterRosterRo2"
+    C1, C2 = "did:key:z6MkCarolPhoneRosterRosterRosterRosterR1", "did:key:z6MkCarolLaptopRosterRosterRosterRoste2"
+    B3 = "did:key:z6MkBobDeskRosterRosterRosterRosterRoste3"
+    DAVE = "did:web:dave.example"
+    roster = [(ALICE, A1), (ALICE, A2), (BOB, B1), (BOB, B2), (CAROL, C1)]
+
+    def leaf(i, d, lapsed=False):
+        return {"identity": i, "device": d, **({"delegation_valid": False} if lapsed else {})}
+
+    def rc(vid, desc, want, adds=(), removes=(), committer=ALICE, ros=roster):
+        out.append(mv(f"roster-change-{vid}", desc, ["M§7.3"], {"check": "roster-change", "committer": committer,
+                      "roster": [leaf(i, d) for i, d in ros], "adds": [leaf(i, d) for i, d in adds],
+                      "removes": [leaf(*r) for r in removes]}, want))
+    blocked = lambda code: reject(code)
+    rc("add-new-identity", "Any member identity may add another identity, all of its devices.", accept(),
+       adds=[(DAVE, "did:key:z6MkDavePhoneRosterRosterRosterRosterRost1")], ros=roster[:4])
+    rc("add-own-device", "A member adds a new device of its own identity.", accept(),
+       adds=[(ALICE, "did:key:z6MkAliceDeskRosterRosterRosterRosterRos3")])
+    rc("add-other-identitys-device-refused", "Adding a device of another member identity is that identity's own business.",
+       blocked("roster-adds-other-devices"), adds=[(BOB, B3)])
+    rc("add-other-identitys-device-refused-beside-new", "One device of another member identity among new ones is refused too.",
+       blocked("roster-adds-other-devices"), adds=[(DAVE, "did:key:z6MkDavePhoneRosterRosterRosterRosterRost1"), (CAROL, C2)])
+    rc("remove-whole-identity", "Any member identity may remove another identity: every leaf of it.", accept(),
+       removes=[(BOB, B1), (BOB, B2)])
+    rc("remove-single-device-identity", "Removing an identity with one device is removing all of it.", accept(),
+       removes=[(CAROL, C1)])
+    rc("remove-part-of-identity-refused", "Removing some devices of another identity is refused while their delegations verify.",
+       blocked("roster-removes-part-of-identity"), removes=[(BOB, B1)])
+    rc("remove-part-duplicate-refused", "A leaf named twice is still one leaf: the identity's other device stays, refused.",
+       blocked("roster-removes-part-of-identity"), removes=[(BOB, B1), (BOB, B1)])
+    rc("remove-lapsed-leaf", "Any member may remove a leaf whose delegation no longer verifies (M§6.2).", accept(),
+       removes=[(BOB, B2, True)])
+    rc("remove-lapsed-and-valid-part-refused", "A lapsed leaf removed beside a valid one of the same identity, the identity not whole: refused.",
+       blocked("roster-removes-part-of-identity"), ros=roster + [(BOB, B3)], removes=[(BOB, B2, True), (BOB, B1)])
+    rc("remove-own-device", "A member removes a device of its own identity.", accept(), removes=[(ALICE, A2)])
+    rc("commit-anothers-leave", "Committing a leaver's proposals removes its whole identity.", accept(), committer=CAROL,
+       removes=[(ALICE, A1), (ALICE, A2)])
+    rc("add-and-remove", "Adding an identity and removing another whole one in one commit.", accept(),
+       adds=[(DAVE, "did:key:z6MkDavePhoneRosterRosterRosterRosterRost1")], removes=[(CAROL, C1)])
+    rc("adds-checked-before-removes", "An add of another identity's device is reported before a partial removal.",
+       blocked("roster-adds-other-devices"), adds=[(CAROL, C2)], removes=[(BOB, B1)])
+    rc("unauthenticated-committer-adds-refused", "A committer whose leaf no longer authenticates has no identity: adding a member's device is refused.",
+       blocked("roster-adds-other-devices"), committer="", adds=[(ALICE, "did:key:z6MkAliceDeskRosterRosterRosterRosterRos3")])
+    rc("no-change", "A commit that adds and removes nothing (a path update) changes no roster.", accept())
     return out

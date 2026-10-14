@@ -1,0 +1,41 @@
+{
+  "vector": "messaging/roster-change-no-change",
+  "format": 1,
+  "kind": "messaging",
+  "description": "A commit that adds and removes nothing (a path update) changes no roster.",
+  "spec_ref": [
+    "M§7.3"
+  ],
+  "context": {},
+  "input": {
+    "check": "roster-change",
+    "committer": "did:web:alice.example",
+    "roster": [
+      {
+        "identity": "did:web:alice.example",
+        "device": "did:key:z6MkAlicePhoneRosterRosterRosterRosterRo1"
+      },
+      {
+        "identity": "did:web:alice.example",
+        "device": "did:key:z6MkAliceLaptopRosterRosterRosterRoster2"
+      },
+      {
+        "identity": "did:web:example.com:users:bob",
+        "device": "did:key:z6MkBobPhoneRosterRosterRosterRosterRost1"
+      },
+      {
+        "identity": "did:web:example.com:users:bob",
+        "device": "did:key:z6MkBobTabletRosterRosterRosterRosterRo2"
+      },
+      {
+        "identity": "did:web:carol.example",
+        "device": "did:key:z6MkCarolPhoneRosterRosterRosterRosterR1"
+      }
+    ],
+    "adds": [],
+    "removes": []
+  },
+  "expect": {
+    "verdict": "accept"
+  }
+}

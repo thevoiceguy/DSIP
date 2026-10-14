@@ -160,3 +160,20 @@ export function leaveProposals(i: { me: string; proposer: Leaf; removes: Leaf[];
   if (who === i.me) return { action: "left" };
   return { action: "commit" };
 }
+
+/** The roster rules a member checks on every commit before merging it; the hub checks them too.
+ * Spec: M§7.3 — another identity's devices are its own to add; its leaves are removed all together, or each because
+ * its delegation no longer verifies (M§6.2). Members enforce this themselves (spec-gap 126). */
+export function rosterChange(i: { committer: string; roster: Leaf[]; adds: Leaf[]; removes: (Leaf & { delegation_valid?: boolean })[] }): JsonObject {
+  const members = new Set(i.roster.map((r) => r.identity));
+  if (i.adds.some((a) => a.identity !== i.committer && members.has(a.identity))) return reject("roster-adds-other-devices");
+  const others = new Set(i.removes.map((r) => r.identity).filter((w) => w !== i.committer));
+  for (const who of others) {
+    const rs = i.removes.filter((r) => r.identity === who);
+    const removed = new Set(rs.map((r) => r.device));
+    const whole = i.roster.filter((r) => r.identity === who).every((r) => removed.has(r.device));
+    const lapsed = rs.every((r) => r.delegation_valid === false);
+    if (!whole && !lapsed) return reject("roster-removes-part-of-identity");
+  }
+  return { verdict: "accept" };
+}

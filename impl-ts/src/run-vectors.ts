@@ -155,6 +155,8 @@ function messaging(v: Vector): Json | undefined {
       return rules.externalJoin(i as never);
     case "leave-proposals":
       return rules.leaveProposals(i as never);
+    case "roster-change":
+      return rules.rosterChange(i as never);
     case "registration-on-removal":
       return rules.registrationOnRemoval(i["me"] as string, i["remaining_identities"] as string[]);
     case "blob-put":
