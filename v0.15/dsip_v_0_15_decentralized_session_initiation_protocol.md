@@ -7,7 +7,7 @@
 **Editor:** James Ferris
 **Date:** October 2026
 **Supersedes:** v0.14
-**Companion documents:** WebRTC Media Binding 1.0 (`dsip-webrtc-media-binding-v0.15.md`); Gateway Profile 1.0 (`dsip-gateway-profile-v0.15.md`); Messaging Profile 1.0 (`dsip-messaging-profile-v0.15.md`, with its schema set `dsip-messaging-schemas-draft/`); RTP/SRTP Media Binding (draft, `dsip-rtp-srtp-media-binding-v0.15-draft.md`); DHT Hints Profile (draft, `dsip-dht-hints-profile-v0.15-draft.md`); Alias Transparency Profile (draft, `dsip-alias-transparency-profile-v0.15-draft.md`); Device Events Profile (draft, `dsip-device-events-profile-v0.15-draft.md`); Recording Profile (draft, `dsip-recording-profile-v0.15-draft.md`); Number Attestation Profile (draft, `dsip-number-attestation-profile-v0.15-draft.md`); JSON Schema set v0.14 (`dsip-schemas-v0.15-draft/`); conformance vectors (`impl/vectors/`, 2,079 vectors on which the Python harness, the Rust reference implementation and the independent TypeScript implementation agree)
+**Companion documents:** WebRTC Media Binding 1.0 (`dsip-webrtc-media-binding-v0.15.md`); Gateway Profile 1.0 (`dsip-gateway-profile-v0.15.md`); Messaging Profile 1.0 (`dsip-messaging-profile-v0.15.md`, with its schema set `dsip-messaging-schemas-draft/`); RTP/SRTP Media Binding (draft, `dsip-rtp-srtp-media-binding-v0.15-draft.md`); DHT Hints Profile (draft, `dsip-dht-hints-profile-v0.15-draft.md`); Alias Transparency Profile (draft, `dsip-alias-transparency-profile-v0.15-draft.md`); Device Events Profile (draft, `dsip-device-events-profile-v0.15-draft.md`); Recording Profile (draft, `dsip-recording-profile-v0.15-draft.md`); Number Attestation Profile (draft, `dsip-number-attestation-profile-v0.15-draft.md`); JSON Schema set v0.15 (`dsip-schemas-v0.15-draft/`); conformance vectors (`impl/vectors/`, 2,109 vectors on which the Python harness, the Rust reference implementation and the independent TypeScript implementation agree)
 
 ---
 
@@ -2558,7 +2558,7 @@ v0.13 is final at tag `poc-v0.13`; v0.14 is final at tag `poc-v0.14`. Each v0.14
 
 ### A.12 From v0.14 to v0.15
 
-v0.14 is final at tag `poc-v0.14`. v0.15 changes only the Messaging Profile; the core text, the wire format and both
+v0.14 is final at tag `poc-v0.14`; v0.15 is final at tag `poc-v0.15`. v0.15 changes only the Messaging Profile; the core text, the wire format and both
 schema sets are unchanged. Each item is listed with its spec-gap number.
 
 - Members enforce the roster rules themselves (M§7.3; spec-gap 126): every commit is checked by the hub's own rule

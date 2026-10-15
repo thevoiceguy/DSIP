@@ -1,13 +1,13 @@
-# DSIP v0.15 — draft
+# DSIP v0.15 — final
 
-v0.15 is the current revision. It was assembled from v0.14 at tag `poc-v0.14`, and `../v0.14/` is frozen. Appendix
+v0.15 is final at tag `poc-v0.15`. It was assembled from v0.14 at tag `poc-v0.14`, and `../v0.14/` is frozen. Appendix
 A.12 of `dsip_v_0_15_decentralized_session_initiation_protocol.md` lists what v0.15 changes, with its spec-gap numbers
 (126–129). The companion drafts (DHT Hints, RTP/SRTP, Alias Transparency, Device Events, Recording, Number
-Attestation) stay drafts.
+Attestation) stay drafts within the final revision.
 
 | document | what | status |
 |---|---|---|
-| `dsip_v_0_15_decentralized_session_initiation_protocol.md` | DSIP core | v0.15 (v0.14 text + A.12) |
+| `dsip_v_0_15_decentralized_session_initiation_protocol.md` | DSIP core | v0.15, final (v0.14 text + A.12) |
 | `dsip-schemas-v0.15-draft/` | Core JSON Schema set | generated; unchanged |
 | `dsip-webrtc-media-binding-v0.15.md` | WebRTC Media Binding 1.0 | normative, unchanged |
 | `dsip-gateway-profile-v0.15.md` | Gateway Profile 1.0 | normative, unchanged |
