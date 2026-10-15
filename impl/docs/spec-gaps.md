@@ -3713,7 +3713,7 @@ Choices:
   (`dsip-mls` `tests/e2e.rs` `roster_rules_enforced_by_members_on_real_mls`): removing one of Bob's two devices and
   adding a device of Bob's are refused at Alice, removing all of Bob is accepted.
 
-**Suggested fix (v0.15).** In M§7.3, after "Members MUST enforce all of M§7.3 themselves": "A member checks each
+**Fix, transcribed into v0.15 (Appendix A.12).** In M§7.3, after "Members MUST enforce all of M§7.3 themselves": "A member checks each
 commit before merging it: no add of a device of another member identity than the committer's, and for each other
 identity, the commit removes all of its leaves or only leaves whose delegation no longer verifies. A commit that
 fails is not merged (as M§6.8)."
@@ -3750,7 +3750,7 @@ the deposit's `grants` that verified, not the one from the welcome's recipient; 
 commit, the second was refused `policy.first-contact-required`. It now picks the grant whose `from` is the recipient
 (M§14.2).
 
-**Suggested fix (v0.15).** In M§8.5, after the duplicate rule: "A device whose identity a commit removes from a group
+**Fix, transcribed into v0.15 (Appendix A.12).** In M§8.5, after the duplicate rule: "A device whose identity a commit removes from a group
 is no longer joined to it: a later welcome for the group is processed as a join. Seq positions are kept."
 
 ## 128. M§7.4 — a group cannot move back to a hub it left
@@ -3787,7 +3787,7 @@ The Python harness, Rust and impl-ts agree, and the `hub` fuzz target starts a t
 returns. The mailbox daemon gives the machine the view only when the GroupInfo names it. Browser:
 `impl/web/test/messaging-hub-move.mjs`.
 
-**Suggested fix (v0.15).** In M§7.4, after "The old hub": "A group may come back to a hub it left. The committer's
+**Fix, transcribed into v0.15 (Appendix A.12).** In M§7.4, after "The old hub": "A group may come back to a hub it left. The committer's
 `group-info` with `handover_seq`, whose GroupInfo names that hub, returns it: the hub takes the GroupInfo's epoch and
 roster, keeps the queues it still holds, and numbers on from `handover_seq` + 1. It refuses a `handover_seq` below a
 seq it has already given."
@@ -3832,7 +3832,7 @@ hub is waited for never reaches it. The browser Messenger re-sends on its tick (
 envelope; a commit's same MLS bytes), and the console (`dsip-msg`) waits in `hub_deposit`. Browser:
 `impl/web/test/messaging-hub-move.mjs` step 6 holds the mover's GroupInfo, so the other member always arrives first.
 
-**Suggested fix (v0.15).** In M§7.4, after "Members then deposit to the new hub, which initializes its state from the
+**Fix, transcribed into v0.15 (Appendix A.12).** In M§7.4, after "Members then deposit to the new hub, which initializes its state from the
 latest `group-info`": "A member can reach the new hub before that `group-info`. Until the new hub accepts one of its
 deposits, a member treats the new hub's `mailbox.unknown-group` as not yet set up: it re-sends the same deposit with
 the §13.2 backoff, for at most 300 s (RECOMMENDED) from processing the move. Past that, the refusal is handled as
