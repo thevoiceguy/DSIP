@@ -3791,3 +3791,49 @@ returns. The mailbox daemon gives the machine the view only when the GroupInfo n
 `group-info` with `handover_seq`, whose GroupInfo names that hub, returns it: the hub takes the GroupInfo's epoch and
 roster, keeps the queues it still holds, and numbers on from `handover_seq` + 1. It refuses a `handover_seq` below a
 seq it has already given."
+
+## 129. M§7.4 — a member can reach the new hub before the GroupInfo that sets it up
+
+**Found (2026-10-14, CI on the browser hub-move test, Chromium; one run in two).** M§7.4 bootstraps the new hub from
+the committer's `group-info` with `handover_seq`, which the committer sends once the old hub has accepted the move.
+Every other member processes the moving commit when the old hub fans it out, and deposits to the new hub from then on.
+Nothing orders those two. A member's deposit can reach the new hub first. The new hub does not host the group yet, so
+it answers `mailbox.unknown-group`. M§7.4 has a member sync on that refusal and treat it as final unless the sync shows
+the group moved. Here it did not move again, so the member gave up: Bob's message, re-sent to the new hub after he had
+missed the move, was dropped. A re-proposed commit is lost the same way. The window is a second wide when the old hub
+is on the same machine as the new one. Over a WAN, or with a committer that is slow to send its GroupInfo, it is
+wider.
+
+Choices:
+
+- **(a)** A member waits for the new hub. From processing the move (or, for the committer, its `accepted`) until the
+  new hub accepts a deposit, that hub's `mailbox.unknown-group` means "not set up yet". The member re-sends the same
+  deposit with the §13.2 backoff (1 s, doubling, 60 s ceiling; the same bytes, M§9.3) for at most `arrival_wait` from
+  the move: 300 s, as the mailbox's `handover_wait`. At or past the bound the refusal is handled as M§7.4 already
+  says. A committer that never sets the hub up leaves the group to M§7.5. **Chosen.**
+- **(b)** The new hub answers a different reason for a group it does not host yet. It cannot tell such a group from
+  one that never existed, so the reason would carry no information.
+- **(c)** The committer sets the new hub up before committing. The GroupInfo needs `handover_seq`, which exists only
+  once the old hub has ordered the commit.
+
+**Draft choice: (a).** A new vector-pinned machine, `move-arrival-trace` (7 vectors), with events `moved {hub}`,
+`answer {hub, reason?}` and `advance`:
+
+- `move-arrival-new-hub-retried-until-it-hosts`: the backoff, `hosted` on an accepted, and a move back (spec-gap 128).
+- `move-arrival-wait-expires`: the bound, and `expired` emitted once.
+- `move-arrival-backoff-ceiling-and-default-wait`: the 60 s ceiling and the 300 s default.
+- `move-arrival-old-hub-is-not-an-arrival`, `move-arrival-other-answers-keep-waiting`,
+  `move-arrival-another-move-restarts`, `move-arrival-no-move-no-wait`.
+
+An answer is judged against the hub the deposit was addressed to, not the group's current hub: the old hub's refusal
+can arrive after the move was processed. The Python harness, Rust and impl-ts agree, and the `move-arrival` fuzz
+target draws moves, answers from three hubs, and time across the bound. `CommitRetry` is unchanged: a deposit the new
+hub is waited for never reaches it. The browser Messenger re-sends on its tick (the item's bytes under a fresh
+envelope; a commit's same MLS bytes), and the console (`dsip-msg`) waits in `hub_deposit`. Browser:
+`impl/web/test/messaging-hub-move.mjs` step 6 holds the mover's GroupInfo, so the other member always arrives first.
+
+**Suggested fix (v0.15).** In M§7.4, after "Members then deposit to the new hub, which initializes its state from the
+latest `group-info`": "A member can reach the new hub before that `group-info`. Until the new hub accepts one of its
+deposits, a member treats the new hub's `mailbox.unknown-group` as not yet set up: it re-sends the same deposit with
+the §13.2 backoff, for at most 300 s (RECOMMENDED) from processing the move. Past that, the refusal is handled as
+below."

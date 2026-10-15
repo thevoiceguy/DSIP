@@ -1310,6 +1310,56 @@ class HubOutage:
                 "handover_attempt": self.handover_attempt}
 
 
+ARRIVAL_WAIT_S = 300          # M§7.4 (spec-gap 129): how long a member waits for the hub a group moved to, as handover_wait
+
+
+class MoveArrival:
+    """A member reaching the hub a group moved to before the committer's group-info has set it up (M§7.4; spec-gap 129).
+
+    `moved` names the new hub (the device processed the moving commit, or its own move was accepted). Until that hub
+    accepts a deposit, its `mailbox.unknown-group` is not final: the same deposit is retried with the §13.2 backoff
+    (1 s, doubling, 60 s ceiling), for at most `arrival_wait` from the move. The first such refusal at or past the bound
+    emits `expired`, once. Every other answer, and any answer from another hub, emits nothing: the caller handles it as
+    usual (M§7.4 sync, M§9.4 outage, M§6.5). A later `moved` starts afresh.
+    """
+
+    def __init__(self, ctx: dict):
+        self.now = ctx["now"]
+        self.wait = ctx.get("arrival_wait", ARRIVAL_WAIT_S)
+        self.state, self.hub, self.since, self.attempt = "none", None, None, 0
+
+    def step(self, ev: dict) -> list:
+        (name, e), = ev.items()
+        return getattr(self, "_" + name)(e)
+
+    def _moved(self, e: dict) -> list:
+        self.state, self.hub, self.since, self.attempt = "arriving", e["hub"], self.now, 0
+        return []
+
+    def _answer(self, e: dict) -> list:
+        if self.state != "arriving" or e["hub"] != self.hub:
+            return []
+        reason = e.get("reason")
+        if reason is None:
+            self.state = "hosted"
+            return []
+        if reason != "mailbox.unknown-group":
+            return []
+        if self.now - self.since >= self.wait:
+            self.state = "expired"
+            return [{"expired": {}}]
+        self.attempt += 1
+        return [{"retry_in": min(RETRY_INITIAL_S * 2 ** (self.attempt - 1), RETRY_MAX_S)}]
+
+    def _advance(self, n: int) -> list:
+        self.now += n
+        return []
+
+    def snapshot(self) -> dict:
+        return {"state": self.state, "hub": self.hub, "attempt": self.attempt,
+                "waited": None if self.since is None else self.now - self.since}
+
+
 class GapTracker:
     """M§6.5: a device holds handshake items (and anything after them) across a seq gap; rejoin on timeout."""
 
@@ -2113,10 +2163,11 @@ def run(v: dict) -> dict:
     if check == "successor-select":
         return select_successor(inp["candidates"])
     if check in ("hub-trace", "mailbox-trace", "client-trace", "gap-trace", "resume-trace", "history-trace", "commit-retry-trace",
-                 "successor-trace", "hub-outage-trace"):
+                 "successor-trace", "hub-outage-trace", "move-arrival-trace"):
         comp = {"hub-trace": Hub, "mailbox-trace": Mailbox, "client-trace": Client, "gap-trace": GapTracker,
                 "resume-trace": Resume, "history-trace": History, "commit-retry-trace": CommitRetry,
-                "successor-trace": SuccessorTracker, "hub-outage-trace": HubOutage}[check](v["context"])
+                "successor-trace": SuccessorTracker, "hub-outage-trace": HubOutage,
+                "move-arrival-trace": MoveArrival}[check](v["context"])
         steps = []
         for st in inp["steps"]:
             emit = comp.step(st["event"])

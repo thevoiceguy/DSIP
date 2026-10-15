@@ -1,0 +1,180 @@
+{
+  "vector": "messaging/move-arrival-new-hub-retried-until-it-hosts",
+  "format": 1,
+  "kind": "messaging",
+  "description": "A member that processed the move can reach the new hub before the committer's group-info has set it up: the new hub's mailbox.unknown-group is then not final. The same deposit is retried with the §13.2 backoff until the hub accepts one. From then on the hub hosts the group, and a later mailbox.unknown-group from it is handled as M§7.4 says (sync; final unless the group moved). A move back to a hub the group left (spec-gap 128) is an arrival like any other.",
+  "spec_ref": [
+    "M§7.4",
+    "§13.2",
+    "M§9.3"
+  ],
+  "context": {
+    "component": "move-arrival",
+    "now": 1760000000
+  },
+  "input": {
+    "check": "move-arrival-trace",
+    "steps": [
+      {
+        "event": {
+          "moved": {
+            "hub": "did:web:mbx.bob.example"
+          }
+        }
+      },
+      {
+        "event": {
+          "answer": {
+            "hub": "did:web:mbx.bob.example",
+            "reason": "mailbox.unknown-group"
+          }
+        }
+      },
+      {
+        "event": {
+          "advance": 1
+        }
+      },
+      {
+        "event": {
+          "answer": {
+            "hub": "did:web:mbx.bob.example",
+            "reason": "mailbox.unknown-group"
+          }
+        }
+      },
+      {
+        "event": {
+          "advance": 2
+        }
+      },
+      {
+        "event": {
+          "answer": {
+            "hub": "did:web:mbx.bob.example"
+          }
+        }
+      },
+      {
+        "event": {
+          "answer": {
+            "hub": "did:web:mbx.bob.example",
+            "reason": "mailbox.unknown-group"
+          }
+        }
+      },
+      {
+        "event": {
+          "moved": {
+            "hub": "did:web:mbx.alice.example"
+          }
+        }
+      },
+      {
+        "event": {
+          "answer": {
+            "hub": "did:web:mbx.alice.example",
+            "reason": "mailbox.unknown-group"
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [],
+        "state": {
+          "state": "arriving",
+          "hub": "did:web:mbx.bob.example",
+          "attempt": 0,
+          "waited": 0
+        }
+      },
+      {
+        "emit": [
+          {
+            "retry_in": 1
+          }
+        ],
+        "state": {
+          "state": "arriving",
+          "hub": "did:web:mbx.bob.example",
+          "attempt": 1,
+          "waited": 0
+        }
+      },
+      {
+        "emit": [],
+        "state": {
+          "state": "arriving",
+          "hub": "did:web:mbx.bob.example",
+          "attempt": 1,
+          "waited": 1
+        }
+      },
+      {
+        "emit": [
+          {
+            "retry_in": 2
+          }
+        ],
+        "state": {
+          "state": "arriving",
+          "hub": "did:web:mbx.bob.example",
+          "attempt": 2,
+          "waited": 1
+        }
+      },
+      {
+        "emit": [],
+        "state": {
+          "state": "arriving",
+          "hub": "did:web:mbx.bob.example",
+          "attempt": 2,
+          "waited": 3
+        }
+      },
+      {
+        "emit": [],
+        "state": {
+          "state": "hosted",
+          "hub": "did:web:mbx.bob.example",
+          "attempt": 2,
+          "waited": 3
+        }
+      },
+      {
+        "emit": [],
+        "state": {
+          "state": "hosted",
+          "hub": "did:web:mbx.bob.example",
+          "attempt": 2,
+          "waited": 3
+        }
+      },
+      {
+        "emit": [],
+        "state": {
+          "state": "arriving",
+          "hub": "did:web:mbx.alice.example",
+          "attempt": 0,
+          "waited": 0
+        }
+      },
+      {
+        "emit": [
+          {
+            "retry_in": 1
+          }
+        ],
+        "state": {
+          "state": "arriving",
+          "hub": "did:web:mbx.alice.example",
+          "attempt": 1,
+          "waited": 0
+        }
+      }
+    ]
+  }
+}

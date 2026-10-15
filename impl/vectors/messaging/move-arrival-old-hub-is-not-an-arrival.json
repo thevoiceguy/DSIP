@@ -1,0 +1,93 @@
+{
+  "vector": "messaging/move-arrival-old-hub-is-not-an-arrival",
+  "format": 1,
+  "kind": "messaging",
+  "description": "mailbox.unknown-group from any hub but the one the group moved to is the ordinary M§7.4 case (a member that missed the move): nothing to wait for. Its answers leave the wait as it was.",
+  "spec_ref": [
+    "M§7.4",
+    "§13.2"
+  ],
+  "context": {
+    "component": "move-arrival",
+    "now": 1760000000
+  },
+  "input": {
+    "check": "move-arrival-trace",
+    "steps": [
+      {
+        "event": {
+          "moved": {
+            "hub": "did:web:mbx.bob.example"
+          }
+        }
+      },
+      {
+        "event": {
+          "answer": {
+            "hub": "did:web:mbx.alice.example",
+            "reason": "mailbox.unknown-group"
+          }
+        }
+      },
+      {
+        "event": {
+          "answer": {
+            "hub": "did:web:mbx.alice.example"
+          }
+        }
+      },
+      {
+        "event": {
+          "answer": {
+            "hub": "did:web:mbx.bob.example",
+            "reason": "mailbox.unknown-group"
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [],
+        "state": {
+          "state": "arriving",
+          "hub": "did:web:mbx.bob.example",
+          "attempt": 0,
+          "waited": 0
+        }
+      },
+      {
+        "emit": [],
+        "state": {
+          "state": "arriving",
+          "hub": "did:web:mbx.bob.example",
+          "attempt": 0,
+          "waited": 0
+        }
+      },
+      {
+        "emit": [],
+        "state": {
+          "state": "arriving",
+          "hub": "did:web:mbx.bob.example",
+          "attempt": 0,
+          "waited": 0
+        }
+      },
+      {
+        "emit": [
+          {
+            "retry_in": 1
+          }
+        ],
+        "state": {
+          "state": "arriving",
+          "hub": "did:web:mbx.bob.example",
+          "attempt": 1,
+          "waited": 0
+        }
+      }
+    ]
+  }
+}
