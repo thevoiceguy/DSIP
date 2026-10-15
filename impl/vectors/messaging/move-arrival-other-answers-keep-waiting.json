@@ -1,0 +1,95 @@
+{
+  "vector": "messaging/move-arrival-other-answers-keep-waiting",
+  "format": 1,
+  "kind": "messaging",
+  "description": "Only an accepted shows the new hub hosts the group. Its other refusals are handled as usual (an outage as M§9.4, a refusal of the item as M§6.5) and leave the wait open.",
+  "spec_ref": [
+    "M§7.4",
+    "§13.2",
+    "M§9.4"
+  ],
+  "context": {
+    "component": "move-arrival",
+    "now": 1760000000
+  },
+  "input": {
+    "check": "move-arrival-trace",
+    "steps": [
+      {
+        "event": {
+          "moved": {
+            "hub": "did:web:mbx.bob.example"
+          }
+        }
+      },
+      {
+        "event": {
+          "answer": {
+            "hub": "did:web:mbx.bob.example",
+            "reason": "policy.blocked"
+          }
+        }
+      },
+      {
+        "event": {
+          "answer": {
+            "hub": "did:web:mbx.bob.example",
+            "reason": "mailbox.hub-unreachable"
+          }
+        }
+      },
+      {
+        "event": {
+          "answer": {
+            "hub": "did:web:mbx.bob.example",
+            "reason": "mailbox.unknown-group"
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [],
+        "state": {
+          "state": "arriving",
+          "hub": "did:web:mbx.bob.example",
+          "attempt": 0,
+          "waited": 0
+        }
+      },
+      {
+        "emit": [],
+        "state": {
+          "state": "arriving",
+          "hub": "did:web:mbx.bob.example",
+          "attempt": 0,
+          "waited": 0
+        }
+      },
+      {
+        "emit": [],
+        "state": {
+          "state": "arriving",
+          "hub": "did:web:mbx.bob.example",
+          "attempt": 0,
+          "waited": 0
+        }
+      },
+      {
+        "emit": [
+          {
+            "retry_in": 1
+          }
+        ],
+        "state": {
+          "state": "arriving",
+          "hub": "did:web:mbx.bob.example",
+          "attempt": 1,
+          "waited": 0
+        }
+      }
+    ]
+  }
+}

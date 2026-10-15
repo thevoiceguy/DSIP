@@ -127,8 +127,30 @@ def gen_hub_outage(r: random.Random):
     return "messaging", "hub-outage-trace", {"component": "hub-outage", "now": NOW, "hub_timeout": r.choice([50, 150, 86400])}, ev
 
 
+def gen_move_arrival(r: random.Random):
+    # spec-gap 129: moves, answers from the hubs involved (the new one, the old one, a third), and time across the bound
+    hubs = ["did:web:mbx.alice.example", "did:web:mbx.bob.example", "did:web:mbx.carol.example"]
+    reasons = ["mailbox.unknown-group"] * 4 + [None, "policy.blocked", "mailbox.hub-unreachable"]
+    ev = [{"moved": {"hub": r.choice(hubs)}}] if r.random() < 0.9 else []
+    for _ in range(r.randint(2, 14)):
+        x = r.random()
+        if x < 0.08:
+            ev.append({"moved": {"hub": r.choice(hubs)}})
+        elif x < 0.4:
+            ev.append({"advance": r.choice([1, 2, 4, 9, 10, 11, 60, 299, 300])})
+        else:
+            reason = r.choice(reasons)
+            ev.append({"answer": {"hub": r.choice(hubs), **({} if reason is None else {"reason": reason})}})
+    ctx = {"component": "move-arrival", "now": NOW}
+    if r.random() < 0.6:
+        ctx["arrival_wait"] = r.choice([0, 1, 10, 30])
+    return "messaging", "move-arrival-trace", ctx, ev
+
 def gen_hub(r: random.Random):
     ev = []
+    if r.random() < 0.35:   # spec-gap 128: start moved away, so what follows probes the return
+        ev.append({"deposit": {"id": ulid(99), "device": B1, "identity": BOB, "class": "handshake", "digest": "mv", "epoch": 2,
+                               "commit": {"adds": [], "removes": [], "moves_to": HUB_B}}})
     for n in range(r.randint(3, 9)):
         x = r.random()
         if x < 0.25:
@@ -147,6 +169,10 @@ def gen_hub(r: random.Random):
                 dep["epoch"] = r.choice([1, 1, 2, 2, 3])
             if cls == "ephemeral":
                 dep["expires_at"] = r.choice([NOW - 1, NOW + 10])
+            if cls == "group-info" and r.random() < 0.6:   # spec-gap 128: a moved group coming back
+                dep["handover_seq"] = r.randint(0, 6)
+                dep["view"] = {"epoch": r.choice([3, 4, 5]),
+                               "roster": r.choice([{ALICE: [A1, A2], BOB: [B1]}, {ALICE: [A1], CAROL: [C1]}, {BOB: [B1, B2]}])}
             if cls == "handshake" and r.random() < 0.8:
                 c, y = {"adds": [], "removes": []}, r.random()
                 if y < 0.2:
@@ -159,9 +185,9 @@ def gen_hub(r: random.Random):
                     c["removes"] = [{"identity": ALICE, "device": A1, **({"delegation_valid": False} if r.random() < 0.5 else {})}]
                 elif y < 0.6:
                     c.update({"external": True, "adds": [{"identity": ident, "device": d}]})
-                elif y < 0.65:
+                elif y < 0.72:
                     c["moves_to"] = HUB_B
-                elif y < 0.7:
+                elif y < 0.77:
                     c["valid"] = False
                 dep["commit"] = c
             ev.append({"deposit": dep})
@@ -1048,7 +1074,7 @@ TARGETS = {
     "syslog": gen_syslog, "snmpv3": gen_snmpv3, "recording": gen_recording, "tn-binding": gen_tnbinding, "tn-store": gen_tn_store, "tn-select": gen_tn_select,
     "tn-passport": gen_tn_passport, "tn-route": gen_tn_route, "tn-assert": gen_tn_assert, "tn-authority": gen_tn_authority,
     "tsm": gen_tsm, "tls-frames": gen_tls_frames, "tsm-name": gen_tsm_name, "syslog-sign": gen_syslog_sign,
-    "gap": gen_gap, "commit-retry": gen_commit_retry, "hub-outage": gen_hub_outage, "resume": gen_resume, "history": gen_history,
+    "gap": gen_gap, "commit-retry": gen_commit_retry, "hub-outage": gen_hub_outage, "move-arrival": gen_move_arrival, "resume": gen_resume, "history": gen_history,
     "successor": gen_successor, "client": gen_client, "hub": gen_hub, "mailbox": gen_mailbox, "endpoint": gen_endpoint,
     "relay": gen_relay, "deposit-fields": gen_deposit_fields, "gateway-reason": gen_gateway_reason,
     "call-record": gen_call_record, "call-record-outcome": gen_call_record_outcome,

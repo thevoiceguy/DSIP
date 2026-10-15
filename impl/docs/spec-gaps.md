@@ -3752,3 +3752,88 @@ commit, the second was refused `policy.first-contact-required`. It now picks the
 
 **Suggested fix (v0.15).** In M§8.5, after the duplicate rule: "A device whose identity a commit removes from a group
 is no longer joined to it: a later welcome for the group is processed as a join. Seq positions are kept."
+
+## 128. M§7.4 — a group cannot move back to a hub it left
+
+**Found (2026-10-14, moving a hub from the browser: Bob hosts Alice's conversation at his mailbox, then Alice moves it
+back to hers).** M§7.4 has the old hub refuse "every later deposit for the group with `mailbox.unknown-group`", and
+says a hub hosts a group only if `dsip_conversation.hub.did` names it. It never says what happens when the group
+names the old hub again. The hub at A still held its state for the group, marked moved, so the committer's handover
+`group-info` was refused `mailbox.unknown-group`. Nobody could deposit anywhere: hub B had ordered the move back and
+refused the group, and hub A refused it as gone. Moving a conversation to your own mailbox and back is an ordinary
+thing for a person to do.
+
+Choices:
+
+- **(a)** The committer's handover `group-info` brings the group back. The GroupInfo names this hub, and its depositor
+  is in the GroupInfo's roster. The hub takes the GroupInfo's epoch and roster and numbers on from `handover_seq` + 1.
+  It keeps the queues it still holds for the group, which drain as before. A `handover_seq` below the hub's next seq
+  would give a seq twice (M§12.2: `(group, seq)` is unique), so it is refused `policy.blocked`. **Chosen.**
+- **(b)** Forget the group entirely once it moves away, so that a return is a first bootstrap. This loses the queues
+  still draining, and with them the old hub's last items for a slow mailbox (spec-gap 71). It also lets a stale
+  `handover_seq` restart the numbering below seqs the hub already gave.
+- **(c)** Never: a group that left a hub cannot return, and a move back needs a successor group (M§7.5). This turns an
+  ordinary action into the outage machinery and loses the group id.
+
+**Draft choice: (a).** In `hub-trace`, a `group-info` deposit carrying `handover_seq` and `view {epoch, roster}`
+(the GroupInfo as the daemon reads it) returns a moved group. Three vectors pin it:
+
+- `hub-move-back-returns-the-group`: the old queues drain first, then the new seqs.
+- `hub-move-back-renumbering-refused`: a `handover_seq` below `next_seq` is refused `policy.blocked`, and a group-info
+  with no `handover_seq` is still `mailbox.unknown-group`.
+- `hub-move-back-by-a-non-member-refused`.
+
+The Python harness, Rust and impl-ts agree, and the `hub` fuzz target starts a third of its traces moved and draws
+returns. The mailbox daemon gives the machine the view only when the GroupInfo names it. Browser:
+`impl/web/test/messaging-hub-move.mjs`.
+
+**Suggested fix (v0.15).** In M§7.4, after "The old hub": "A group may come back to a hub it left. The committer's
+`group-info` with `handover_seq`, whose GroupInfo names that hub, returns it: the hub takes the GroupInfo's epoch and
+roster, keeps the queues it still holds, and numbers on from `handover_seq` + 1. It refuses a `handover_seq` below a
+seq it has already given."
+
+## 129. M§7.4 — a member can reach the new hub before the GroupInfo that sets it up
+
+**Found (2026-10-14, CI on the browser hub-move test, Chromium; one run in two).** M§7.4 bootstraps the new hub from
+the committer's `group-info` with `handover_seq`, which the committer sends once the old hub has accepted the move.
+Every other member processes the moving commit when the old hub fans it out, and deposits to the new hub from then on.
+Nothing orders those two. A member's deposit can reach the new hub first. The new hub does not host the group yet, so
+it answers `mailbox.unknown-group`. M§7.4 has a member sync on that refusal and treat it as final unless the sync shows
+the group moved. Here it did not move again, so the member gave up: Bob's message, re-sent to the new hub after he had
+missed the move, was dropped. A re-proposed commit is lost the same way. The window is a second wide when the old hub
+is on the same machine as the new one. Over a WAN, or with a committer that is slow to send its GroupInfo, it is
+wider.
+
+Choices:
+
+- **(a)** A member waits for the new hub. From processing the move (or, for the committer, its `accepted`) until the
+  new hub accepts a deposit, that hub's `mailbox.unknown-group` means "not set up yet". The member re-sends the same
+  deposit with the §13.2 backoff (1 s, doubling, 60 s ceiling; the same bytes, M§9.3) for at most `arrival_wait` from
+  the move: 300 s, as the mailbox's `handover_wait`. At or past the bound the refusal is handled as M§7.4 already
+  says. A committer that never sets the hub up leaves the group to M§7.5. **Chosen.**
+- **(b)** The new hub answers a different reason for a group it does not host yet. It cannot tell such a group from
+  one that never existed, so the reason would carry no information.
+- **(c)** The committer sets the new hub up before committing. The GroupInfo needs `handover_seq`, which exists only
+  once the old hub has ordered the commit.
+
+**Draft choice: (a).** A new vector-pinned machine, `move-arrival-trace` (7 vectors), with events `moved {hub}`,
+`answer {hub, reason?}` and `advance`:
+
+- `move-arrival-new-hub-retried-until-it-hosts`: the backoff, `hosted` on an accepted, and a move back (spec-gap 128).
+- `move-arrival-wait-expires`: the bound, and `expired` emitted once.
+- `move-arrival-backoff-ceiling-and-default-wait`: the 60 s ceiling and the 300 s default.
+- `move-arrival-old-hub-is-not-an-arrival`, `move-arrival-other-answers-keep-waiting`,
+  `move-arrival-another-move-restarts`, `move-arrival-no-move-no-wait`.
+
+An answer is judged against the hub the deposit was addressed to, not the group's current hub: the old hub's refusal
+can arrive after the move was processed. The Python harness, Rust and impl-ts agree, and the `move-arrival` fuzz
+target draws moves, answers from three hubs, and time across the bound. `CommitRetry` is unchanged: a deposit the new
+hub is waited for never reaches it. The browser Messenger re-sends on its tick (the item's bytes under a fresh
+envelope; a commit's same MLS bytes), and the console (`dsip-msg`) waits in `hub_deposit`. Browser:
+`impl/web/test/messaging-hub-move.mjs` step 6 holds the mover's GroupInfo, so the other member always arrives first.
+
+**Suggested fix (v0.15).** In M§7.4, after "Members then deposit to the new hub, which initializes its state from the
+latest `group-info`": "A member can reach the new hub before that `group-info`. Until the new hub accepts one of its
+deposits, a member treats the new hub's `mailbox.unknown-group` as not yet set up: it re-sends the same deposit with
+the §13.2 backoff, for at most 300 s (RECOMMENDED) from processing the move. Past that, the refusal is handled as
+below."

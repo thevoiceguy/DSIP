@@ -21,7 +21,7 @@ import { verifyEnvelope, type ReceiverContext } from "./envelope.js";
 import { GatewayCall, descriptorsToSdp, downgrade, downgradeError, reasonInbound, reasonOutbound, sdpToDescriptors, telClaim } from "./gateway.js";
 import { checkConversationExt, checkConversationUpdate, checkMessage } from "./messaging/message.js";
 import { checkObject, type ObjectContext } from "./messaging/object.js";
-import { CommitRetry, GapTracker, HubOutage, type Machine } from "./messaging/device.js";
+import { CommitRetry, GapTracker, HubOutage, MoveArrival, type Machine } from "./messaging/device.js";
 import { Client } from "./messaging/client.js";
 import { History, Resume, SuccessorTracker } from "./messaging/sync.js";
 import { Hub } from "./messaging/hub.js";
@@ -112,6 +112,7 @@ const MACHINES: Record<string, (ctx: never) => Machine> = {
   "gap-trace": (ctx) => new GapTracker(ctx),
   "commit-retry-trace": (ctx) => new CommitRetry(ctx),
   "hub-outage-trace": (ctx) => new HubOutage(ctx),
+  "move-arrival-trace": (ctx) => new MoveArrival(ctx),
   "client-trace": (ctx) => new Client(ctx),
   "hub-trace": (ctx) => new Hub(ctx),
   "mailbox-trace": (ctx) => new Mailbox(ctx),

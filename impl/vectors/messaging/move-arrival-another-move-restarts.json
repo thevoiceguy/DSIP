@@ -1,0 +1,128 @@
+{
+  "vector": "messaging/move-arrival-another-move-restarts",
+  "format": 1,
+  "kind": "messaging",
+  "description": "A later move replaces the wait: the hub the group moved on from is no longer waited for, and the backoff and the bound start afresh for the new one.",
+  "spec_ref": [
+    "M§7.4",
+    "§13.2"
+  ],
+  "context": {
+    "component": "move-arrival",
+    "now": 1760000000
+  },
+  "input": {
+    "check": "move-arrival-trace",
+    "steps": [
+      {
+        "event": {
+          "moved": {
+            "hub": "did:web:mbx.bob.example"
+          }
+        }
+      },
+      {
+        "event": {
+          "answer": {
+            "hub": "did:web:mbx.bob.example",
+            "reason": "mailbox.unknown-group"
+          }
+        }
+      },
+      {
+        "event": {
+          "advance": 5
+        }
+      },
+      {
+        "event": {
+          "moved": {
+            "hub": "did:web:mbx.carol.example"
+          }
+        }
+      },
+      {
+        "event": {
+          "answer": {
+            "hub": "did:web:mbx.bob.example",
+            "reason": "mailbox.unknown-group"
+          }
+        }
+      },
+      {
+        "event": {
+          "answer": {
+            "hub": "did:web:mbx.carol.example",
+            "reason": "mailbox.unknown-group"
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [],
+        "state": {
+          "state": "arriving",
+          "hub": "did:web:mbx.bob.example",
+          "attempt": 0,
+          "waited": 0
+        }
+      },
+      {
+        "emit": [
+          {
+            "retry_in": 1
+          }
+        ],
+        "state": {
+          "state": "arriving",
+          "hub": "did:web:mbx.bob.example",
+          "attempt": 1,
+          "waited": 0
+        }
+      },
+      {
+        "emit": [],
+        "state": {
+          "state": "arriving",
+          "hub": "did:web:mbx.bob.example",
+          "attempt": 1,
+          "waited": 5
+        }
+      },
+      {
+        "emit": [],
+        "state": {
+          "state": "arriving",
+          "hub": "did:web:mbx.carol.example",
+          "attempt": 0,
+          "waited": 0
+        }
+      },
+      {
+        "emit": [],
+        "state": {
+          "state": "arriving",
+          "hub": "did:web:mbx.carol.example",
+          "attempt": 0,
+          "waited": 0
+        }
+      },
+      {
+        "emit": [
+          {
+            "retry_in": 1
+          }
+        ],
+        "state": {
+          "state": "arriving",
+          "hub": "did:web:mbx.carol.example",
+          "attempt": 1,
+          "waited": 0
+        }
+      }
+    ]
+  }
+}

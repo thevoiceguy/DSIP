@@ -96,6 +96,7 @@ def vectors() -> list[dict]:
     out += restart_vectors()
     out += hub_change_vectors()
     out += hub_outage_vectors()
+    out += move_arrival_vectors()
     out += successor_vectors()
     out += external_join_vectors()
     out += leave_vectors()
@@ -2826,6 +2827,51 @@ def hub_change_vectors():
                           hs(2, 4, R, {ALICE: [3], BOB: [3]})),
                      ]))
 
+    # spec-gap 128: the group comes back to a hub it left. The daemon has read the GroupInfo (it names this hub) and
+    # hands the machine its epoch and roster as `view`, with the `handover_seq` the other hub gave the moving commit.
+    gi_fan = [{"fanout": {"to": ALICE, "class": "group-info"}}, {"fanout": {"to": BOB, "class": "group-info"}}]
+    back = {"epoch": 4, "roster": R}
+    out.append(trace("hub-move-back-returns-the-group",
+                     "A group that moved away comes back: the committer's group-info deposit carries handover_seq and names this "
+                     "hub again, so the hub hosts it from the GroupInfo's epoch and roster and numbers on from handover_seq + 1. "
+                     "What it ordered before the group left still drains first, in order (spec-gap 128).",
+                     refs + ["M§6.5"], "hub-trace", hub_ctx(), [
+                         (dep("a1", APH, ALICE, "application", 1), [acc(APH, "a1", 1), fan(ALICE, 1), fan(BOB, 1)],
+                          hs(1, 2, R, {ALICE: [1], BOB: [1]})),
+                         (dep("mv", BPH, BOB, "handshake", 1, commit=move), [acc(BPH, "mv", 2)],
+                          hs(2, 3, R, {ALICE: [1, 2], BOB: [1, 2]}, moved_to=HUB_B)),
+                         ({"ack": {"identity": BOB, "seq": 1}}, [fan(BOB, 2, "handshake")], hs(2, 3, R, {ALICE: [1, 2], BOB: [2]}, moved_to=HUB_B)),
+                         (dep("gi", APH, ALICE, "group-info", handover_seq=5, view=back), [acc_nc(APH, "gi")] + gi_fan,
+                          hs(4, 6, R, {ALICE: [1, 2], BOB: [2]}, group_info=True)),
+                         (dep("a6", APH, ALICE, "application", 4), [acc(APH, "a6", 6)],
+                          hs(4, 7, R, {ALICE: [1, 2, 6], BOB: [2, 6]}, group_info=True)),
+                         ({"ack": {"identity": BOB, "seq": 2}}, [fan(BOB, 6)], hs(4, 7, R, {ALICE: [1, 2, 6], BOB: [6]}, group_info=True)),
+                         ({"ack": {"identity": ALICE, "seq": 1}}, [fan(ALICE, 2, "handshake")], hs(4, 7, R, {ALICE: [2, 6], BOB: [6]}, group_info=True)),
+                     ]))
+    out.append(trace("hub-move-back-renumbering-refused",
+                     "A return whose handover_seq is below the hub's next seq would give a seq twice for the group, so it is "
+                     "refused policy.blocked and the group stays moved; a group-info with no handover_seq is still answered "
+                     "mailbox.unknown-group (spec-gap 128, M§12.2: (group, seq) is unique).",
+                     refs + ["M§12.2"], "hub-trace", hub_ctx(), [
+                         (dep("mv", BPH, BOB, "handshake", 1, commit=move), [acc(BPH, "mv", 1), fan(ALICE, 1, "handshake"), fan(BOB, 1, "handshake")],
+                          hs(2, 2, R, {ALICE: [1], BOB: [1]}, moved_to=HUB_B)),
+                         (dep("g1", APH, ALICE, "group-info", handover_seq=1, view=back), [err(APH, "g1", "policy.blocked")],
+                          hs(2, 2, R, {ALICE: [1], BOB: [1]}, moved_to=HUB_B)),
+                         (dep("g2", APH, ALICE, "group-info"), [err(APH, "g2", "mailbox.unknown-group")],
+                          hs(2, 2, R, {ALICE: [1], BOB: [1]}, moved_to=HUB_B)),
+                         (dep("g3", APH, ALICE, "group-info", handover_seq=2, view=back), [acc_nc(APH, "g3")] + gi_fan,
+                          hs(4, 3, R, {ALICE: [1], BOB: [1]}, group_info=True)),
+                     ]))
+    out.append(trace("hub-move-back-by-a-non-member-refused",
+                     "Only a member of the returning group may bring it back: a depositor whose identity is not in the "
+                     "GroupInfo's roster is refused policy.blocked, as any non-member's group-info is (spec-gap 128).",
+                     refs, "hub-trace", hub_ctx(), [
+                         (dep("mv", BPH, BOB, "handshake", 1, commit=move), [acc(BPH, "mv", 1), fan(ALICE, 1, "handshake"), fan(BOB, 1, "handshake")],
+                          hs(2, 2, R, {ALICE: [1], BOB: [1]}, moved_to=HUB_B)),
+                         (dep("gi", BPH, BOB, "group-info", handover_seq=3, view={"epoch": 4, "roster": {ALICE: [ALA, APH]}}),
+                          [err(BPH, "gi", "policy.blocked")], hs(2, 2, R, {ALICE: [1], BOB: [1]}, moved_to=HUB_B)),
+                     ]))
+
     # --- member mailboxes
     T = "mailbox-trace"
     J = {GROUP: "joined"}
@@ -3056,6 +3102,109 @@ def hub_change_vectors():
     m("mailbox-config-handover-seq-zero-refused", "A seq starts at 1.",
       msg("mailbox-config", "cfgz", BPH, MBX_B, subject=BOB,
           groups=[{"group": GROUP, "hub": HUB_B, "handover_seq": 0, "state": "joined"}]), reject("schema-invalid"))
+    return out
+
+
+# ---------------------------------------------------------------- a member arriving at the new hub first (M§7.4; spec-gap 129)
+
+def move_arrival_vectors():
+    out = []
+    T = "move-arrival-trace"
+    refs = ["M§7.4", "§13.2"]
+    ctx = {"component": "move-arrival", "now": NOW}
+    HUB_B, HUB_C = "did:web:mbx.bob.example", "did:web:mbx.carol.example"
+
+    def snap(state, hub=None, attempt=0, waited=None):
+        return {"state": state, "hub": hub, "attempt": attempt, "waited": waited}
+
+    def moved(hub):
+        return {"moved": {"hub": hub}}
+
+    def unknown(hub):
+        return {"answer": {"hub": hub, "reason": "mailbox.unknown-group"}}
+
+    def accepted(hub):
+        return {"answer": {"hub": hub}}
+
+    out.append(trace("move-arrival-new-hub-retried-until-it-hosts",
+                     "A member that processed the move can reach the new hub before the committer's group-info has set it up: "
+                     "the new hub's mailbox.unknown-group is then not final. The same deposit is retried with the §13.2 backoff "
+                     "until the hub accepts one. From then on the hub hosts the group, and a later mailbox.unknown-group from it "
+                     "is handled as M§7.4 says (sync; final unless the group moved). A move back to a hub the group left "
+                     "(spec-gap 128) is an arrival like any other.", refs + ["M§9.3"], T, ctx, [
+                         (moved(HUB_B), [], snap("arriving", HUB_B, 0, 0)),
+                         (unknown(HUB_B), [{"retry_in": 1}], snap("arriving", HUB_B, 1, 0)),
+                         ({"advance": 1}, [], snap("arriving", HUB_B, 1, 1)),
+                         (unknown(HUB_B), [{"retry_in": 2}], snap("arriving", HUB_B, 2, 1)),
+                         ({"advance": 2}, [], snap("arriving", HUB_B, 2, 3)),
+                         (accepted(HUB_B), [], snap("hosted", HUB_B, 2, 3)),
+                         (unknown(HUB_B), [], snap("hosted", HUB_B, 2, 3)),
+                         (moved(HUB_A), [], snap("arriving", HUB_A, 0, 0)),
+                         (unknown(HUB_A), [{"retry_in": 1}], snap("arriving", HUB_A, 1, 0)),
+                     ]))
+    out.append(trace("move-arrival-wait-expires",
+                     "The new hub is waited for at most arrival_wait from the move (300 s, as handover_wait). A retry scheduled "
+                     "inside the wait still goes; the first mailbox.unknown-group at or past the bound ends the wait, once, and "
+                     "the refusal is handled as M§7.4 says. A committer that never set the hub up leaves the group to M§7.5.",
+                     refs + ["M§7.5"], T, {**ctx, "arrival_wait": 10}, [
+                         (moved(HUB_B), [], snap("arriving", HUB_B, 0, 0)),
+                         (unknown(HUB_B), [{"retry_in": 1}], snap("arriving", HUB_B, 1, 0)),
+                         ({"advance": 1}, [], snap("arriving", HUB_B, 1, 1)),
+                         (unknown(HUB_B), [{"retry_in": 2}], snap("arriving", HUB_B, 2, 1)),
+                         ({"advance": 2}, [], snap("arriving", HUB_B, 2, 3)),
+                         (unknown(HUB_B), [{"retry_in": 4}], snap("arriving", HUB_B, 3, 3)),
+                         ({"advance": 4}, [], snap("arriving", HUB_B, 3, 7)),
+                         (unknown(HUB_B), [{"retry_in": 8}], snap("arriving", HUB_B, 4, 7)),
+                         ({"advance": 2}, [], snap("arriving", HUB_B, 4, 9)),
+                         (unknown(HUB_B), [{"retry_in": 16}], snap("arriving", HUB_B, 5, 9)),
+                         ({"advance": 16}, [], snap("arriving", HUB_B, 5, 25)),
+                         (unknown(HUB_B), [{"expired": {}}], snap("expired", HUB_B, 5, 25)),
+                         ({"advance": 5}, [], snap("expired", HUB_B, 5, 30)),
+                         (unknown(HUB_B), [], snap("expired", HUB_B, 5, 30)),
+                         (accepted(HUB_B), [], snap("expired", HUB_B, 5, 30)),
+                     ]))
+    out.append(trace("move-arrival-backoff-ceiling-and-default-wait",
+                     "The backoff doubles to the 60 s ceiling; with the default wait of 300 s, the retry that lands at 303 s "
+                     "ends it.", refs, T, ctx, [
+                         (moved(HUB_B), [], snap("arriving", HUB_B, 0, 0)),
+                         *[step for n, (d, w) in enumerate([(1, 0), (2, 1), (4, 3), (8, 7), (16, 15), (32, 31), (60, 63),
+                                                            (60, 123), (60, 183), (60, 243)], start=1)
+                           for step in ((unknown(HUB_B), [{"retry_in": d}], snap("arriving", HUB_B, n, w)),
+                                        ({"advance": d}, [], snap("arriving", HUB_B, n, w + d)))],
+                         (unknown(HUB_B), [{"expired": {}}], snap("expired", HUB_B, 10, 303)),
+                     ]))
+    out.append(trace("move-arrival-old-hub-is-not-an-arrival",
+                     "mailbox.unknown-group from any hub but the one the group moved to is the ordinary M§7.4 case (a member "
+                     "that missed the move): nothing to wait for. Its answers leave the wait as it was.", refs, T, ctx, [
+                         (moved(HUB_B), [], snap("arriving", HUB_B, 0, 0)),
+                         (unknown(HUB_A), [], snap("arriving", HUB_B, 0, 0)),
+                         (accepted(HUB_A), [], snap("arriving", HUB_B, 0, 0)),
+                         (unknown(HUB_B), [{"retry_in": 1}], snap("arriving", HUB_B, 1, 0)),
+                     ]))
+    out.append(trace("move-arrival-other-answers-keep-waiting",
+                     "Only an accepted shows the new hub hosts the group. Its other refusals are handled as usual (an outage as "
+                     "M§9.4, a refusal of the item as M§6.5) and leave the wait open.", refs + ["M§9.4"], T, ctx, [
+                         (moved(HUB_B), [], snap("arriving", HUB_B, 0, 0)),
+                         ({"answer": {"hub": HUB_B, "reason": "policy.blocked"}}, [], snap("arriving", HUB_B, 0, 0)),
+                         ({"answer": {"hub": HUB_B, "reason": "mailbox.hub-unreachable"}}, [], snap("arriving", HUB_B, 0, 0)),
+                         (unknown(HUB_B), [{"retry_in": 1}], snap("arriving", HUB_B, 1, 0)),
+                     ]))
+    out.append(trace("move-arrival-another-move-restarts",
+                     "A later move replaces the wait: the hub the group moved on from is no longer waited for, and the backoff "
+                     "and the bound start afresh for the new one.", refs, T, ctx, [
+                         (moved(HUB_B), [], snap("arriving", HUB_B, 0, 0)),
+                         (unknown(HUB_B), [{"retry_in": 1}], snap("arriving", HUB_B, 1, 0)),
+                         ({"advance": 5}, [], snap("arriving", HUB_B, 1, 5)),
+                         (moved(HUB_C), [], snap("arriving", HUB_C, 0, 0)),
+                         (unknown(HUB_B), [], snap("arriving", HUB_C, 0, 0)),
+                         (unknown(HUB_C), [{"retry_in": 1}], snap("arriving", HUB_C, 1, 0)),
+                     ]))
+    out.append(trace("move-arrival-no-move-no-wait",
+                     "Before any move there is nothing to wait for: mailbox.unknown-group is handled as M§7.4 says.", refs, T, ctx, [
+                         (unknown(HUB_A), [], snap("none")),
+                         ({"advance": 10}, [], snap("none")),
+                         (accepted(HUB_A), [], snap("none")),
+                     ]))
     return out
 
 

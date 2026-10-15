@@ -1,0 +1,70 @@
+{
+  "vector": "messaging/move-arrival-no-move-no-wait",
+  "format": 1,
+  "kind": "messaging",
+  "description": "Before any move there is nothing to wait for: mailbox.unknown-group is handled as M§7.4 says.",
+  "spec_ref": [
+    "M§7.4",
+    "§13.2"
+  ],
+  "context": {
+    "component": "move-arrival",
+    "now": 1760000000
+  },
+  "input": {
+    "check": "move-arrival-trace",
+    "steps": [
+      {
+        "event": {
+          "answer": {
+            "hub": "did:web:mbx.alice.example",
+            "reason": "mailbox.unknown-group"
+          }
+        }
+      },
+      {
+        "event": {
+          "advance": 10
+        }
+      },
+      {
+        "event": {
+          "answer": {
+            "hub": "did:web:mbx.alice.example"
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [],
+        "state": {
+          "state": "none",
+          "hub": null,
+          "attempt": 0,
+          "waited": null
+        }
+      },
+      {
+        "emit": [],
+        "state": {
+          "state": "none",
+          "hub": null,
+          "attempt": 0,
+          "waited": null
+        }
+      },
+      {
+        "emit": [],
+        "state": {
+          "state": "none",
+          "hub": null,
+          "attempt": 0,
+          "waited": null
+        }
+      }
+    ]
+  }
+}

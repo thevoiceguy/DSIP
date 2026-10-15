@@ -3,7 +3,8 @@
  * outbox while the hub cannot be reached.
  *
  * Spec: M§6.5 (seq gaps and re-joining, spec-gap 69; commit conflicts, spec-gap 58; hub moves,
- * spec-gap 60), M§9.4 (hub unavailable, spec-gap 72), §13.2 (backoff), §15.3 (category fallback).
+ * spec-gap 60), M§7.4 (arriving at a new hub, spec-gap 129), M§9.4 (hub unavailable, spec-gap 72),
+ * §13.2 (backoff), §15.3 (category fallback).
  */
 import type { Json, JsonObject } from "../did.js";
 import { isRegisteredReason } from "../registry.js";
@@ -250,5 +251,60 @@ export class HubOutage implements Machine {
       emit,
       state: { state: this.state, pending: [...this.pending], attempt: this.attempt, down_for: downFor, handover_attempt: this.handoverAttempt },
     };
+  }
+}
+
+// ---- M§7.4 arriving at the hub a group moved to
+
+/** Spec: M§7.4 — how long a member waits for the new hub, as the mailbox's `handover_wait` (spec-gap 129). */
+const ARRIVAL_WAIT_S = 300;
+
+/**
+ * A member that reaches the hub a group moved to before the committer's `group-info` has set it
+ * up. Until that hub accepts a deposit, its `mailbox.unknown-group` means "not yet": the same
+ * deposit is retried with the §13.2 backoff for at most `arrival_wait` from the move, then the
+ * refusal is handled as M§7.4 says. Answers from any other hub, and any other answer, are not
+ * this machine's.
+ *
+ * Spec: M§7.4, §13.2 (spec-gap 129)
+ */
+export class MoveArrival implements Machine {
+  private now: number;
+  private readonly wait: number;
+  private state: "none" | "arriving" | "hosted" | "expired" = "none";
+  private hub: string | null = null;
+  private since: number | null = null;
+  private attempt = 0;
+
+  constructor(ctx: { now: number; arrival_wait?: number }) {
+    this.now = ctx.now;
+    this.wait = ctx.arrival_wait ?? ARRIVAL_WAIT_S;
+  }
+
+  step(e: JsonObject): Step {
+    const emit: Json[] = [];
+    if ("moved" in e) {
+      // a later move replaces the wait: backoff and bound start afresh
+      this.hub = (e["moved"] as JsonObject)["hub"] as string;
+      [this.state, this.since, this.attempt] = ["arriving", this.now, 0];
+    } else if ("advance" in e) {
+      this.now += e["advance"] as number;
+    } else {
+      const answer = e["answer"] as { hub: string; reason?: string };
+      if (this.state === "arriving" && answer.hub === this.hub) {
+        if (answer.reason === undefined) this.state = "hosted";
+        else if (answer.reason === "mailbox.unknown-group") {
+          if (this.now - this.since! >= this.wait) {
+            this.state = "expired";
+            emit.push({ expired: {} });
+          } else {
+            this.attempt += 1;
+            emit.push({ retry_in: Math.min(2 ** (this.attempt - 1), BACKOFF_CEILING_S) });
+          }
+        }
+      }
+    }
+    const waited = this.since === null ? null : this.now - this.since;
+    return { emit, state: { state: this.state, hub: this.hub, attempt: this.attempt, waited } };
   }
 }
