@@ -252,6 +252,11 @@ jobs:
         # the place; idle expiry (--release-idle) frees it again; the enrolment survives a restart.
         run: timeout 300 bash demos/mailbox-enrolment-demo.sh | tail -18
         working-directory: impl
+      - name: status pages (relay and mailbox --status-listen)
+        # Self-verifying: the relay follows a call ringing → answered → ended by bye and counts a refusal; the mailbox
+        # reports its --serve-any place taken, the owner's KeyPackages, a mailbox.not-served refusal and a blob 404.
+        run: timeout 300 bash demos/status-demo.sh | tail -14
+        working-directory: impl
       - name: moving a group to another hub
         # Self-verifying: the old hub orders the move and nothing after; the new hub continues the numbering; a member who
         # missed the move is refused by the old hub, syncs and re-sends; the new hub validates the next commit.

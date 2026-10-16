@@ -6,6 +6,9 @@
 #   dsipctl resolve <did>       what an endpoint sees (dsip resolve via this node's bootstrap)
 #   dsipctl peers               routing-table size over time (5 samples)
 #   dsipctl relay-tail          follow the relay log (bound device / invite → leg / attempt outcome)
+#   dsipctl relay-status [-v]   the relay's status page: bound devices, sessions, queues, refusals (-v: DIDs, sessions)
+#   dsipctl mailbox-status [-v] the mailbox's: enrolment, storage against quota, hubs, refusals (-v: per owner and hub)
+#   dsipctl metrics             both services' Prometheus metrics
 #   dsipctl mailbox-tail        follow the mailbox + hub log
 #   dsipctl turn-tail           follow coturn's log (allocations show a TURN relay in use)
 #   dsipctl turn-cred [ttl]     mint TURN credentials from /var/lib/dsip/turn.secret (what the relay's /turn does for browsers)
@@ -25,6 +28,10 @@ case "${1:-}" in
   resolve) dsip resolve "$2" --dht "$(cat /var/lib/dsip/bootstrap 2>/dev/null || cat /var/lib/dsip/my-multiaddr)" ;;
   peers)   for i in 1 2 3 4 5; do ctl '{"op":"stats"}' | jq -c '{t:now|floor,routing_peers:.stats.routing_peers,stored:.stats.stored}'; sleep 2; done ;;
   relay-tail)   tail -f /var/log/dsip/relay.log ;;
+  # the status ports node-setup.sh gives the services (loopback only)
+  relay-status)   curl -sf "http://127.0.0.1:9101/status$([ "${2:-}" = -v ] && echo '?detail=1')" | jq . ;;
+  mailbox-status) curl -sf "http://127.0.0.1:9102/status$([ "${2:-}" = -v ] && echo '?detail=1')" | jq . ;;
+  metrics)        curl -sf http://127.0.0.1:9101/metrics; curl -sf http://127.0.0.1:9102/metrics ;;
   mailbox-tail) tail -f /var/log/dsip/mailbox.log ;;
   turn-tail)    tail -f /var/log/turnserver/turn.log ;;
   turn-cred)    # TURN REST API credentials from the shared secret, valid ${2:-3600} s: for dsip call/answer --turn-user/--turn-pass

@@ -146,7 +146,7 @@ if has relay; then
 Description=DSIP relay (wss)
 After=network-online.target chrony.service
 [Service]
-ExecStart=$BIN/dsip-relay --listen 0.0.0.0:$RELAY_PORT --state $STATE/relay $HOSTARG$RELAYARG
+ExecStart=$BIN/dsip-relay --listen 0.0.0.0:$RELAY_PORT --state $STATE/relay --status-listen 127.0.0.1:9101 $HOSTARG$RELAYARG
 Restart=always
 StandardOutput=append:$LOG/relay.log
 StandardError=append:$LOG/relay.log
@@ -175,7 +175,7 @@ if has mailbox; then
 Description=DSIP mailbox and hub service (wss + blob endpoint, one TLS port)
 After=network-online.target chrony.service
 [Service]
-ExecStart=$BIN/dsip-mailbox --listen 0.0.0.0:$MAILBOX_PORT --state $STATE/mailbox$OWNERARG $HOSTARG --ca $STATE/ca-all.pem $DOCARG
+ExecStart=$BIN/dsip-mailbox --listen 0.0.0.0:$MAILBOX_PORT --state $STATE/mailbox --status-listen 127.0.0.1:9102$OWNERARG $HOSTARG --ca $STATE/ca-all.pem $DOCARG
 Restart=always
 StandardOutput=append:$LOG/mailbox.log
 StandardError=append:$LOG/mailbox.log
