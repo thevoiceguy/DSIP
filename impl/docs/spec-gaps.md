@@ -3991,3 +3991,46 @@ never sent `transport.no-response` (§12.7 rule 6, a MUST) when every leg rang o
 **Fix, transcribed into v0.16 (Appendix A.13).** §13.3 gains "What a relay forgets", the proposed text above; the core
 document's A.13 now lists one core change. The vectors README marks 131 decided; the `Impl:` notes in the three
 implementations became `Spec: §13.3` citations.
+
+## 132. §12.7 rule 6 / §12.9 — a relay is never told when a leg has expired
+
+**Found (2026-10-16, while fixing the relay's memory, #177).** §12.7 rule 6 says a relay MUST signal the attempt's
+outcome, and spec-gap 76 decided what it sends when every leg expired and none rejected: its own `error`
+`transport.no-response`. Rule 3 lists "expired" among a leg's terminal states. Nothing says when a leg expires. The
+reference relay's tracker took expiry as an outside event (`leg_expired`), and the relay binary never produced one: it
+never sent `transport.no-response`, and the conformance vectors could not notice, because they feed the event in.
+
+The obvious clock is the wrong one. The reference endpoint signs an invite for 30 s; T-Ring-Local runs 120 s by default
+(30–300 s). Expiring every outstanding leg at the invite's `expires_at` would end calls that are still ringing.
+
+Choices:
+
+- **(a) A leg that has sent nothing once the invite has expired is expired.** No `progress`, `answer` or `reject` by
+  `expires_at` (expired is `expires_at < now`, §12.9). A responder acts only on an unexpired invite, and acts at once:
+  it alerts and sends `progress`, or answers, or rejects. So a leg still silent past the expiry never processed the
+  invite: a frozen or vanished device. A leg that rang is left alone; it ends itself with `reject user.no-answer` at
+  T-Ring-Local, which the relay already forwards as the outcome.
+- **(b) Expire every outstanding leg at the invite's expiry.** Simple, and wrong for any ring longer than the invite's
+  lifetime (above).
+- **(c) A relay timer of its own** (say T-Ring's 300 s upper bound). Adds a constant the spec does not have, and is
+  slower than (a) for the case that matters (a dead device) without being more correct for a ringing one.
+
+**Draft choice: (a).** Implemented as an Impl choice pending a decision. The tracker expires silent legs on every clock
+advance (after queue expiry, before forgetting): attempts in id order, legs in device order, then rule 6 for each attempt
+that changed. It applies after an answer too (a silent leg becomes `expired`; nothing is emitted). An attempt forked
+without an invite on record (the suite's `{"relay":"invite"}` event) still expires legs only by `leg_expired`. The relay
+binary advances its clock every second, without traffic too, and acts on what that emits; the tracker's forwarded
+emissions now name their attempt (`Emission::Forward.session`, not part of the vector shape) so an outcome reached on a
+tick finds its initiator.
+
+**Pinned.** `state/relay-silent-legs-expire-with-the-invite` (still outstanding at `expires_at`, expired one second
+later, `transport.no-response`), `relay-ringing-leg-outlives-the-invite` (the leg that rang outlives the expiry and ends
+the attempt with its own `reject user.no-answer`; the silent one beside it expires), `relay-silent-leg-expires-after-an-answer`.
+Two older vectors had legs that never spoke past the invite's expiry; they gain the ringing `progress` a real leg sends,
+so they keep testing what they were written for (`relay-leg-added-at-the-invites-last-second`,
+`relay-attempt-forgotten-after-the-queue-cap`). `demos/relay-no-response-demo.sh` (CI) checks it on the wire: a frozen
+callee (SIGSTOP) and the caller ends on `transport.no-response` 31 s after the invite; a ringing callee rings on past 40 s.
+
+**Proposed text.** §12.7 rule 3, after "(answered, rejected, or expired)": "A leg is expired when the invite has expired
+(§12.9) and the leg has sent the relay no `progress`, `answer` or `reject` for the attempt; a leg that has is ended by
+its own `reject` (T-Ring-Local) or by the initiator."
