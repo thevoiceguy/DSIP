@@ -26,6 +26,7 @@ class Attempt:
     outcome: str | None = None                                  # None | answered | rejected | cancelled
     order: list[str] = field(default_factory=list)
     last: int = 0                                               # when the relay last forked, flushed or heard from it (spec-gap 131)
+    heard: set[str] = field(default_factory=set)                # legs that have sent progress, answer or reject (spec-gap 132)
 
     def snapshot(self) -> dict:
         return {"legs": dict(self.legs), "outcome": self.outcome}
@@ -54,6 +55,7 @@ class Relay:
         if "advance" in event:
             self.now += event["advance"]
             self.expire_queues()
+            self.expire_silent_legs()
             self.forget()
         elif "relay" in event:
             self.relay_event(event)
@@ -113,6 +115,23 @@ class Relay:
         131): while bound, and until `forget` drops it — offline_retention_s after its last binding ended, once nothing
         is held for it."""
         return to in self.bindings or to in self.devices
+
+    def expire_silent_legs(self) -> None:
+        """Impl (spec-gap 132): a leg that has sent nothing — no progress, answer or reject — once the invite has
+        expired (expires_at < now, §12.9) is expired. A responder acts only on an unexpired invite and acts at once
+        (progress, answer or reject), so silence past expiry means the invite was never processed; a leg that rings
+        ends itself with reject user.no-answer at T-Ring-Local (§12.9). When that leaves no leg outstanding the
+        attempt completes as §12.7 rule 6 says. Attempts in id order, legs in device order (spec-gap 89); an attempt
+        forked by a `relay invite` event carries no invite and is expired only by `leg_expired`."""
+        for sid in sorted(self.attempts):
+            a, inv = self.attempts[sid], self.invites.get(sid)
+            if inv is None or "expires_at" not in inv or inv["expires_at"] >= self.now:
+                continue
+            silent = [leg for leg in sorted(a.legs) if a.legs[leg] == "delivered" and leg not in a.heard]
+            for leg in silent:
+                a.legs[leg] = "expired"
+            if silent:
+                self.check_complete(a)
 
     def forget(self) -> None:
         """§13.3 (v0.16, spec-gap 131): what a relay stops holding. An attempt, once more than the T-Queue cap has passed since the
@@ -227,6 +246,7 @@ class Relay:
         if a.legs.get(leg) is None:
             return self.route_plain(m)  # spec-gap 82: not a leg of this attempt — routed like any envelope, never dropped
         a.last = self.now
+        a.heard.add(leg)
         if t == "answer":
             # Never withheld, whatever the leg's state (spec-gap 86): only the initiator ends a leg that has
             # answered — bye already-answered / cancelled / failed (§12.7 rule 4, §12.5 rule 3, §12.4). The

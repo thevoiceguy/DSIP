@@ -21,6 +21,8 @@ interface Attempt {
   rejections: { leg: string; reason: string }[];
   /** When the relay last did anything for the attempt (forked it, added a leg, handled a message of it); spec-gap 131. */
   touched: number;
+  /** Legs that have sent the attempt a `progress`, `answer` or `reject` (spec-gap 132: those are never expired as silent). */
+  heard: Set<string>;
 }
 
 interface Queued {
@@ -73,6 +75,7 @@ export class Relay {
     if ("advance" in e) {
       this.now += e["advance"] as number;
       this.expireQueue();
+      this.expireSilentLegs();
       this.forget();
     } else if ("recv" in e) {
       this.recv(e["recv"] as JsonObject);
@@ -120,7 +123,7 @@ export class Relay {
   }
 
   private fork(session: string, from: string, to: string, legs: string[], expires: number | undefined, withId: boolean): void {
-    const attempt: Attempt = { from, to, expires, legs: new Map(), outcome: null, rejections: [], touched: this.now };
+    const attempt: Attempt = { from, to, expires, legs: new Map(), outcome: null, rejections: [], touched: this.now, heard: new Set() };
     this.attempts.set(session, attempt);
     for (const leg of legs) this.addLeg(session, attempt, leg, withId);
   }
@@ -274,6 +277,7 @@ export class Relay {
     const type = m["type"] as string;
     const leg = m["from"] as string;
     const state = a.legs.get(leg)!;
+    a.heard.add(leg); // spec-gap 132: a leg that has said anything ends itself, it is never expired as silent
     if (type === "answer") {
       // An answer is never withheld, whatever the leg's state: only the initiator can end a leg that has
       // answered (§12.7 rule 4; §12.5 rule 3 after a cancel; §12.4 after an ended attempt). The record moves
@@ -290,6 +294,26 @@ export class Relay {
     if (type === "progress") return void this.emit.push({ forward: { type, status: m["status"]!, from: leg } });
     a.rejections.push({ leg, reason: m["reason"] as string });
     this.legEnded(session, leg, "rejected");
+  }
+
+  /**
+   * Silent legs expire with the invite: once an attempt's invite has expired (`expires_at < now`), every leg still
+   * `delivered` that has never sent the attempt a `progress`, `answer` or `reject` becomes `expired`, and the attempt is
+   * then completed as rule 6 says. A leg that has spoken ends itself (a ringing leg rejects at T-Ring-Local).
+   * Spec: §12.7 rule 3 (a leg is tracked until it terminates), §12.7 rule 6 (attempt outcome), §12.9 (timers: the
+   * invite's `expires_at` bounds the delivery of the attempt).
+   * Impl: spec-gap 132 (draft) — the relay itself expires silent legs at the invite's expiry, attempts in id order,
+   * legs in device order (spec-gap 89), whatever the outcome (after an answer: `expired`, nothing emitted). An attempt
+   * with no invite (forked by `{"relay":"invite"}`) expires legs only by `leg_expired`. Expiring a leg is not
+   * something done *for* the attempt, so it does not keep it held (spec-gap 131).
+   */
+  private expireSilentLegs(): void {
+    for (const [session, a] of [...this.attempts].sort(([x], [y]) => (x < y ? -1 : x > y ? 1 : 0))) {
+      if (a.expires === undefined || !(a.expires < this.now)) continue;
+      for (const leg of [...a.legs.keys()].sort()) {
+        if (a.legs.get(leg) === "delivered" && !a.heard.has(leg)) this.legEnded(session, leg, "expired");
+      }
+    }
   }
 
   /** §12.7 rule 6: when the last outstanding leg ends without an answer, signal the attempt outcome. */

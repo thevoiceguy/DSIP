@@ -352,7 +352,19 @@ transition depends on (`status`, `ring_timeout`, `queue_timeout`, `reason`,
 | `{"relay":"bind"|"unbind","device":DEVICE,"identity":IDENTITY}` | a device (un)binds via `hello` (§13.2); binding flushes queued introductions |
 | `{"recv": introduction}` / `{"recv": invite}` (without `legs`) | routed by the relay's bindings; introductions to unknown/offline identities are queued with no error (§19.4 anti-enumeration) |
 | `{"recv": any}` to a *known* but unbound identity/device | queued (§13.3 store-and-forward) until `min(expires_at, context.offline_retention_s)` (default 86,400, the §13.3 RECOMMENDED value, when the context gives none); `advance` expires queues; `bind` flushes the identity's and the device's queues together in arrival order — the order the relay received them, whichever of the two each was addressed to (spec-gap 98) — turning queued invites into tracked legs |
-| `{"advance": SECONDS}` | clock; expires queues, then forgets (below) |
+| `{"advance": SECONDS}` | clock; expires queues, then silent legs, then forgets (below) |
+
+**Silent legs expire with the invite (spec-gap 132, draft).** After expiring queues, every `advance` expires each leg
+that is still `delivered` and has never sent the attempt anything — no `progress`, `answer` or `reject` — once the
+attempt's invite has expired (`expires_at < now`; at `now = expires_at` it has not). A leg that has sent any of those
+is not expired this way: it ends itself (a ringing leg rejects `user.no-answer` at T-Ring-Local). Attempts go in id order,
+their legs in device order (spec-gap 89), and each attempt whose legs changed is then completed as §12.7 rule 6 says
+(the most informative `reject` forwarded, or `send error transport.no-response`), so those emissions come in attempt
+id order. This applies whatever the outcome: after an answer a silent leg still becomes `expired`, with nothing emitted.
+An attempt forked by a `{"relay":"invite"}` event has no invite and expires legs only by `{"relay":"leg_expired"}`.
+What counts as hearing from a leg is what the attempt itself handles: its `progress`, `answer` or `reject` without
+`in_reply_to` (a message with `in_reply_to` is routed by `to` and leaves the leg silent). Expiring a silent leg is not
+something the relay does *for* the attempt: it does not restart the 1800 s count below.
 
 **What a relay forgets (§13.3, spec-gap 131).** After expiring queues, every `advance` drops, silently (no emission):
 an **attempt** (and its invite) once more than 1800 s — the T-Queue hard cap, §12.9/§12.10 — have passed since the
@@ -2119,6 +2131,9 @@ Each item has a matching `spec-gap` issue draft in `impl/docs/spec-gaps.md`.
     was, not how the call finished: `session.cancelled` when we withdrew it (§12.5 rule 3), `session.already-answered`
     when an answer was applied (however the call then ended), `session.failed` when the attempt was never answered
     (`state/fork-late-answer-after-the-call-ended`, `fork-late-answer-after-our-hangup`).
+132. §12.7 rule 6 / §12.9: **draft** — a leg that has sent nothing once the invite has expired is expired, so the relay
+    can say `transport.no-response` (`state/relay-silent-legs-expire-with-the-invite`,
+    `relay-ringing-leg-outlives-the-invite`, `relay-silent-leg-expires-after-an-answer`).
 131. §12.7 / §13.3: **decided** (v0.16) — a relay forgets an attempt once more than 1800 s (the T-Queue cap) pass with nothing for it,
     and a known identity or device once nothing is bound or held for it and its last binding ended more than
     `offline_retention_s` ago (`state/relay-attempt-forgotten-after-the-queue-cap`,

@@ -57,6 +57,30 @@
       },
       {
         "event": {
+          "recv": {
+            "type": "progress",
+            "id": "01K742SG00MXEMVDB1NBTS9T20",
+            "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "session": "01K742SG00YYNVBMYAQK1CB31F",
+            "status": "ringing"
+          }
+        },
+        "expect": {
+          "emit": [
+            {
+              "forward": {
+                "type": "progress",
+                "status": "ringing",
+                "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+              }
+            }
+          ],
+          "attempts": {},
+          "inbox": {}
+        }
+      },
+      {
+        "event": {
           "advance": 5
         },
         "expect": {
@@ -90,6 +114,30 @@
               "outcome": null
             }
           },
+          "inbox": {}
+        }
+      },
+      {
+        "event": {
+          "recv": {
+            "type": "progress",
+            "id": "01K742SMW8G425A7ATV8HHAXQC",
+            "from": "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ",
+            "session": "01K742SG00YYNVBMYAQK1CB31F",
+            "status": "ringing"
+          }
+        },
+        "expect": {
+          "emit": [
+            {
+              "forward": {
+                "type": "progress",
+                "status": "ringing",
+                "from": "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ"
+              }
+            }
+          ],
+          "attempts": {},
           "inbox": {}
         }
       },
