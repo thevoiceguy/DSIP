@@ -11,6 +11,9 @@ from dataclasses import dataclass, field
 # §12.7 rule 6 preference order; anything else ranks after these, first-seen first.
 REASON_RANK = ["user.declined", "user.no-answer", "endpoint.busy", "endpoint.unavailable"]
 TERMINAL = ("answered", "rejected", "expired", "cancelled")
+# §12.9/§12.10: the T-Queue hard cap, the longest a caller waits on one progress. Impl (spec-gap 131): an attempt is held
+# until more than this passes with no message for it.
+T_QUEUE_CAP_S = 1800
 
 
 @dataclass
@@ -22,6 +25,7 @@ class Attempt:
     reasons: dict[str, str] = field(default_factory=dict)       # device -> reject reason
     outcome: str | None = None                                  # None | answered | rejected | cancelled
     order: list[str] = field(default_factory=list)
+    last: int = 0                                               # when the relay last forked, flushed or heard from it (spec-gap 131)
 
     def snapshot(self) -> dict:
         return {"legs": dict(self.legs), "outcome": self.outcome}
@@ -40,6 +44,7 @@ class Relay:
         self.arrivals = 0                              # arrival counter: a flush delivers in arrival order (spec-gap 98)
         self.retention: int = ctx.get("offline_retention_s", 86400)
         self.invites: dict[str, dict] = {}             # session → invite message (for legs added mid-attempt)
+        self.last_bound: dict[str, int] = {}           # identity or device → when its last binding ended (spec-gap 131)
 
     def emit(self, e: dict) -> None:
         self.out.append(e)
@@ -49,6 +54,7 @@ class Relay:
         if "advance" in event:
             self.now += event["advance"]
             self.expire_queues()
+            self.forget()
         elif "relay" in event:
             self.relay_event(event)
         elif "recv" in event:
@@ -59,7 +65,7 @@ class Relay:
 
     def relay_event(self, ev: dict) -> None:
         if ev["relay"] == "invite":
-            a = Attempt(ev["session"], ev["from"], ev["to"])
+            a = Attempt(ev["session"], ev["from"], ev["to"], last=self.now)
             for leg in ev["legs"]:
                 a.legs[leg] = "delivered"
                 self.emit({"deliver": {"leg": leg, "type": "invite"}})
@@ -68,6 +74,8 @@ class Relay:
             device, identity = ev["device"], ev["identity"]
             self.bindings.setdefault(identity, set()).add(device)
             self.devices[device] = identity
+            self.last_bound.pop(identity, None)
+            self.last_bound.pop(device, None)
             # §13.3: flush the store-and-forward queues for the identity and the device together, in the order the
             # envelopes arrived (spec-gap 98) — not the identity's queue first
             queued = self.inbox.pop(identity, []) + self.inbox.pop(device, [])
@@ -80,9 +88,13 @@ class Relay:
                     # unexpired as the envelope pipeline means it: `expired` is expires_at < now (§12.9)
                     if inv is not None and inv.get("expires_at", self.now + 1) >= self.now:
                         a.legs[device] = "delivered"
+                        a.last = self.now
                         self.emit({"deliver": {"leg": device, "type": "invite", "id": sid}})
         elif ev["relay"] == "unbind":
             self.bindings.get(ev["identity"], set()).discard(ev["device"])
+            self.last_bound[ev["device"]] = self.now
+            if not self.bindings.get(ev["identity"]):
+                self.last_bound[ev["identity"]] = self.now
         elif ev["relay"] == "leg_expired":
             a = self.attempts.get(ev["session"])  # an expiry for an attempt no longer held changes nothing
             if a is not None and a.legs.get(ev["leg"]) == "delivered":
@@ -97,8 +109,28 @@ class Relay:
         return sorted(self.bindings.get(to, ()))
 
     def known(self, to: str) -> bool:
-        """Impl (spec-gap 17): a recipient is known if any device has ever bound for it on this relay."""
+        """§13.3: a recipient is known if a device has bound for it here within the retention window. Impl (spec-gap
+        131): while bound, and until `forget` drops it — offline_retention_s after its last binding ended, once nothing
+        is held for it."""
         return to in self.bindings or to in self.devices
+
+    def forget(self) -> None:
+        """Impl (spec-gap 131): what a relay stops holding. An attempt, once more than the T-Queue cap has passed since the
+        relay last forked, flushed or added a leg for it or received a message of it from a leg or its initiator: its
+        session is routed by `to` from then on, as after a restart (§13.3, spec-gap 82). An
+        identity or device with nothing bound and nothing held, once its last binding ended more than offline_retention_s
+        ago (§13.3 "within the relay's retention window"). Nothing is emitted."""
+        for sid in [s for s, a in self.attempts.items() if a.last + T_QUEUE_CAP_S < self.now]:
+            del self.attempts[sid]
+            self.invites.pop(sid, None)
+        for who in [w for w, t in self.last_bound.items() if t + self.retention < self.now and w not in self.inbox]:
+            del self.last_bound[who]
+            if who in self.devices:
+                identity = self.devices[who]
+                if who not in self.bindings.get(identity, set()):
+                    del self.devices[who]
+            elif not self.bindings.get(who):
+                self.bindings.pop(who, None)
 
     def enqueue(self, m: dict) -> None:
         self.arrivals += 1
@@ -115,6 +147,7 @@ class Relay:
                 self.attempts[sid] = a
                 self.invites[sid] = m
             a.legs[device] = "delivered"
+            a.last = self.now
             self.emit({"deliver": {"leg": device, "type": "invite", "id": sid}})
         else:
             self.emit({"deliver": {"leg": device, "type": m["type"], "id": m["id"]}})
@@ -176,6 +209,7 @@ class Relay:
             # plain routing by `to` (§13.2), queued for a known-offline device (§13.3).
             return self.route_plain(m)
         if t == "cancel" and m["from"] == a.initiator:
+            a.last = self.now
             # §12.7 rule 3: per-leg cancel to every leg that has not terminated — or, addressed to a device, to that
             # leg alone (§12.11: "a specific device DID (targeted cancel of one leg)")
             only = m.get("to") if m.get("to") in a.legs else None
@@ -192,6 +226,7 @@ class Relay:
         leg = m["from"]
         if a.legs.get(leg) is None:
             return self.route_plain(m)  # spec-gap 82: not a leg of this attempt — routed like any envelope, never dropped
+        a.last = self.now
         if t == "answer":
             # Never withheld, whatever the leg's state (spec-gap 86): only the initiator ends a leg that has
             # answered — bye already-answered / cancelled / failed (§12.7 rule 4, §12.5 rule 3, §12.4). The
