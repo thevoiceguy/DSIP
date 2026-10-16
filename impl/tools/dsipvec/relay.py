@@ -117,7 +117,7 @@ class Relay:
         return to in self.bindings or to in self.devices
 
     def expire_silent_legs(self) -> None:
-        """Impl (spec-gap 132): a leg that has sent nothing — no progress, answer or reject — once the invite has
+        """§12.7 rule 3 (v0.16, spec-gap 132): a leg that has sent nothing — no progress, answer or reject — once the invite has
         expired (expires_at < now, §12.9) is expired. A responder acts only on an unexpired invite and acts at once
         (progress, answer or reject), so silence past expiry means the invite was never processed; a leg that rings
         ends itself with reject user.no-answer at T-Ring-Local (§12.9). When that leaves no leg outstanding the

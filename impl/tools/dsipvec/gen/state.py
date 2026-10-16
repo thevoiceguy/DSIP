@@ -1037,7 +1037,7 @@ def vectors() -> list[dict]:
         sf({"recv": INV("again-inv", NOW + 10830)}, [{"queue": {"to": BOB, "type": "invite"}}], {BOB: 1}),
     ], component="relay"))
     out[-1]["context"]["offline_retention_s"] = 3600
-    # spec-gap 132 (draft): a leg that has sent nothing once the invite has expired is expired.
+    # §12.7 rule 3 (v0.16, spec-gap 132): a leg that has sent nothing once the invite has expired is expired.
     NORESP = {"send": {"type": "error", "to": APH, "session": sid, "reason": "transport.no-response", "in_reply_to": sid}}
     out.append(trace("relay-silent-legs-expire-with-the-invite",
                      "Legs that have sent nothing are expired once the invite has expired (expires_at < now; spec-gap 132): "
