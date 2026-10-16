@@ -3837,3 +3837,68 @@ latest `group-info`": "A member can reach the new hub before that `group-info`. 
 deposits, a member treats the new hub's `mailbox.unknown-group` as not yet set up: it re-sends the same deposit with
 the §13.2 backoff, for at most 300 s (RECOMMENDED) from processing the move. Past that, the refusal is handled as
 below."
+
+## 130. M§4.1 / M§5.7 / M§15.5 — an enrolled identity can never leave a mailbox, and a full mailbox says nothing
+
+**Found (2026-10-15, while reviewing the browser welcome screen, #168).** Spec-gap 115 let a mailbox serve identities
+that enrol by binding, "within a bound the operator sets". Nothing ends an enrolment. An identity cannot say it is
+done with a mailbox: M§4.1 "Moving to another mailbox" changes what the identity advertises, and nothing passes to
+the old mailbox. The mailbox has no rule for when to stop serving it. So each place in the bound is used once and held
+for good, with whatever the mailbox stores for the identity: retained items, KeyPackages, blobs, group registrations,
+grants. A browser identity made and thrown away, or one that moved, keeps its place. The testbed's mailboxes (L1, L2,
+`--serve-any 32`) had used 11 of their 32 places each on 2026-10-15, almost all of them by test identities.
+
+Once the bound is reached, the next identity's owner operations (`sync`, `key-packages`, `mailbox-config`) are not
+refused. The reference mailbox hands them to its drop box, the §19.4 anti-enumeration sink. The device gets an empty
+`items` or an `accepted` for something that is never kept. Then its group creation fails, and nothing says why.
+M§15.5 already lets a mailbox say `transport.unknown-recipient` for an identity it does not serve. An owner operation
+from the identity's own device is not a stranger probing, so there is nothing to hide from it.
+
+Choices:
+
+- **(a) The owner releases its enrolment.** A new `mailbox-config` field, `release: true`, sent by a device of the
+  identity. The mailbox answers `accepted`, then deletes everything it holds for the identity (items, KeyPackages,
+  blobs, registrations, grants, held introductions), closes the identity's bindings, and frees the place. A configured
+  owner (operator-listed) cannot be released this way: the operator listed it, and `release` is refused
+  `mailbox.not-enrolled`. A device sends `release` only once the identity advertises another mailbox, or no longer
+  uses one. The hubs of its groups then find the new mailbox, or none, at their next delivery (M§6.5 rule 5). A
+  release is final: binding again later enrols afresh, with nothing kept.
+- **(b) Idle enrolments expire.** An enrolled identity with no *registered device* (M§4.4: no verified `hello` from
+  any of its devices within `mls_retention_s`, RECOMMENDED 30 days) MAY be released by the mailbox, with the same
+  effects as (a). The bound is the one M§4.4 already uses: past it, every device of the identity has to rejoin its
+  groups by external commit (M§6.8) anyway, so the mailbox drops nothing a device could still use. Configured owners
+  never expire.
+- **(c) A full mailbox refuses, with a reason.** An owner operation from an identity the mailbox does not serve, and
+  cannot enrol because the bound is reached, is refused `mailbox.not-served` (new token, `error`). Before the bound is
+  reached, enrolment is unchanged (spec-gap 115). M§15.5 gains a line: an owner operation is answered truthfully,
+  because only a device delegated by the identity can send one (M§4.3).
+- **(d) Leave it to deployment.** The operator raises the bound or clears the state by hand. This is what happens
+  today, and it does not scale past a test bed: the operator cannot tell a dead enrolment from a quiet one.
+
+**Draft choice: (a), (b) and (c) together.** (a) is the polite path, (b) collects what nobody releases (a cleared
+browser profile can never send (a)), and (c) makes the bound visible instead of silent. (c) uses its own token rather
+than `mailbox.quota-exceeded`: no quota is involved, and retrying later only helps once places free up through (a) or
+(b).
+
+**Open points for the decision:**
+
+1. Should (b) be MAY (operator policy) or SHOULD? MAY keeps a paid mailbox free to hold a quiet customer.
+2. Should a release also send `left` for every registered group (M§5.7) so hubs stop fanning out at once? Or is M§6.5
+   rule 5 at the hub's next delivery enough? The draft relies on rule 5 and sends nothing extra.
+3. Should a device about to release first check that its identity's hint or document no longer names this mailbox?
+   Releasing while still advertised turns every later delivery into `transport.unknown-recipient`. The draft says
+   SHOULD.
+
+**Vectors first (when decided).** The release and the expiry are mailbox state transitions, so they are pinned before
+any code: `mailbox-config-release-valid` / `-configured-owner-refused` (schema and semantic), and mailbox-machine
+traces for: release deletes and frees the place, release of a configured owner refused, expiry after `mls_retention_s`
+without a registered device, a `hello` inside the bound keeps the enrolment, an owner operation at a full bound
+refused `mailbox.not-served`, and a release freeing a place for the next identity. The bound itself and the enrolment
+stay host policy (spec-gap 115). The vectors pin only what a device can observe, plus the deletion.
+
+**Text (proposed, v0.16).** M§4.1, after "Whom a mailbox serves": "An enrolled identity's device MAY release the
+enrolment with `mailbox-config` `release: true` (M§5.7); the mailbox deletes everything it holds for the identity
+and stops serving it. A mailbox MAY release an enrolled identity that has had no registered device (M§4.4) for
+`mls_retention_s`. A configured identity is released only by its operator. An owner operation from an identity the
+mailbox neither serves nor can enrol is refused `mailbox.not-served`." M§5.7 gains `release`. The M§16 registry
+gains `mailbox.not-served` and `mailbox.not-enrolled`. M§15.5 gains the owner-operation line of (c).
