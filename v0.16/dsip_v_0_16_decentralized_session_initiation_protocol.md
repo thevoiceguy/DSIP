@@ -7,7 +7,7 @@
 **Editor:** James Ferris
 **Date:** October 2026
 **Supersedes:** v0.15
-**Companion documents:** WebRTC Media Binding 1.0 (`dsip-webrtc-media-binding-v0.16.md`); Gateway Profile 1.0 (`dsip-gateway-profile-v0.16.md`); Messaging Profile 1.0 (`dsip-messaging-profile-v0.16.md`, with its schema set `dsip-messaging-schemas-draft/`); RTP/SRTP Media Binding (draft, `dsip-rtp-srtp-media-binding-v0.16-draft.md`); DHT Hints Profile (draft, `dsip-dht-hints-profile-v0.16-draft.md`); Alias Transparency Profile (draft, `dsip-alias-transparency-profile-v0.16-draft.md`); Device Events Profile (draft, `dsip-device-events-profile-v0.16-draft.md`); Recording Profile (draft, `dsip-recording-profile-v0.16-draft.md`); Number Attestation Profile (draft, `dsip-number-attestation-profile-v0.16-draft.md`); JSON Schema set v0.15 (`dsip-schemas-v0.16-draft/`); conformance vectors (`impl/vectors/`, 2,130 vectors on which the Python harness, the Rust reference implementation and the independent TypeScript implementation agree)
+**Companion documents:** WebRTC Media Binding 1.0 (`dsip-webrtc-media-binding-v0.16.md`); Gateway Profile 1.0 (`dsip-gateway-profile-v0.16.md`); Messaging Profile 1.0 (`dsip-messaging-profile-v0.16.md`, with its schema set `dsip-messaging-schemas-draft/`); RTP/SRTP Media Binding (draft, `dsip-rtp-srtp-media-binding-v0.16-draft.md`); DHT Hints Profile (draft, `dsip-dht-hints-profile-v0.16-draft.md`); Alias Transparency Profile (draft, `dsip-alias-transparency-profile-v0.16-draft.md`); Device Events Profile (draft, `dsip-device-events-profile-v0.16-draft.md`); Recording Profile (draft, `dsip-recording-profile-v0.16-draft.md`); Number Attestation Profile (draft, `dsip-number-attestation-profile-v0.16-draft.md`); JSON Schema set v0.16 (`dsip-schemas-v0.16-draft/`); conformance vectors (`impl/vectors/`, 2,130 vectors on which the Python harness, the Rust reference implementation and the independent TypeScript implementation agree)
 
 ---
 
@@ -2574,7 +2574,7 @@ schema sets are unchanged. Each item is listed with its spec-gap number.
 
 ### A.13 From v0.15 to v0.16
 
-v0.15 is final at tag `poc-v0.15`. v0.16 changes the Messaging Profile and two core sections (§12.7, §13.3). Each item is
+v0.15 is final at tag `poc-v0.15`; v0.16 is final at tag `poc-v0.16`. v0.16 changes the Messaging Profile and two core sections (§12.7, §13.3). Each item is
 listed with its spec-gap number.
 
 - An enrolment at a mailbox can end (M§4.1, M§5.7, M§16; spec-gap 130): a device releases its identity's enrolment
