@@ -986,7 +986,7 @@ def vectors() -> list[dict]:
     ], component="relay"))
     out[-1]["context"]["offline_retention_s"] = 3600
 
-    # spec-gap 131 (draft): what a relay forgets. (a) An attempt is held until more than 1800 s (the T-Queue cap, §12.9)
+    # §13.3 (v0.16, spec-gap 131): what a relay forgets. (a) An attempt is held until more than 1800 s (the T-Queue cap, §12.9)
     # pass with no message for it; after that its session is routed by `to`, as after a restart (§13.3, spec-gap 82).
     # (b) An identity or device is known while bound and for offline_retention_s after its last binding ended; past that,
     # with nothing held for it, it is never-seen again (§13.3 "within the relay's retention window").

@@ -35,7 +35,7 @@ const INFORMATIVE = ["user.declined", "user.no-answer", "endpoint.busy", "endpoi
 /**
  * How long an attempt with nothing for it is held: the T-Queue hard cap.
  * Spec: §12.9, §12.10 (T-Queue cap 1800 s).
- * Impl: spec-gap 131 (draft) — the relay forgets an attempt once strictly more than this has passed since it last
+ * Spec: §13.3 (v0.16, spec-gap 131) — the relay MAY forget an attempt once strictly more than this has passed since it last
  * did anything for it.
  */
 const ATTEMPT_IDLE_CAP_S = 1800;
@@ -152,7 +152,7 @@ export class Relay {
   /**
    * Silently drop what the relay no longer holds, after the queue has expired.
    * Spec: §12.7, §12.9/§12.10 (T-Queue cap), §13.3 (known recipients, offline retention).
-   * Impl: spec-gap 131 (draft) — an attempt is forgotten once strictly more than 1800 s have passed since the relay
+   * Spec: §13.3 (v0.16, spec-gap 131) — an attempt is forgotten once strictly more than 1800 s have passed since the relay
    * last did anything for it; an identity or device known only through a past binding, with nothing bound now and
    * nothing queued for it, once its last binding ended strictly more than `offline_retention_s` ago. A forgotten
    * recipient is never-seen (transport.unknown-recipient) until a device binds for it.
