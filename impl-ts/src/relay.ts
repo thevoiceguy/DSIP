@@ -19,6 +19,8 @@ interface Attempt {
   outcome: null | "answered" | "rejected" | "cancelled" | "no-response";
   /** Leg rejections in arrival order, for the attempt outcome (§12.7 rule 6). */
   rejections: { leg: string; reason: string }[];
+  /** When the relay last did anything for the attempt (forked it, added a leg, handled a message of it); spec-gap 131. */
+  touched: number;
 }
 
 interface Queued {
@@ -30,19 +32,34 @@ interface Queued {
 /** Spec: §12.7 rule 6 — most informative first; tokens outside this order rank by arrival. */
 const INFORMATIVE = ["user.declined", "user.no-answer", "endpoint.busy", "endpoint.unavailable"];
 
+/**
+ * How long an attempt with nothing for it is held: the T-Queue hard cap.
+ * Spec: §12.9, §12.10 (T-Queue cap 1800 s).
+ * Impl: spec-gap 131 (draft) — the relay forgets an attempt once strictly more than this has passed since it last
+ * did anything for it.
+ */
+const ATTEMPT_IDLE_CAP_S = 1800;
+
 /** Trace context for a relay (vectors README, kind `state`). */
 export interface RelayContext {
   start: number;
-  /** Longest a queued envelope is kept, seconds (§13.3). */
+  /** Longest a queued envelope is kept, seconds (§13.3); {@link DEFAULT_OFFLINE_RETENTION_S} when absent. */
   offline_retention_s?: number;
 }
+
+/**
+ * Offline retention when the trace context gives none (vectors README, relay event table).
+ * Spec: §13.3 (RECOMMENDED retention, 86,400 s).
+ */
+const DEFAULT_OFFLINE_RETENTION_S = 86_400;
 
 /** A store-and-forward, forking relay. */
 export class Relay {
   private now: number;
   private emit: Json[] = [];
   private readonly bound = new Map<string, string>(); // device → identity, in binding order
-  private readonly known = new Set<string>(); // identities and devices that have ever bound here
+  private readonly known = new Set<string>(); // identities and devices bound here, or bound within retention
+  private readonly lastUnbound = new Map<string, number>(); // identity or device → when its last binding ended
   private readonly attempts = new Map<string, Attempt>();
   private queue: Queued[] = [];
 
@@ -56,6 +73,7 @@ export class Relay {
     if ("advance" in e) {
       this.now += e["advance"] as number;
       this.expireQueue();
+      this.forget();
     } else if ("recv" in e) {
       this.recv(e["recv"] as JsonObject);
     } else if (e["relay"] === "invite") {
@@ -65,7 +83,7 @@ export class Relay {
     } else if (e["relay"] === "bind") {
       this.bind(e["device"] as string, e["identity"] as string);
     } else if (e["relay"] === "unbind") {
-      this.bound.delete(e["device"] as string);
+      this.unbind(e["device"] as string);
     } else {
       throw new Error(`unknown relay event ${JSON.stringify(e)}`);
     }
@@ -79,7 +97,8 @@ export class Relay {
       const attempts: JsonObject = {};
       for (const id of Object.keys(expect["attempts"] as JsonObject)) {
         const a = this.attempts.get(id);
-        if (a) attempts[id] = { legs: Object.fromEntries(a.legs), outcome: a.outcome };
+        // an attempt the relay does not hold (never forked, or forgotten: spec-gap 131) reads as null
+        attempts[id] = a ? { legs: Object.fromEntries(a.legs), outcome: a.outcome } : null;
       }
       out["attempts"] = attempts;
     }
@@ -91,24 +110,30 @@ export class Relay {
     return out;
   }
 
+  /** Offline retention in seconds: the context's, else the §13.3 RECOMMENDED default. Spec: §13.3. */
+  private retention(): number {
+    return this.ctx.offline_retention_s ?? DEFAULT_OFFLINE_RETENTION_S;
+  }
+
   private devicesOf(identity: string): string[] {
     return [...this.bound.entries()].filter(([, id]) => id === identity).map(([device]) => device).sort();
   }
 
   private fork(session: string, from: string, to: string, legs: string[], expires: number | undefined, withId: boolean): void {
-    const attempt: Attempt = { from, to, expires, legs: new Map(), outcome: null, rejections: [] };
+    const attempt: Attempt = { from, to, expires, legs: new Map(), outcome: null, rejections: [], touched: this.now };
     this.attempts.set(session, attempt);
     for (const leg of legs) this.addLeg(session, attempt, leg, withId);
   }
 
   private addLeg(session: string, attempt: Attempt, leg: string, withId: boolean): void {
     attempt.legs.set(leg, "delivered");
+    attempt.touched = this.now;
     this.emit.push({ deliver: { leg, type: "invite", ...(withId ? { id: session } : {}) } });
   }
 
   /** §13.3: hold an envelope for a recipient that is not connected, until it expires or retention runs out. */
   private hold(to: string, msg: JsonObject): void {
-    const retention = this.now + (this.ctx.offline_retention_s ?? Infinity);
+    const retention = this.now + this.retention();
     const until = Math.min(typeof msg["expires_at"] === "number" ? msg["expires_at"] : Infinity, retention);
     this.queue.push({ to, msg, until });
     this.emit.push({ queue: { to, type: msg["type"]! } });
@@ -122,6 +147,39 @@ export class Relay {
     for (const q of [...expired].sort((a, b) => (a.to < b.to ? -1 : a.to > b.to ? 1 : 0))) {
       this.emit.push({ dequeue: { to: q.to, type: q.msg["type"]!, why: "expired" } });
     }
+  }
+
+  /**
+   * Silently drop what the relay no longer holds, after the queue has expired.
+   * Spec: §12.7, §12.9/§12.10 (T-Queue cap), §13.3 (known recipients, offline retention).
+   * Impl: spec-gap 131 (draft) — an attempt is forgotten once strictly more than 1800 s have passed since the relay
+   * last did anything for it; an identity or device known only through a past binding, with nothing bound now and
+   * nothing queued for it, once its last binding ended strictly more than `offline_retention_s` ago. A forgotten
+   * recipient is never-seen (transport.unknown-recipient) until a device binds for it.
+   */
+  private forget(): void {
+    for (const [session, a] of [...this.attempts]) {
+      if (this.now - a.touched > ATTEMPT_IDLE_CAP_S) this.attempts.delete(session);
+    }
+    const retention = this.retention();
+    const boundNow = new Set<string>([...this.bound.keys(), ...this.bound.values()]);
+    for (const x of [...this.known]) {
+      if (boundNow.has(x) || this.queue.some((q) => q.to === x)) continue;
+      const ended = this.lastUnbound.get(x);
+      if (ended !== undefined && this.now - ended > retention) {
+        this.known.delete(x);
+        this.lastUnbound.delete(x);
+      }
+    }
+  }
+
+  /** §13.2: a device's binding ends; its identity is unbound from the moment its last bound device unbinds. */
+  private unbind(device: string): void {
+    const identity = this.bound.get(device);
+    if (identity === undefined) return;
+    this.bound.delete(device);
+    this.lastUnbound.set(device, this.now);
+    if (this.devicesOf(identity).length === 0) this.lastUnbound.set(identity, this.now);
   }
 
   private bind(device: string, identity: string): void {
@@ -171,7 +229,10 @@ export class Relay {
     if (a && type === "cancel" && from === a.from) {
       // §12.11: to the invited identity (every live leg) or to one leg's device; anything else is not this attempt's business
       const to = m["to"] as string | undefined;
-      if (to === undefined || to === a.to || a.legs.has(to)) return this.cancel(session, a, m);
+      if (to === undefined || to === a.to || a.legs.has(to)) {
+        a.touched = this.now; // spec-gap 131: a message the attempt handles keeps it held
+        return this.cancel(session, a, m);
+      }
       return this.route(m);
     }
     const queuedFor = (q: Queued): boolean => q.msg["type"] === "invite" && q.msg["id"] === session && q.to === m["to"];
@@ -186,6 +247,7 @@ export class Relay {
       return;
     }
     if (a && a.legs.has(from) && !("in_reply_to" in m) && ["progress", "answer", "reject"].includes(type)) {
+      a.touched = this.now; // spec-gap 131: counted even when it is then screened with `drop`
       return this.fromLeg(session, a, m);
     }
     this.route(m);

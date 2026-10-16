@@ -351,8 +351,21 @@ transition depends on (`status`, `ring_timeout`, `queue_timeout`, `reason`,
 | `{"relay":"leg_expired","session":ID,"leg":DEVICE}` | relay's own per-leg delivery expiry |
 | `{"relay":"bind"|"unbind","device":DEVICE,"identity":IDENTITY}` | a device (un)binds via `hello` (§13.2); binding flushes queued introductions |
 | `{"recv": introduction}` / `{"recv": invite}` (without `legs`) | routed by the relay's bindings; introductions to unknown/offline identities are queued with no error (§19.4 anti-enumeration) |
-| `{"recv": any}` to a *known* but unbound identity/device | queued (§13.3 store-and-forward) until `min(expires_at, context.offline_retention_s)`; `advance` expires queues; `bind` flushes the identity's and the device's queues together in arrival order — the order the relay received them, whichever of the two each was addressed to (spec-gap 98) — turning queued invites into tracked legs |
-| `{"advance": SECONDS}` | clock |
+| `{"recv": any}` to a *known* but unbound identity/device | queued (§13.3 store-and-forward) until `min(expires_at, context.offline_retention_s)` (default 86,400, the §13.3 RECOMMENDED value, when the context gives none); `advance` expires queues; `bind` flushes the identity's and the device's queues together in arrival order — the order the relay received them, whichever of the two each was addressed to (spec-gap 98) — turning queued invites into tracked legs |
+| `{"advance": SECONDS}` | clock; expires queues, then forgets (below) |
+
+**What a relay forgets (spec-gap 131, draft).** After expiring queues, every `advance` drops, silently (no emission):
+an **attempt** (and its invite) once more than 1800 s — the T-Queue hard cap, §12.9/§12.10 — have passed since the
+relay last did anything for it: forked it (`{"relay":"invite"}` or a received `invite`), turned a queued invite into a
+leg of it, added a leg mid-attempt, or received one of its attempt-scoped messages from a leg or its initiator (including
+one it then screens with `drop`). The relay's own `{"relay":"leg_expired"}` does not count. Traffic the attempt does not handle — post-answer traffic, messages from a device that
+is not a leg — does not count. At exactly 1800 s it is still held. From then on its session is routed by `to` like any
+session the relay holds no attempt for (spec-gap 82), and a device that binds becomes no leg of it. And an **identity or device** that is *known* (§13.3) only through a past binding: one with no device bound now
+and nothing queued for it is forgotten once its last binding ended (its last `unbind`) more than `offline_retention_s`
+ago (strictly more: at exactly `offline_retention_s` it is still known); a forgotten recipient is never-seen again
+(`send error transport.unknown-recipient` for session traffic, by identity and by device) until a device binds for it.
+An identity is unbound from the moment its last bound device unbinds. A device stays known while it is bound however
+long ago it bound.
 
 ### Expectation after each step
 
@@ -364,7 +377,8 @@ transition depends on (`status`, `ring_timeout`, `queue_timeout`, `reason`,
 ```
 
 For the relay: `"attempts": { ID: {"legs": {DEVICE: "delivered|answered|rejected|expired|cancelled"}, "outcome": null|"answered"|"rejected"|"cancelled"|"no-response"} }`
-(`cancelled`: the initiator withdrew and no leg is left outstanding; `no-response`: every leg expired and none rejected), optionally `"inbox": {RECIPIENT: count}` — every
+(`cancelled`: the initiator withdrew and no leg is left outstanding; `no-response`: every leg expired and none rejected);
+an attempt named with the value `null` is one the relay does not hold — never forked here, or forgotten (spec-gap 131). Optionally `"inbox": {RECIPIENT: count}` — every
 envelope queued for an identity or device, of any type; recipients with nothing queued are absent.
 When every leg ends without any leg having rejected there is nothing to forward: the relay speaks for itself,
 `send error {to: the initiator, session, reason: transport.no-response, in_reply_to: the invite id}` (§12.7 rule 6, spec-gap 76).
@@ -2062,7 +2076,7 @@ Each item has a matching `spec-gap` issue draft in `impl/docs/spec-gaps.md`.
 14. §19.4 vs §13.2: relay treatment of introductions to unknown recipients (queued silently; no `transport.unknown-recipient`).
 15. §19.4: grant matching (by `grant` reference or by grantee identity), scope check, single-use contact tokens.
 16. §12.12/§16.3: WebRTC binding shapes (SDP in `transports[].sdp`, candidates in `info.data`).
-17. §13.2/§13.3: "unknown recipient" at a store-and-forward relay = never bound here; queued envelopes expire silently.
+17. §13.2/§13.3: "unknown recipient" at a store-and-forward relay = not bound here within the retention window (spec-gap 131); queued envelopes expire silently.
 18. §22.1: `publisher` MUST equal the verified identity; `stream_id` is namespaced under the publisher; newer ULID replaces.
 19. §9.3: presence derives from device bindings at the authority; targets never seen get the uniform reject.
 20. §22.2: integrity mode is advertised per variant (`integrity`), the closed `publish` schema has no record-level field.
@@ -2105,6 +2119,10 @@ Each item has a matching `spec-gap` issue draft in `impl/docs/spec-gaps.md`.
     was, not how the call finished: `session.cancelled` when we withdrew it (§12.5 rule 3), `session.already-answered`
     when an answer was applied (however the call then ended), `session.failed` when the attempt was never answered
     (`state/fork-late-answer-after-the-call-ended`, `fork-late-answer-after-our-hangup`).
+131. §12.7 / §13.3: **draft** — a relay forgets an attempt once more than 1800 s (the T-Queue cap) pass with nothing for it,
+    and a known identity or device once nothing is bound or held for it and its last binding ended more than
+    `offline_retention_s` ago (`state/relay-attempt-forgotten-after-the-queue-cap`,
+    `relay-known-identity-forgotten-after-retention`, `relay-known-identity-default-retention`).
 86. §12.7 rule 3/4 vs §13.2: **decided** — a forking relay never withholds an `answer`, even from a leg it has cancelled,
     expired or seen reject; only the initiator ends an answered leg. Stale `progress` and second `reject`s are still
     screened (`state/relay-user-cancel-all-legs`, `relay-answer-from-an-expired-leg-is-forwarded`,

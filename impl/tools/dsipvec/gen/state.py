@@ -986,6 +986,67 @@ def vectors() -> list[dict]:
     ], component="relay"))
     out[-1]["context"]["offline_retention_s"] = 3600
 
+    # spec-gap 131 (draft): what a relay forgets. (a) An attempt is held until more than 1800 s (the T-Queue cap, §12.9)
+    # pass with no message for it; after that its session is routed by `to`, as after a restart (§13.3, spec-gap 82).
+    # (b) An identity or device is known while bound and for offline_retention_s after its last binding ended; past that,
+    # with nothing held for it, it is never-seen again (§13.3 "within the relay's retention window").
+    tab = "did:key:z6MkBobTablet111111111111111111111111111111"
+    out.append(trace("relay-attempt-forgotten-after-the-queue-cap",
+                     "The attempt is held until more than 1800 s (the T-Queue cap) pass with no message for it (spec-gap 131): a "
+                     "queued progress restarts the count; once forgotten, a late answer is routed by `to`, not forwarded, and a "
+                     "device that binds becomes no leg.",
+                     ["§12.7", "§12.9", "§12.10", "§13.3"], None, [
+        sf({"relay": "bind", "device": BPH, "identity": BOB}, [], {}),
+        sf({"relay": "bind", "device": BLA, "identity": BOB}, [], {}),
+        sf({"relay": "bind", "device": APH, "identity": ALICE}, [], {}),
+        sf({"recv": INV("sess")}, [{"deliver": {"leg": d, "type": "invite"}} for d in sorted([BPH, BLA])], {},  # device order (spec-gap 89)
+           **{sid: {"legs": {BPH: "delivered", BLA: "delivered"}, "outcome": None}}),
+        sf({"advance": 1000}, [], {}, **{sid: {"legs": {BPH: "delivered", BLA: "delivered"}, "outcome": None}}),
+        sf({"recv": msg("progress", "pq", BPH, sid, NOW + 1000, status="queued", queue_timeout=1800)},
+           [{"forward": {"type": "progress", "status": "queued", "from": BPH}}], {},
+           **{sid: {"legs": {BPH: "delivered", BLA: "delivered"}, "outcome": None}}),
+        # 2800 s after the invite, but exactly 1800 s after the queued progress: still held, and the answer is forwarded
+        sf({"advance": 1800}, [], {}, **{sid: {"legs": {BPH: "delivered", BLA: "delivered"}, "outcome": None}}),
+        sf({"recv": msg("answer", "a1", BPH, sid, NOW + 2800, answered_by="user")}, [{"forward": {"type": "answer", "from": BPH}}], {},
+           **{sid: {"legs": {BPH: "answered", BLA: "delivered"}, "outcome": "answered"}}),
+        sf({"advance": 1800}, [], {}, **{sid: {"legs": {BPH: "answered", BLA: "delivered"}, "outcome": "answered"}}),
+        sf({"advance": 1}, [], {}, **{sid: None}),
+        sf({"recv": msg("answer", "a2", BLA, sid, NOW + 4601, to=APH, answered_by="user")},
+           [{"deliver": {"leg": APH, "type": "answer", "id": uid("a2", NOW + 4601)}}], {}, **{sid: None}),
+        sf({"relay": "bind", "device": tab, "identity": BOB}, [], {}, **{sid: None}),
+    ], component="relay"))
+    out.append(trace("relay-known-identity-forgotten-after-retention",
+                     "An identity is known while bound and for offline_retention_s after its last binding ended, and while anything "
+                     "is held for it (spec-gap 131); past that it is never-seen again: transport.unknown-recipient, by identity and by device.",
+                     ["§13.3", "§13.2"], None, [
+        sf({"relay": "bind", "device": BPH, "identity": BOB}, [], {}),
+        sf({"advance": 7200}, [], {}),
+        sf({"relay": "unbind", "device": BPH, "identity": BOB}, [], {}),
+        sf({"advance": 3600}, [], {}),
+        sf({"recv": INV("late-inv", NOW + 10800)}, [{"queue": {"to": BOB, "type": "invite"}}], {BOB: 1}),
+        sf({"advance": 30}, [{"dequeue": {"to": BOB, "type": "invite", "why": "expired"}}], {}),
+        sf({"recv": INV("later-inv", NOW + 10830)},
+           [{"send": {"type": "error", "to": APH, "reason": "transport.unknown-recipient", "in_reply_to": uid("later-inv", NOW + 10830)}}], {}),
+        sf({"recv": msg("bye", "b-dev", APH, sid, NOW + 10830, to=BPH, reason="user.hangup")},
+           [{"send": {"type": "error", "to": APH, "reason": "transport.unknown-recipient", "in_reply_to": uid("b-dev", NOW + 10830)}}], {}),
+        sf({"relay": "bind", "device": BPH, "identity": BOB}, [], {}),
+        sf({"relay": "unbind", "device": BPH, "identity": BOB}, [], {}),
+        sf({"recv": INV("again-inv", NOW + 10830)}, [{"queue": {"to": BOB, "type": "invite"}}], {BOB: 1}),
+    ], component="relay"))
+    out[-1]["context"]["offline_retention_s"] = 3600
+    out.append(trace("relay-known-identity-default-retention",
+                     "With no offline_retention_s in the context the relay uses the §13.3 RECOMMENDED 86,400 s: still known at "
+                     "exactly 86,400 s after its binding ended, never-seen one second later (spec-gap 131).",
+                     ["§13.3"], None, [
+        sf({"relay": "bind", "device": BPH, "identity": BOB}, [], {}),
+        sf({"relay": "unbind", "device": BPH, "identity": BOB}, [], {}),
+        sf({"advance": 86400}, [], {}),
+        sf({"recv": INV("day-inv", NOW + 86400)}, [{"queue": {"to": BOB, "type": "invite"}}], {BOB: 1}),
+        sf({"advance": 30}, [{"dequeue": {"to": BOB, "type": "invite", "why": "expired"}}], {}),
+        sf({"recv": INV("day-later-inv", NOW + 86430)},
+           [{"send": {"type": "error", "to": APH, "reason": "transport.unknown-recipient", "in_reply_to": uid("day-later-inv", NOW + 86430)}}], {}),
+    ], component="relay"))
+
     upd_id = uid("sf-upd", NOW + 10)
     out.append(trace("relay-post-answer-traffic-routed-by-to",
                      "After the answer, update/info/bye and update replies are not attempt-scoped: the relay routes them by `to` "

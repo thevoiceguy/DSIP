@@ -3920,3 +3920,68 @@ mailbox neither serves nor can enrol is refused `mailbox.not-served`." M§5.7 ga
 gains `mailbox.not-served` and `mailbox.not-enrolled`. M§15.5 gains the owner-operation line of (c).
 
 **Fix, transcribed into v0.16 (Appendix A.13).** M§4.1 "When an enrolment ends", M§5.7 `release`, M§15.5, M§16.
+
+## 131. §12.7 / §13.3 — a relay is never told when it may forget an attempt, or how long a recipient stays *known*
+
+**Found (2026-10-16, while adding the relay's status page, #176).** The page counts what the relay holds, and two of
+those counts only ever grow. The reference relay kept every attempt it forked (legs, outcome, the invite) and every
+device and identity that had ever bound, for the life of the process. Live, that is memory proportional to every call
+and every browser profile the relay has seen.
+
+The spec half-answers both questions:
+
+- **Attempts.** §12.7 says what the attempt record is for (pre-answer `progress`/`answer`/`reject`, per-leg `cancel`,
+  the outcome) and §13.3 (spec-gap 82) says what happens to a session the relay holds no attempt for: it is routed by
+  `to`, "as after a restart", and "a relay therefore loses no call signaling by restarting". Nothing says when a relay
+  that did not restart may let an attempt go, or that it may at all. A relay that drops one early changes what
+  happens to a late `answer`: it is delivered by `to` instead of forwarded, and stale `progress` is no longer screened.
+- **Known recipients.** §13.3 (v0.7, from spec-gap 17) defines *known* as "a device has completed a verified `hello` for
+  it at that relay within the relay's retention window". It does not say whether the window runs from the `hello` or
+  from the end of the binding. Taken literally, a device bound for longer than `offline_retention_s` is unknown the
+  moment it disconnects, and the next envelope for it is refused instead of held. The reference relay sidestepped it:
+  "ever bound" (the spec-gap 17 PoC choice, never revisited after the v0.7 disposition).
+
+Choices for attempts:
+
+- **(a) Forget once the invite's `expires_at` is more than the replay window (300 s, §10.3) past.** Tempting, because
+  an endpoint does not answer an expired invite (§12.9). But a queued call (§12.10) is answered long after its invite
+  expired: the reference endpoint signs invites for 30 s and waits up to 1,800 s on a `queued` progress. Rejected.
+- **(a′) Forget once more than the T-Queue hard cap (1,800 s, "a core constant", §12.10) passes with nothing for the
+  attempt**: no fork, no leg added, no attempt-scoped message from a leg or the initiator. Every pre-answer wait in the
+  core (T-Establish, T-Ring ≤ 300 s, T-Queue ≤ 1,800 s) ends within that of the last `progress`, so the record is gone
+  only when nothing the record exists for can still come.
+- **(b) Forget at the outcome.** Drops the record that screens stale `progress` and forwards a late second `answer`
+  (spec-gap 86) while those are still likely.
+- **(c) Leave it to the implementation.** Every relay has to make one of these up anyway, and conformance vectors cannot
+  pin it.
+
+Choices for *known*:
+
+- **(d) The window runs from the end of the binding.** Known while bound, and for `offline_retention_s` after the last
+  device of the identity (or the device itself) unbound; and while anything is held for it, so a held envelope is
+  never stranded behind an unknown recipient. Past that it is never-seen again.
+- **(e) From the `hello`, literally.** A long-lived binding makes its recipient unknown at the moment it disconnects.
+- **(f) Ever bound** (the PoC so far): unbounded, and not what §13.3 says.
+
+**Draft choice: (a′) and (d).** Implemented as an Impl choice pending a decision. `Relay::forget` (Rust),
+`Relay.forget` (Python) and impl-ts run it on every clock advance, after queue expiry, and emit nothing.
+
+**Pinned.** `state/relay-attempt-forgotten-after-the-queue-cap`: a `queued` progress 1,000 s in restarts the count; the
+attempt is still held exactly 1,800 s after it (2,800 s after the invite) and forwards the answer; it is gone 1,801 s after
+that answer, when a late `answer` is delivered by `to`, not forwarded, and a device binding becomes no leg. `state/relay-known-identity-forgotten-after-retention`: a device bound for twice the retention
+stays known after it unbinds; at exactly `offline_retention_s` after that an invite is still queued; once the queue has
+expired and the window passed, an invite to the identity and a `bye` to the device are refused
+`transport.unknown-recipient`; binding again makes it known again. `state/relay-known-identity-default-retention`: with no
+`offline_retention_s` configured the window is the §13.3 RECOMMENDED 86,400 s (impl-ts had applied none; the README now
+states the default).
+
+**Proposed text.** §13.3, after the *known* paragraph: "The retention window runs from the end of the recipient's last
+binding: an identity or device is known while a device is bound for it, for `offline_retention_s` after its last binding
+ended, and while the relay holds an envelope for it. A relay MAY discard an attempt (§12.7) once more than the T-Queue cap (1,800 s) has
+passed since it forked the invite, added a leg, or received an attempt-scoped message for it; traffic for the session is
+then routed as for a session the relay holds no attempt for."
+
+**Also found, not part of the choice.** The reference relay binary never told the tracker a leg had expired, so it
+never sent `transport.no-response` (§12.7 rule 6, a MUST) when every leg rang out. That has to wait for a decision on
+*when* a leg expires: an invite's `expires_at` can be shorter than the callee's ring time, and expiring legs at
+`expires_at` would end calls that are still ringing.

@@ -549,7 +549,7 @@ def gen_relay(r: random.Random):
             ev.append({"recv": {"type": r.choice(["bye", "info", "update"]), "id": mid(), "from": A1, "session": sid,
                                 "to": r.choice([B1, B2]), "reason": "user.hangup", "about": "transport:webrtc", "expires_at": NOW + 60}})
         else:
-            ev.append({"advance": r.choice([1, 5, 31, 700])})
+            ev.append({"advance": r.choice([1, 5, 31, 700, 1800, 1801])})  # 1800/1801: the attempt idle cap (spec-gap 131)
     ctx = {"component": "relay", "start": NOW}
     if r.random() < 0.3:
         ctx["offline_retention_s"] = 10
