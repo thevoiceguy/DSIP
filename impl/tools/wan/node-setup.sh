@@ -21,6 +21,10 @@
 #                                            the browser client's did:key identities; the mailbox is advertised to
 #                                            them in $STATE/client.json as "mailbox": {"uri", "did"}; with RELAY_CERT the
 #                                            mailbox serves under the same certificate, which browsers require)
+#   MAILBOX_RELEASE_IDLE=0                  (ROLE=mailbox with MAILBOX_SERVE_ANY: keep enrolments forever; by default the
+#                                            mailbox runs --release-idle and ends the enrolment of an identity none of
+#                                            whose devices has connected within --mls-retention, freeing its place in
+#                                            --serve-any; MAILBOX_OWNER identities never expire; M§4.1, spec-gap 130)
 #   MAILBOX_DOCS="alice bob"                (names under /var/lib/dsip/docs/<name>.json the mailbox resolves from)
 #   TURN_SECRET=<string>                    (ROLE=turn: the TURN REST API secret, default: generated into $STATE/turn.secret;
 #                                            credentials are minted from it: `dsipctl turn-cred` or the relay's /turn)
@@ -165,6 +169,8 @@ if has mailbox; then
   [ -n "${MAILBOX_OWNER:-}${MAILBOX_SERVE_ANY:-}" ] || { echo "ROLE=mailbox needs MAILBOX_OWNER=<did> and/or MAILBOX_SERVE_ANY=<n>"; exit 1; }
   OWNERARG=""; for o in $(echo "${MAILBOX_OWNER:-}" | tr ',' ' '); do OWNERARG="$OWNERARG --owner $o"; done
   [ -n "${MAILBOX_SERVE_ANY:-}" ] && OWNERARG="$OWNERARG --serve-any $MAILBOX_SERVE_ANY"
+  # an idle enrolment ends and frees its --serve-any place (M§4.1 idle expiry, spec-gap 130)
+  [ -n "${MAILBOX_SERVE_ANY:-}" ] && [ "${MAILBOX_RELEASE_IDLE:-1}" != 0 ] && OWNERARG="$OWNERARG --release-idle"
   # a member with no document (a browser's did:key) is reached through its hint on the co-located node (M§4.2)
   OWNERARG="$OWNERARG --hints-node http://127.0.0.1:8090"
   [ -n "${RELAY_CERT:-}" ] && OWNERARG="$OWNERARG --cert $RELAY_CERT --key ${RELAY_KEY:?RELAY_CERT needs RELAY_KEY}"
