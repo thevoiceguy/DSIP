@@ -302,7 +302,7 @@ export class Relay {
    * then completed as rule 6 says. A leg that has spoken ends itself (a ringing leg rejects at T-Ring-Local).
    * Spec: §12.7 rule 3 (a leg is tracked until it terminates), §12.7 rule 6 (attempt outcome), §12.9 (timers: the
    * invite's `expires_at` bounds the delivery of the attempt).
-   * Impl: spec-gap 132 (draft) — the relay itself expires silent legs at the invite's expiry, attempts in id order,
+   * Spec: §12.7 rule 3 (v0.16, spec-gap 132) — the relay itself expires silent legs at the invite's expiry, attempts in id order,
    * legs in device order (spec-gap 89), whatever the outcome (after an answer: `expired`, nothing emitted). An attempt
    * with no invite (forked by `{"relay":"invite"}`) expires legs only by `leg_expired`. Expiring a leg is not
    * something done *for* the attempt, so it does not keep it held (spec-gap 131).

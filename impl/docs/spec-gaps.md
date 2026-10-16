@@ -4015,7 +4015,9 @@ Choices:
 - **(c) A relay timer of its own** (say T-Ring's 300 s upper bound). Adds a constant the spec does not have, and is
   slower than (a) for the case that matters (a dead device) without being more correct for a ringing one.
 
-**Draft choice: (a).** Implemented as an Impl choice pending a decision. The tracker expires silent legs on every clock
+**Draft choice: (a).** Implemented as an Impl choice pending a decision (#179).
+
+**Decided (2026-10-16, user: "go with your choice on gap 132"): (a).** The tracker expires silent legs on every clock
 advance (after queue expiry, before forgetting): attempts in id order, legs in device order, then rule 6 for each attempt
 that changed. It applies after an answer too (a silent leg becomes `expired`; nothing is emitted). An attempt forked
 without an invite on record (the suite's `{"relay":"invite"}` event) still expires legs only by `leg_expired`. The relay
@@ -4034,3 +4036,6 @@ callee (SIGSTOP) and the caller ends on `transport.no-response` 31 s after the i
 **Proposed text.** §12.7 rule 3, after "(answered, rejected, or expired)": "A leg is expired when the invite has expired
 (§12.9) and the leg has sent the relay no `progress`, `answer` or `reject` for the attempt; a leg that has is ended by
 its own `reject` (T-Ring-Local) or by the initiator."
+
+**Fix, transcribed into v0.16 (Appendix A.13).** §12.7 rule 3 gains the sentence proposed above; A.13 lists it. The
+vectors README marks 132 decided; the `Impl:` notes in the three implementations became `Spec: §12.7` citations.
