@@ -1,0 +1,85 @@
+{
+  "vector": "messaging/enrolment-idle-expiry-default-retention",
+  "format": 1,
+  "kind": "messaging",
+  "description": "mls_retention_s defaults to 2,592,000 s (30 days, M§4.4 RECOMMENDED).",
+  "spec_ref": [
+    "M§4.1",
+    "M§4.4"
+  ],
+  "context": {
+    "component": "enrolment",
+    "now": 1760000000,
+    "configured": [
+      "did:web:alice.example"
+    ],
+    "serve_any": 2,
+    "expire_idle": true
+  },
+  "input": {
+    "check": "enrolment-trace",
+    "steps": [
+      {
+        "event": {
+          "owner_op": {
+            "identity": "did:web:example.com:users:bob",
+            "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "id": "01K742SG00YGRKH8XMK4SFJKEA"
+          }
+        }
+      },
+      {
+        "event": {
+          "advance": 2592000
+        }
+      },
+      {
+        "event": {
+          "advance": 1
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "enrolled": {
+              "identity": "did:web:example.com:users:bob"
+            }
+          }
+        ],
+        "state": {
+          "enrolled": [
+            "did:web:example.com:users:bob"
+          ],
+          "free": 1
+        }
+      },
+      {
+        "emit": [],
+        "state": {
+          "enrolled": [
+            "did:web:example.com:users:bob"
+          ],
+          "free": 1
+        }
+      },
+      {
+        "emit": [
+          {
+            "released": {
+              "identity": "did:web:example.com:users:bob",
+              "cause": "idle"
+            }
+          }
+        ],
+        "state": {
+          "enrolled": [],
+          "free": 2
+        }
+      }
+    ]
+  }
+}

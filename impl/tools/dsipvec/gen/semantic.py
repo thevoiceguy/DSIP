@@ -78,6 +78,9 @@ def vectors() -> list[dict]:
     out.append(sv("reason-recording-declined-on-error", "policy.recording-declined on an error is outside its valid-on column: "
                   "accepted with a warning (spec-gap 10).", ["§15.4", "C§7"], {**err_mbx, "reason": "policy.recording-declined"},
                   accept(effective={"reason": "policy.recording-declined", "fallback": "none"}, warnings=["reason-not-valid-on-type"])))
+    for token in ("mailbox.not-served", "mailbox.not-enrolled"):
+        out.append(sv(f"reason-{token.replace('.', '-')}-registered", f"{token} is registered for error (M§16, v0.16, spec-gap 130).",
+                      ["§15.4", "M§16"], {**err_mbx, "reason": token}, accept(effective={"reason": token, "fallback": "none"})))
     out.append(sv("reason-mailbox-unknown-condition", "An unregistered mailbox condition falls back by category, not to session.failed.",
                   ["§15.1", "§15.3"], {**err_mbx, "reason": "mailbox.archive-full"},
                   accept(effective={"reason": "mailbox.archive-full", "fallback": "category"})))

@@ -247,6 +247,11 @@ jobs:
         # state; the hub re-sends until the member mailbox is back; nothing lost, replayed or reordered; the next commit validates.
         run: timeout 300 bash demos/mailbox-restart-demo.sh | tail -25
         working-directory: impl
+      - name: mailbox enrolment ends (spec-gap 130)
+        # Self-verifying: one place (--serve-any 1); a second identity is refused mailbox.not-served; release: true frees
+        # the place; idle expiry (--release-idle) frees it again; the enrolment survives a restart.
+        run: timeout 300 bash demos/mailbox-enrolment-demo.sh | tail -18
+        working-directory: impl
       - name: moving a group to another hub
         # Self-verifying: the old hub orders the move and nothing after; the new hub continues the numbering; a member who
         # missed the move is refused by the old hub, syncs and re-sends; the new hub validates the next commit.

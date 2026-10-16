@@ -97,6 +97,7 @@ def vectors() -> list[dict]:
     out += hub_change_vectors()
     out += hub_outage_vectors()
     out += move_arrival_vectors()
+    out += enrolment_vectors()
     out += successor_vectors()
     out += external_join_vectors()
     out += leave_vectors()
@@ -3205,6 +3206,153 @@ def move_arrival_vectors():
                          ({"advance": 10}, [], snap("none")),
                          (accepted(HUB_A), [], snap("none")),
                      ]))
+    return out
+
+
+# ---------------------------------------------------------------- whom a mailbox serves, and when that ends (M§4.1; spec-gap 130)
+
+def enrolment_vectors():
+    out = []
+    T = "enrolment-trace"
+    refs = ["M§4.1"]
+    ctx = {"component": "enrolment", "now": NOW, "configured": [ALICE], "serve_any": 2}
+
+    def snap(*enrolled, free):
+        return {"enrolled": list(enrolled), "free": free}
+
+    def op(identity, device, label):
+        return {"owner_op": {"identity": identity, "device": device, "id": uid(label)}}
+
+    def release(identity, device, label):
+        return {"release": {"identity": identity, "device": device, "id": uid(label)}}
+
+    def refused(device, label, reason):
+        return [{"error": {"to": device, "in_reply_to": uid(label), "reason": reason}}]
+
+    def enrolled(identity):
+        return [{"enrolled": {"identity": identity}}]
+
+    def released(identity, cause):
+        return {"released": {"identity": identity, "cause": cause}}
+
+    # --- the bound (spec-gap 115) and the refusal at it (spec-gap 130)
+    out.append(trace("enrolment-within-bound-then-not-served",
+                     "A configured identity is served and does not count against the bound. Others enrol with their first "
+                     "owner operation while the bound has room; once it is reached, an owner operation from an identity the "
+                     "mailbox does not serve is refused mailbox.not-served (v0.16). A verified hello alone enrols nothing.",
+                     refs + ["M§16"], T, ctx, [
+                         (op(ALICE, APH, "e1"), [], snap(free=2)),
+                         (op(BOB, BPH, "e2"), enrolled(BOB), snap(BOB, free=1)),
+                         (op(BOB, BLA, "e3"), [], snap(BOB, free=1)),
+                         (op(CAROL, CPH, "e4"), enrolled(CAROL), snap(BOB, CAROL, free=0)),
+                         (op(MALLORY, MPH, "e5"), refused(MPH, "e5", "mailbox.not-served"), snap(BOB, CAROL, free=0)),
+                         ({"hello": {"identity": MALLORY}}, [], snap(BOB, CAROL, free=0)),
+                         (op(ALICE, ALA, "e6"), [], snap(BOB, CAROL, free=0)),
+                     ]))
+    out.append(trace("enrolment-closed-refuses",
+                     "A mailbox that enrols no one (no bound) serves its configured identities only: any other identity's "
+                     "owner operation is refused mailbox.not-served.", refs + ["M§16"], T,
+                     {"component": "enrolment", "now": NOW, "configured": [ALICE]}, [
+                         (op(BOB, BPH, "c1"), refused(BPH, "c1", "mailbox.not-served"), snap(free=0)),
+                         (op(ALICE, APH, "c2"), [], snap(free=0)),
+                     ]))
+
+    # --- release
+    out.append(trace("enrolment-release-frees-the-place",
+                     "mailbox-config release: true is answered accepted, then the enrolment ends: everything held for the "
+                     "identity is deleted (released) and its place is free for the next identity. A released identity is "
+                     "not served; it enrols afresh, with nothing kept, only while the bound has room.",
+                     refs + ["M§5.7"], T, {**ctx, "serve_any": 1}, [
+                         (op(BOB, BPH, "r1"), enrolled(BOB), snap(BOB, free=0)),
+                         (op(CAROL, CPH, "r2"), refused(CPH, "r2", "mailbox.not-served"), snap(BOB, free=0)),
+                         (release(BOB, BPH, "r3"), [{"accepted": {"to": BPH, "in_reply_to": uid("r3")}}, released(BOB, "owner")],
+                          snap(free=1)),
+                         (op(CAROL, CPH, "r4"), enrolled(CAROL), snap(CAROL, free=0)),
+                         (op(BOB, BPH, "r5"), refused(BPH, "r5", "mailbox.not-served"), snap(CAROL, free=0)),
+                         (release(CAROL, CPH, "r6"), [{"accepted": {"to": CPH, "in_reply_to": uid("r6")}}, released(CAROL, "owner")],
+                          snap(free=1)),
+                         (op(BOB, BLA, "r7"), enrolled(BOB), snap(BOB, free=0)),
+                     ]))
+    out.append(trace("enrolment-release-configured-refused",
+                     "A configured identity cannot release itself: refused mailbox.not-enrolled, nothing changes, and it "
+                     "is still served. Its operator ends it.", refs + ["M§5.7", "M§16"], T, ctx, [
+                         (op(BOB, BPH, "k1"), enrolled(BOB), snap(BOB, free=1)),
+                         (release(ALICE, APH, "k2"), refused(APH, "k2", "mailbox.not-enrolled"), snap(BOB, free=1)),
+                         (op(ALICE, APH, "k3"), [], snap(BOB, free=1)),
+                     ]))
+    out.append(trace("enrolment-release-unserved-refused",
+                     "A release from an identity the mailbox does not serve is refused mailbox.not-served, even with room in "
+                     "the bound: a release never enrols.", refs + ["M§5.7", "M§16"], T, ctx, [
+                         (release(BOB, BPH, "u1"), refused(BPH, "u1", "mailbox.not-served"), snap(free=2)),
+                         (op(BOB, BPH, "u2"), enrolled(BOB), snap(BOB, free=1)),
+                     ]))
+
+    # --- idle expiry (MAY: context.expire_idle)
+    idle = {**ctx, "expire_idle": True, "mls_retention_s": 100}
+    out.append(trace("enrolment-idle-expiry-at-the-bound",
+                     "With idle expiry on, an enrolled identity whose last verified hello (its enrolment counts as one) is "
+                     "more than mls_retention_s old has no registered device (M§4.4), and its enrolment ends. At exactly "
+                     "mls_retention_s the device is still registered. The identity enrols afresh on its next owner operation.",
+                     refs + ["M§4.4"], T, idle, [
+                         (op(BOB, BPH, "i1"), enrolled(BOB), snap(BOB, free=1)),
+                         ({"advance": 100}, [], snap(BOB, free=1)),
+                         ({"advance": 1}, [released(BOB, "idle")], snap(free=2)),
+                         (op(BOB, BPH, "i2"), enrolled(BOB), snap(BOB, free=1)),
+                     ]))
+    out.append(trace("enrolment-hello-keeps-the-enrolment",
+                     "Each verified hello of a device of the identity restarts its registration (M§4.4). Two identities that "
+                     "enrolled together expire apart: the one with a later hello later. Expiries at one advance are emitted "
+                     "in enrolment order.",
+                     refs + ["M§4.4"], T, {**idle, "serve_any": 3}, [
+                         (op(BOB, BPH, "h1"), enrolled(BOB), snap(BOB, free=2)),
+                         (op(CAROL, CPH, "h2"), enrolled(CAROL), snap(BOB, CAROL, free=1)),
+                         (op(MALLORY, MPH, "h3"), enrolled(MALLORY), snap(BOB, CAROL, MALLORY, free=0)),
+                         ({"advance": 60}, [], snap(BOB, CAROL, MALLORY, free=0)),
+                         ({"hello": {"identity": BOB}}, [], snap(BOB, CAROL, MALLORY, free=0)),
+                         ({"advance": 41}, [released(CAROL, "idle"), released(MALLORY, "idle")], snap(BOB, free=2)),
+                         ({"advance": 59}, [], snap(BOB, free=2)),
+                         ({"advance": 1}, [released(BOB, "idle")], snap(free=3)),
+                     ]))
+    out.append(trace("enrolment-owner-operation-is-not-a-hello",
+                     "Only a verified hello registers a device again (M§4.4). An owner operation of an enrolled identity is "
+                     "made on a binding whose hello already counted; on its own it does not keep the enrolment alive.",
+                     refs + ["M§4.4"], T, idle, [
+                         (op(BOB, BPH, "n1"), enrolled(BOB), snap(BOB, free=1)),
+                         ({"advance": 90}, [], snap(BOB, free=1)),
+                         (op(BOB, BPH, "n2"), [], snap(BOB, free=1)),
+                         ({"advance": 11}, [released(BOB, "idle")], snap(free=2)),
+                     ]))
+    out.append(trace("enrolment-idle-expiry-is-the-operators-choice",
+                     "Idle expiry is a MAY (context.expire_idle, default false): without it an enrolment lasts until it is "
+                     "released, however long its devices stay away.", refs + ["M§4.4"], T,
+                     {**ctx, "mls_retention_s": 100}, [
+                         (op(BOB, BPH, "o1"), enrolled(BOB), snap(BOB, free=1)),
+                         ({"advance": 100000}, [], snap(BOB, free=1)),
+                     ]))
+    out.append(trace("enrolment-idle-expiry-spares-configured",
+                     "A configured identity never expires: only enrolled ones are released for idleness.", refs + ["M§4.4"],
+                     T, idle, [
+                         (op(ALICE, APH, "s1"), [], snap(free=2)),
+                         (op(BOB, BPH, "s2"), enrolled(BOB), snap(BOB, free=1)),
+                         ({"hello": {"identity": ALICE}}, [], snap(BOB, free=1)),
+                         ({"advance": 1000}, [released(BOB, "idle")], snap(free=2)),
+                         (op(ALICE, APH, "s3"), [], snap(free=2)),
+                     ]))
+    out.append(trace("enrolment-idle-expiry-default-retention",
+                     "mls_retention_s defaults to 2,592,000 s (30 days, M§4.4 RECOMMENDED).", refs + ["M§4.4"], T,
+                     {**ctx, "expire_idle": True}, [
+                         (op(BOB, BPH, "d1"), enrolled(BOB), snap(BOB, free=1)),
+                         ({"advance": 2592000}, [], snap(BOB, free=1)),
+                         ({"advance": 1}, [released(BOB, "idle")], snap(free=2)),
+                     ]))
+
+    # --- the wire field (M§5.7)
+    def m(vid, desc, payload, expect):
+        out.append(mv(vid, desc, ["M§5.7", "M§4.1"], {"check": "message", "payload": payload}, expect))
+    m("mailbox-config-release-valid", "An owner device releases its identity's enrolment (v0.16, spec-gap 130).",
+      msg("mailbox-config", "cfgrel", BPH, MBX_B, subject=BOB, release=True), accept())
+    m("mailbox-config-release-not-boolean-refused", "release is a boolean.",
+      msg("mailbox-config", "cfgrel2", BPH, MBX_B, subject=BOB, release="yes"), reject("schema-invalid"))
     return out
 
 

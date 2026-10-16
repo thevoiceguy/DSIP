@@ -20,5 +20,6 @@ stay drafts.
 | `dsip-recording-profile-v0.16-draft.md` | Recording Profile (`recording/0.1`), cited `C§n` | draft |
 | `dsip-number-attestation-profile-v0.16-draft.md` | Number Attestation Profile (`tn-binding/0.1`), cited `N§n` | draft, stages 1–4; stage 5 needs a pilot partner |
 
-`dsip.core` stays `1.0`. The one wire change is an optional field of a Messaging Profile message (`release`) and a
-new reason token in the Messaging Profile registry.
+`dsip.core` stays `1.0`. The wire changes are an optional field of a Messaging Profile message (`release`) and a
+pair of reason tokens in the Messaging Profile registry. The suite has 2,124 vectors, on which the Python harness, the
+Rust reference implementation and the independent TypeScript implementation agree.

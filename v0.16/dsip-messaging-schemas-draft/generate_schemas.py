@@ -238,6 +238,9 @@ MESSAGES = {
         "introductions_sent": {"type": "array", "items": {"$ref": "#/$defs/ulid"}, "maxItems": 256,
                                "description": "Ids of introductions the owner has sent (M§14.1, spec-gap 81): a grant "
                                               "deposit answering one is not rate-limited."},
+        "release": {"type": "boolean",
+                    "description": "true ends the identity's enrolment at this mailbox (M§4.1, spec-gap 130); the "
+                                   "other fields are not applied. false is the same as absent."},
     }, ["subject"], "Owner device configures its own mailbox (M§5.7)."),
 }
 

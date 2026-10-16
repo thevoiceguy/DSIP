@@ -7,7 +7,7 @@
 **Editor:** James Ferris
 **Date:** October 2026
 **Supersedes:** v0.15
-**Companion documents:** WebRTC Media Binding 1.0 (`dsip-webrtc-media-binding-v0.16.md`); Gateway Profile 1.0 (`dsip-gateway-profile-v0.16.md`); Messaging Profile 1.0 (`dsip-messaging-profile-v0.16.md`, with its schema set `dsip-messaging-schemas-draft/`); RTP/SRTP Media Binding (draft, `dsip-rtp-srtp-media-binding-v0.16-draft.md`); DHT Hints Profile (draft, `dsip-dht-hints-profile-v0.16-draft.md`); Alias Transparency Profile (draft, `dsip-alias-transparency-profile-v0.16-draft.md`); Device Events Profile (draft, `dsip-device-events-profile-v0.16-draft.md`); Recording Profile (draft, `dsip-recording-profile-v0.16-draft.md`); Number Attestation Profile (draft, `dsip-number-attestation-profile-v0.16-draft.md`); JSON Schema set v0.15 (`dsip-schemas-v0.16-draft/`); conformance vectors (`impl/vectors/`, 2,109 vectors on which the Python harness, the Rust reference implementation and the independent TypeScript implementation agree)
+**Companion documents:** WebRTC Media Binding 1.0 (`dsip-webrtc-media-binding-v0.16.md`); Gateway Profile 1.0 (`dsip-gateway-profile-v0.16.md`); Messaging Profile 1.0 (`dsip-messaging-profile-v0.16.md`, with its schema set `dsip-messaging-schemas-draft/`); RTP/SRTP Media Binding (draft, `dsip-rtp-srtp-media-binding-v0.16-draft.md`); DHT Hints Profile (draft, `dsip-dht-hints-profile-v0.16-draft.md`); Alias Transparency Profile (draft, `dsip-alias-transparency-profile-v0.16-draft.md`); Device Events Profile (draft, `dsip-device-events-profile-v0.16-draft.md`); Recording Profile (draft, `dsip-recording-profile-v0.16-draft.md`); Number Attestation Profile (draft, `dsip-number-attestation-profile-v0.16-draft.md`); JSON Schema set v0.15 (`dsip-schemas-v0.16-draft/`); conformance vectors (`impl/vectors/`, 2,124 vectors on which the Python harness, the Rust reference implementation and the independent TypeScript implementation agree)
 
 ---
 
@@ -2577,7 +2577,7 @@ listed with its spec-gap number.
 
 - An enrolment at a mailbox can end (M§4.1, M§5.7, M§16; spec-gap 130): a device releases its identity's enrolment
   with `mailbox-config` `release: true`, and the mailbox deletes everything it holds for the identity; a mailbox MAY
-  release an enrolled identity that has had no registered device for `mls_retention_s`; an owner operation from an
+  release an enrolled identity that no longer has a registered device (M§4.4); an owner operation from an
   identity the mailbox neither serves nor can enrol is refused `mailbox.not-served`. The Messaging Profile schema set
   gains `mailbox-config.release`.
 

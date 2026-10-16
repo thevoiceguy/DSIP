@@ -139,6 +139,29 @@ bound the operator sets. A binding alone enrols nothing: other identities' devic
 deposit welcomes. An enrolled identity is served exactly as a configured one (its own retention and quota, M§4.4).
 Which mailbox an identity uses is what it advertises (M§4.2), never where it enrolled.
 
+**When an enrolment ends** (v0.16, spec-gap 130). Configured identities do not count against the operator's bound;
+enrolled ones do, each from its enrolment until it ends. It ends in one of two ways, and either way the mailbox deletes
+everything it holds for the identity (retained items, KeyPackages, blobs, group registrations, held introductions and
+grants, M§5.7 state), closes the identity's bindings, and frees its place. A later owner operation enrols afresh, with
+nothing kept.
+
+- **Release.** A device of the identity sends `mailbox-config` with `release: true` (M§5.7). The mailbox answers
+  `accepted` and then ends the enrolment. A configured identity cannot be released this way: the mailbox refuses
+  `mailbox.not-enrolled` and changes nothing; its operator ends it. A device SHOULD release only once its identity no
+  longer advertises this mailbox (M§4.2), because the hubs of its groups find the new mailbox, or none, at their next
+  delivery (M§6.5 rule 5). Released while still advertised, every later delivery is refused
+  `transport.unknown-recipient`.
+- **Idle expiry.** A mailbox MAY end the enrolment of an identity that no longer has a registered device (M§4.4): no
+  device of it has completed a verified `hello` within `mls_retention_s` (a `hello` exactly `mls_retention_s` ago still
+  counts; the enrolment itself counts as one, other owner operations do not). Past that bound every device of the identity
+  rejoins its groups by external commit (M§6.8) anyway, so nothing a device could still use is dropped. A configured
+  identity never expires.
+
+An owner operation (`sync`, `key-packages`, `mailbox-config`) from an identity the mailbox does not serve and cannot
+enrol, because enrolment is closed or the bound is reached, is refused `mailbox.not-served`, as is a `release` from an
+identity it does not serve. Only a device delegated by the identity with `dsip.messaging` sends one (M§4.3), so the
+answer tells nothing to anyone else (M§15.5).
+
 **Moving to another mailbox** (v0.13, spec-gap 122). An identity moves by advertising another mailbox (M§4.2): its
 operator closes, or the old mailbox is gone for good, the case M§7.5 exists for. Nothing passes between the two
 mailboxes; the old one may no longer answer. On its first binding at the new mailbox, a device of the identity:
@@ -615,6 +638,9 @@ An owner device configures its own mailbox:
 - `revoked_grants` lists grant ids the owner has revoked; the mailbox MUST refuse authorization by
   them from then on (§19.4 "revocation is local policy at the granting side" — this is its
   propagation to the mailbox).
+- `release` (v0.16, spec-gap 130): `true` ends the identity's enrolment at this mailbox (M§4.1). The mailbox answers
+  `accepted`, then deletes everything it holds for the identity; the other fields of the same message are not applied.
+  A configured identity is refused `mailbox.not-enrolled`. `false` is the same as absent.
 - `revoked_delegations` (spec-gap 57) lists compact `delegation-revocation` records signed by the
   owner identity. The mailbox MUST verify each, keep it, refuse the revoked device from then on, drop
   it from the registered devices and discard its KeyPackages, and close its live binding.
@@ -1705,7 +1731,8 @@ For deposits and KeyPackage fetches, mailboxes follow the §13.2 relay rule:
 - `policy.first-contact-required` for unauthorized requests
 
 This discloses that an identity uses a given mailbox, as relays already disclose for session
-traffic. Introductions remain the anti-enumerated channel (§19.4). A client that must not reveal
+traffic. An owner operation is answered truthfully, `mailbox.not-served` included (M§4.1, spec-gap 130): only a device
+the identity delegated can send one. Introductions remain the anti-enumerated channel (§19.4). A client that must not reveal
 whether a target exists sends an introduction first.
 
 ### M§15.6 Downgrade
@@ -1733,6 +1760,8 @@ re-sync, retry once, then surface the failure.
 | `mailbox.unsupported-class` | Unknown deposit `class`, or one the receiver (hub, or the owner's mode) refuses | error |
 | `mailbox.unsupported-mode` | `mailbox-config.mode` is not a registered mode; nothing is changed | error |
 | `mailbox.hub-unreachable` | The mailbox could not hand a forwarded deposit to the group's hub; the device keeps it pending (M§9.4, spec-gap 72) | error |
+| `mailbox.not-served` | An owner operation from an identity the mailbox does not serve and cannot enrol, or a `release` from one it does not serve (M§4.1, spec-gap 130) | error |
+| `mailbox.not-enrolled` | A `release` for an identity the operator configured; nothing is changed (M§4.1, spec-gap 130) | error |
 
 Existing tokens used unchanged: `policy.first-contact-required`, `policy.blocked`,
 `policy.rate-limited`, `transport.unknown-recipient`, `transport.envelope-too-large`.
@@ -1960,3 +1989,9 @@ Within v0.15:
 | 127 | M§8.5 | removal ends the join: a later welcome is a join, processed `seq` positions are kept |
 | 128 | M§7.4 | a group may come back to a hub it left, by the committer's `group-info` with `handover_seq`; renumbering below a given `seq` is refused |
 | 129 | M§7.4 | a member that reaches the new hub before the committer's GroupInfo retries with the §13.2 backoff for at most `arrival_wait` (300 s RECOMMENDED); `move-arrival-trace` |
+
+Within v0.16:
+
+| spec-gap | where | what |
+|---|---|---|
+| 130 | M§4.1, M§5.7, M§15.5, M§16 | an enrolment ends by `mailbox-config` `release: true` or, at the operator's choice, once the identity has no registered device; a full or closed mailbox refuses owner operations `mailbox.not-served`; `enrolment-trace` |

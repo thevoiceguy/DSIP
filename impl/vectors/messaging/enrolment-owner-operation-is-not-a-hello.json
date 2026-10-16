@@ -1,0 +1,104 @@
+{
+  "vector": "messaging/enrolment-owner-operation-is-not-a-hello",
+  "format": 1,
+  "kind": "messaging",
+  "description": "Only a verified hello registers a device again (M§4.4). An owner operation of an enrolled identity is made on a binding whose hello already counted; on its own it does not keep the enrolment alive.",
+  "spec_ref": [
+    "M§4.1",
+    "M§4.4"
+  ],
+  "context": {
+    "component": "enrolment",
+    "now": 1760000000,
+    "configured": [
+      "did:web:alice.example"
+    ],
+    "serve_any": 2,
+    "expire_idle": true,
+    "mls_retention_s": 100
+  },
+  "input": {
+    "check": "enrolment-trace",
+    "steps": [
+      {
+        "event": {
+          "owner_op": {
+            "identity": "did:web:example.com:users:bob",
+            "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "id": "01K742SG00WJPA7X0B8PHQRVQD"
+          }
+        }
+      },
+      {
+        "event": {
+          "advance": 90
+        }
+      },
+      {
+        "event": {
+          "owner_op": {
+            "identity": "did:web:example.com:users:bob",
+            "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "id": "01K742SG005WTHMC7NRWTESR9A"
+          }
+        }
+      },
+      {
+        "event": {
+          "advance": 11
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "enrolled": {
+              "identity": "did:web:example.com:users:bob"
+            }
+          }
+        ],
+        "state": {
+          "enrolled": [
+            "did:web:example.com:users:bob"
+          ],
+          "free": 1
+        }
+      },
+      {
+        "emit": [],
+        "state": {
+          "enrolled": [
+            "did:web:example.com:users:bob"
+          ],
+          "free": 1
+        }
+      },
+      {
+        "emit": [],
+        "state": {
+          "enrolled": [
+            "did:web:example.com:users:bob"
+          ],
+          "free": 1
+        }
+      },
+      {
+        "emit": [
+          {
+            "released": {
+              "identity": "did:web:example.com:users:bob",
+              "cause": "idle"
+            }
+          }
+        ],
+        "state": {
+          "enrolled": [],
+          "free": 2
+        }
+      }
+    ]
+  }
+}

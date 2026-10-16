@@ -1,0 +1,209 @@
+{
+  "vector": "messaging/enrolment-release-frees-the-place",
+  "format": 1,
+  "kind": "messaging",
+  "description": "mailbox-config release: true is answered accepted, then the enrolment ends: everything held for the identity is deleted (released) and its place is free for the next identity. A released identity is not served; it enrols afresh, with nothing kept, only while the bound has room.",
+  "spec_ref": [
+    "M§4.1",
+    "M§5.7"
+  ],
+  "context": {
+    "component": "enrolment",
+    "now": 1760000000,
+    "configured": [
+      "did:web:alice.example"
+    ],
+    "serve_any": 1
+  },
+  "input": {
+    "check": "enrolment-trace",
+    "steps": [
+      {
+        "event": {
+          "owner_op": {
+            "identity": "did:web:example.com:users:bob",
+            "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "id": "01K742SG00SCSR8GKE82YBXK8X"
+          }
+        }
+      },
+      {
+        "event": {
+          "owner_op": {
+            "identity": "did:web:carol.example",
+            "device": "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL",
+            "id": "01K742SG00K99ARKE08V46Y2NR"
+          }
+        }
+      },
+      {
+        "event": {
+          "release": {
+            "identity": "did:web:example.com:users:bob",
+            "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "id": "01K742SG00MAJKEBP1VNZR8XHW"
+          }
+        }
+      },
+      {
+        "event": {
+          "owner_op": {
+            "identity": "did:web:carol.example",
+            "device": "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL",
+            "id": "01K742SG00E3A48FEXNT7HXKCR"
+          }
+        }
+      },
+      {
+        "event": {
+          "owner_op": {
+            "identity": "did:web:example.com:users:bob",
+            "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "id": "01K742SG004AQF2GE85QSS9N2S"
+          }
+        }
+      },
+      {
+        "event": {
+          "release": {
+            "identity": "did:web:carol.example",
+            "device": "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL",
+            "id": "01K742SG00XMR82S6T5JQKE7GQ"
+          }
+        }
+      },
+      {
+        "event": {
+          "owner_op": {
+            "identity": "did:web:example.com:users:bob",
+            "device": "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ",
+            "id": "01K742SG0090HT9PEDHWV56JAS"
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "enrolled": {
+              "identity": "did:web:example.com:users:bob"
+            }
+          }
+        ],
+        "state": {
+          "enrolled": [
+            "did:web:example.com:users:bob"
+          ],
+          "free": 0
+        }
+      },
+      {
+        "emit": [
+          {
+            "error": {
+              "to": "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL",
+              "in_reply_to": "01K742SG00K99ARKE08V46Y2NR",
+              "reason": "mailbox.not-served"
+            }
+          }
+        ],
+        "state": {
+          "enrolled": [
+            "did:web:example.com:users:bob"
+          ],
+          "free": 0
+        }
+      },
+      {
+        "emit": [
+          {
+            "accepted": {
+              "to": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+              "in_reply_to": "01K742SG00MAJKEBP1VNZR8XHW"
+            }
+          },
+          {
+            "released": {
+              "identity": "did:web:example.com:users:bob",
+              "cause": "owner"
+            }
+          }
+        ],
+        "state": {
+          "enrolled": [],
+          "free": 1
+        }
+      },
+      {
+        "emit": [
+          {
+            "enrolled": {
+              "identity": "did:web:carol.example"
+            }
+          }
+        ],
+        "state": {
+          "enrolled": [
+            "did:web:carol.example"
+          ],
+          "free": 0
+        }
+      },
+      {
+        "emit": [
+          {
+            "error": {
+              "to": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+              "in_reply_to": "01K742SG004AQF2GE85QSS9N2S",
+              "reason": "mailbox.not-served"
+            }
+          }
+        ],
+        "state": {
+          "enrolled": [
+            "did:web:carol.example"
+          ],
+          "free": 0
+        }
+      },
+      {
+        "emit": [
+          {
+            "accepted": {
+              "to": "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL",
+              "in_reply_to": "01K742SG00XMR82S6T5JQKE7GQ"
+            }
+          },
+          {
+            "released": {
+              "identity": "did:web:carol.example",
+              "cause": "owner"
+            }
+          }
+        ],
+        "state": {
+          "enrolled": [],
+          "free": 1
+        }
+      },
+      {
+        "emit": [
+          {
+            "enrolled": {
+              "identity": "did:web:example.com:users:bob"
+            }
+          }
+        ],
+        "state": {
+          "enrolled": [
+            "did:web:example.com:users:bob"
+          ],
+          "free": 0
+        }
+      }
+    ]
+  }
+}

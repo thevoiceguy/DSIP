@@ -89,6 +89,10 @@
       "maxItems": 256,
       "description": "Ids of introductions the owner has sent (M\u00a714.1, spec-gap 81): a grant deposit answering one is not rate-limited."
     },
+    "release": {
+      "type": "boolean",
+      "description": "true ends the identity's enrolment at this mailbox (M\u00a74.1, spec-gap 130); the other fields are not applied. false is the same as absent."
+    },
     "revoked_delegations": {
       "type": "array",
       "items": {

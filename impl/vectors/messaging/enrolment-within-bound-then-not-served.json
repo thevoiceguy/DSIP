@@ -1,0 +1,173 @@
+{
+  "vector": "messaging/enrolment-within-bound-then-not-served",
+  "format": 1,
+  "kind": "messaging",
+  "description": "A configured identity is served and does not count against the bound. Others enrol with their first owner operation while the bound has room; once it is reached, an owner operation from an identity the mailbox does not serve is refused mailbox.not-served (v0.16). A verified hello alone enrols nothing.",
+  "spec_ref": [
+    "M§4.1",
+    "M§16"
+  ],
+  "context": {
+    "component": "enrolment",
+    "now": 1760000000,
+    "configured": [
+      "did:web:alice.example"
+    ],
+    "serve_any": 2
+  },
+  "input": {
+    "check": "enrolment-trace",
+    "steps": [
+      {
+        "event": {
+          "owner_op": {
+            "identity": "did:web:alice.example",
+            "device": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+            "id": "01K742SG00J1GZ8FT2JTZ8AS9M"
+          }
+        }
+      },
+      {
+        "event": {
+          "owner_op": {
+            "identity": "did:web:example.com:users:bob",
+            "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "id": "01K742SG00SAG3Q0SNQNQC2P8E"
+          }
+        }
+      },
+      {
+        "event": {
+          "owner_op": {
+            "identity": "did:web:example.com:users:bob",
+            "device": "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ",
+            "id": "01K742SG00ME1W3KK672VHQKZC"
+          }
+        }
+      },
+      {
+        "event": {
+          "owner_op": {
+            "identity": "did:web:carol.example",
+            "device": "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL",
+            "id": "01K742SG00XC1N5FVZW1F32XBX"
+          }
+        }
+      },
+      {
+        "event": {
+          "owner_op": {
+            "identity": "did:web:mallory.example",
+            "device": "did:key:z6MkrQ4CKj5x3MGbqmYBbfSXyh865wpvDStxi3HeGvfyJw8H",
+            "id": "01K742SG008S8J4VR7N0BETDNF"
+          }
+        }
+      },
+      {
+        "event": {
+          "hello": {
+            "identity": "did:web:mallory.example"
+          }
+        }
+      },
+      {
+        "event": {
+          "owner_op": {
+            "identity": "did:web:alice.example",
+            "device": "did:key:z6MkfhenvjQ7awdpVWzPaeBuPkXCBLwzJKyosCrTL3huMb66",
+            "id": "01K742SG003A8CZKBJ7MG81WKN"
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [],
+        "state": {
+          "enrolled": [],
+          "free": 2
+        }
+      },
+      {
+        "emit": [
+          {
+            "enrolled": {
+              "identity": "did:web:example.com:users:bob"
+            }
+          }
+        ],
+        "state": {
+          "enrolled": [
+            "did:web:example.com:users:bob"
+          ],
+          "free": 1
+        }
+      },
+      {
+        "emit": [],
+        "state": {
+          "enrolled": [
+            "did:web:example.com:users:bob"
+          ],
+          "free": 1
+        }
+      },
+      {
+        "emit": [
+          {
+            "enrolled": {
+              "identity": "did:web:carol.example"
+            }
+          }
+        ],
+        "state": {
+          "enrolled": [
+            "did:web:example.com:users:bob",
+            "did:web:carol.example"
+          ],
+          "free": 0
+        }
+      },
+      {
+        "emit": [
+          {
+            "error": {
+              "to": "did:key:z6MkrQ4CKj5x3MGbqmYBbfSXyh865wpvDStxi3HeGvfyJw8H",
+              "in_reply_to": "01K742SG008S8J4VR7N0BETDNF",
+              "reason": "mailbox.not-served"
+            }
+          }
+        ],
+        "state": {
+          "enrolled": [
+            "did:web:example.com:users:bob",
+            "did:web:carol.example"
+          ],
+          "free": 0
+        }
+      },
+      {
+        "emit": [],
+        "state": {
+          "enrolled": [
+            "did:web:example.com:users:bob",
+            "did:web:carol.example"
+          ],
+          "free": 0
+        }
+      },
+      {
+        "emit": [],
+        "state": {
+          "enrolled": [
+            "did:web:example.com:users:bob",
+            "did:web:carol.example"
+          ],
+          "free": 0
+        }
+      }
+    ]
+  }
+}
