@@ -1,0 +1,76 @@
+{
+  "vector": "messaging/enrolment-release-unserved-refused",
+  "format": 1,
+  "kind": "messaging",
+  "description": "A release from an identity the mailbox does not serve is refused mailbox.not-served, even with room in the bound: a release never enrols.",
+  "spec_ref": [
+    "M§4.1",
+    "M§5.7",
+    "M§16"
+  ],
+  "context": {
+    "component": "enrolment",
+    "now": 1760000000,
+    "configured": [
+      "did:web:alice.example"
+    ],
+    "serve_any": 2
+  },
+  "input": {
+    "check": "enrolment-trace",
+    "steps": [
+      {
+        "event": {
+          "release": {
+            "identity": "did:web:example.com:users:bob",
+            "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "id": "01K742SG00TAD7YQWQXKGQYEWH"
+          }
+        }
+      },
+      {
+        "event": {
+          "owner_op": {
+            "identity": "did:web:example.com:users:bob",
+            "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "id": "01K742SG00AC4BE3T7HEQWECGX"
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "error": {
+              "to": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+              "in_reply_to": "01K742SG00TAD7YQWQXKGQYEWH",
+              "reason": "mailbox.not-served"
+            }
+          }
+        ],
+        "state": {
+          "enrolled": [],
+          "free": 2
+        }
+      },
+      {
+        "emit": [
+          {
+            "enrolled": {
+              "identity": "did:web:example.com:users:bob"
+            }
+          }
+        ],
+        "state": {
+          "enrolled": [
+            "did:web:example.com:users:bob"
+          ],
+          "free": 1
+        }
+      }
+    ]
+  }
+}

@@ -1,6 +1,6 @@
 """Messaging Profile 1.0 reference semantics (v0.8 draft, cited M§n).
 
-Spec: `v0.15/dsip-messaging-profile-v0.15.md`. Written before any Rust implementation; the
+Spec: `v0.16/dsip-messaging-profile-v0.16.md`. Written before any Rust implementation; the
 `messaging/` vectors pin this module's choices and `dsip-messaging` mirrors it.
 
 Checks (`input.check`):
@@ -26,7 +26,7 @@ from jsonschema import Draft202012Validator
 from . import ulid as U
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-SCHEMA_DIR = REPO_ROOT / "v0.15" / "dsip-messaging-schemas-draft" / "schemas"
+SCHEMA_DIR = REPO_ROOT / "v0.16" / "dsip-messaging-schemas-draft" / "schemas"
 
 MAX_MLS_BYTES = 24576          # M§5.1
 MAX_LIFETIME_S = 60            # M§5.1: delivery envelopes, not records
@@ -342,7 +342,7 @@ class Hub:
         # gained a device is not among them (spec-gap 87).
         self.unregistered: set[str] = set()
         # spec-gap 119: per identity, when its queues last went from empty to not or saw a head acknowledged
-        self.retention = ctx.get("mls_retention_s", 2592000)
+        self.retention = ctx.get("mls_retention_s", MLS_RETENTION_S)
         self.waiting: dict[str, int] = {}
 
     def _queued(self, ident: str) -> bool:
@@ -1310,6 +1310,7 @@ class HubOutage:
                 "handover_attempt": self.handover_attempt}
 
 
+MLS_RETENTION_S = 2592000      # M§4.4 RECOMMENDED: 30 days; a registered device completed a verified hello within it
 ARRIVAL_WAIT_S = 300          # M§7.4 (spec-gap 129): how long a member waits for the hub a group moved to, as handover_wait
 
 
@@ -1358,6 +1359,71 @@ class MoveArrival:
     def snapshot(self) -> dict:
         return {"state": self.state, "hub": self.hub, "attempt": self.attempt,
                 "waited": None if self.since is None else self.now - self.since}
+
+
+class Enrolment:
+    """Whom a mailbox serves, and when an enrolment ends (M§4.1; spec-gaps 115, 130).
+
+    Configured identities are always served and never count against the bound. Any other identity enrols with its
+    first owner operation while fewer than `serve_any` are enrolled; past the bound its owner operations are refused
+    `mailbox.not-served`. An enrolment ends by `mailbox-config` `release: true` (a configured identity is refused
+    `mailbox.not-enrolled`) or, when the operator chose idle expiry, once no device of the identity has completed a
+    verified `hello` within `mls_retention_s` (M§4.4: it has no registered device). `released` tells the host to delete
+    everything it holds for the identity and close its bindings.
+    """
+
+    def __init__(self, ctx: dict):
+        self.now = ctx["now"]
+        self.configured = set(ctx.get("configured", []))
+        self.serve_any = ctx.get("serve_any", 0)
+        self.expire_idle = ctx.get("expire_idle", False)
+        self.retention = ctx.get("mls_retention_s", MLS_RETENTION_S)
+        self.enrolled: dict[str, int] = {}  # identity → last verified hello, in enrolment order
+
+    def step(self, ev: dict) -> list:
+        (name, e), = ev.items()
+        return getattr(self, "_" + name)(e)
+
+    @staticmethod
+    def _error(e: dict, reason: str) -> list:
+        return [{"error": {"to": e["device"], "in_reply_to": e["id"], "reason": reason}}]
+
+    def _owner_op(self, e: dict) -> list:
+        who = e["identity"]
+        if who in self.configured or who in self.enrolled:
+            return []
+        if len(self.enrolled) >= self.serve_any:
+            return self._error(e, "mailbox.not-served")  # M§4.1 (spec-gap 130)
+        self.enrolled[who] = self.now  # enrolment happens on a verified binding: it counts as a hello
+        return [{"enrolled": {"identity": who}}]
+
+    def _release(self, e: dict) -> list:
+        who = e["identity"]
+        if who in self.configured:
+            return self._error(e, "mailbox.not-enrolled")  # its operator ends it
+        if who not in self.enrolled:
+            return self._error(e, "mailbox.not-served")  # a release never enrols
+        del self.enrolled[who]
+        return [{"accepted": {"to": e["device"], "in_reply_to": e["id"]}},
+                {"released": {"identity": who, "cause": "owner"}}]
+
+    def _hello(self, e: dict) -> list:
+        if e["identity"] in self.enrolled:
+            self.enrolled[e["identity"]] = self.now
+        return []
+
+    def _advance(self, n: int) -> list:
+        self.now += n
+        if not self.expire_idle:
+            return []
+        # M§4.4: registered while its last hello is within mls_retention_s; at exactly the bound it still is
+        idle = [who for who, seen in self.enrolled.items() if self.now - seen > self.retention]
+        for who in idle:
+            del self.enrolled[who]
+        return [{"released": {"identity": who, "cause": "idle"}} for who in idle]
+
+    def snapshot(self) -> dict:
+        return {"enrolled": list(self.enrolled), "free": self.serve_any - len(self.enrolled)}
 
 
 class GapTracker:
@@ -2163,11 +2229,11 @@ def run(v: dict) -> dict:
     if check == "successor-select":
         return select_successor(inp["candidates"])
     if check in ("hub-trace", "mailbox-trace", "client-trace", "gap-trace", "resume-trace", "history-trace", "commit-retry-trace",
-                 "successor-trace", "hub-outage-trace", "move-arrival-trace"):
+                 "successor-trace", "hub-outage-trace", "move-arrival-trace", "enrolment-trace"):
         comp = {"hub-trace": Hub, "mailbox-trace": Mailbox, "client-trace": Client, "gap-trace": GapTracker,
                 "resume-trace": Resume, "history-trace": History, "commit-retry-trace": CommitRetry,
                 "successor-trace": SuccessorTracker, "hub-outage-trace": HubOutage,
-                "move-arrival-trace": MoveArrival}[check](v["context"])
+                "move-arrival-trace": MoveArrival, "enrolment-trace": Enrolment}[check](v["context"])
         steps = []
         for st in inp["steps"]:
             emit = comp.step(st["event"])

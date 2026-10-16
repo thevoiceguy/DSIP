@@ -66,6 +66,8 @@ const REASONS: Record<string, string[]> = {
   "mailbox.unsupported-mode": ["error"],
   "mailbox.blob-mismatch": ["error"],
   "mailbox.hub-unreachable": ["error"], // M§16 (spec-gap 72); not yet in the core §15.4 table
+  "mailbox.not-served": ["error"], // M§16 (v0.16, spec-gap 130): unserved and cannot enrol, or a release from one not served
+  "mailbox.not-enrolled": ["error"], // M§16 (v0.16, spec-gap 130): a release for a configured identity
 };
 
 /** Reason categories. Spec: §15.1 token grammar */

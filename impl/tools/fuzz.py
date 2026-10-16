@@ -146,6 +146,30 @@ def gen_move_arrival(r: random.Random):
         ctx["arrival_wait"] = r.choice([0, 1, 10, 30])
     return "messaging", "move-arrival-trace", ctx, ev
 
+def gen_enrolment(r: random.Random):
+    # spec-gap 130: owner operations, releases and hellos from configured, enrolled and unknown identities, and time
+    # across the idle bound, with the bound and expiry varied
+    ids = ["did:web:alice.example", "did:key:z6MkBob", "did:key:z6MkCarol", "did:key:z6MkDave", "did:key:z6MkErin"]
+    ev = []
+    for i in range(r.randint(2, 16)):
+        x, who = r.random(), r.choice(ids)
+        if x < 0.45:
+            ev.append({"owner_op": {"identity": who, "device": who + "#d", "id": f"op{i}"}})
+        elif x < 0.6:
+            ev.append({"release": {"identity": who, "device": who + "#d", "id": f"rel{i}"}})
+        elif x < 0.75:
+            ev.append({"hello": {"identity": who}})
+        else:
+            ev.append({"advance": r.choice([1, 9, 10, 11, 50, 100, 101, 2592000])})
+    ctx = {"component": "enrolment", "now": NOW, "configured": r.choice([[], [ids[0]], ids[:2]])}
+    if r.random() < 0.85:
+        ctx["serve_any"] = r.choice([0, 1, 2, 3])
+    if r.random() < 0.6:
+        ctx["expire_idle"] = r.choice([True, False])
+    if r.random() < 0.7:
+        ctx["mls_retention_s"] = r.choice([0, 10, 100])
+    return "messaging", "enrolment-trace", ctx, ev
+
 def gen_hub(r: random.Random):
     ev = []
     if r.random() < 0.35:   # spec-gap 128: start moved away, so what follows probes the return
@@ -1074,7 +1098,7 @@ TARGETS = {
     "syslog": gen_syslog, "snmpv3": gen_snmpv3, "recording": gen_recording, "tn-binding": gen_tnbinding, "tn-store": gen_tn_store, "tn-select": gen_tn_select,
     "tn-passport": gen_tn_passport, "tn-route": gen_tn_route, "tn-assert": gen_tn_assert, "tn-authority": gen_tn_authority,
     "tsm": gen_tsm, "tls-frames": gen_tls_frames, "tsm-name": gen_tsm_name, "syslog-sign": gen_syslog_sign,
-    "gap": gen_gap, "commit-retry": gen_commit_retry, "hub-outage": gen_hub_outage, "move-arrival": gen_move_arrival, "resume": gen_resume, "history": gen_history,
+    "gap": gen_gap, "commit-retry": gen_commit_retry, "hub-outage": gen_hub_outage, "move-arrival": gen_move_arrival, "enrolment": gen_enrolment, "resume": gen_resume, "history": gen_history,
     "successor": gen_successor, "client": gen_client, "hub": gen_hub, "mailbox": gen_mailbox, "endpoint": gen_endpoint,
     "relay": gen_relay, "deposit-fields": gen_deposit_fields, "gateway-reason": gen_gateway_reason,
     "call-record": gen_call_record, "call-record-outcome": gen_call_record_outcome,

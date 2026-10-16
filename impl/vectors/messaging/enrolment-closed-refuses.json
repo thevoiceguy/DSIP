@@ -1,0 +1,66 @@
+{
+  "vector": "messaging/enrolment-closed-refuses",
+  "format": 1,
+  "kind": "messaging",
+  "description": "A mailbox that enrols no one (no bound) serves its configured identities only: any other identity's owner operation is refused mailbox.not-served.",
+  "spec_ref": [
+    "M§4.1",
+    "M§16"
+  ],
+  "context": {
+    "component": "enrolment",
+    "now": 1760000000,
+    "configured": [
+      "did:web:alice.example"
+    ]
+  },
+  "input": {
+    "check": "enrolment-trace",
+    "steps": [
+      {
+        "event": {
+          "owner_op": {
+            "identity": "did:web:example.com:users:bob",
+            "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "id": "01K742SG009XMC2JHMMXX1589T"
+          }
+        }
+      },
+      {
+        "event": {
+          "owner_op": {
+            "identity": "did:web:alice.example",
+            "device": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+            "id": "01K742SG00TQKVEHQF6ZGA5FDT"
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "error": {
+              "to": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+              "in_reply_to": "01K742SG009XMC2JHMMXX1589T",
+              "reason": "mailbox.not-served"
+            }
+          }
+        ],
+        "state": {
+          "enrolled": [],
+          "free": 0
+        }
+      },
+      {
+        "emit": [],
+        "state": {
+          "enrolled": [],
+          "free": 0
+        }
+      }
+    ]
+  }
+}

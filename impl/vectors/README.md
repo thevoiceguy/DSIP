@@ -1,6 +1,6 @@
 # DSIP Conformance Test Vectors
 
-**Tracks:** DSIP v0.15, final at `poc-v0.15` (v0.14 final at `poc-v0.14`) + JSON Schema set v0.15 (draft 2020-12); the Messaging Profile schema set for `messaging/`
+**Tracks:** DSIP v0.16, in progress (v0.15 final at `poc-v0.15`) + JSON Schema set v0.16 (draft 2020-12); the Messaging Profile schema set for `messaging/`
 **Format version:** 1
 
 These vectors are the language-neutral conformance contract for DSIP Core v1.0.
@@ -457,7 +457,7 @@ Emissions: `send subscribe`, `{"ui":"notify","event","state"}`, `{"ui":"subscrip
 
 ## Kind: `media-binding`
 
-WebRTC Media Binding 1.0 (`v0.15/dsip-webrtc-media-binding-v0.15.md`) conformance, below the
+WebRTC Media Binding 1.0 (`v0.16/dsip-webrtc-media-binding-v0.16.md`) conformance, below the
 envelope pipeline: inputs are decoded payloads or event traces. `input.check` selects:
 
 | check | input | expect |
@@ -536,9 +536,9 @@ Details the table leaves out, all part of the contract:
 
 ## Kind: `messaging`
 
-DSIP Messaging Profile 1.0 (`v0.15/dsip-messaging-profile-v0.15.md`, cited `M§n`), tranche 1.
+DSIP Messaging Profile 1.0 (`v0.16/dsip-messaging-profile-v0.16.md`, cited `M§n`), tranche 1.
 Written **before** any implementation. The profile schema set is staged at
-`v0.15/dsip-messaging-schemas-draft/` (generated, freshness-checked like the core set). MLS is
+`v0.16/dsip-messaging-schemas-draft/` (generated, freshness-checked like the core set). MLS is
 abstracted: traces carry what a hub or mailbox observes (epoch, commit adds/removes, validity, a
 digest of the MLS bytes), just as relay traces abstract signatures. `input.check` selects:
 
@@ -593,6 +593,7 @@ Checks the table above did not list (found by the second implementation; all are
 | `registration-on-removal` | `me`, `remaining_identities` | `{left}` — true only when no leaf of the identity remains (M§5.7, spec-gap 53) |
 | `hub-outage-trace` | see spec-gap 72 (events `deposit`, `answer`, `no_answer`, `advance`, `handover_failed`). An `answer` whose `reason` is `mailbox.hub-unreachable` or `mailbox.quota-exceeded` (the hub could not store it, M§9.3; spec-gap 99) is an outage exactly like `no_answer` — a `retry_after` on it is not an input, the outage backoff governs; any other reason is a refusal | per step `emit` and `state` `{state, pending, attempt, down_for, handover_attempt}` |
 | `move-arrival-trace` | `steps` of `{moved: {hub}}` / `{answer: {hub, reason?}}` / `{advance: n}`; `context.now`, `context.arrival_wait` (default 300). `moved` names the hub the group moved to and starts the wait afresh (state `arriving`, attempt 0). Only an `answer` from that hub while `arriving` counts: no `reason` (accepted) → `hosted`; `mailbox.unknown-group` with less than `arrival_wait` since the move → `retry_in` with the §13.2 backoff (1 s, doubling, 60 s ceiling); at or past it → `expired`, once. Everything else emits nothing and changes nothing (M§7.4, spec-gap 129) | per step `emit` (`retry_in`, `expired`) and `state {state, hub, attempt, waited}` — `state` one of `none`, `arriving`, `hosted`, `expired`; `waited` is the time since the last `moved`, `null` before one |
+| `enrolment-trace` | `steps` of `{owner_op: {identity, device, id}}` / `{release: {identity, device, id}}` / `{hello: {identity}}` / `{advance: n}`; `context.now`, `context.configured` (identities the operator lists), `context.serve_any` (the bound on enrolled identities, default 0: enrolment closed), `context.expire_idle` (default false), `context.mls_retention_s` (default 2,592,000). The service's view of whom it serves (M§4.1, spec-gap 130). `owner_op` (a `sync`, `key-packages` or `mailbox-config` without `release`, on a verified binding): a configured or enrolled identity emits nothing; another one enrols while fewer than `serve_any` are enrolled (`enrolled`, and its last `hello` is now), else `error` `mailbox.not-served` to `device`. `release` (`mailbox-config` `release: true`): enrolled → `accepted` to `device`, then `released {cause: "owner"}`; configured → `error` `mailbox.not-enrolled`; neither → `error` `mailbox.not-served` (a release never enrols). `hello` (a verified `hello` of a device of the identity) sets an enrolled identity's last `hello` to now; for any other identity it does nothing. An `owner_op` of an identity already served does not count as a `hello`. `advance` adds `n` to now; then, with `expire_idle`, every enrolled identity whose last `hello` is more than `mls_retention_s` ago (strictly: at exactly `mls_retention_s` it still has a registered device, M§4.4) is released, `released {cause: "idle"}`, in enrolment order. Configured identities never count against the bound and never expire. A released identity is no longer enrolled; a later `owner_op` enrols it afresh | per step `emit` (`enrolled {identity}`, `released {identity, cause}`, `accepted {to, in_reply_to}`, `error {to, in_reply_to, reason}`) and `state {enrolled, free}` — `enrolled` in enrolment order, `free` = `serve_any` minus the number enrolled |
 
 **The deposit class table** behind `deposit-fields` (M§5.2 "The class field table" is the same table, spec-gap 80).
 Every deposit may carry `recipient` — it is addressing, not class. Beyond the envelope fields, `class` and `recipient`:
@@ -802,7 +803,7 @@ lowercase hex. Everything else, non-ASCII included, is written as UTF-8.
 
 ## Kind: `device-events`
 
-Device Events Profile draft (`v0.15/dsip-device-events-profile-v0.15-draft.md`, cited `E§n`; spec-gap 103). There are two
+Device Events Profile draft (`v0.16/dsip-device-events-profile-v0.16-draft.md`, cited `E§n`; spec-gap 103). There are two
 shapes: stateless checks (`input.check`) and alarm-list traces (`input.steps`).
 
 **`check: "trap"`** (E§3), with `input.trap`, outputs `{"snmp": {version, uptime, trap_oid, varbinds}}` or
@@ -1255,7 +1256,7 @@ expect is `{"emit": [...], "held": [...]}`. `held` lists the held clears, sorted
 
 ## Kind: `recording`
 
-Recording Profile draft (`v0.15/dsip-recording-profile-v0.15-draft.md`, cited `C§n`; spec-gap 107). Three shapes:
+Recording Profile draft (`v0.16/dsip-recording-profile-v0.16-draft.md`, cited `C§n`; spec-gap 107). Three shapes:
 consent traces (C§4), `check: "conversation"` (C§5) and `check: "recording-session"` (C§6).
 
 **`check: "add-devices"`** (C§5, M§5.5, M§7.2) is the devices a device adds for an identity, given what its KeyPackage
@@ -1354,7 +1355,7 @@ it has opened with `bye` and `policy.blocked`. The checks run in this order:
 
 ## Kind: `alias-transparency`
 
-Alias Transparency Profile draft, stage 1 (`v0.15/dsip-alias-transparency-profile-v0.15-draft.md`, cited `T§n`;
+Alias Transparency Profile draft, stage 1 (`v0.16/dsip-alias-transparency-profile-v0.16-draft.md`, cited `T§n`;
 spec-gap 104). These are the KEYTRANS building blocks, following the editors' copy of draft-ietf-keytrans-protocol
 (2026-09-16) and the editor's implementation katie (commit `e1640671`), plus the profile's own rules. Every computed
 value here was confirmed with katie. The editors' copy differs from -05 only in the mode-1 Configuration.

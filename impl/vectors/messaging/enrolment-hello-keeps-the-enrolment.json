@@ -1,0 +1,198 @@
+{
+  "vector": "messaging/enrolment-hello-keeps-the-enrolment",
+  "format": 1,
+  "kind": "messaging",
+  "description": "Each verified hello of a device of the identity restarts its registration (M§4.4). Two identities that enrolled together expire apart: the one with a later hello later. Expiries at one advance are emitted in enrolment order.",
+  "spec_ref": [
+    "M§4.1",
+    "M§4.4"
+  ],
+  "context": {
+    "component": "enrolment",
+    "now": 1760000000,
+    "configured": [
+      "did:web:alice.example"
+    ],
+    "serve_any": 3,
+    "expire_idle": true,
+    "mls_retention_s": 100
+  },
+  "input": {
+    "check": "enrolment-trace",
+    "steps": [
+      {
+        "event": {
+          "owner_op": {
+            "identity": "did:web:example.com:users:bob",
+            "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "id": "01K742SG002WHVBMHZXKS2T47Q"
+          }
+        }
+      },
+      {
+        "event": {
+          "owner_op": {
+            "identity": "did:web:carol.example",
+            "device": "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL",
+            "id": "01K742SG00WNBRGVCKQRP4FHNK"
+          }
+        }
+      },
+      {
+        "event": {
+          "owner_op": {
+            "identity": "did:web:mallory.example",
+            "device": "did:key:z6MkrQ4CKj5x3MGbqmYBbfSXyh865wpvDStxi3HeGvfyJw8H",
+            "id": "01K742SG00QT0X99VF46FWX84Y"
+          }
+        }
+      },
+      {
+        "event": {
+          "advance": 60
+        }
+      },
+      {
+        "event": {
+          "hello": {
+            "identity": "did:web:example.com:users:bob"
+          }
+        }
+      },
+      {
+        "event": {
+          "advance": 41
+        }
+      },
+      {
+        "event": {
+          "advance": 59
+        }
+      },
+      {
+        "event": {
+          "advance": 1
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "enrolled": {
+              "identity": "did:web:example.com:users:bob"
+            }
+          }
+        ],
+        "state": {
+          "enrolled": [
+            "did:web:example.com:users:bob"
+          ],
+          "free": 2
+        }
+      },
+      {
+        "emit": [
+          {
+            "enrolled": {
+              "identity": "did:web:carol.example"
+            }
+          }
+        ],
+        "state": {
+          "enrolled": [
+            "did:web:example.com:users:bob",
+            "did:web:carol.example"
+          ],
+          "free": 1
+        }
+      },
+      {
+        "emit": [
+          {
+            "enrolled": {
+              "identity": "did:web:mallory.example"
+            }
+          }
+        ],
+        "state": {
+          "enrolled": [
+            "did:web:example.com:users:bob",
+            "did:web:carol.example",
+            "did:web:mallory.example"
+          ],
+          "free": 0
+        }
+      },
+      {
+        "emit": [],
+        "state": {
+          "enrolled": [
+            "did:web:example.com:users:bob",
+            "did:web:carol.example",
+            "did:web:mallory.example"
+          ],
+          "free": 0
+        }
+      },
+      {
+        "emit": [],
+        "state": {
+          "enrolled": [
+            "did:web:example.com:users:bob",
+            "did:web:carol.example",
+            "did:web:mallory.example"
+          ],
+          "free": 0
+        }
+      },
+      {
+        "emit": [
+          {
+            "released": {
+              "identity": "did:web:carol.example",
+              "cause": "idle"
+            }
+          },
+          {
+            "released": {
+              "identity": "did:web:mallory.example",
+              "cause": "idle"
+            }
+          }
+        ],
+        "state": {
+          "enrolled": [
+            "did:web:example.com:users:bob"
+          ],
+          "free": 2
+        }
+      },
+      {
+        "emit": [],
+        "state": {
+          "enrolled": [
+            "did:web:example.com:users:bob"
+          ],
+          "free": 2
+        }
+      },
+      {
+        "emit": [
+          {
+            "released": {
+              "identity": "did:web:example.com:users:bob",
+              "cause": "idle"
+            }
+          }
+        ],
+        "state": {
+          "enrolled": [],
+          "free": 3
+        }
+      }
+    ]
+  }
+}

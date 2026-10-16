@@ -3896,9 +3896,27 @@ without a registered device, a `hello` inside the bound keeps the enrolment, an 
 refused `mailbox.not-served`, and a release freeing a place for the next identity. The bound itself and the enrolment
 stay host policy (spec-gap 115). The vectors pin only what a device can observe, plus the deletion.
 
-**Text (proposed, v0.16).** M§4.1, after "Whom a mailbox serves": "An enrolled identity's device MAY release the
+**Decided (2026-10-15, user: "go with your choices on all three"): (a), (b) and (c), with the three open points as
+drafted** — expiry is a MAY; a release sends nothing extra to hubs; a device SHOULD release only once its identity no
+longer advertises the mailbox.
+
+**Pinned.** A new vector-pinned machine, `enrolment-trace` (11 vectors), with events `owner_op`, `release`, `hello` and
+`advance`: the bound and `mailbox.not-served` at it, enrolment closed, release freeing a place, release of a configured
+identity refused `mailbox.not-enrolled`, release of an identity not served refused, idle expiry strictly past
+`mls_retention_s`, a `hello` keeping an enrolment alive, an owner operation not counting as a `hello` (found by
+impl-ts: the text did not say), expiry being the operator's choice, configured identities never expiring, and the
+default retention. Plus `mailbox-config-release-valid` / `-not-boolean-refused` and the two `reason-mailbox-not-*`
+semantic vectors. Python, Rust (`dsip_messaging::enrolment`) and impl-ts (written from the spec and the README row
+only) agree on all 2,124; the `enrolment` fuzz target drew 5,000 traces with no divergence. `dsip-mailbox` drives the
+machine (`--release-idle`; a blob-uploader index so a release deletes the blobs only that identity had), `dsip-msg`
+gains `release`, and `demos/mailbox-enrolment-demo.sh` (CI) checks it on the wire. The browser surfaces
+`mailbox.not-served`.
+
+**Proposed text, as transcribed** (M§4.1 gained a fuller paragraph, "When an enrolment ends"). M§4.1, after "Whom a mailbox serves": "An enrolled identity's device MAY release the
 enrolment with `mailbox-config` `release: true` (M§5.7); the mailbox deletes everything it holds for the identity
 and stops serving it. A mailbox MAY release an enrolled identity that has had no registered device (M§4.4) for
 `mls_retention_s`. A configured identity is released only by its operator. An owner operation from an identity the
 mailbox neither serves nor can enrol is refused `mailbox.not-served`." M§5.7 gains `release`. The M§16 registry
 gains `mailbox.not-served` and `mailbox.not-enrolled`. M§15.5 gains the owner-operation line of (c).
+
+**Fix, transcribed into v0.16 (Appendix A.13).** M§4.1 "When an enrolment ends", M§5.7 `release`, M§15.5, M§16.

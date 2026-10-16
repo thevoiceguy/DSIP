@@ -1,0 +1,66 @@
+{
+  "vector": "messaging/enrolment-idle-expiry-is-the-operators-choice",
+  "format": 1,
+  "kind": "messaging",
+  "description": "Idle expiry is a MAY (context.expire_idle, default false): without it an enrolment lasts until it is released, however long its devices stay away.",
+  "spec_ref": [
+    "M§4.1",
+    "M§4.4"
+  ],
+  "context": {
+    "component": "enrolment",
+    "now": 1760000000,
+    "configured": [
+      "did:web:alice.example"
+    ],
+    "serve_any": 2,
+    "mls_retention_s": 100
+  },
+  "input": {
+    "check": "enrolment-trace",
+    "steps": [
+      {
+        "event": {
+          "owner_op": {
+            "identity": "did:web:example.com:users:bob",
+            "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "id": "01K742SG00XZT3M3927HHR3SYR"
+          }
+        }
+      },
+      {
+        "event": {
+          "advance": 100000
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "enrolled": {
+              "identity": "did:web:example.com:users:bob"
+            }
+          }
+        ],
+        "state": {
+          "enrolled": [
+            "did:web:example.com:users:bob"
+          ],
+          "free": 1
+        }
+      },
+      {
+        "emit": [],
+        "state": {
+          "enrolled": [
+            "did:web:example.com:users:bob"
+          ],
+          "free": 1
+        }
+      }
+    ]
+  }
+}

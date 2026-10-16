@@ -2,7 +2,7 @@
  * Recording Profile (draft, `recording/0.1`): the counterparty's consent machine for calls, the
  * recorder device in conversations, and the recording party's checks on its recorder leg.
  *
- * Spec: C§4, C§5, C§6 (`v0.15/dsip-recording-profile-v0.15-draft.md`). Contract: `impl/vectors/README.md`,
+ * Spec: C§4, C§5, C§6 (`v0.16/dsip-recording-profile-v0.16-draft.md`). Contract: `impl/vectors/README.md`,
  * "Kind: `recording`".
  */
 import { createHash } from "node:crypto";

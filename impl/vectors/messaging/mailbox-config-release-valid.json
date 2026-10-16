@@ -1,0 +1,36 @@
+{
+  "vector": "messaging/mailbox-config-release-valid",
+  "format": 1,
+  "kind": "messaging",
+  "description": "An owner device releases its identity's enrolment (v0.16, spec-gap 130).",
+  "spec_ref": [
+    "M§5.7",
+    "M§4.1"
+  ],
+  "context": {},
+  "input": {
+    "check": "message",
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "messaging/1.0"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "mailbox-config",
+      "id": "01K742SG00FYEGWGE6ZHHE36SB",
+      "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+      "to": "did:web:mbx.bob.example",
+      "subject": "did:web:example.com:users:bob",
+      "release": true,
+      "issued_at": 1760000000,
+      "expires_at": 1760000030
+    }
+  },
+  "expect": {
+    "verdict": "accept"
+  }
+}
