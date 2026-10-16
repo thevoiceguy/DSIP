@@ -298,6 +298,35 @@ Findings:
 6. **The mailbox's hints lookup was https-only** (the blob client's setting): a co-located node speaks plain HTTP
    on the loopback, which is fine for signed records; the lookup client allows it.
 
+## Holding up at scale (2026-10-16)
+
+What a node costs when it holds many hints, and what had to change for it to hold a million. Measured with
+`cargo run --release -p dsip-dht --example store_stress -- --records 1000000 --dir <disk path>`: one million
+device-signed `did:key` hints as a browser publishes them (a relay and a mailbox endpoint, the delegation inline),
+mean frame 2,064 bytes, on the development machine's disk.
+
+| | before | after |
+|---|---|---|
+| records a node will hold | 1,024 (libp2p `MemoryStore` default, then `MaxRecords`) | `max_records`, default 1,000,000 |
+| where they live | memory; every record rewritten to `overlay-records.jsonl` each tick | `overlay-records.redb`, written as they arrive |
+| memory | grows with what is held (about 960 MB at 1M in a first cut, redb's 1 GB default cache) | the page cache, `store_cache_mb` (256): 250 MB at 1M, 255 MB peak during the pass |
+| disk per record | — | 2.9 KB (frames deflated, ~1.4 KB, so two fit a 4 KB page; raw they took a page each, 5.4 KB) |
+| re-announcing | libp2p's replication job every 120 s, which copies **every** record into memory each run, plus our own every 60 s | a paced pass, one second's share of the store each second (about 830 records a second at 1M), a full pass per `republish_secs` (1200) |
+| restart | every held record re-verified before serving | 3.5 ms to reopen; records are verified as they are read (`get`), and the pass deletes those that fail |
+
+At one million: fill 349 s (about 7,000 stores a second, a durable commit per housekeeping tick; a sync per store
+managed about 580 a second), a verified lookup 119 µs, a full walk of the store 13 s.
+
+Found on the way:
+- **libp2p's replication job materialises the whole store** (`kad/src/jobs.rs`, `.collect::<Vec<_>>()`) every run,
+  whatever the store underneath; it is off, and the node replicates with its own pass.
+- **Fsync per store caps a node** at a few hundred stores a second on a disk; writes commit without durability and
+  the housekeeping tick (60 s) makes them durable. A crash loses at most that minute, which republishing restores.
+- **A 2 KB value takes a whole 4 KB redb page**; deflating frames halves the disk.
+
+Per-node storage across a network is `20 × hints × 2.9 KB ÷ nodes`: for a billion hints, 58 GB a node at a million
+nodes, 5.8 GB at ten million.
+
 ## Things the PoC deliberately did not do
 
 - No relay participation yet: browsers and relays are expected to query/publish on behalf of

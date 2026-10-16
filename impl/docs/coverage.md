@@ -16,7 +16,7 @@ Profile, `M§n` Messaging Profile, `R§n` RTP/SRTP Media Binding.
 | §3.1 | dsip-events/lib.rs, dsip-events/tsm.rs, dsip-events/usm.rs | — |
 | §3.2 | dsip-events/usm.rs | — |
 | §3.5 | dsip-events/syslog_sign.rs, dsip-kt/lib.rs, dsip-number/lib.rs | — |
-| §4 | dsip-core/pkarr.rs, dsip-dht/node.rs, dsip-events/usm.rs, dsip-gateway/host/numbers.rs, dsip-mailbox/bin/dsip-msg.rs, dsip-node/config.rs, dsip-node/lib.rs | — |
+| §4 | dsip-core/pkarr.rs, dsip-dht/node.rs, dsip-dht/store.rs, dsip-events/usm.rs, dsip-gateway/host/numbers.rs, dsip-mailbox/bin/dsip-msg.rs, dsip-node/config.rs, dsip-node/lib.rs | — |
 | §4.1 | dsip-kt/lib.rs | — |
 | §4.1.1.2 | dsip-number/lib.rs | — |
 | §4.1.6 | dsip-events/ber.rs | — |
