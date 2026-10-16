@@ -354,7 +354,7 @@ transition depends on (`status`, `ring_timeout`, `queue_timeout`, `reason`,
 | `{"recv": any}` to a *known* but unbound identity/device | queued (§13.3 store-and-forward) until `min(expires_at, context.offline_retention_s)` (default 86,400, the §13.3 RECOMMENDED value, when the context gives none); `advance` expires queues; `bind` flushes the identity's and the device's queues together in arrival order — the order the relay received them, whichever of the two each was addressed to (spec-gap 98) — turning queued invites into tracked legs |
 | `{"advance": SECONDS}` | clock; expires queues, then forgets (below) |
 
-**What a relay forgets (spec-gap 131, draft).** After expiring queues, every `advance` drops, silently (no emission):
+**What a relay forgets (§13.3, spec-gap 131).** After expiring queues, every `advance` drops, silently (no emission):
 an **attempt** (and its invite) once more than 1800 s — the T-Queue hard cap, §12.9/§12.10 — have passed since the
 relay last did anything for it: forked it (`{"relay":"invite"}` or a received `invite`), turned a queued invite into a
 leg of it, added a leg mid-attempt, or received one of its attempt-scoped messages from a leg or its initiator (including
@@ -2119,7 +2119,7 @@ Each item has a matching `spec-gap` issue draft in `impl/docs/spec-gaps.md`.
     was, not how the call finished: `session.cancelled` when we withdrew it (§12.5 rule 3), `session.already-answered`
     when an answer was applied (however the call then ended), `session.failed` when the attempt was never answered
     (`state/fork-late-answer-after-the-call-ended`, `fork-late-answer-after-our-hangup`).
-131. §12.7 / §13.3: **draft** — a relay forgets an attempt once more than 1800 s (the T-Queue cap) pass with nothing for it,
+131. §12.7 / §13.3: **decided** (v0.16) — a relay forgets an attempt once more than 1800 s (the T-Queue cap) pass with nothing for it,
     and a known identity or device once nothing is bound or held for it and its last binding ended more than
     `offline_retention_s` ago (`state/relay-attempt-forgotten-after-the-queue-cap`,
     `relay-known-identity-forgotten-after-retention`, `relay-known-identity-default-retention`).

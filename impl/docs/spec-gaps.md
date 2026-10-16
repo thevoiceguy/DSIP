@@ -3963,7 +3963,9 @@ Choices for *known*:
 - **(e) From the `hello`, literally.** A long-lived binding makes its recipient unknown at the moment it disconnects.
 - **(f) Ever bound** (the PoC so far): unbounded, and not what §13.3 says.
 
-**Draft choice: (a′) and (d).** Implemented as an Impl choice pending a decision. `Relay::forget` (Rust),
+**Draft choice: (a′) and (d).** Implemented as an Impl choice pending a decision (#177).
+
+**Decided (2026-10-16, user: "go with your choice on gap 131"): (a′) and (d).** `Relay::forget` (Rust),
 `Relay.forget` (Python) and impl-ts run it on every clock advance, after queue expiry, and emit nothing.
 
 **Pinned.** `state/relay-attempt-forgotten-after-the-queue-cap`: a `queued` progress 1,000 s in restarts the count; the
@@ -3985,3 +3987,7 @@ then routed as for a session the relay holds no attempt for."
 never sent `transport.no-response` (§12.7 rule 6, a MUST) when every leg rang out. That has to wait for a decision on
 *when* a leg expires: an invite's `expires_at` can be shorter than the callee's ring time, and expiring legs at
 `expires_at` would end calls that are still ringing.
+
+**Fix, transcribed into v0.16 (Appendix A.13).** §13.3 gains "What a relay forgets", the proposed text above; the core
+document's A.13 now lists one core change. The vectors README marks 131 decided; the `Impl:` notes in the three
+implementations became `Spec: §13.3` citations.

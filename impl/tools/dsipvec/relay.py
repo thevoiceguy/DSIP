@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 # §12.7 rule 6 preference order; anything else ranks after these, first-seen first.
 REASON_RANK = ["user.declined", "user.no-answer", "endpoint.busy", "endpoint.unavailable"]
 TERMINAL = ("answered", "rejected", "expired", "cancelled")
-# §12.9/§12.10: the T-Queue hard cap, the longest a caller waits on one progress. Impl (spec-gap 131): an attempt is held
+# §12.9/§12.10: the T-Queue hard cap, the longest a caller waits on one progress. §13.3 (v0.16, spec-gap 131): an attempt is held
 # until more than this passes with no message for it.
 T_QUEUE_CAP_S = 1800
 
@@ -115,7 +115,7 @@ class Relay:
         return to in self.bindings or to in self.devices
 
     def forget(self) -> None:
-        """Impl (spec-gap 131): what a relay stops holding. An attempt, once more than the T-Queue cap has passed since the
+        """§13.3 (v0.16, spec-gap 131): what a relay stops holding. An attempt, once more than the T-Queue cap has passed since the
         relay last forked, flushed or added a leg for it or received a message of it from a leg or its initiator: its
         session is routed by `to` from then on, as after a restart (§13.3, spec-gap 82). An
         identity or device with nothing bound and nothing held, once its last binding ended more than offline_retention_s

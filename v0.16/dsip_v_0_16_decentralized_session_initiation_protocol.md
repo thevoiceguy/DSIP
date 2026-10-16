@@ -7,7 +7,7 @@
 **Editor:** James Ferris
 **Date:** October 2026
 **Supersedes:** v0.15
-**Companion documents:** WebRTC Media Binding 1.0 (`dsip-webrtc-media-binding-v0.16.md`); Gateway Profile 1.0 (`dsip-gateway-profile-v0.16.md`); Messaging Profile 1.0 (`dsip-messaging-profile-v0.16.md`, with its schema set `dsip-messaging-schemas-draft/`); RTP/SRTP Media Binding (draft, `dsip-rtp-srtp-media-binding-v0.16-draft.md`); DHT Hints Profile (draft, `dsip-dht-hints-profile-v0.16-draft.md`); Alias Transparency Profile (draft, `dsip-alias-transparency-profile-v0.16-draft.md`); Device Events Profile (draft, `dsip-device-events-profile-v0.16-draft.md`); Recording Profile (draft, `dsip-recording-profile-v0.16-draft.md`); Number Attestation Profile (draft, `dsip-number-attestation-profile-v0.16-draft.md`); JSON Schema set v0.15 (`dsip-schemas-v0.16-draft/`); conformance vectors (`impl/vectors/`, 2,124 vectors on which the Python harness, the Rust reference implementation and the independent TypeScript implementation agree)
+**Companion documents:** WebRTC Media Binding 1.0 (`dsip-webrtc-media-binding-v0.16.md`); Gateway Profile 1.0 (`dsip-gateway-profile-v0.16.md`); Messaging Profile 1.0 (`dsip-messaging-profile-v0.16.md`, with its schema set `dsip-messaging-schemas-draft/`); RTP/SRTP Media Binding (draft, `dsip-rtp-srtp-media-binding-v0.16-draft.md`); DHT Hints Profile (draft, `dsip-dht-hints-profile-v0.16-draft.md`); Alias Transparency Profile (draft, `dsip-alias-transparency-profile-v0.16-draft.md`); Device Events Profile (draft, `dsip-device-events-profile-v0.16-draft.md`); Recording Profile (draft, `dsip-recording-profile-v0.16-draft.md`); Number Attestation Profile (draft, `dsip-number-attestation-profile-v0.16-draft.md`); JSON Schema set v0.15 (`dsip-schemas-v0.16-draft/`); conformance vectors (`impl/vectors/`, 2,127 vectors on which the Python harness, the Rust reference implementation and the independent TypeScript implementation agree)
 
 ---
 
@@ -1208,6 +1208,8 @@ The WebSocket binding delivers envelopes between *connected* parties. Reaching a
 **Routing is by `to`, with or without an attempt (spec-gap 82).** A relay tracks an attempt from the invite it forked (§12.7), and uses that record for exactly three things: forwarding a leg's pre-answer `progress`/`answer`/`reject` to the initiator (an `answer` from any leg, even one it has cancelled, expired or seen reject — §12.7 rule 3, spec-gap 86), delivering a `cancel` per leg, and signalling the attempt's outcome. Everything else — post-answer traffic, traffic from a device that is not a leg of the attempt, a `cancel` addressed to a device that is not one of its legs, and **all** traffic for a session the relay holds no attempt for (it restarted mid-call; the invite went through another relay) — is routed like any envelope: delivered to the bound device it is addressed to, or to every device bound for the identity it is addressed to; held for a known recipient that is offline (below); and otherwise refused to its sender with `transport.unknown-recipient`, never dropped silently (§13.2). A relay therefore loses no call signaling by restarting.
 
 **Known versus unknown (v0.7).** A recipient identity is *known* to a relay when a device has completed a verified `hello` for it at that relay within the relay's retention window; store-and-forward applies only to known identities. An envelope for a known-but-offline device is held until the earlier of its `expires_at` and the relay's `offline_retention_s` (advertised in the `hello` capabilities; RECOMMENDED default 86,400 s) and flushed in order on the device's next binding; a held `invite` becomes a tracked leg when flushed, and an initiator `cancel` that arrives first simply drops it. Expiry of a held envelope is **not** signalled — the initiator's §12.9 timers are the backstop. Identities never seen at this relay get `transport.unknown-recipient` (§13.2), introductions excepted.
+
+**What a relay forgets (v0.16, spec-gap 131).** The retention window runs from the end of the recipient's last binding: an identity or device is known while a device is bound for it, for `offline_retention_s` after its last binding ended, and while the relay holds an envelope for it; after that it is never seen at this relay until a device binds for it again. A relay MAY discard an attempt (§12.7) once more than the T-Queue cap (1,800 s, §12.10) has passed since it forked the invite, added a leg, or received an attempt-scoped message for it from a leg or the initiator: every pre-answer wait ends within that of the last `progress`. Traffic for the session is then routed as for a session the relay holds no attempt for (above).
 
 **Bounded store (v0.8, spec-gap 99).** A relay holds store-and-forward envelopes within bounds it chooses: per recipient, and in total across recipients. An envelope that would exceed a bound is refused with a signed `error` (`transport.routing-refused`), never dropped silently (§13.2) — except an `introduction`, which is dropped silently at either bound so that a full relay is indistinguishable from an ignoring recipient (§19.4). A `cancel` for an `invite` still held for its recipient only shrinks the store (§12.11) and is never refused for either bound.
 
@@ -2572,7 +2574,7 @@ schema sets are unchanged. Each item is listed with its spec-gap number.
 
 ### A.13 From v0.15 to v0.16
 
-v0.15 is final at tag `poc-v0.15`. v0.16 changes only the Messaging Profile; the core text is unchanged. Each item is
+v0.15 is final at tag `poc-v0.15`. v0.16 changes the Messaging Profile and one core section (§13.3). Each item is
 listed with its spec-gap number.
 
 - An enrolment at a mailbox can end (M§4.1, M§5.7, M§16; spec-gap 130): a device releases its identity's enrolment
@@ -2580,6 +2582,9 @@ listed with its spec-gap number.
   release an enrolled identity that no longer has a registered device (M§4.4); an owner operation from an
   identity the mailbox neither serves nor can enrol is refused `mailbox.not-served`. The Messaging Profile schema set
   gains `mailbox-config.release`.
+- What a relay forgets (§13.3; spec-gap 131): a recipient stays *known* for `offline_retention_s` after its last
+  binding ended, and while anything is held for it; a relay MAY discard an attempt once more than the T-Queue cap
+  (1,800 s) passes with nothing for it, after which the session is routed by `to` as after a restart.
 
 ---
 
