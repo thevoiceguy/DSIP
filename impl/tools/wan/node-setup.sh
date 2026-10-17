@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # DSIP WAN testbed — base config for one host. Idempotent.
 #
-#   ROLE=bootstrap|dht|relay|mailbox|turn|stun|endpoint   (comma-separate to combine, e.g. ROLE=dht,relay)
+#   ROLE=hints|bootstrap|dht|relay|mailbox|turn|stun|endpoint   (comma-separate to combine, e.g. ROLE=hints,relay)
 #   PUBLIC_IP=<this host's public v4>       (auto-detected if unset)
 #   DSIP_REF=<branch|tag|commit>            (default main; pin one commit for a whole campaign — every host the same)
 #   PREBUILT=<dir>                          (optional: install binaries from here instead of building; see README §1)
@@ -26,10 +26,20 @@
 #                                            whose devices has connected within --mls-retention, freeing its place in
 #                                            --serve-any; MAILBOX_OWNER identities never expire; M§4.1, spec-gap 130)
 #   MAILBOX_DOCS="alice bob"                (names under /var/lib/dsip/docs/<name>.json the mailbox resolves from)
+#   HINTS_PEERS=<host>[,<host>]             (ROLE=hints: your other hints nodes. Each is an overlay bootstrap node, its
+#                                            PeerId read from http://<host>:8090/dsip/v1/node (or give the multiaddr
+#                                            /ip4/<ip>/tcp/4610/p2p/<PeerId>), and <host>:6881 a Mainline bootstrap node,
+#                                            with dht.libtorrent.org:25401 and relay.pkarr.org:6881 after them. Omit on
+#                                            the first node; give it to each later one: they find the others from there)
+#   HINTS_HTTP=<addr:port>                  (ROLE=hints: the HTTP hints API, default 0.0.0.0:8090, served directly to
+#                                            other nodes and clients (profile §10); the relay's /dsip/v1/ proxy and the
+#                                            mailbox use 127.0.0.1:8090 either way, so 127.0.0.1:8090 keeps it local)
 #   TURN_SECRET=<string>                    (ROLE=turn: the TURN REST API secret, default: generated into $STATE/turn.secret;
 #                                            credentials are minted from it: `dsipctl turn-cred` or the relay's /turn)
 #
 # Example:
+#   ROLE=hints,relay ./node-setup.sh                                            # the first hints node
+#   ROLE=hints,relay HINTS_PEERS=45.33.102.196 ./node-setup.sh                  # each later one: any running node
 #   ROLE=bootstrap,relay,mailbox MAILBOX_OWNER=did:web:alice.example DHT_SEED=$(openssl rand -hex 32) ./node-setup.sh  # L1
 #   ROLE=dht,relay,mailbox MAILBOX_OWNER=did:web:bob.example BOOTSTRAP=/ip4/1.2.3.4/tcp/4001/p2p/12D3... ./node-setup.sh # L2
 #   ROLE=dht        BOOTSTRAP=... ./node-setup.sh                               # L3
@@ -41,7 +51,8 @@ PUBLIC_IP=${PUBLIC_IP:-$(curl -4 -s https://ifconfig.me || hostname -I | awk '{p
 DSIP_REF=${DSIP_REF:-main}
 SRC=/opt/dsip-src; BIN=/usr/local/bin; STATE=/var/lib/dsip; LOG=/var/log/dsip
 DHT_PORT=4001; RELAY_PORT=8443; MAILBOX_PORT=9443
-BINS="dsip dsip-relay dsip-dht-node dsip-mailbox dsip-msg"
+BINS="dsip dsip-relay dsip-dht-node dsip-mailbox dsip-msg dsip-node"
+HINTS_HTTP=${HINTS_HTTP:-0.0.0.0:8090}
 has(){ [[ ",$ROLE," == *",$1,"* ]]; }
 
 echo "== $(hostname) role=$ROLE public=$PUBLIC_IP ref=$DSIP_REF"
@@ -57,7 +68,9 @@ mkdir -p $STATE $LOG $STATE/docs
 
 # ---- binaries: prebuilt, or build here ---------------------------------------
 if [ -n "${PREBUILT:-}" ]; then
-  for b in $BINS; do install -m755 "$PREBUILT/$b" $BIN/$b; done
+  # a set prebuilt before the hints role has no dsip-node: only ROLE=hints needs it (checked there)
+  for b in $BINS; do [ -f "$PREBUILT/$b" ] && install -m755 "$PREBUILT/$b" $BIN/$b; done
+  [ -f "$PREBUILT/dsip-node.service" ] && cp "$PREBUILT/dsip-node.service" $STATE/dsip-node.service
   [ -f "$PREBUILT/COMMIT" ] && cp "$PREBUILT/COMMIT" $STATE/commit
 else
   # perl + make: forge-media vendors OpenSSL. The toolchain itself comes from impl/rust-toolchain.toml
@@ -74,17 +87,91 @@ else
   git -C $SRC rev-parse HEAD > $STATE/commit
   # A release build of the whole set wants ~3 GB of RAM and ~6 GB of disk: build on a 4 GB host (or the
   # endpoint box) and hand the result to the small ones with PREBUILT.
-  ( cd $SRC/impl && cargo build -q --release -p dsip-cli -p dsip-relay -p dsip-dht -p dsip-mailbox )
+  ( cd $SRC/impl && cargo build -q --release -p dsip-cli -p dsip-relay -p dsip-dht -p dsip-mailbox -p dsip-node )
   mkdir -p $STATE/prebuilt
   for b in $BINS; do
     install -m755 $SRC/impl/target/release/$b $BIN/$b
     install -m755 $SRC/impl/target/release/$b $STATE/prebuilt/$b
   done
+  cp $SRC/impl/crates/dsip-node/packaging/debian/dsip-node.service $STATE/dsip-node.service
+  cp $STATE/dsip-node.service $STATE/prebuilt/
   cp $STATE/commit $STATE/prebuilt/COMMIT
   echo "Prebuilt set for the other hosts: $STATE/prebuilt  (scp -r it, then PREBUILT=<dir> ./node-setup.sh)"
 fi
 echo "PUBLIC_IP=$PUBLIC_IP" > $STATE/env
 echo "commit: $(cat $STATE/commit 2>/dev/null || echo unknown)"
+
+# ---- hints node (dsip-node: the overlay, Mainline/Pkarr, the HTTP hints API) --
+# The relay's /dsip/v1/ proxy and the mailbox's --hints-node reach it at 127.0.0.1:8090. Open 4610/tcp and 6881/udp
+# (and 8090/tcp when HINTS_HTTP is public).
+if has hints; then
+  # the .deb's binary and unit when it is installed; otherwise ours, with the packaged unit's sandbox
+  if [ -x /usr/bin/dsip-node ] && [ -f /usr/lib/systemd/system/dsip-node.service ]; then
+    rm -f /etc/systemd/system/dsip-node.service
+  else
+    [ -x $BIN/dsip-node ] || { echo "ROLE=hints needs dsip-node: rebuild, or a PREBUILT set that has it" >&2; exit 1; }
+    [ -f $STATE/dsip-node.service ] || { echo "ROLE=hints needs dsip-node.service (built with dsip-node)" >&2; exit 1; }
+    sed "s#^ExecStart=/usr/bin/dsip-node#ExecStart=$BIN/dsip-node#" $STATE/dsip-node.service > /etc/systemd/system/dsip-node.service
+  fi
+  # The overlay's bootstrap needs each peer's PeerId: its HTTP API says. Mainline's needs only the host. A Mainline
+  # list REPLACES the library's public nodes, so a public node that answers goes after ours (2026-10-16: L3, with
+  # one stale saved node and router.bittorrent.com silent, could not rejoin until its peers were listed).
+  OVERLAY=""; MAINLINE=""
+  for p in ${HINTS_PEERS//,/ }; do
+    if [[ $p == /* ]]; then
+      addr=$p; host=$(echo "$p" | cut -d/ -f3)
+    else
+      host=$p
+      id=$(curl -sf --max-time 5 "http://$host:8090/dsip/v1/node" | jq -r .peer_id || true)
+      if [ -z "$id" ] || [ "$id" = null ]; then
+        echo "!! $host: no PeerId at http://$host:8090/dsip/v1/node — Mainline only; give its multiaddr for the overlay" >&2
+        MAINLINE="$MAINLINE\"$host:6881\", "; continue
+      fi
+      if [[ $host =~ ^[0-9.]+$ ]]; then addr="/ip4/$host/tcp/4610/p2p/$id"; else addr="/dns4/$host/tcp/4610/p2p/$id"; fi
+    fi
+    OVERLAY="$OVERLAY\"$addr\", "; MAINLINE="$MAINLINE\"$host:6881\", "
+  done
+  MAINLINE="$MAINLINE\"dht.libtorrent.org:25401\", \"relay.pkarr.org:6881\""
+  # the co-located relay connects over loopback and names its client; the node honours that from loopback only
+  TRUST=false; has relay && TRUST=true
+  mkdir -p /etc/dsip-node
+  cat > /etc/dsip-node/config.toml.new <<CONF
+# dsip-node, written by node-setup.sh (ROLE=hints). Every key: /usr/share/doc/dsip-node/config.example.toml, or
+# impl/crates/dsip-node/config.example.toml. A hints node is never authoritative (DSIP core §8.1).
+[node]
+state_dir = "/var/lib/dsip-node"
+
+[overlay]
+listen = ["/ip4/0.0.0.0/tcp/4610"]
+bootstrap = [${OVERLAY%, }]
+
+[mainline]
+enabled = true
+port = 6881
+server = true
+bootstrap = [$MAINLINE]
+
+[http]
+listen = "$HINTS_HTTP"
+
+[limits]
+ban_secs = 600
+ban_ip = false
+http_requests_per_ip_per_min = 120
+trust_x_forwarded_for = $TRUST
+CONF
+  if [ -f /etc/dsip-node/config.toml ] && ! cmp -s /etc/dsip-node/config.toml /etc/dsip-node/config.toml.new; then
+    cp /etc/dsip-node/config.toml /etc/dsip-node/config.toml.bak-$(date +%Y%m%d%H%M%S)
+  fi
+  mv /etc/dsip-node/config.toml.new /etc/dsip-node/config.toml
+  systemctl daemon-reload; systemctl enable dsip-node; systemctl restart dsip-node
+  for _ in $(seq 30); do NODE=$(curl -sf http://127.0.0.1:${HINTS_HTTP##*:}/dsip/v1/node) && break; sleep 1; done
+  [ -n "${NODE:-}" ] || { echo "!! dsip-node did not come up: journalctl -u dsip-node" >&2; exit 1; }
+  sleep 5   # a moment to dial the bootstrap nodes
+  NODE=$(curl -sf http://127.0.0.1:${HINTS_HTTP##*:}/dsip/v1/node)
+  echo "Hints node:   /ip4/$PUBLIC_IP/tcp/4610/p2p/$(echo "$NODE" | jq -r .peer_id)   (HINTS_PEERS=$PUBLIC_IP for the next one)"
+  echo "              overlay peers $(echo "$NODE" | jq .overlay.peers), records $(echo "$NODE" | jq .overlay.records); HTTP $HINTS_HTTP"
+fi
 
 # ---- DHT node (bootstrap or member) ------------------------------------------
 if has bootstrap || has dht; then
