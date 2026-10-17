@@ -77,7 +77,7 @@ same hash on every host before any run.
 ```bash
 ROLE=bootstrap,relay,mailbox MAILBOX_OWNER=did:web:alice.example DHT_SEED=$(openssl rand -hex 32) ./node-setup.sh
 cat /var/lib/dsip/my-multiaddr      # → /ip4/<L1>/tcp/4001/p2p/12D3Koo…   ← BOOT1
-ls /var/lib/dsip/prebuilt           # dsip dsip-relay dsip-dht-node dsip-mailbox dsip-msg COMMIT
+ls /var/lib/dsip/prebuilt           # dsip dsip-relay dsip-dht-node dsip-mailbox dsip-msg dsip-node dsip-node.service COMMIT
 ```
 The seed pins the PeerId so `BOOT1` survives restarts (Run 2 restarts it cold). Every DHT node keeps the
 peers it learned in `/var/lib/dsip/dht.peers` (rewritten each minute) and dials them on restart, so a
@@ -101,6 +101,23 @@ ROLE=relay,mailbox PREBUILT=/root/pb RELAY_HOST=<name> RELAY_CERT=/etc/letsencry
 with `/var/lib/dsip/client.json` naming the nodes and `"mailbox": {"uri": "wss://<name>:9443/dsip", "did":
 "<service.did>"}` (`impl/web/README.md`, runbook). The mailbox reaches a member on the other operator through the
 hint on its co-located node (`--hints-node http://127.0.0.1:8090`).
+
+### Hints nodes (dsip-node) — every host that runs a relay, and any others
+The browser client publishes and looks up hints through its relay's `/dsip/v1/` proxy, and the mailbox reaches
+members through `--hints-node`: both use the hints node on the same host at `127.0.0.1:8090`. Add `hints` to that
+host's `ROLE` (it combines with any of the above). The first one needs nothing more; each later one names any
+running node, and finds the rest through it:
+```bash
+ROLE=hints,relay,mailbox ... ./node-setup.sh                                   # L1: the first
+ROLE=hints,relay,mailbox ... HINTS_PEERS=<L1> ./node-setup.sh                   # L2, L3, L4: any running node(s)
+```
+`HINTS_PEERS` fills both bootstrap lists in `/etc/dsip-node/config.toml`: the overlay's (each peer's PeerId read
+from its `http://<host>:8090/dsip/v1/node`) and Mainline's (`<host>:6881`, then `dht.libtorrent.org:25401` and
+`relay.pkarr.org:6881` — a Mainline list replaces the library's public nodes). A previous config is kept as
+`config.toml.bak-<time>`. With the `.deb` installed its binary and unit are used; otherwise the `dsip-node` built
+with the set, under the packaged unit's sandbox (`PREBUILT` sets from before 2026-10-17 lack it: rebuild).
+`HINTS_HTTP=127.0.0.1:8090` keeps the HTTP API off the network; peers then need `HINTS_PEERS` as multiaddrs. Open
+4610/tcp and 6881/udp, and 8090/tcp when the API is public. The node prints its multiaddr and overlay peer count.
 
 ### L3 — dht only
 ```bash
@@ -302,14 +319,16 @@ minimum claim: "a NAT'd endpoint found a public endpoint through the DHT and tal
 ### Run 2b — a callee that stops answering (spec-gap 76)
 The hint outlives the endpoint by up to its TTL, so a caller can discover a relay where nobody is
 listening any more. On a real network that is a routine case, not a fault.
-1. Bob answers as in stage 3 with `--hint-ttl 600`, **without** `--auto accept`. Freeze him rather
-   than quit him: `kill -STOP $(pgrep -f 'dsip answer')` — his relay binding stays up, he says nothing.
+1. Bob answers as in stage 3 with `--hint-ttl 600` and `--auto silent`: his relay binding stays up,
+   he receives the invite and says nothing. (`kill -STOP $(pgrep -f 'dsip answer')` on a running
+   answerer does the same, and also stops him reading.)
 2. Stage 5 from E-A with `--t-establish 10`.
 3. Expect on E-A: no `progress`; T-Establish expires and Alice sends `cancel session.timeout`. If the
    invite's `expires_at` passes first, the relay ends the attempt itself: `attempt <session> outcome:
    no leg responded` on L2 and a relay-signed `error transport.no-response` at Alice. Record which
    came first and the elapsed time. `kill -CONT` Bob afterwards: a late `answer` from him must get a
-   `bye`, not silence (spec-gap 86; `relay-tail` shows the answer forwarded, not `dropped`).
+   `bye`, not silence (spec-gap 86; `relay-tail` shows the answer forwarded, not `dropped`) — this
+   check needs the frozen answerer, since a silent one never answers.
 4. Now `kill -9` Bob and call again inside the TTL: Alice resolves the stale hint, binds, and the
    invite is queued (`queued invite for … (§13.3)`: the relay has seen Bob, so he is known-but-unbound;
    after a relay restart he would be unknown and Alice would get `transport.unknown-recipient`). Record what Alice's user sees and after how long —

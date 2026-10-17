@@ -16,7 +16,8 @@
 #   dsipctl cap-rtp             tcpdump: UDP (ICE/STUN/TURN/SRTP) — run on an endpoint
 #   dsipctl ports               what is listening
 #   dsipctl drift               clock offset (replay window sanity)
-#   dsipctl commit              the commit this host's binaries were built from
+#   dsipctl commit              the commit(s) this host's binaries were built from, and each binary's sha256 (a
+#                               component deployed by hand belongs in /var/lib/dsip/commit with its commit)
 set -euo pipefail
 CTRL=${CTRL:-127.0.0.1:4101}
 # GETs wait out the query timeout (10 s) when a peer near the key is unreachable: give them 30 s.
@@ -41,6 +42,10 @@ case "${1:-}" in
   cap-rtp) tcpdump -ni any -l 'udp and not port 53 and not port 123' ;;
   ports)   ss -tulpn | grep -E 'dsip|turn|4001|8443|9443|3478' ;;
   drift)   chronyc tracking | grep -E 'System time|Last offset' ;;
-  commit)  cat /var/lib/dsip/commit ;;
-  *) sed -n 2,16p "$0" ;;
+  commit)  cat /var/lib/dsip/commit
+           for b in /usr/local/bin/dsip /usr/local/bin/dsip-relay /usr/local/bin/dsip-mailbox /usr/local/bin/dsip-msg \
+                    /usr/local/bin/dsip-dht-node /usr/local/bin/dsip-node /usr/bin/dsip-node; do
+             [ -f $b ] && echo "  $(sha256sum $b | cut -c1-12)  $(date -r $b '+%F %H:%M')  $b"
+           done; true ;;
+  *) sed -n 2,20p "$0" ;;
 esac
