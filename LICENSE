@@ -5,7 +5,8 @@ This repository is under two licences, by what a file is.
 The specification: Creative Commons Attribution 4.0 International (CC BY 4.0),
 in LICENSE-CC-BY-4.0. This covers the prose documents: the Markdown files in the
 v0.*/ directories (the core specification, its profiles and bindings, and their
-READMEs) and the design notes in impl/docs/.
+READMEs), the overview in docs/ (its diagram included) and the design notes in
+impl/docs/.
 
 Everything else: MIT or Apache-2.0, at your option (SPDX: MIT OR Apache-2.0), in
 LICENSE-MIT and LICENSE-APACHE. This covers all code (impl/, impl-ts/), the
