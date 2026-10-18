@@ -52,6 +52,13 @@ Messaging uses the same identities. Each conversation is an **MLS group** (RFC 9
 2. The conversation's **hub** (one of the members' mailboxes) gives it the next sequence number and fans it out to every member's mailbox.
 3. Bob's mailbox pushes it at once to his online devices and holds it for the others until they sync. Mailboxes store only ciphertext.
 
+**What a mailbox keeps.** Every message is deposited, even when the recipient is online: push is the fast path, not a fallback, so there is no "try live, then store" race. A mailbox deletes a message only once every one of the owner's devices has acknowledged processing it, not when it sends it, so a device that crashes mid-delivery gets it again. A device that has been away longer than the retention bound (30 days recommended) is no longer waited for; when it returns it rejoins its conversations instead of replaying the backlog. The owner picks what happens after every device has acknowledged:
+
+- **`queue`**: the message is deleted. Nothing is kept, and a device added later sees no history.
+- **`sync`** (the default): content is also kept as encrypted archive items for the owner's retention period, within the operator's limit, so a device added later can rebuild the history.
+
+Typing indicators and other activity are never stored; they reach only the devices connected at that moment.
+
 ## The components
 
 Every component below is itself a DSIP identity that signs what it sends. None is an authority on who anyone else is: that stays with each identity's DID document.
