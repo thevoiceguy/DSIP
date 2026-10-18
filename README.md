@@ -46,3 +46,9 @@ DSIP acts as a universal real-time communication fabric connecting humans, AI ag
 
 Your identity remains strictly under your control, communication content remains encrypted end-to-end, and the routing lookup operates without a central point of failure. Legacy phone network connectivity is maintained via translation gateways that map numbers to DIDs.
 
+
+## License
+
+The specification documents are licensed under [CC BY 4.0](LICENSE-CC-BY-4.0). The code, JSON Schemas and
+test vectors are licensed under either of [MIT](LICENSE-MIT) or [Apache-2.0](LICENSE-APACHE), at your option.
+[LICENSE](LICENSE) says which files fall under which.

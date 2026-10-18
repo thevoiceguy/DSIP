@@ -2,6 +2,7 @@
   "name": "dsip-ts",
   "version": "0.9.0",
   "private": true,
+  "license": "MIT OR Apache-2.0",
   "description": "Second DSIP implementation, written from the v0.11 spec and the conformance vectors only",
   "type": "module",
   "engines": { "node": ">=20" },
