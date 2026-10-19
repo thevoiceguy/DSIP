@@ -54,6 +54,9 @@ def vectors() -> list[dict]:
     out.append(tv("downgrade-no-attestation", "Inbound, no attestation.", ["§6.3", "§18.1"],
                   {"check": "downgrade", "losses": ["no-attestation"]},
                   "Trust downgraded crossing the gateway (§6.3): the caller carried no verified attestation"))
+    out.append(tv("downgrade-recording-not-disclosed", "The PSTN party was not told of a declared recording (spec-gap 133).", ["§6.3", "C§3"],
+                  {"check": "downgrade", "losses": ["recording-not-disclosed"]},
+                  "Trust downgraded crossing the gateway (§6.3): the PSTN party was not told this call is recorded"))
     out.append(tv("downgrade-empty", "Downgrade with no named losses.", ["§6.3"],
                   {"check": "downgrade", "losses": []}, "Trust downgraded crossing the gateway (§6.3)"))
     # N§4: a caller's own bound number is not a gateway claim (spec-gap 110)

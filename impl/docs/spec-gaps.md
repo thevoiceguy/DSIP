@@ -4064,9 +4064,24 @@ Choices:
 - **(d) The gateway declines (`policy.recording-declined`)** unless its operator's policy says otherwise. Safe for the
   PSTN party, and breaks every recorded call centre that dials out.
 
-**Local choice: (a)**, unchanged behaviour (`dsip-gateway`'s `CallsConfig.recording: AcceptPolicy::Always`, with an
-`Impl:` note). (b) looks right as the minimum: the recording party learns that the disclosure stopped at the gateway,
-in the same place a crossing reports what else it lost. (c) is the full answer where trunks carry `a=record`.
+**Draft choice: (b)** as the minimum: the recording party learns that the disclosure stopped at the gateway, in the
+same place a crossing reports what else it lost. (c) is the full answer where trunks carry `a=record`. (Stage 2c first
+shipped (a), unchanged behaviour, #202.)
+
+**Decided (2026-10-18, user: "go with your choice on gap 133"): (b).** The gateway accepts the declaration on the PSTN
+party's behalf (`CallsConfig.recording: AcceptPolicy::Always`) and names the loss `recording-not-disclosed`, last in
+the G§7 order: in its outbound downgrade error when the DSIP caller's invite declares recording (fact
+`recording_declared`), and in a `gateway.downgraded` of its own, once per call, when a declaration first arrives later
+(an inbound call's answer, an `update`). The trust summary renders it as "the PSTN party was not told this call is
+recorded".
+
+**Pinned.** `gateway/downgrade-outbound-recording-not-disclosed`, `downgrade-inbound-recording-not-disclosed`,
+`downgrade-outbound-recording-after-the-other-losses`, `trust/downgrade-recording-not-disclosed`.
+`demos/number-gateway-demo.sh` (CI) cases 4 and 5: a recorded caller dials out and is told; a recorded callee answers a
+PSTN call and is told by the far gateway, and its media is bridged.
+
+**Fix, for the next spec version (v0.16 is final).** The proposed text below goes into G§7 and G§3 when v0.17 is
+assembled; until then the three implementations cite this gap.
 
 **Proposed text.** G§7, a loss: "`recording-not-disclosed`: the DSIP side declared recording (C§3) and the PSTN side
 was not told." G§3 (or C§4): "A gateway is not the recorded party's client. It accepts a declaration on the PSTN

@@ -119,6 +119,17 @@ def vectors() -> list[dict]:
     out.append(gv("downgrade-outbound-asserted-srtp", "Outbound over SRTP with a signed PASSporT and no policy: no downgrade.", ["§6.3"],
                   {"check": "downgrade", "facts": {"direction": "outbound", "trunk_srtp": True, "identity_assertable": True, "policy_present": False}},
                   {"downgraded": False, "lost": []}))
+    # spec-gap 133 (decided): a recording the DSIP side declares (C§3) does not cross to the PSTN party; the crossing is
+    # downgraded with the loss last in the G§7 table order
+    out.append(gv("downgrade-outbound-recording-not-disclosed", "Outbound over SRTP, asserted, the DSIP caller declaring recording: the PSTN party is not told (spec-gap 133).", ["§6.3", "C§3"],
+                  {"check": "downgrade", "facts": {"direction": "outbound", "trunk_srtp": True, "identity_assertable": True, "policy_present": False, "recording_declared": True}},
+                  {"downgraded": True, "lost": ["recording-not-disclosed"]}))
+    out.append(gv("downgrade-inbound-recording-not-disclosed", "Inbound over SRTP with attestation, the DSIP callee declaring recording: one loss (spec-gap 133).", ["§6.3", "C§3"],
+                  {"check": "downgrade", "facts": {"direction": "inbound", "trunk_srtp": True, "attestation": "A", "recording_declared": True}},
+                  {"downgraded": True, "lost": ["recording-not-disclosed"]}))
+    out.append(gv("downgrade-outbound-recording-after-the-other-losses", "Every outbound loss at once: the recording loss comes last (spec-gap 133).", ["§6.3", "C§3"],
+                  {"check": "downgrade", "facts": {"direction": "outbound", "trunk_srtp": False, "identity_assertable": False, "policy_present": True, "recording_declared": True}},
+                  {"downgraded": True, "lost": ["no-srtp-on-trunk", "identity-not-assertable", "policy-unenforceable", "recording-not-disclosed"]}))
     out.append(gv("downgrade-inbound-no-attestation", "Inbound with SRTP but no attestation: one loss.", ["§6.3", "§18.1"],
                   {"check": "downgrade", "facts": {"direction": "inbound", "trunk_srtp": True, "attestation": "none"}},
                   {"downgraded": True, "lost": ["no-attestation"]}))

@@ -515,7 +515,7 @@ The spec gives the *form* of each line; the exact text below is this suite's and
 |---|---|---|
 | `basis` | `identity` (DID), `claims` | with a gateway `tel` claim (the first `tel` claim whose `verifier` is a string; it outranks the carrying identity's own basis — a `tel` claim with a `binding` (N§4) is the identity's own number and never changes the basis): `Gateway attested by <verifier> · STIR attestation <A\|B\|C> (verified\|unverified)`, or `… · no attestation` when `attestation` is `none`; `<verifier>` is the host of the claim's `did:web` verifier. Otherwise `Self-issued identity` (`did:key`), `Domain verified (<did>)` (`did:web`), `Unrecognized identity method` |
 | `tel-caller` | `claim` | `PSTN caller <number>`, plus ` · <cnam>` when the claim has one; `null` for a claim that is not `tel`, or has no string `verifier` (a caller's own bound number, N§4, is not a PSTN caller) |
-| `downgrade` | `losses` (tokens of the gateway `downgrade` check) | `Trust downgraded crossing the gateway (§6.3)`, then `: ` and the losses joined by `; ` — `no-srtp-on-trunk` → `media is not encrypted on the PSTN trunk`, `identity-not-assertable` → `your identity could not be asserted into the PSTN`, `no-attestation` → `the caller carried no verified attestation`, `policy-unenforceable` → `your media policy cannot be enforced past the gateway` |
+| `downgrade` | `losses` (tokens of the gateway `downgrade` check) | `Trust downgraded crossing the gateway (§6.3)`, then `: ` and the losses joined by `; ` — `no-srtp-on-trunk` → `media is not encrypted on the PSTN trunk`, `identity-not-assertable` → `your identity could not be asserted into the PSTN`, `no-attestation` → `the caller carried no verified attestation`, `policy-unenforceable` → `your media policy cannot be enforced past the gateway`, `recording-not-disclosed` → `the PSTN party was not told this call is recorded` (spec-gap 133) |
 
 ## Kind: `gateway`
 
@@ -529,7 +529,7 @@ carry, pinned before the gateway exists. `input.check` selects:
 | `sdp-to-descriptors` | trunk `sdp` | `{media: [descriptors], srtp: none\|sdes\|dtls}` or `{error}` |
 | `descriptors-to-sdp` | DSIP `media` | `{m_lines: [{kind, encodings, direction}]}` |
 | `claims` | `from_tn`, `identity` (`attest`, `verified`, `orig_tn`)?, `cnam`? | `{claim: {type: tel, number, attestation, verified, verifier, cnam?}, trust_basis}` (§18.1: a basis line, never a badge; `orig` mismatch discards the attestation) |
-| `downgrade` | `facts` (`direction`, `trunk_srtp`, `identity_assertable`, `attestation`, `policy_present`) | `{downgraded, lost: [no-srtp-on-trunk \| identity-not-assertable \| no-attestation \| policy-unenforceable]}` (§6.3) |
+| `downgrade` | `facts` (`direction`, `trunk_srtp`, `identity_assertable`, `attestation`, `policy_present`, `recording_declared`) | `{downgraded, lost: [no-srtp-on-trunk \| identity-not-assertable \| no-attestation \| policy-unenforceable \| recording-not-disclosed]}` (§6.3), in that order; `recording-not-disclosed` when `recording_declared` is true, in either direction (spec-gap 133) |
 | `trace` | `steps` of `{dsip: MSG}` / `{sip: {status}\|{request, …}}` / `{timer: "C"}`; `context.direction`, `context.early_media` | per-step `emit` (what each leg is told: `{sip: "INVITE"\|"ACK"\|"CANCEL"\|{response, direction?, q850?, reason_header?}\|{request, …}}`, `{dsip: {local: …}}`, `{media: bridge\|release}`) and `state: {dsip, sip}` |
 
 Details the table leaves out, all part of the contract:
@@ -2131,6 +2131,11 @@ Each item has a matching `spec-gap` issue draft in `impl/docs/spec-gaps.md`.
     was, not how the call finished: `session.cancelled` when we withdrew it (§12.5 rule 3), `session.already-answered`
     when an answer was applied (however the call then ended), `session.failed` when the attempt was never answered
     (`state/fork-late-answer-after-the-call-ended`, `fork-late-answer-after-our-hangup`).
+133. C§4 / G§3 / G§7: **decided** (next spec version) — a gateway is not the recorded party's client: it accepts a recording
+    the DSIP side declares (C§3) on the PSTN party's behalf, and the crossing is downgraded with a new G§7 loss,
+    `recording-not-disclosed`, last in the table order (`gateway/downgrade-outbound-recording-not-disclosed`,
+    `downgrade-inbound-recording-not-disclosed`, `downgrade-outbound-recording-after-the-other-losses`,
+    `trust/downgrade-recording-not-disclosed`).
 132. §12.7 rule 6 / §12.9: **decided** (v0.16) — a leg that has sent nothing once the invite has expired is expired, so the relay
     can say `transport.no-response` (`state/relay-silent-legs-expire-with-the-invite`,
     `relay-ringing-leg-outlives-the-invite`, `relay-silent-leg-expires-after-an-answer`).

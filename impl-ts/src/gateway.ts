@@ -197,6 +197,8 @@ export function downgrade(facts: JsonObject): { downgraded: boolean; lost: strin
   if (outbound && facts["identity_assertable"] === false) lost.push("identity-not-assertable");
   if (!outbound && (facts["attestation"] ?? "none") === "none") lost.push("no-attestation");
   if (facts["policy_present"] === true) lost.push("policy-unenforceable");
+  // spec-gap 133 (decided; vectors README): a declared recording does not reach the PSTN party
+  if (facts["recording_declared"] === true) lost.push("recording-not-disclosed");
   return { downgraded: lost.length > 0, lost };
 }
 
