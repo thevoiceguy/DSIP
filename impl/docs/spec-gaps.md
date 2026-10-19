@@ -4087,3 +4087,102 @@ assembled; until then the three implementations cite this gap.
 was not told." G§3 (or C§4): "A gateway is not the recorded party's client. It accepts a declaration on the PSTN
 party's behalf only as its operator's policy says, and when the declaration does not cross, the crossing is
 downgraded with `recording-not-disclosed`."
+
+## 134. §9.3 / §9.4 — a device's signed presence record has no way to reach the authority
+
+**Found (2026-10-19, reviewing a presence proposal against v0.16).** Spec-gap 19 named two ways an authority can know
+presence. v0.7 adopted only the second: the authority asserts presence from its own connection bindings, `available`
+when any device of the target is bound and `offline` otherwise. The first way is the subject-signed record of §9.4,
+which §9.3 RECOMMENDS whenever the notifier is not the subject. Nothing defines how that record gets to the
+authority. No message carries it from a device to the relay, no rule says how long the relay keeps it, and no rule
+says what replaces it once it expires. A deployment that follows the RECOMMENDED form therefore can't, so every
+implementation (the PoC included) sends only authority-asserted presence. That presence is two states, and the relay
+can forge it.
+
+Choices:
+
+- **(a) A `publish` of the record.** A device sends the signed §9.4 record to its relay over its existing binding.
+  The relay answers `accepted`, keeps the record until its `expires_at`, and sends it as the `body` of every
+  authorized `notify`. A new message type, plus a `dsip-subscription-event` rule for presence.
+- **(b) The record in the device's `hello`/binding refresh.** No new message, but presence changes, such as going busy
+  in the middle of a binding, then need a re-hello, and the binding and the presence record get a lifetime in common.
+- **(c) Leave it to a profile.** The core keeps authority-asserted presence, and a Presence Profile defines the
+  publish path.
+
+**Draft choice: (a), defined in a Presence Profile (c)** (`impl/docs/presence-profile-outline.md`, P§3). The core
+needs one line in §9.3: "how a subject's record reaches its authority is defined by the Presence Profile; an authority
+holding a valid record MUST send it rather than its own assertion." When a record expires the authority falls back to
+assertion, so a subscriber always knows which kind of presence it is looking at.
+
+**Open: awaiting decision.**
+
+## 135. §9.4 — an identity with several devices has no single presence record
+
+**Found (2026-10-19, with 134).** §9.4's record has `subject` (the identity) and one `seq`. Presence records "must be
+signed by the DID or delegated keys" (§8.1 rule 5), so each device can sign one for the identity. Two
+devices then publish records with the same `subject` and unrelated `seq` counters. The receiver rule from §9.3
+("discard lower-than-seen `seq`") then drops one device's state whenever the other's counter happens to be higher, so
+the laptop going idle can hide the phone's call. The record has no `device` field, so a receiver can't keep the two
+apart even if it tried. Combining them would need a signer that speaks for every device. The identity key is that
+signer, and §7.3 keeps it off devices.
+
+Choices:
+
+- **(a) Per-device records, combined by the subscriber.** The record gains `device` (the signing device's DID, which
+  must match the signer). `seq` is ordered per `(subject, device)`. The authority sends each device's current record,
+  and the subscriber's client computes the identity's state with a fixed precedence rule (P§4). No new signer is needed.
+- **(b) The authority combines them and signs.** The result is the authority's claim, like today's assertion, so
+  the reason for subject-signed presence is gone.
+- **(c) One device is the presence primary.** The other devices report to it, and it signs for the identity. That
+  needs device-to-device signalling and a choice of primary, and the primary going offline loses everyone's presence.
+
+**Draft choice: (a).** Each device's record carries the device's own signature, the combining rule is deterministic,
+so every subscriber computes the same answer, and the authority stays a carrier. A record without `device` (v0.16
+form) is treated as one that comes from a single unnamed device.
+
+**Open: awaiting decision.**
+
+## 136. §9.3 / §9.4 — presence `state` has no registry, and "invisible" has no defined wire form
+
+**Found (2026-10-19, with 134).** `state` appears in §9.3 and §9.4 only as examples (`available`, `offline`). It isn't
+in the §24.2 registry list, and the schema checks its shape only. Two implementations can't agree on `busy` or `dnd`,
+and nothing says what a receiver does with a value it doesn't know. User-facing "invisible" mode also has no defined
+form on the wire. If it were a state, it would tell the subscriber the very thing it is meant to hide.
+
+Choices:
+
+- **(a) A `dsip-presence-state` registry** with fallback for unknown tokens, as for reason tokens (§15). Initial values:
+  `available`, `busy`, `away`, `dnd`, `offline`. Unknown `state` is rendered as `available` with the token shown raw.
+  "Invisible" is not registered: an invisible device publishes `offline`, or nothing.
+- **(b) A closed enum.** Contrary to the registry rule every other DSIP state follows, and to CLAUDE.md.
+- **(c) Free text.** No interoperability.
+
+**Draft choice: (a).** Registered in the Presence Profile (P§5). The fallback is `available` rather than `offline` so
+that a newer state such as `in-meeting` doesn't make a reachable person look unreachable. §9.2's privacy default is
+not touched.
+
+**Open: awaiting decision.**
+
+## 137. §9.1 — reachability is not required to depend on presence, but nothing forbids it
+
+**Found (2026-10-19, with 134).** §9.1 says "an endpoint can initiate a DSIP session without global public presence"
+and lists "no presence" as a valid exposure. That protects the caller. Nothing protects the callee: a relay, mailbox
+or gateway may refuse to deliver an `invite` or deposit to an identity that publishes no presence, or route by
+presence state (dropping calls to `offline` without trying the binding). In the same way, a refusal whose reason or
+timing depends on presence state (`dnd` rejected at once, `offline` after T-Ring) turns calling into the presence
+oracle §9.3's anti-enumeration rule closes for `subscribe`.
+
+Choices:
+
+- **(a) A MUST in §9.1:** "No relay, mailbox or other service may require presence publication as a condition of
+  delivery or reachability. Delivery decisions use bindings (§13.2), never presence records." The anti-enumeration
+  rule of §9.3 is extended to every response sent to a party not authorized for the target's presence: such a
+  response MUST NOT vary with presence state.
+- **(b) A SHOULD,** leaving enterprise deployments free to gate.
+- **(c) Leave it implicit.**
+
+**Draft choice: (a).** An enterprise that wants presence-gated routing can do it in its own clients, for its own
+identities, which the MUST doesn't reach. A rejection a callee's client sends is its user's choice and is not
+covered. What the MUST covers is a service deciding on the callee's behalf from presence.
+
+**Open: awaiting decision.**
