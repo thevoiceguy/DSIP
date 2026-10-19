@@ -1,0 +1,26 @@
+{
+  "vector": "gateway/downgrade-inbound-recording-not-disclosed",
+  "format": 1,
+  "kind": "gateway",
+  "description": "Inbound over SRTP with attestation, the DSIP callee declaring recording: one loss (spec-gap 133).",
+  "spec_ref": [
+    "§6.3",
+    "C§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "downgrade",
+    "facts": {
+      "direction": "inbound",
+      "trunk_srtp": true,
+      "attestation": "A",
+      "recording_declared": true
+    }
+  },
+  "expect": {
+    "downgraded": true,
+    "lost": [
+      "recording-not-disclosed"
+    ]
+  }
+}

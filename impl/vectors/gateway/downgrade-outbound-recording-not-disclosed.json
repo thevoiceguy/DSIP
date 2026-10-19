@@ -1,0 +1,27 @@
+{
+  "vector": "gateway/downgrade-outbound-recording-not-disclosed",
+  "format": 1,
+  "kind": "gateway",
+  "description": "Outbound over SRTP, asserted, the DSIP caller declaring recording: the PSTN party is not told (spec-gap 133).",
+  "spec_ref": [
+    "§6.3",
+    "C§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "downgrade",
+    "facts": {
+      "direction": "outbound",
+      "trunk_srtp": true,
+      "identity_assertable": true,
+      "policy_present": false,
+      "recording_declared": true
+    }
+  },
+  "expect": {
+    "downgraded": true,
+    "lost": [
+      "recording-not-disclosed"
+    ]
+  }
+}

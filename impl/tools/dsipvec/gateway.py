@@ -188,6 +188,9 @@ def downgrade(facts: dict) -> dict:
         lost.append("no-attestation")
     if facts.get("policy_present", False):
         lost.append("policy-unenforceable")
+    # spec-gap 133: a recording the DSIP side declared (C§3) is not disclosed to the PSTN party
+    if facts.get("recording_declared", False):
+        lost.append("recording-not-disclosed")
     return {"downgraded": bool(lost), "lost": lost}
 
 

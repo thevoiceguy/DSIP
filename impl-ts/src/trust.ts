@@ -67,6 +67,7 @@ const LOSSES: Record<string, string> = {
   "identity-not-assertable": "your identity could not be asserted into the PSTN",
   "no-attestation": "the caller carried no verified attestation",
   "policy-unenforceable": "your media policy cannot be enforced past the gateway",
+  "recording-not-disclosed": "the PSTN party was not told this call is recorded",
 };
 
 /** The `gateway.downgraded` summary for a list of loss tokens. Spec: §6.3 */
