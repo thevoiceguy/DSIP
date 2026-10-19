@@ -4114,7 +4114,11 @@ needs one line in §9.3: "how a subject's record reaches its authority is define
 holding a valid record MUST send it rather than its own assertion." When a record expires the authority falls back to
 assertion, so a subscriber always knows which kind of presence it is looking at.
 
-**Open: awaiting decision.**
+**Decided (2026-10-19, user: "go with your choices on 134–137"): (a), in a Presence Profile.** A device sends its signed record by `publish`; the authority keeps it until `expires_at` and sends it rather than its own assertion, falling back to assertion when no valid record is left.
+
+**Pinned.** Not yet: the vectors in `impl/docs/presence-profile-outline.md` P§3 come first (rule 1), then Rust and `impl-ts`.
+
+**Fix, for the next spec version (v0.16 is final).** §9.3 gains: "How a subject's record reaches its authority is defined by the Presence Profile. An authority holding a valid subject-signed record MUST send it rather than its own assertion." The publish path goes into the Presence Profile draft (P§3) in `v0.17/`.
 
 ## 135. §9.4 — an identity with several devices has no single presence record
 
@@ -4140,7 +4144,11 @@ Choices:
 so every subscriber computes the same answer, and the authority stays a carrier. A record without `device` (v0.16
 form) is treated as one that comes from a single unnamed device.
 
-**Open: awaiting decision.**
+**Decided (2026-10-19, user: "go with your choices on 134–137"): (a).** Records carry `device` (= the signer), `seq` is ordered per `(subject, device)`, and the subscriber combines the records by the P§4 precedence rule; a record without `device` is one unnamed device.
+
+**Pinned.** Not yet: the vectors in `impl/docs/presence-profile-outline.md` P§4 come first (rule 1), then Rust and `impl-ts`.
+
+**Fix, for the next spec version (v0.16 is final).** §9.4's record gains `device`; §9.3's `seq` rule reads "per `(subject, device)`". The combining rule goes into P§4.
 
 ## 136. §9.3 / §9.4 — presence `state` has no registry, and "invisible" has no defined wire form
 
@@ -4161,7 +4169,11 @@ Choices:
 that a newer state such as `in-meeting` doesn't make a reachable person look unreachable. §9.2's privacy default is
 not touched.
 
-**Open: awaiting decision.**
+**Decided (2026-10-19, user: "go with your choices on 134–137"): (a).** Registry `dsip-presence-state` (`available`, `busy`, `away`, `dnd`, `offline`), open, unknown tokens shown and ranked as `available`; "invisible" is publishing `offline` or nothing.
+
+**Pinned.** Not yet: the vectors in `impl/docs/presence-profile-outline.md` P§5 come first (rule 1), then Rust and `impl-ts`.
+
+**Fix, for the next spec version (v0.16 is final).** §24.2 lists `dsip-presence-state` (Presence Profile P§5, draft); §9.4 says `state` is registry-governed.
 
 ## 137. §9.1 — reachability is not required to depend on presence, but nothing forbids it
 
@@ -4185,4 +4197,8 @@ Choices:
 identities, which the MUST doesn't reach. A rejection a callee's client sends is its user's choice and is not
 covered. What the MUST covers is a service deciding on the callee's behalf from presence.
 
-**Open: awaiting decision.**
+**Decided (2026-10-19, user: "go with your choices on 134–137"): (a).** No service may require presence publication as a condition of delivery or reachability, and responses to a party not authorized for the target's presence MUST NOT vary with its presence state. A callee's own client rejecting is not covered.
+
+**Pinned.** Not yet: the vectors in `impl/docs/presence-profile-outline.md` P§2 come first (rule 1), then Rust and `impl-ts`.
+
+**Fix, for the next spec version (v0.16 is final).** §9.1 gains: "No relay, mailbox or other service may require presence publication as a condition of delivery or reachability; delivery decisions use bindings (§13.2), never presence records." §9.3's anti-enumeration paragraph gains: "This extends to every response to a party not authorized for the target's presence: it MUST NOT vary, in reason or timing, with the target's presence state."

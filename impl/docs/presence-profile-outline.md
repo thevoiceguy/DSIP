@@ -1,6 +1,6 @@
 # Outline: DSIP Presence Profile (`presence/0.1`)
 
-**Status:** OUTLINE, not yet a draft (2026-10-19). Candidate companion profile for v0.17, cite as `P§n` once
+**Status:** OUTLINE, not yet a draft (2026-10-19). Spec-gaps 134–137 decided 2026-10-19 as drafted here. Candidate companion profile for v0.17, cite as `P§n` once
 adopted. It collects spec-gaps 134–137 (`impl/docs/spec-gaps.md`). Nothing here is implemented or pinned. Per rule 1,
 each section turns into vectors before any code, and the section's vector plan says which. v0.16 is final, so the
 draft itself goes into `v0.17/` when that version is assembled.
@@ -150,7 +150,7 @@ cheap).
 
 ## P§11 Sequence
 
-1. The user decides spec-gaps 134–137.
+1. ~~The user decides spec-gaps 134–137.~~ Decided 2026-10-19, as drafted.
 2. Write the draft from this outline; write vectors (P§3, P§4 and P§5 first), with Python verdicts.
 3. Implement in Rust (`dsip-broadcast`'s authority already holds subscriptions) and in `impl-ts`, until three-way
    parity holds; then fuzz the combining rule (`fuzz.py`).
