@@ -4039,3 +4039,36 @@ its own `reject` (T-Ring-Local) or by the initiator."
 
 **Fix, transcribed into v0.16 (Appendix A.13).** §12.7 rule 3 gains the sentence proposed above; A.13 lists it. The
 vectors README marks 132 decided; the `Impl:` notes in the three implementations became `Spec: §12.7` citations.
+
+## 133. C§4 / G§3 / G§7 — a gateway is never told what to do with a recording the DSIP side declares
+
+**Found (2026-10-18, dsip-rs stage 2c, moving the gateway onto the call glue).** C§4 binds "a counterparty's client":
+it MUST render a declaration that is not `off`, a callee MUST NOT answer before acceptance, and a caller MUST hold its
+media until acceptance. A gateway is the DSIP counterparty of every call that crosses it, but the party being recorded
+is on the PSTN, behind a trunk that carries no declaration (SIP has SIPREC's `a=record` indication, RFC 7866 §7.1.2,
+which few trunks pass). The Gateway Profile says nothing about `recording`: G§3 maps the crossing events, and G§7
+names what a crossing loses, with no loss for "the other side records and the PSTN party was not told". The reference
+gateway never read `recording`, so it answered and bridged as if nothing were declared. When its calls ran on the
+glue, the glue's consent would have held its answer (a DSIP caller declaring recording) or its media (a DSIP callee
+declaring it) for an acceptance no one can give.
+
+Choices:
+
+- **(a) The gateway accepts by policy (`always`) and says nothing.** What it did before; the PSTN party is recorded
+  without being told.
+- **(b) The gateway accepts, and the crossing is downgraded:** a G§7 loss (say `recording-not-disclosed`) in the
+  `gateway.downgraded` error, so the recording party knows the disclosure did not cross. Needs a loss token.
+- **(c) The gateway passes the declaration on:** SIPREC's `a=record:on` in the SDP toward the trunk (RFC 7866 §7.1.2),
+  or an announcement played to the PSTN party before media, and accepts once that is done. Needs trunk support, or
+  media the gateway plays.
+- **(d) The gateway declines (`policy.recording-declined`)** unless its operator's policy says otherwise. Safe for the
+  PSTN party, and breaks every recorded call centre that dials out.
+
+**Local choice: (a)**, unchanged behaviour (`dsip-gateway`'s `CallsConfig.recording: AcceptPolicy::Always`, with an
+`Impl:` note). (b) looks right as the minimum: the recording party learns that the disclosure stopped at the gateway,
+in the same place a crossing reports what else it lost. (c) is the full answer where trunks carry `a=record`.
+
+**Proposed text.** G§7, a loss: "`recording-not-disclosed`: the DSIP side declared recording (C§3) and the PSTN side
+was not told." G§3 (or C§4): "A gateway is not the recorded party's client. It accepts a declaration on the PSTN
+party's behalf only as its operator's policy says, and when the declaration does not cross, the crossing is
+downgraded with `recording-not-disclosed`."
