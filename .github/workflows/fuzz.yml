@@ -20,6 +20,11 @@ defaults:
   run:
     shell: bash
 
+# The runner image's CMake 4 refuses projects declaring cmake_minimum_required < 3.5, which the Opus source vendored
+# by audiopus_sys does; this lets it configure (ubuntu-latest moved to 26.04 on 2026-10-19).
+env:
+  CMAKE_POLICY_VERSION_MINIMUM: "3.5"
+
 jobs:
   fuzz:
     name: random-seed differential fuzz
