@@ -4228,6 +4228,9 @@ to keep the bytes for diagnosis can do so locally. (b) costs storage at the mail
 spec-gap 44's rule applied to the failure path: without it, an MLS group may keep a partial change the device's
 delivery state never recorded.
 
+**Decided (2026-10-20, user: "138 (a)"): (a).** A failed item leaves no MLS change; the device SHOULD then treat it
+as processed, so it is acknowledged and later copies are duplicates.
+
 **Pinned.** Not by a vector: the rule is about a device's local state, which the vector harness does not model.
 `dsip-messaging-device`'s `Inbound::commit_processed` implements (a) behind `Config::roll_back_unprocessable`
 (dsip-msg on; the browser keeps its old behaviour until the option is turned on with a web test), and
