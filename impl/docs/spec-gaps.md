@@ -4202,3 +4202,38 @@ covered. What the MUST covers is a service deciding on the callee's behalf from 
 **Pinned.** Not yet: the vectors in `impl/docs/presence-profile-outline.md` P§2 come first (rule 1), then Rust and `impl-ts`.
 
 **Fix, for the next spec version (v0.16 is final).** §9.1 gains: "No relay, mailbox or other service may require presence publication as a condition of delivery or reachability; delivery decisions use bindings (§13.2), never presence records." §9.3's anti-enumeration paragraph gains: "This extends to every response to a party not authorized for the target's presence: it MUST NOT vary, in reason or timing, with the target's presence state."
+
+## 138. M§5.4 / M§8.5 — an item that can never be processed: acknowledged or not
+
+**Found (2026-10-20, dsip-rs stage 3i-3).** M§5.4 lets a device acknowledge what it has "durably processed", and
+spec-gap 44 made the MLS effect and the delivery state commit together. Neither says what happens to an item whose
+processing fails: a handshake or application message that does not decrypt or validate, or a welcome that cannot be
+joined. Such an item fails again on every redelivery. The two clients differed. dsip-msg rolled back and recorded the
+item as handled, so it was acknowledged and its seq counted as processed. The browser did neither, but its cursor
+moved past the item with the next one that was processed, so unless the item came last it was acknowledged anyway, without its seq
+being recorded and without its partial MLS writes being undone.
+
+Choices:
+
+- **(a) Roll back, then commit as handled:** the device MUST NOT keep any MLS state change from a failed item, and
+  SHOULD then record it as processed (cursor and seq) so it is acknowledged and later copies collapse as duplicates
+  (M§8.5). In `queue` mode the mailbox may then delete it, as for any processed item.
+- **(b) Roll back, never acknowledge:** the item stays at the mailbox until it expires. In `queue` mode, a cursor
+  that cannot pass it holds back the acknowledgement of everything after it, so the mailbox keeps every later item.
+- **(c) Leave it to the device.**
+
+**Draft choice: (a).** The failure is permanent: it does not depend on time or on later items. An item behind a seq
+gap is the only case processing might later succeed, and M§6.5 already holds those (spec-gap 69). A device that wants
+to keep the bytes for diagnosis can do so locally. (b) costs storage at the mailbox for nothing. The rollback is
+spec-gap 44's rule applied to the failure path: without it, an MLS group may keep a partial change the device's
+delivery state never recorded.
+
+**Pinned.** Not by a vector: the rule is about a device's local state, which the vector harness does not model.
+`dsip-messaging-device`'s `Inbound::commit_processed` implements (a) behind `Config::roll_back_unprocessable`
+(dsip-msg on; the browser keeps its old behaviour until the option is turned on with a web test), and
+`tests/inbound.rs` covers both settings.
+
+**Suggested fix, for the next spec version (v0.16 is final).** M§5.4 gains, after the `ack_through` rule: "An item
+whose processing fails leaves no change to the device's MLS state. Since that failure recurs on redelivery, the device
+SHOULD then treat the item as processed: it advances its cursor and seq positions past it, and later copies are
+duplicates (M§8.5)."
