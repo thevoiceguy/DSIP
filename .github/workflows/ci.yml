@@ -11,6 +11,11 @@ defaults:
   run:
     shell: bash
 
+# The runner image's CMake 4 refuses projects declaring cmake_minimum_required < 3.5, which the Opus source vendored
+# by audiopus_sys does; this lets it configure (ubuntu-latest moved to 26.04 on 2026-10-19).
+env:
+  CMAKE_POLICY_VERSION_MINIMUM: "3.5"
+
 jobs:
   schemas:
     name: schemas are fresh + sample harness
@@ -364,10 +369,15 @@ jobs:
         working-directory: impl
       - uses: Swatinem/rust-cache@v2
         with: { workspaces: impl }
-      - uses: jetli/wasm-pack-action@v0.4.0
-        # Pinned: "latest" intermittently resolves to v0.9.1, which cannot parse workspace-inherited
-        # package fields (`license.workspace = true`) and fails the build.
-        with: { version: v0.15.0 }
+      # Pinned: "latest" once resolved to v0.9.1, which cannot parse workspace-inherited package fields
+      # (`license.workspace = true`). Installed by hand: jetli/wasm-pack-action renames across filesystems, which
+      # fails (EXDEV) on the ubuntu-26.04 image, where /tmp is its own filesystem.
+      - name: install wasm-pack v0.15.0
+        run: |
+          curl -sSfL https://github.com/rustwasm/wasm-pack/releases/download/v0.15.0/wasm-pack-v0.15.0-x86_64-unknown-linux-musl.tar.gz \
+            | tar xz -C "$RUNNER_TEMP"
+          install -m 755 "$RUNNER_TEMP/wasm-pack-v0.15.0-x86_64-unknown-linux-musl/wasm-pack" "$HOME/.cargo/bin/wasm-pack"
+          wasm-pack --version
       - uses: actions/setup-node@v4
         with: { node-version: "20" }
       - uses: actions/setup-python@v5
