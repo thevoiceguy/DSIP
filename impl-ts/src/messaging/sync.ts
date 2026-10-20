@@ -105,6 +105,11 @@ interface HeldRecord {
   record: JsonObject;
 }
 
+/** Whether a history step's `object` is a timeline entry: content, or no object named. Spec: M§12.2, M§13.3 */
+function isTimeline(object: Json | undefined): boolean {
+  return object === undefined || object === "content";
+}
+
 /** One timeline out of MLS items, the device's own sent items, and archive records. Spec: M§12.2, M§12.3 */
 export class History implements Machine {
   private readonly keys = new Map<string, number>();
@@ -154,8 +159,8 @@ export class History implements Machine {
         emit.push({ duplicate: id });
       } else {
         this.known.add(id);
-        // a receipt or call event is state, not a timeline entry
-        if (item["object"] === undefined) {
+        // a receipt or call event is state, not a timeline entry; content (or no object named) is
+        if (isTimeline(item["object"])) {
           this.show(id, seq);
           emit.push({ show: id });
         }
@@ -178,7 +183,7 @@ export class History implements Machine {
     const id = record["id"] as string;
     if (this.known.has(id)) return { duplicate: id };
     this.known.add(id);
-    if (record["object"] !== undefined) return { apply: record["cursor"]! };
+    if (!isTimeline(record["object"])) return { apply: record["cursor"]! };
     this.show(id, record["seq"] as number);
     return { show: id };
   }

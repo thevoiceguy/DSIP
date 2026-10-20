@@ -3599,6 +3599,31 @@ def call_history_vectors():
                          ({"archive": {"cursor": c(2), "akid": K1, "group": GROUP, "seq": 4, "id": "call|s1", "object": "call-event"}},
                           [{"duplicate": "call|s1"}], hst(current=K1)),
                      ]))
+    out.append(trace("history-received-call-event-state",
+                     "A call event received from MLS is state, as a sent or archived one is (spec-gap 63): archived once, never a "
+                     "timeline entry; a sibling's report of the same session and its archived copy are duplicates, and one from "
+                     "before this device joined is not its own.", ["M§13.3", "M§12.2", "M§12.3", "M§8.5"], H,
+                     {"component": "history", "keys": [{"akid": K1, "created_at": NOW}], "joined": {GROUP: 1}}, [
+                         ({"mls": {"group": GROUP, "seq": 4, "epoch": 1, "id": "call|s1", "object": "call-event"}},
+                          [{"archive": {"group": GROUP, "seq": 4, "akid": K1}}], hst(current=K1)),
+                         ({"mls": {"group": GROUP, "seq": 5, "epoch": 1, "id": "call|s1", "object": "call-event"}},
+                          [{"duplicate": "call|s1"}], hst(current=K1)),
+                         ({"archive": {"cursor": c(1), "akid": K1, "group": GROUP, "seq": 4, "id": "call|s1", "object": "call-event"}},
+                          [{"duplicate": "call|s1"}], hst(current=K1)),
+                         ({"mls": {"group": GROUP, "seq": 2, "epoch": 0, "id": "call|s0", "object": "call-event"}},
+                          [{"prejoin": 2}], hst(current=K1)),
+                     ]))
+    out.append(trace("history-content-object-is-timeline",
+                     "`object` names what was shown; `content`, like no `object` at all, is a timeline entry whether it was "
+                     "received, sent or opened from the archive.", ["M§12.2", "M§12.3"], H,
+                     {"component": "history", "keys": [{"akid": K1, "created_at": NOW}], "joined": {}}, [
+                         ({"mls": {"group": GROUP, "seq": 1, "epoch": 1, "id": "m1", "object": "content"}},
+                          [{"show": "m1"}, {"archive": {"group": GROUP, "seq": 1, "akid": K1}}], hst(["m1"], current=K1)),
+                         ({"sent": {"group": GROUP, "seq": 2, "id": "m2", "object": "content"}},
+                          [{"show": "m2"}, {"archive": {"group": GROUP, "seq": 2, "akid": K1}}], hst(["m1", "m2"], current=K1)),
+                         ({"archive": {"cursor": c(1), "akid": K1, "group": GROUP, "seq": 3, "id": "m3", "object": "content"}},
+                          [{"show": "m3"}], hst(["m1", "m2", "m3"], current=K1)),
+                     ]))
     return out
 
 
