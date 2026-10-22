@@ -7,7 +7,7 @@
 **Editor:** James Ferris
 **Date:** October 2026
 **Supersedes:** v0.16
-**Companion documents:** WebRTC Media Binding 1.0 (`dsip-webrtc-media-binding-v0.17.md`); Gateway Profile 1.0 (`dsip-gateway-profile-v0.17.md`); Messaging Profile 1.0 (`dsip-messaging-profile-v0.17.md`, with its schema set `dsip-messaging-schemas-draft/`); RTP/SRTP Media Binding (draft, `dsip-rtp-srtp-media-binding-v0.17-draft.md`); DHT Hints Profile (draft, `dsip-dht-hints-profile-v0.17-draft.md`); Alias Transparency Profile (draft, `dsip-alias-transparency-profile-v0.17-draft.md`); Device Events Profile (draft, `dsip-device-events-profile-v0.17-draft.md`); Recording Profile (draft, `dsip-recording-profile-v0.17-draft.md`); Number Attestation Profile (draft, `dsip-number-attestation-profile-v0.17-draft.md`); JSON Schema set v0.17 (`dsip-schemas-v0.17-draft/`); conformance vectors (`impl/vectors/`, 2,130 vectors on which the Python harness, the Rust reference implementation and the independent TypeScript implementation agree)
+**Companion documents:** WebRTC Media Binding 1.0 (`dsip-webrtc-media-binding-v0.17.md`); Gateway Profile 1.0 (`dsip-gateway-profile-v0.17.md`); Messaging Profile 1.0 (`dsip-messaging-profile-v0.17.md`, with its schema set `dsip-messaging-schemas-draft/`); RTP/SRTP Media Binding (draft, `dsip-rtp-srtp-media-binding-v0.17-draft.md`); DHT Hints Profile (draft, `dsip-dht-hints-profile-v0.17-draft.md`); Alias Transparency Profile (draft, `dsip-alias-transparency-profile-v0.17-draft.md`); Device Events Profile (draft, `dsip-device-events-profile-v0.17-draft.md`); Recording Profile (draft, `dsip-recording-profile-v0.17-draft.md`); Number Attestation Profile (draft, `dsip-number-attestation-profile-v0.17-draft.md`); Presence Profile (draft, `dsip-presence-profile-v0.17-draft.md`); JSON Schema set v0.17 (`dsip-schemas-v0.17-draft/`); conformance vectors (`impl/vectors/`, 2,196 vectors on which the Python harness, the Rust reference implementation and the independent TypeScript implementation agree)
 
 ---
 
@@ -622,14 +622,23 @@ Acceptance is signaled by the first `notify`, which MUST carry the current state
 
 ### 9.4 Signed Presence Records
 
-A signed presence record may look like:
+A signed presence record, as a device publishes it to its authority (Presence Profile P§3, v0.17):
 
 ```json
 {
-  "dsip": "1.0",
+  "dsip": {
+    "core": "1.0",
+    "min_core": "1.0",
+    "profiles": ["interactive-media/1.0"],
+    "extensions": [],
+    "critical": []
+  },
   "type": "presence",
   "id": "01J5Y0QDPRES0AAAAAAAAAAAAA",
+  "from": "did:key:z6MkAlicePhone",
+  "to": "did:web:example.com",
   "subject": "did:web:example.com:users:alice",
+  "device": "did:key:z6MkAlicePhone",
   "audience": "contacts-only",
   "state": "available",
   "profiles": ["interactive-media"],
@@ -645,7 +654,10 @@ A signed presence record may look like:
 }
 ```
 
-The signature covers the payload bytes.
+The signature covers the payload bytes. `device` names the device the record describes and MUST equal the signer;
+`seq` is ordered per `(subject, device)`. `state` is from the open registry `dsip-presence-state` (P§5). How a device
+publishes the record, how the authority carries it and how several devices' records combine are the Presence
+Profile's (P§3, P§4); a record's age at any receiver is bounded by its own `expires_at` (§12.9).
 
 ### 9.5 Scale Tradeoff
 
@@ -958,7 +970,7 @@ When an identity has multiple delegated devices, the entity performing delivery 
 | T-Queue | Initiator | per `queue_timeout` | ≤ 1800 s (hard cap) | Started on `progress` status `queued`, replacing T-Ring (§12.10). On expiry, cancel with reason `session.timeout`. Cancelled by a subsequent `ringing` progress; restarted by a subsequent `queued` (bounded re-queues). |
 | T-Ring-Local | Responder | 120 s | 30–300 s | Started when alerting begins. On expiry, send `reject` with reason `user.no-answer`. SHOULD be ≤ the advertised `ring_timeout` if one was sent. |
 | Invite validity | Both | 30 s | — | The invite's `expires_at` minus `issued_at`. Bounds pre-alerting delivery: an invite received after `expires_at` MUST be rejected with reason `session.expired`. Once ALERTING has begun, T-Ring governs, not `expires_at`. |
-| Replay window | Both | 300 s | — | Envelopes with `issued_at` outside the window in **either** direction — older than 300 s, or more than 300 s in the future — MUST be rejected. Message `id` values MUST be tracked for deduplication within the window. Exception (v0.8): an `introduction` is held for offline recipients (§19.4), so its age is bounded by its own `expires_at` instead — it is accepted while `issued_at` is no more than 300 s in the future and `now < expires_at`, its `expires_at − issued_at` is capped at 604,800 s, and its `id` is deduplicated until `expires_at`. Exception (v0.8, spec-gap 96): a `reachability-hint` is stored, replicated and read across the DHT for its whole lifetime (§8.5), so its age is likewise bounded by its own `expires_at` — accepted while `issued_at` is no more than 300 s in the future and `now < expires_at`, with `expires_at − issued_at` capped at 3,600 s. Its `id` is not deduplicated: a re-observed hint is resolved by §8.3 (identical content is a no-op, a lower `seq` loses). |
+| Replay window | Both | 300 s | — | Envelopes with `issued_at` outside the window in **either** direction — older than 300 s, or more than 300 s in the future — MUST be rejected. Message `id` values MUST be tracked for deduplication within the window. Exception (v0.8): an `introduction` is held for offline recipients (§19.4), so its age is bounded by its own `expires_at` instead — it is accepted while `issued_at` is no more than 300 s in the future and `now < expires_at`, its `expires_at − issued_at` is capped at 604,800 s, and its `id` is deduplicated until `expires_at`. Exception (v0.8, spec-gap 96): a `reachability-hint` is stored, replicated and read across the DHT for its whole lifetime (§8.5), so its age is likewise bounded by its own `expires_at` — accepted while `issued_at` is no more than 300 s in the future and `now < expires_at`, with `expires_at − issued_at` capped at 3,600 s. Its `id` is not deduplicated: a re-observed hint is resolved by §8.3 (identical content is a no-op, a lower `seq` loses). Exception (v0.17, spec-gap 134): a `presence` record is kept by the authority and forwarded in `notify` bodies for its whole lifetime (Presence Profile P§3), so its age is bounded the same way — accepted while `issued_at` is no more than 300 s in the future and `now < expires_at`, with `expires_at − issued_at` capped at 3,600 s; its `seq` per `(subject, device)` decides a re-observed record. |
 
 Design relationship: `expires_at` bounds *delivery*, T-Ring bounds *human answer time*. This keeps invites short-lived on the wire (limiting replay surface) without forcing 30-second ring windows.
 
@@ -1308,7 +1320,7 @@ Token grammar:
 reason-token = category "." condition
 category     = "user" / "endpoint" / "identity" / "session" /
                "media" / "policy" / "transport" / "gateway" /
-               "mailbox"
+               "mailbox" / "presence"
 ```
 
 **Fallback rule:** an implementation receiving an unregistered token MUST fall back to the defined behavior of its category (§15.3). An implementation receiving an unrecognized *category* MUST treat the reason as `session.failed`.
@@ -1342,6 +1354,7 @@ category     = "user" / "endpoint" / "identity" / "session" /
 | `transport` | Transport binding condition (§13) | Reconnect/retry per binding rules |
 | `gateway` | Condition arose beyond a protocol gateway | Treat per mapped semantics; trust per Appendix C downgrade rules |
 | `mailbox` | A mailbox or hub condition (Messaging Profile; v0.8) | Re-sync, retry once, then surface the failure |
+| `presence` | A presence record refused by its authority (Presence Profile P§9; v0.17) | Do not send the same record again; publish a corrected one |
 
 ### 15.4 Core Registry
 
@@ -2588,6 +2601,16 @@ listed with its spec-gap number.
 - When a leg expires (§12.7 rule 3; spec-gap 132): a leg that has sent the relay no `progress`, `answer` or `reject`
   once the invite has expired is expired, so the relay can signal `transport.no-response` (rule 6); a leg that rang
   ends itself with `reject user.no-answer` at T-Ring-Local.
+
+### A.14 From v0.16 to v0.17
+
+v0.16 is final at tag `poc-v0.16`. v0.17 is in progress. Each item is listed with its spec-gap number.
+
+- The Presence Profile (`presence/0.1`, draft, cited `P§n`; spec-gaps 134–137): a device publishes its signed §9.4
+  `presence` record to its authority (P§3); records are per device and a subscriber combines them by a fixed rule
+  (P§4); presence states are an open registry with fallback `available` (P§5); presence never gates reachability
+  (P§2). In the core: `presence` is a message (schema `presence.schema.json`), its record names its `device` (§9.4),
+  its age is bounded by its own `expires_at` (§12.9), and the reason category `presence` is registered (§15).
 
 ---
 

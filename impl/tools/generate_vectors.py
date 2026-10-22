@@ -9,13 +9,14 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from dsipvec import fixtures  # noqa: E402
-from dsipvec.gen import envelope, payload, semantic, state, transport, dht, broadcast, binding, gateway, trust, messaging, webvh, events, kt, pkarr, recording, tnbinding  # noqa: E402
+from dsipvec.gen import envelope, payload, semantic, state, transport, dht, broadcast, binding, gateway, trust, messaging, webvh, events, kt, pkarr, recording, tnbinding, presence  # noqa: E402
 
 VECTOR_DIR = Path(__file__).resolve().parents[1] / "vectors"
 KINDS = {"envelope": envelope, "payload": payload, "semantic": semantic, "state": state, "transport": transport, "dht": dht,
          "broadcast": broadcast, "media-binding": binding, "gateway": gateway, "trust": trust, "messaging": messaging,
          "did-webvh": webvh, "device-events": events,
-         "alias-transparency": kt, "pkarr": pkarr, "recording": recording, "tn-binding": tnbinding}
+         "alias-transparency": kt, "pkarr": pkarr, "recording": recording, "tn-binding": tnbinding,
+         "presence": presence}
 
 
 def main() -> int:

@@ -1,6 +1,6 @@
 # DSIP Core v1.0 — JSON Schema Set (spec revision v0.8, draft)
 
-Changes from the v0.6 set: `provenance` (§22.3) and `key-rotation` (§7.5) are message types; `reachability-hint` (DHT Hints Profile) joins the set; `publish` carries a record-level `integrity` (§22.2); `webrtc-info-data.schema.json` is the WebRTC Media Binding's `info.data` shape and is validated when `info.about` is `transport:webrtc` (check 11).
+Changes from the v0.6 set: `provenance` (§22.3) and `key-rotation` (§7.5) are message types; `reachability-hint` (DHT Hints Profile) joins the set; `publish` carries a record-level `integrity` (§22.2); `webrtc-info-data.schema.json` is the WebRTC Media Binding's `info.data` shape and is validated when `info.about` is `transport:webrtc` (check 11). v0.17: `presence` (§9.4, Presence Profile P§3–P§5) joins the set.
 
 **Status:** Draft, tracks DSIP v0.6 working documents (state machine 13A, transport 13B, answer semantics & reason codes 13C)
 **Dialect:** JSON Schema draft 2020-12
@@ -56,7 +56,7 @@ schema validation — and that the test-vector suite (next artifact) exercises:
 8. Encoded envelope ≤ 65,536 bytes on `ws/1.0` (schema sees decoded JSON and cannot measure this)
 9. `answer`/`reject` media selections are subsets of the referenced offer
 10. Wire-format payload rules: UTF-8, no floats, integer timestamps (10.3) — partially schema-enforced, fully enforced at parse
-11. `info` only in ACTIVE, and `info.data` validated against the binding schema named by `about` (`transport:webrtc` → `webrtc-info-data.schema.json`; unknown `about` → ignored, not rejected); introduction encoded-size cap 4,096 bytes; per-event `expires_in` caps (presence 3,600) answered with `error policy.subscription-lifetime`; grant `session` references a real introduction; anti-enumeration uniform rejects (9.3)
+11. `info` only in ACTIVE, and `info.data` validated against the binding schema named by `about` (`transport:webrtc` → `webrtc-info-data.schema.json`; unknown `about` → ignored, not rejected); introduction encoded-size cap 4,096 bytes; per-event `expires_in` caps (presence 3,600) answered with `error policy.subscription-lifetime`; grant `session` references a real introduction; anti-enumeration uniform rejects (9.3); a `presence` record's `device`, when present, equals `from` (P§3, `error presence.signer-mismatch`)
 12. `key-rotation`: `from` = `subject`; the signing `kid` = `previous` unless `recovery` is true; `next` ≠ `previous` (7.5). Registry membership with fallback for `publish.integrity` (unknown → `metadata-only`), `provenance.operation`, `key-rotation.reason`
 
 ## Design decisions embedded here (flag any you want reversed)

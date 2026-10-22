@@ -15,6 +15,7 @@ resolution setup required.
 
 Usage: python3 generate_schemas.py <output_dir>
 v0.14 adds `alias-monitor` (Alias Transparency Profile T§8, spec-gap 124).
+v0.17 adds `presence` (core 9.4 with the Presence Profile P§3-P§5, spec-gaps 134-136).
 """
 import json
 import sys
@@ -448,6 +449,31 @@ schemas["alias-monitor"] = base(
                   "description": "The alias, normalized by the provider before its checks (T§3)."},
     },
     extra_required=["alias"],
+)
+
+schemas["presence"] = base(
+    "presence", session_scoped=False,
+    description="A device's signed presence record (spec 9.4), published to its authority and carried in notify bodies (Presence Profile P3, v0.17). device, when present, must equal from (semantic check); its age is bounded by expires_at, capped at 3600 s (spec 12.9). state is from the open registry dsip-presence-state: unknown tokens are accepted and shown as available (P5).",
+    extra_props={
+        "subject": {"$ref": "#/$defs/did", "description": "The identity whose presence this is."},
+        "device": {"$ref": "#/$defs/did", "description": "The device the record describes; the signer (P4). Absent in a v0.16-form record."},
+        "state": {"type": "string", "pattern": "^[a-z][a-z0-9-]*$", "maxLength": 64,
+                  "description": "dsip-presence-state token (P5): available, busy, away, dnd, offline; open."},
+        "seq": {"type": "integer", "minimum": 0, "description": "Ordered per (subject, device) (P4)."},
+        "audience": {"type": "string", "minLength": 1, "maxLength": 64,
+                     "description": "The audience this record is for (P6; not yet pinned)."},
+        "profiles": {"type": "array", "items": {"type": "string", "minLength": 1}},
+        "endpoints": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {"transport": {"type": "string"}, "uri": {"type": "string"}},
+                "required": ["uri"],
+                "additionalProperties": True,
+            },
+        },
+    },
+    extra_required=["subject", "state", "seq"],
 )
 
 schemas["subscribe"] = base(

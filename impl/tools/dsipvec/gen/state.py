@@ -1475,4 +1475,6 @@ def vectors() -> list[dict]:
         rinbox({"recv": {"type": "introduction", "id": uid("intro-3"), "from": CAR, "to": BOB, "purpose": "offline again"}},
                [{"queue": {"to": BOB, "type": "introduction"}}], {BOB: 1, UNKNOWN: 1}),
     ], component="relay"))
+    from .presence_vectors import state_vectors
+    out.extend(state_vectors())
     return out

@@ -181,6 +181,8 @@ def snapshot_for(comp, key: str, expected) -> object:
         return comp.inbox_snapshot()
     if key == "publications":
         return comp.snapshot_publications()
+    if key == "presence":
+        return comp.snapshot_presence()
     if key == "subscriptions":
         return comp.snapshot_subscriptions() if isinstance(comp, Authority) else comp.snapshot()
     raise KeyError(key)
@@ -238,6 +240,9 @@ def run_vector(v: dict) -> Result:
         elif kind == "recording":
             from . import recording as RECORDING
             actual = RECORDING.run(v)
+        elif kind == "presence":
+            from . import presence as PRESENCE
+            actual = PRESENCE.run(v)
         elif kind == "did-webvh":
             i = v["input"]
             actual = WEBVH.resolve(i["did"], i["log"], i["witness"], i["cache"], i["now"])

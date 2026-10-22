@@ -1,0 +1,32 @@
+{
+  "vector": "presence/aggregate-available-beats-away",
+  "format": 1,
+  "kind": "presence",
+  "description": "available ranks above away.",
+  "spec_ref": [
+    "P§4"
+  ],
+  "context": {
+    "now": 1760000000
+  },
+  "input": {
+    "check": "aggregate",
+    "records": [
+      {
+        "state": "away",
+        "expires_at": 1760000100,
+        "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+      },
+      {
+        "state": "available",
+        "expires_at": 1760000100,
+        "device": "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ"
+      }
+    ]
+  },
+  "expect": {
+    "state": "available",
+    "token": "available",
+    "source": "record"
+  }
+}

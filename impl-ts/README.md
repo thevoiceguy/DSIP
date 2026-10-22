@@ -32,13 +32,14 @@ python3 ../impl/tools/parity_ts.py       # Python harness vs this implementation
 
 ## Coverage
 
-**Every vector: 2124 of 2124**, no kind skipped. Python/TypeScript parity compares actual with actual on all of them.
+**Every vector: 2196 of 2196**, no kind skipped. Python/TypeScript parity compares actual with actual on all of them.
 
 | Kind | Vectors | Modules |
 |---|---|---|
-| `envelope`, `transport`, `dht` | 65, 13, 18 | `envelope.ts`, `did.ts`, `encoding.ts`, `dht.ts` |
-| `payload`, `semantic` | 109, 85 | `schema.ts`, `semantic.ts`, `registry.ts` |
-| `state` | 109 | `endpoint.ts`, `relay.ts`, `broadcast-state.ts`, `timers.ts` |
+| `envelope`, `transport`, `dht` | 71, 13, 18 | `envelope.ts`, `did.ts`, `encoding.ts`, `dht.ts` |
+| `payload`, `semantic` | 122, 93 | `schema.ts`, `semantic.ts`, `registry.ts` |
+| `state` | 130 | `endpoint.ts`, `relay.ts`, `broadcast-state.ts` (v0.17: the authority's presence records, P§3), `timers.ts` |
+| `presence` | 18 | `presence/presence.ts` (Presence Profile draft P§4–P§5: the subscriber's combining rule); the authority's side is `broadcast-state.ts` |
 | `broadcast`, `trust`, `media-binding` | 21, 16, 42 | `broadcast.ts`, `trust.ts`, `binding.ts` |
 | `gateway` | 66 | `gateway.ts` |
 | `messaging` | 552 | `messaging/`: `message`, `object`, `rules`, `blobs`, `crypto` (stateless); `device`, `sync`, `client`, `hub`, `mailbox`, `enrolment` (the trace machines) |

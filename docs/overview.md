@@ -12,7 +12,7 @@ In the phone network, and in most SIP deployments, the carrier is the authority:
 - **Servers carry traffic but vouch for nothing.** Relays, mailboxes and DHT nodes move and store messages. None of them can impersonate a user, and none of them is an authority on who a user is.
 - **The receiver decides before media flows.** A call arrives with a verified identity, its trust tier, and its policies on recording, transcription and AI processing. Media starts only after a signed answer.
 
-**Status.** The current revision is v0.17, in progress (v0.16 is final, October 2026). Its core wire protocol is version `1.0`, and that wire protocol has not changed since v0.12. The core, the WebRTC Media Binding, the Gateway Profile and the Messaging Profile are normative 1.0 text. Six further profiles are drafts. A suite of 2,130 language-neutral test vectors pins the behaviour, and three implementations (Python, Rust and TypeScript) agree on every vector.
+**Status.** The current revision is v0.17, in progress (v0.16 is final, October 2026). Its core wire protocol is version `1.0`, and that wire protocol has not changed since v0.12. The core, the WebRTC Media Binding, the Gateway Profile and the Messaging Profile are normative 1.0 text. Seven further profiles are drafts. A suite of 2,196 language-neutral test vectors pins the behaviour, and three implementations (Python, Rust and TypeScript) agree on every vector.
 
 ## How it works
 
@@ -126,6 +126,7 @@ The specification is a small core plus companion profiles, each cited by its own
 | [Number Attestation](../v0.17/dsip-number-attestation-profile-v0.17-draft.md) | N§n | Draft | Binding phone numbers to DIDs; a live trial needs a pilot partner |
 | [Recording](../v0.17/dsip-recording-profile-v0.17-draft.md) | C§n | Draft | Recording with consent, and metadata-only call records |
 | [Device Events](../v0.17/dsip-device-events-profile-v0.17-draft.md) | E§n | Draft | Network alarms (SNMP, syslog) delivered as encrypted messages |
+| [Presence](../v0.17/dsip-presence-profile-v0.17-draft.md) | P§n | Draft | A device's signed presence published to its authority, several devices combined into one presence |
 
 JSON Schemas for every message ship beside the core and the Messaging Profile.
 

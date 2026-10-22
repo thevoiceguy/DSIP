@@ -1,0 +1,22 @@
+{
+  "vector": "presence/aggregate-assertion-only",
+  "format": 1,
+  "kind": "presence",
+  "description": "No record, an available assertion: available, from the assertion.",
+  "spec_ref": [
+    "P§4"
+  ],
+  "context": {
+    "now": 1760000000
+  },
+  "input": {
+    "check": "aggregate",
+    "records": [],
+    "asserted": "available"
+  },
+  "expect": {
+    "state": "available",
+    "token": "available",
+    "source": "assertion"
+  }
+}

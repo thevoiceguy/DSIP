@@ -37,6 +37,9 @@ vectors/
   tn-binding/  Number Attestation Profile draft: a STIR-signed number → DID binding and its checks (N§3), the claim and
                identity-change warning (N§4–N§5), a node's store and the reader's choice (N§6–N§7), and the gateway's
                PASSporT verification, routing and assertion (N§4.1, N§6.1, G§5) (spec-gap 110)
+  presence/    Presence Profile draft (P§4–P§5): the subscriber's rule combining several devices' records (spec-gaps 135, 136);
+               the record's age (envelope/), shape (payload/), checks (semantic/) and the authority (state/) are beside
+               their kinds
 ```
 
 One vector per file. The vector id is its path relative to `vectors/` without
@@ -130,9 +133,10 @@ implementation under test MUST emit that token when it signals the failure.
 | `delegation-capability` | delegation lacks `dsip.signaling` (every envelope binds under it; spec-gap 56) | `transport.hello-rejected` on `hello` |
 | `delegation-revoked` | a `delegation-revocation` signed by the subject covers the delegation (held, or in the subject's document) (§7.4, v0.8) | `transport.hello-rejected` on `hello` |
 | `expiry-order` | `expires_at ≤ issued_at` (check 1) | |
-| `replay-window` | `issued_at` outside `[now − 300, now + 300]` (§12.9, check 1); for `introduction` (spec-gap 31) and `reachability-hint` (spec-gap 96) only the future bound applies — their age is bounded by `expires_at` (§12.9, v0.8) | |
+| `replay-window` | `issued_at` outside `[now − 300, now + 300]` (§12.9, check 1); for `introduction` (spec-gap 31), `reachability-hint` (spec-gap 96) and `presence` (spec-gap 134, v0.17) only the future bound applies — their age is bounded by `expires_at` (§12.9) | |
 | `introduction-validity` | `introduction` with `expires_at − issued_at` > 604,800 s (§12.9, §19.4; spec-gap 31) | |
 | `hint-validity` | `reachability-hint` with `expires_at − issued_at` > 3,600 s (§12.9, DHT profile §2; spec-gap 96) | |
+| `presence-validity` | `presence` with `expires_at − issued_at` > 3,600 s (§12.9, P§3, P§8; v0.17, spec-gap 134) | |
 | `sealed-not-critical` | a payload carries `sealed` but `dsip.critical` does not list `sealed-body/1.0` (§10.4; spec-gap 97) | |
 | `sealed-alg-unsupported` | `sealed.alg` is not `hpke-base-x25519-sha256-aes128gcm` (§10.4; also sealed introductions, kind `messaging`) | |
 | `body-unseal-failed` | `enc`/`ct` not base64url, or the HPKE open fails — wrong key, tampered, or AAD of another message (§10.4) | |
@@ -156,6 +160,7 @@ implementation under test MUST emit that token when it signals the failure.
 | `unknown-type` | `type` is not a known message type | |
 | `selection-not-subset` | `answer`/`reject` selection not ⊆ referenced offer (check 9) | |
 | `subscription-lifetime-exceeded` | `expires_in` above the per-event cap (presence 3,600) (§9.3) | `policy.subscription-lifetime` on `error` (v0.7) |
+| `presence-signer-mismatch` | a `presence` record whose `device` is present and is not `from` (P§3; v0.17, spec-gap 135) | `presence.signer-mismatch` on `error` |
 | `rotation-subject-mismatch` | `key-rotation.from` ≠ `subject` (§7.5) | |
 | `rotation-next-same-as-previous` | `key-rotation.next` = `previous` (§7.5) | |
 | `rotation-signer-not-previous` | `key-rotation` signed by a method other than `previous` without `recovery: true` (§7.5; `context.signer_kid`) | |
@@ -190,7 +195,7 @@ runs 13 only; `kind: semantic` runs 12–14).
 6. `payload-not-utf8` → `payload-not-json` → `payload-float` → `payload-shape`
 7. `signer-mismatch` / `delegation-*` (binding `kid` to `from`; on `hello` with `on_behalf_of`, additionally binding `from` to `on_behalf_of`)
 8. `expiry-order`
-9. `introduction-validity` (introductions only) / `hint-validity` (reachability hints only) → `replay-window` → `expired`
+9. `introduction-validity` (introductions only) / `hint-validity` (reachability hints only) / `presence-validity` (presence records only) → `replay-window` → `expired`
 10. `duplicate-id`
 11. `ulid-issued-at-mismatch`
 11b. `hello-required` (transport binding state: `context.hello_verified` is `false` and the type is not `hello`)
@@ -203,7 +208,7 @@ runs 13 only; `kind: semantic` runs 12–14).
     no sealable fields admits none (`sealed-field-not-sealable` for any opened key). On success the opened fields replace `sealed` and stages 13–14
     run on the merged payload.
 13. `unknown-type` → `schema-invalid`
-14. Stateless semantic checks (`selection-not-subset`, `subscription-lifetime-exceeded`, `introduction-too-large`, `grant-unknown-introduction`, `hello-in-reply-to-mismatch`, `rotation-*`)
+14. Stateless semantic checks (`selection-not-subset`, `subscription-lifetime-exceeded`, `introduction-too-large`, `grant-unknown-introduction`, `hello-in-reply-to-mismatch`, `presence-signer-mismatch`, `rotation-*`)
 
 Stage 13 also validates `info.data` against the binding schema named by `about` when the
 receiver implements that binding (`transport:webrtc` → `webrtc-info-data.schema.json`); an
@@ -222,7 +227,9 @@ Registry membership (check 5) never rejects a well-formed token. It yields an
 `fallback` ∈ `none` (registered), `category` (unregistered condition in a
 known category), `unknown-category` (→ `session.failed`). For `answered_by`,
 `effective.answered_by` is `service` for unknown values; for `progress`,
-`effective.status` is `trying` for unknown values. A registered token that the
+`effective.status` is `trying` for unknown values; for `presence` (P§5, v0.17), `effective.state` is the record's
+`state` when registered (`available`, `busy`, `away`, `dnd`, `offline`) and otherwise `available`, with
+`warnings: ["presence-state-unknown"]`. A registered token that the
 registry does not list as valid on the carrying message type is accepted with
 `warnings: ["reason-not-valid-on-type"]` (Impl decision; see spec-gap list). `effective.reason` is
 reported for `reject`, `cancel`, `bye`, `error` and a `notify` that carries a `reason`; the "valid on"
@@ -470,11 +477,34 @@ A statement has no `integrity_mode` of its own (§22.3, spec-gap 77): the one in
 
 ### State components `authority` and `subscriber`
 
-`authority` (a target's relay/domain endpoint, §9.3/§22): events `{"recv": publish|unpublish|subscribe|provenance}`,
+`authority` (a target's relay/domain endpoint, §9.3/§22): events `{"recv": publish|unpublish|subscribe|provenance|presence}`,
 `{"local":"policy","target":T,"mode":"public"|"allow","allow":[…]}`, `{"local":"issue_capability","token":S,"target":T}`,
-`{"relay":"bind"|"unbind",…}` (presence source), `advance`. Emissions: `send notify {to, subscription, seq, state, reason?, body}`,
-`send reject {to, session, reason}`, `{"publication": {"stream", "state"}}`, `{"provenance": {"stream","processor"}}`,
-`{"subscription": {"id","state": "replaced"|"terminated"}}`, `drop` reasons. Snapshots `publications` and `subscriptions`.
+`{"relay":"bind"|"unbind","device","identity"}` (presence source), `advance`. Emissions: `send notify {to, subscription, seq, state, reason?, body}`,
+`send reject {to, session, reason}`, `send error {to, in_reply_to, reason, retry_after?}`, `{"publication": {"stream", "state"}}`, `{"provenance": {"stream","processor"}}`,
+`{"subscription": {"id","state": "replaced"|"terminated"}}`, `drop` reasons. Snapshots `publications`, `subscriptions` and
+`presence`.
+
+**Presence records** (Presence Profile P§3, P§4, P§8; v0.17, spec-gaps 134, 135). `context.identities` maps each device
+to its identity; `context.presence_grace` is T-Presence-Grace (default 60). A received `presence` (`from`, `subject`,
+`device?`, `state`, `seq`, `issued_at`, `expires_at`) is refused with `send error {to: from, in_reply_to: id, reason}`,
+the first that applies: `presence.signer-mismatch` (no `device`, `device` ≠ `from`, or `subject` ≠ the identity of
+`from` in `context.identities`, the identity its delegation names) → `presence.lifetime` (`expires_at − issued_at` below 60 or above 3,600) → `presence.stale` (a record held for
+`(subject, device)` with `seq` ≥ this one) → `policy.rate-limited` with `retry_after` = 5 − elapsed (a record of this
+device accepted less than 5 s ago on the authority's clock, whether or not that record is still held). Otherwise it is accepted with no emission of its own: it
+becomes the device's record and every presence subscription to the subject is notified.
+
+The presence `body` is `{"event": "presence", "state": A}` plus `records` when any record is held for the subject:
+`A` is `available` when any bound device of the subject holds no record, else `offline`; `records` lists every held
+record of the subject as `{id, device, state, seq, expires_at}`, ordered by `device` (the trace's summary of each
+record; on the wire a host carries the signed envelope, P§3). A subscription is notified on an
+event exactly when it changes its subject's body: an accepted record, a dropped record, a bind or unbind. On `unbind` of
+a device holding a record, the record is kept until the clock reaches unbind time + grace (with grace 0 it is dropped
+at the unbind); the grace runs from the first unbind, so an `unbind` of a device already in its grace changes nothing,
+and a record accepted from a device in its grace keeps the grace running; a `bind` of that device before then cancels
+the drop. On `advance`, after subscription lapses and
+publication expiry, every record with `expires_at` ≤ now and every record whose grace has run out (unbind time + grace
+≤ now) is dropped, its `seq` forgotten, and each subject that lost one is notified once, subjects in order. Snapshot
+`presence: {subject: {device: {seq, state, expires_at, grace_until?}}}`.
 
 `subscriber`: `{"local":"subscribe","id","to","target","events","expires_in"}`, `{"recv": notify|reject}`, `advance`.
 Emissions: `send subscribe`, `{"ui":"notify","event","state"}`, `{"ui":"subscription_terminated","reason"}`,
@@ -1695,6 +1725,23 @@ steps backwards, this is ahead of the clock: the one case the profile allows, si
 everywhere. A result above 2^53−1, which every reader rejects (`check: "hint"` step 4), is `{"error": "exhausted"}`:
 the publisher signs nothing.
 
+## Kind: `presence`
+
+Presence Profile draft (`v0.17/dsip-presence-profile-v0.17-draft.md`, cited `P§n`; spec-gaps 135, 136): the subscriber's
+side. `input.check` selects:
+
+| check | input | expect |
+|---|---|---|
+| `aggregate` | `records` (each `{state, expires_at, device?}`), `asserted?` (`available` / `offline`, the body's `state`); `context.now` | `{state, token, source}` (P§4) |
+
+`aggregate`: a record is valid while `expires_at` > now. The candidates are each valid record's `state` (source
+`record`) and, when `asserted` is `available`, `available` (source `assertion`). With none the result is
+`{"state": "offline", "token": "offline", "source": "none"}`. Otherwise the winner has the highest rank — `dnd` 4,
+`busy` 3, `available` 2, `away` 1, `offline` 0, any other token ranking as `available` — and among equal ranks a
+record before the assertion, then a registered token (`available`, `busy`, `away`, `dnd`, `offline`) before an
+unknown one, then unknown tokens in code-point order. `token` is the winner's token, `state` the winner itself when registered and
+`available` otherwise (P§5), `source` the winner's source. A record's `device` plays no part.
+
 ## Kind: `tn-binding`
 
 Verifying a number binding: a STIR-signed statement that a phone number is used by a DID (Number Attestation
@@ -2131,6 +2178,14 @@ Each item has a matching `spec-gap` issue draft in `impl/docs/spec-gaps.md`.
     was, not how the call finished: `session.cancelled` when we withdrew it (§12.5 rule 3), `session.already-answered`
     when an answer was applied (however the call then ended), `session.failed` when the attempt was never answered
     (`state/fork-late-answer-after-the-call-ended`, `fork-late-answer-after-our-hangup`).
+134. §9.3 / §9.4: **decided** (v0.17, Presence Profile P§3) — a device publishes its signed `presence` record to its
+    authority, which keeps it to `expires_at` (age bounded by `expires_at`, cap 3,600 s, §12.9), refuses it in the P§3
+    order and notifies on body changes; an unbound device's record outlives the unbind by T-Presence-Grace
+    (`envelope/presence-*`, `state/presence-*`).
+135. §9.4: **decided** (v0.17, P§4) — one record per device (`device` = signer, `seq` per `(subject, device)`), combined
+    by the subscriber (`presence/aggregate-*`, `state/presence-seq-per-device`, `semantic/presence-signer-mismatch`).
+136. §9.3 / §9.4: **decided** (v0.17, P§5) — `dsip-presence-state` is open; an unknown state is shown and ranked as
+    `available` (`payload/presence-*`, `semantic/presence-unknown-state-fallback`, `presence/aggregate-unknown-*`).
 133. C§4 / G§3 / G§7: **decided** (next spec version) — a gateway is not the recorded party's client: it accepts a recording
     the DSIP side declares (C§3) on the PSTN party's behalf, and the crossing is downgraded with a new G§7 loss,
     `recording-not-disclosed`, last in the table order (`gateway/downgrade-outbound-recording-not-disclosed`,

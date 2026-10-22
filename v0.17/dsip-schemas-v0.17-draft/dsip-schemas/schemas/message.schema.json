@@ -230,6 +230,23 @@
         {
           "properties": {
             "type": {
+              "const": "presence"
+            }
+          },
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "$ref": "presence.schema.json"
+        }
+      ]
+    },
+    {
+      "allOf": [
+        {
+          "properties": {
+            "type": {
               "const": "progress"
             }
           },

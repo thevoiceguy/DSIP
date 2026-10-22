@@ -2,13 +2,13 @@
  * Checks on a decoded payload: version negotiation, shape, and the stateless semantic checks.
  *
  * Spec: §11 (versions), §10.3 (schemas), §10.4 (sealed bodies), §15.1 (reason fallback), and the schema README's semantic checks
- * 5, 7, 9, 11, 12.
+ * 5, 7, 9, 11, 12; P§3 (the `presence` record's `device`), P§5 (`dsip-presence-state` fallback).
  */
 import { didOf, type Json, type JsonObject } from "./did.js";
 import { b64urlDecode } from "./encoding.js";
 import { decodePayload } from "./envelope.js";
 import { HPKE_SEALED_ALG, hpkeOpen } from "./hpke.js";
-import { effectiveAnsweredBy, effectiveReason, effectiveStatus } from "./registry.js";
+import { effectiveAnsweredBy, effectivePresenceState, effectiveReason, effectiveStatus, isRegisteredPresenceState } from "./registry.js";
 import type { SchemaSet } from "./schema.js";
 import { reject, type Verdict } from "./verdict.js";
 
@@ -210,6 +210,10 @@ export function checkSemantics(payload: JsonObject, ctx: SemanticContext): Verdi
     // §13.2, §20.5: anti-splicing — the relay's hello answers the hello this client sent.
     if (payload["in_reply_to"] !== ctx.sent_hello_id) return reject("hello-in-reply-to-mismatch");
   }
+  if (type === "presence" && "device" in payload && payload["device"] !== payload["from"]) {
+    // P§3: a record's `device`, when present, is its signer; without it, a v0.16-form record (P§4).
+    return reject("presence-signer-mismatch", "presence.signer-mismatch");
+  }
   if (type === "key-rotation") {
     // §7.5
     if (payload["from"] !== payload["subject"]) return reject("rotation-subject-mismatch");
@@ -243,6 +247,11 @@ export function interpret(payload: JsonObject): { effective?: JsonObject; warnin
   }
   if (typeof payload["answered_by"] === "string") effective["answered_by"] = effectiveAnsweredBy(payload["answered_by"]);
   if (type === "progress" && typeof payload["status"] === "string") effective["status"] = effectiveStatus(payload["status"]);
+  if (type === "presence" && typeof payload["state"] === "string") {
+    // P§5: the registry is open — an unknown state is accepted and read as `available`.
+    effective["state"] = effectivePresenceState(payload["state"]);
+    if (!isRegisteredPresenceState(payload["state"])) warnings.push("presence-state-unknown");
+  }
   return {
     ...(Object.keys(effective).length ? { effective } : {}),
     ...(warnings.length ? { warnings } : {}),

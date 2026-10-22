@@ -1,0 +1,50 @@
+{
+  "vector": "semantic/reason-presence-unknown-condition",
+  "format": 1,
+  "kind": "semantic",
+  "description": "presence is a reason category (P§9): an unregistered condition falls back by category, not to session.failed.",
+  "spec_ref": [
+    "§15.1",
+    "§15.3",
+    "P§9"
+  ],
+  "context": {
+    "now": 1760000000,
+    "supported": {
+      "core": "1.0",
+      "profiles": [
+        "interactive-media/1.0",
+        "verified-broadcast/1.0"
+      ],
+      "extensions": []
+    }
+  },
+  "input": {
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "interactive-media/1.0"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "error",
+      "id": "01K742SGZ8YSJMYG2DDHC23D7J",
+      "from": "did:web:relay.example.com",
+      "to": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+      "in_reply_to": "01K742SG002DZE70PJ63YK0GKC",
+      "reason": "presence.too-detailed",
+      "issued_at": 1760000001,
+      "expires_at": 1760000031
+    }
+  },
+  "expect": {
+    "verdict": "accept",
+    "effective": {
+      "reason": "presence.too-detailed",
+      "fallback": "category"
+    }
+  }
+}

@@ -170,6 +170,7 @@ pip installs in this environment need `--break-system-packages`.
 | E§n | Device Events Profile, draft (`v0.17/dsip-device-events-profile-v0.17-draft.md`) — cite as `E§n` |
 | C§n | Recording Profile, draft (`v0.17/dsip-recording-profile-v0.17-draft.md`) — cite as `C§n` |
 | N§n | Number Attestation Profile, draft (`v0.17/dsip-number-attestation-profile-v0.17-draft.md`) — cite as `N§n` |
+| P§n | Presence Profile, draft (`v0.17/dsip-presence-profile-v0.17-draft.md`) — cite as `P§n` |
 | — | DHT Reachability Hints Profile, draft (`v0.17/dsip-dht-hints-profile-v0.17-draft.md`) — no prefix of its own; cite core §8.3 / §8.5 |
 
 ## Semantic checks (post-schema, must-implement)

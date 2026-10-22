@@ -1,13 +1,15 @@
 """Stages 12–14: version negotiation, schema dispatch, stateless semantic checks.
 
-Spec: §11, §10.3, §10.4, §9.3, §13.2, §14.2, §15, §19.4; schema README checks 1, 2, 5, 7, 8, 9, 11.
+Spec: §11, §10.3, §10.4, §9.3, §9.4, §13.2, §14.2, §15, §19.4; Presence Profile P§3, P§5; schema README checks 1, 2, 5,
+7, 8, 9, 11.
 """
 from __future__ import annotations
 
 from typing import Any
 
 from .registry import (resolve_reason, effective_answered_by, effective_progress_status, effective_integrity,
-                       SUBSCRIPTION_EVENTS, REASON_BEARING_TYPES, INTEGRITY_MODES)
+                       SUBSCRIPTION_EVENTS, REASON_BEARING_TYPES, INTEGRITY_MODES, PRESENCE_STATES,
+                       PRESENCE_STATE_FALLBACK)
 from .schema import schema_errors, dispatch_type
 from .verdict import Verdict
 
@@ -172,6 +174,9 @@ def check_semantic(payload: dict, ctx: dict, encoded_size: int | None = None) ->
     if t == "grant" and isinstance(ctx.get("known_introductions"), list):
         if payload["session"] not in ctx["known_introductions"]:  # §19.4
             return Verdict.reject("grant-unknown-introduction")
+    if t == "presence" and "device" in payload and payload["device"] != payload["from"]:
+        # P§3 (v0.17, spec-gap 135): a record describes the device that signs it
+        return Verdict.reject("presence-signer-mismatch", "presence.signer-mismatch")
     if t == "key-rotation":  # §7.5 (v0.7, spec-gap 22)
         if payload["subject"] != payload["from"]:
             return Verdict.reject("rotation-subject-mismatch")
@@ -198,6 +203,11 @@ def registry_effects(payload: dict) -> dict:
         eff["answered_by"] = effective_answered_by(payload["answered_by"])
     if t == "progress":
         eff["status"] = effective_progress_status(payload["status"])
+    if t == "presence":
+        # P§5 (spec-gap 136): an unknown state is accepted and shown as available
+        eff["state"] = payload["state"] if payload["state"] in PRESENCE_STATES else PRESENCE_STATE_FALLBACK
+        if payload["state"] not in PRESENCE_STATES:
+            warnings.append("presence-state-unknown")
     if t == "publish" and "integrity" in payload:
         eff["integrity"] = effective_integrity(payload["integrity"])
         if payload["integrity"] not in INTEGRITY_MODES:

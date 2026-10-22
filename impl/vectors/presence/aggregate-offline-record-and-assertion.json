@@ -1,0 +1,28 @@
+{
+  "vector": "presence/aggregate-offline-record-and-assertion",
+  "format": 1,
+  "kind": "presence",
+  "description": "One device's record says offline while another bound device has none: available, from the assertion.",
+  "spec_ref": [
+    "P§4"
+  ],
+  "context": {
+    "now": 1760000000
+  },
+  "input": {
+    "check": "aggregate",
+    "records": [
+      {
+        "state": "offline",
+        "expires_at": 1760000100,
+        "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+      }
+    ],
+    "asserted": "available"
+  },
+  "expect": {
+    "state": "available",
+    "token": "available",
+    "source": "assertion"
+  }
+}
