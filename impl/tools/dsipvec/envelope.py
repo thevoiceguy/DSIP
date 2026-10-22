@@ -19,6 +19,7 @@ REPLAY_WINDOW_S = 300          # §12.9
 ULID_TOLERANCE_S = 300         # §20.6, Impl: tolerance = replay window (spec-gap 6)
 INTRODUCTION_MAX_VALIDITY_S = 604800  # §19.4; Impl: enforced at stage 9 (spec-gap 31)
 HINT_MAX_VALIDITY_S = 3600  # §12.9, DHT profile §2 (v0.8, spec-gap 96)
+PRESENCE_MAX_VALIDITY_S = 3600  # §12.9, Presence Profile P§3 (v0.17, spec-gap 134)
 WS_MAX_ENVELOPE_BYTES = 65536  # §13.2
 SIGNALING_CAPABILITY = "dsip.signaling"
 
@@ -299,12 +300,21 @@ def verify(envelope: Any, ctx: Context, frame_text: str | None = None) -> tuple[
             return Verdict.reject("hint-validity"), None
         if ia > ctx.now + REPLAY_WINDOW_S:
             return Verdict.reject("replay-window"), None
+    elif msg_type == "presence":
+        # §12.9 (v0.17, spec-gap 134): the authority keeps a record and forwards it in notify bodies for its whole
+        # lifetime (P§3), so as for a hint its age is bounded by expires_at under a 3,600 s cap; the future bound stays.
+        if ea - ia > PRESENCE_MAX_VALIDITY_S:
+            return Verdict.reject("presence-validity"), None
+        if ia > ctx.now + REPLAY_WINDOW_S:
+            return Verdict.reject("replay-window"), None
     elif ia < ctx.now - REPLAY_WINDOW_S or ia > ctx.now + REPLAY_WINDOW_S:
         return Verdict.reject("replay-window"), None
-    if ea < ctx.now:
+    # §12.9 (spec-gap 141): expires_at is the first instant the message is no longer valid
+    if ea <= ctx.now:
         return Verdict.reject("expired", "session.expired" if msg_type == "invite" else None), None
-    # Stage 10: dedup
-    if p["id"] in ctx.seen_ids:
+    # Stage 10: dedup. Not for a record kept and forwarded for its lifetime (§12.9, spec-gap 141): §8.3 decides a
+    # re-observed hint, `seq` a re-observed presence record (P§3)
+    if msg_type not in ("reachability-hint", "presence") and p["id"] in ctx.seen_ids:
         return Verdict.reject("duplicate-id"), None
     # Stage 11: ULID timestamp vs issued_at (§20.6)
     if abs(ulid_mod.timestamp_ms(p["id"]) // 1000 - ia) > ULID_TOLERANCE_S:

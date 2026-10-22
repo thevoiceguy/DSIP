@@ -2,7 +2,7 @@
   "vector": "state/relay-silent-legs-expire-with-the-invite",
   "format": 1,
   "kind": "state",
-  "description": "Legs that have sent nothing are expired once the invite has expired (expires_at < now; spec-gap 132): still outstanding at expires_at, expired a second later, and with none rejected the relay says transport.no-response to the initiator in its own voice (§12.7 rule 6).",
+  "description": "Legs that have sent nothing are expired once the invite has expired (from expires_at; spec-gaps 132, 141): still outstanding a second before expires_at, expired at it, and with none rejected the relay says transport.no-response to the initiator in its own voice (§12.7 rule 6).",
   "spec_ref": [
     "§12.7",
     "§12.9",
@@ -77,7 +77,7 @@
       },
       {
         "event": {
-          "advance": 30
+          "advance": 29
         },
         "expect": {
           "emit": [],

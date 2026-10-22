@@ -2,7 +2,8 @@
  * The DSIP-JOSE envelope verification pipeline: from received bytes to a verified payload.
  *
  * Spec: §10.2 (signature over the transmitted bytes), §10.3 (payload rules), §7.4 (delegation and
- * revocation), §12.9 (replay window), §20.6 (ULID/`issued_at`), §13.2 (frame cap, hello first).
+ * revocation), §12.9 (replay window; the held `introduction`, `reachability-hint` and `presence`
+ * exceptions, P§3), §20.6 (ULID/`issued_at`), §13.2 (frame cap, hello first).
  * The stage order is the conformance suite's (`impl/vectors/README.md`, "Pipeline order").
  */
 import { createPublicKey, verify as cryptoVerify } from "node:crypto";
@@ -22,6 +23,8 @@ export const ULID_TOLERANCE_S = 300;
 export const MAX_INTRODUCTION_VALIDITY_S = 604800;
 /** Spec: §12.9 (v0.8, spec-gap 96), DHT profile §2 — longest reachability-hint validity, seconds. */
 export const MAX_HINT_VALIDITY_S = 3600;
+/** Spec: §12.9 (v0.17, spec-gap 134), P§3, P§8 — longest presence-record validity, seconds. */
+export const MAX_PRESENCE_VALIDITY_S = 3600;
 
 /** A DSIP-JOSE envelope as transmitted. Spec: §10.2 */
 export interface Envelope {
@@ -39,7 +42,7 @@ export interface ReceiverContext extends SemanticContext {
   delegations?: Json[];
   /** Delegation revocations held by the verifier (envelopes). Spec: §7.4 (v0.8) */
   revocations?: Json[];
-  /** Message ids already seen inside the replay window. Spec: §12.9 */
+  /** Message ids already seen inside the replay window; not consulted for `reachability-hint` or `presence`. Spec: §12.9 (spec-gap 141) */
   seen_ids?: string[];
   /** False while the connection has no verified `hello`. Spec: §13.2 */
   hello_verified?: boolean;
@@ -295,11 +298,19 @@ export function verifyEnvelope(envelope: Json, ctx: ReceiverContext, schemas: Sc
     // bounded by expires_at under a 3,600 s cap; the future bound stays.
     if (expires - issued > MAX_HINT_VALIDITY_S) return reject("hint-validity");
     if (issued > ctx.now + REPLAY_WINDOW_S) return reject("replay-window");
+  } else if (type === "presence") {
+    // §12.9 (v0.17, spec-gap 134), P§3: the authority keeps and forwards a record for its whole
+    // lifetime, so its age is bounded by expires_at under a 3,600 s cap; the future bound stays.
+    if (expires - issued > MAX_PRESENCE_VALIDITY_S) return reject("presence-validity");
+    if (issued > ctx.now + REPLAY_WINDOW_S) return reject("replay-window");
   } else if (issued < ctx.now - REPLAY_WINDOW_S || issued > ctx.now + REPLAY_WINDOW_S) {
     return reject("replay-window");
   }
-  if (expires < ctx.now) return reject("expired", type === "invite" ? "session.expired" : undefined);
-  if ((ctx.seen_ids ?? []).includes(id as string)) return reject("duplicate-id");
+  // §12.9 (v0.17, spec-gap 141): expires_at is exclusive — valid while now < expires_at.
+  if (expires <= ctx.now) return reject("expired", type === "invite" ? "session.expired" : undefined);
+  // §12.9 (spec-gap 141): reachability-hint and presence records are never id-deduplicated.
+  const deduplicated = type !== "reachability-hint" && type !== "presence";
+  if (deduplicated && (ctx.seen_ids ?? []).includes(id as string)) return reject("duplicate-id");
   const ulidAt = ulidSeconds(id as string);
   if (ulidAt !== null && Math.abs(ulidAt - issued) > ULID_TOLERANCE_S) return reject("ulid-issued-at-mismatch");
   if (ctx.hello_verified === false && type !== "hello") return reject("hello-required", "transport.hello-required");

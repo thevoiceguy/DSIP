@@ -1,0 +1,37 @@
+{
+  "vector": "presence/aggregate-dnd-wins",
+  "format": 1,
+  "kind": "presence",
+  "description": "dnd ranks above every other state.",
+  "spec_ref": [
+    "P§4"
+  ],
+  "context": {
+    "now": 1760000000
+  },
+  "input": {
+    "check": "aggregate",
+    "records": [
+      {
+        "state": "busy",
+        "expires_at": 1760000100,
+        "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+      },
+      {
+        "state": "dnd",
+        "expires_at": 1760000100,
+        "device": "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ"
+      },
+      {
+        "state": "available",
+        "expires_at": 1760000100,
+        "device": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu"
+      }
+    ]
+  },
+  "expect": {
+    "state": "dnd",
+    "token": "dnd",
+    "source": "record"
+  }
+}

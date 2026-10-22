@@ -30,8 +30,9 @@ export function verifyHint(envelope: Json, ctx: ReceiverContext, schemas: Schema
   let winner = "input";
   let conflict = "none";
   // Impl: the existing record was verified when it was accepted; only its liveness is re-checked.
+  // §8.3, §12.9 (spec-gap 141): the existing record is live while now < expires_at.
   const held = existing === undefined ? null : payloadOf(existing);
-  if (held && (held["expires_at"] as number) >= ctx.now) {
+  if (held && ctx.now < (held["expires_at"] as number)) {
     const [a, b] = [hint["seq"] as number, held["seq"] as number];
     if (a > b) conflict = "newer-seq";
     else if (a < b) [winner, conflict] = ["existing", "older-seq"];

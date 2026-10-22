@@ -4,14 +4,14 @@ A TypeScript implementation of DSIP, measured against the conformance vectors in
 It exists to test the project's second purpose: that the vector suite, not the Rust code, is the
 contract (`../impl/docs/dsip_poc_dev_plan.md`).
 
-**Tracks:** DSIP v0.16, final at `poc-v0.16` (v0.15 final at `poc-v0.15`, v0.14 at `poc-v0.14`). Node ≥ 20. One runtime dependency (`ajv`, JSON Schema 2020-12); Ed25519 is `node:crypto`.
+**Tracks:** DSIP v0.17, in progress (v0.16 final at `poc-v0.16`, v0.15 at `poc-v0.15`). Node ≥ 20. One runtime dependency (`ajv`, JSON Schema 2020-12); Ed25519 is `node:crypto`.
 
 ## The independence rule
 
 This code is written from three sources only:
 
-1. the spec text in `../v0.16/`,
-2. the JSON Schemas in `../v0.16/` (loaded in place at start-up, never copied),
+1. the spec text in `../v0.17/`,
+2. the JSON Schemas in `../v0.17/` (loaded in place at start-up, never copied),
 3. `../impl/vectors/README.md` and the vectors themselves.
 
 It is **never** written by reading `../impl/crates/` or the verdict logic in `../impl/tools/dsipvec/`.
@@ -32,13 +32,14 @@ python3 ../impl/tools/parity_ts.py       # Python harness vs this implementation
 
 ## Coverage
 
-**Every vector: 2124 of 2124**, no kind skipped. Python/TypeScript parity compares actual with actual on all of them.
+**Every vector: 2209 of 2209**, no kind skipped. Python/TypeScript parity compares actual with actual on all of them.
 
 | Kind | Vectors | Modules |
 |---|---|---|
-| `envelope`, `transport`, `dht` | 65, 13, 18 | `envelope.ts`, `did.ts`, `encoding.ts`, `dht.ts` |
-| `payload`, `semantic` | 109, 85 | `schema.ts`, `semantic.ts`, `registry.ts` |
-| `state` | 109 | `endpoint.ts`, `relay.ts`, `broadcast-state.ts`, `timers.ts` |
+| `envelope`, `transport`, `dht` | 71, 13, 18 | `envelope.ts`, `did.ts`, `encoding.ts`, `dht.ts` |
+| `payload`, `semantic` | 122, 93 | `schema.ts`, `semantic.ts`, `registry.ts` |
+| `state` | 130 | `endpoint.ts`, `relay.ts`, `broadcast-state.ts` (v0.17: the authority's presence records, P§3), `timers.ts` |
+| `presence` | 18 | `presence/presence.ts` (Presence Profile draft P§4–P§5: the subscriber's combining rule); the authority's side is `broadcast-state.ts` |
 | `broadcast`, `trust`, `media-binding` | 21, 16, 42 | `broadcast.ts`, `trust.ts`, `binding.ts` |
 | `gateway` | 66 | `gateway.ts` |
 | `messaging` | 552 | `messaging/`: `message`, `object`, `rules`, `blobs`, `crypto` (stateless); `device`, `sync`, `client`, `hub`, `mailbox`, `enrolment` (the trace machines) |

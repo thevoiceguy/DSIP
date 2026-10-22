@@ -1,0 +1,22 @@
+{
+  "vector": "presence/aggregate-no-records",
+  "format": 1,
+  "kind": "presence",
+  "description": "No record and an offline assertion: offline, from nothing.",
+  "spec_ref": [
+    "P§4"
+  ],
+  "context": {
+    "now": 1760000000
+  },
+  "input": {
+    "check": "aggregate",
+    "records": [],
+    "asserted": "offline"
+  },
+  "expect": {
+    "state": "offline",
+    "token": "offline",
+    "source": "none"
+  }
+}

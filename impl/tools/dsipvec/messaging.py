@@ -1,6 +1,6 @@
 """Messaging Profile 1.0 reference semantics (v0.8 draft, cited M§n).
 
-Spec: `v0.16/dsip-messaging-profile-v0.16.md`. Written before any Rust implementation; the
+Spec: `v0.17/dsip-messaging-profile-v0.17.md`. Written before any Rust implementation; the
 `messaging/` vectors pin this module's choices and `dsip-messaging` mirrors it.
 
 Checks (`input.check`):
@@ -26,7 +26,7 @@ from jsonschema import Draft202012Validator
 from . import ulid as U
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-SCHEMA_DIR = REPO_ROOT / "v0.16" / "dsip-messaging-schemas-draft" / "schemas"
+SCHEMA_DIR = REPO_ROOT / "v0.17" / "dsip-messaging-schemas-draft" / "schemas"
 
 MAX_MLS_BYTES = 24576          # M§5.1
 MAX_LIFETIME_S = 60            # M§5.1: delivery envelopes, not records
@@ -391,8 +391,8 @@ class Hub:
             return [{"accepted": {"to": d["device"], "in_reply_to": d["id"]}}] + [
                 {"fanout": {"to": i, "class": "group-info"}} for i in sorted(self.roster)
             ]
-        if cls == "ephemeral":  # M§11.2: never sequenced or stored; dropped once expired
-            if d["expires_at"] < self.now:
+        if cls == "ephemeral":  # M§11.2: never sequenced or stored; dropped once expired (from expires_at, spec-gap 141)
+            if d["expires_at"] <= self.now:
                 return []
             if ident not in self.roster:
                 return self._error(d, "policy.blocked")
@@ -644,8 +644,8 @@ class Mailbox:
 
     def _advance(self, n: int) -> list:
         self.now += n
-        # §19.4: a held introduction or grant is kept only until its envelope expires
-        self.items = [it for it in self.items if it.get("expires_at") is None or it["expires_at"] >= self.now]
+        # §19.4: a held introduction or grant is kept only until its envelope expires (at expires_at, spec-gap 141)
+        self.items = [it for it in self.items if it.get("expires_at") is None or it["expires_at"] > self.now]
         for g in [g for g, r in self.groups.items() if r["state"] == "pending" and r["since"] + self.pending_ttl < self.now]:
             del self.groups[g]  # M§6.6: unconfirmed pending group dropped with its items
             self.items = [it for it in self.items if not (it["group"] == g and it["class"] != "archive")]
@@ -719,7 +719,7 @@ class Mailbox:
                 # (spec-gap 88)
                 return out + self._error(e["from"], e["id"], "policy.blocked")
         if e["class"] == "ephemeral":  # M§11.2: pushed to bound devices, never stored, never acknowledged
-            if e.get("expires_at") is not None and e["expires_at"] < self.now:
+            if e.get("expires_at") is not None and e["expires_at"] <= self.now:
                 return out  # M§11.2: dropped at expires_at (spec-gap 49: the originating deposit's)
             return out + [{"push": {"to": dv, "class": "ephemeral"}} for dv in sorted(self.bound)]
         seq = e.get("seq")
@@ -1167,7 +1167,7 @@ class Client:
         acts = self.shown.setdefault(e["sender"], {})
         if e["state"] == "stopped":
             acts.pop(e["activity"], None)
-        elif e["expires_at"] >= self.now:
+        elif e["expires_at"] > self.now:
             acts[e["activity"]] = e["expires_at"]
         if not acts:
             del self.shown[e["sender"]]
@@ -1176,7 +1176,7 @@ class Client:
     def _advance(self, n: int) -> list:
         self.now += n
         for who in list(self.shown):
-            self.shown[who] = {a: t for a, t in self.shown[who].items() if t >= self.now}
+            self.shown[who] = {a: t for a, t in self.shown[who].items() if t > self.now}
             if not self.shown[who]:
                 del self.shown[who]
         if self.pending_read and self.now - self.last_read_sent >= READ_MIN_INTERVAL_S:

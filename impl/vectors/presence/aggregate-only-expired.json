@@ -1,0 +1,27 @@
+{
+  "vector": "presence/aggregate-only-expired",
+  "format": 1,
+  "kind": "presence",
+  "description": "With only expired records the identity is offline.",
+  "spec_ref": [
+    "P§4"
+  ],
+  "context": {
+    "now": 1760000000
+  },
+  "input": {
+    "check": "aggregate",
+    "records": [
+      {
+        "state": "busy",
+        "expires_at": 1759999999,
+        "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+      }
+    ]
+  },
+  "expect": {
+    "state": "offline",
+    "token": "offline",
+    "source": "none"
+  }
+}

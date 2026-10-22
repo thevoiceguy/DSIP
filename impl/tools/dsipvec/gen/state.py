@@ -349,6 +349,21 @@ def vectors() -> list[dict]:
         step({"local": "alert", "session": sid}, [S(type="reject", to=APH, session=sid, reason="session.expired")],
              **{sid: sess("responder", "ENDED")}),
     ]))
+    # spec-gap 141 (a): the invite has expired from its expires_at (§12.9)
+    out.append(trace("invite-at-expiry-before-alerting", "Alerting begins at exactly the invite's expires_at: the invite has "
+                     "expired (§12.9, spec-gap 141) → reject session.expired.", ["§12.9"], BOBPH_SELF, [
+        responder_to_active(sid)[0],
+        step({"advance": 30}, [], **{sid: sess("responder", "OFFERED")}),
+        step({"local": "alert", "session": sid}, [S(type="reject", to=APH, session=sid, reason="session.expired")],
+             **{sid: sess("responder", "ENDED")}),
+    ]))
+    out.append(trace("invite-alerting-a-second-before-expiry", "Alerting begins one second before the invite's expires_at: "
+                     "the invite is still valid, so it rings.", ["§12.9"], BOBPH_SELF, [
+        responder_to_active(sid)[0],
+        step({"advance": 29}, [], **{sid: sess("responder", "OFFERED")}),
+        step({"local": "alert", "session": sid}, [S(type="progress", to=APH, session=sid, status="ringing"), TS("T-Ring-Local", 120)],
+             **{sid: sess("responder", "ALERTING")}),
+    ]))
     out.append(trace("invite-expiry-irrelevant-once-alerting", "Once ALERTING, T-Ring-Local governs, not expires_at.", ["§12.9"], BOBPH_SELF, [
         responder_to_active(sid)[0],
         step({"local": "alert", "session": sid}, [S(type="progress", to=APH, session=sid, status="ringing"), TS("T-Ring-Local", 120)],
@@ -1040,14 +1055,14 @@ def vectors() -> list[dict]:
     # §12.7 rule 3 (v0.16, spec-gap 132): a leg that has sent nothing once the invite has expired is expired.
     NORESP = {"send": {"type": "error", "to": APH, "session": sid, "reason": "transport.no-response", "in_reply_to": sid}}
     out.append(trace("relay-silent-legs-expire-with-the-invite",
-                     "Legs that have sent nothing are expired once the invite has expired (expires_at < now; spec-gap 132): "
-                     "still outstanding at expires_at, expired a second later, and with none rejected the relay says "
+                     "Legs that have sent nothing are expired once the invite has expired (from expires_at; spec-gaps 132, 141): "
+                     "still outstanding a second before expires_at, expired at it, and with none rejected the relay says "
                      "transport.no-response to the initiator in its own voice (§12.7 rule 6).", ["§12.7", "§12.9", "§13.3"], None, [
         sf({"relay": "bind", "device": BPH, "identity": BOB}, [], {}),
         sf({"relay": "bind", "device": BLA, "identity": BOB}, [], {}),
         sf({"recv": INV("sess")}, [{"deliver": {"leg": d, "type": "invite"}} for d in sorted([BPH, BLA])], {},
            **{sid: {"legs": {BPH: "delivered", BLA: "delivered"}, "outcome": None}}),
-        sf({"advance": 30}, [], {}, **{sid: {"legs": {BPH: "delivered", BLA: "delivered"}, "outcome": None}}),
+        sf({"advance": 29}, [], {}, **{sid: {"legs": {BPH: "delivered", BLA: "delivered"}, "outcome": None}}),
         sf({"advance": 1}, [NORESP], {}, **{sid: {"legs": {BPH: "expired", BLA: "expired"}, "outcome": "no-response"}}),
         sf({"advance": 60}, [], {}, **{sid: {"legs": {BPH: "expired", BLA: "expired"}, "outcome": "no-response"}}),
     ], component="relay"))
@@ -1178,16 +1193,17 @@ def vectors() -> list[dict]:
     ], component="relay"))
     out.append(trace("relay-leg-added-at-the-invites-last-second",
                      "A device that binds while an attempt is live becomes a leg if the invite is unexpired — as the envelope "
-                     "pipeline means it: expired is expires_at < now, so at now = expires_at it still is one; a second later it is not.",
+                     "pipeline means it: expired from expires_at (spec-gap 141), so a second before expires_at it still is one; "
+                     "at expires_at it is not.",
                      ["§12.7", "§12.9"], None, [
         sf({"relay": "bind", "device": BPH, "identity": BOB}, [], {}),
         sf({"recv": INV("sess", ttl=5)}, [{"deliver": {"leg": BPH, "type": "invite"}}], {}, **{sid: {"legs": {BPH: "delivered"}, "outcome": None}}),
         # the legs ring, as a leg that processes the invite does at once: only a silent leg expires (spec-gap 132)
         sf({"recv": msg("progress", "lp1", BPH, sid, NOW, status="ringing")}, [{"forward": {"type": "progress", "status": "ringing", "from": BPH}}], {}),
-        sf({"advance": 5}, [], {}),
+        sf({"advance": 4}, [], {}),
         sf({"relay": "bind", "device": BLA, "identity": BOB}, [{"deliver": {"leg": BLA, "type": "invite", "id": sid}}], {},
            **{sid: {"legs": {BPH: "delivered", BLA: "delivered"}, "outcome": None}}),
-        sf({"recv": msg("progress", "lp2", BLA, sid, NOW + 5, status="ringing")}, [{"forward": {"type": "progress", "status": "ringing", "from": BLA}}], {}),
+        sf({"recv": msg("progress", "lp2", BLA, sid, NOW + 4, status="ringing")}, [{"forward": {"type": "progress", "status": "ringing", "from": BLA}}], {}),
         sf({"advance": 1}, [], {}),
         sf({"relay": "bind", "device": "did:key:z6MkBobTablet111111111111111111111111111111", "identity": BOB}, [], {},
            **{sid: {"legs": {BPH: "delivered", BLA: "delivered"}, "outcome": None}}),
@@ -1475,4 +1491,6 @@ def vectors() -> list[dict]:
         rinbox({"recv": {"type": "introduction", "id": uid("intro-3"), "from": CAR, "to": BOB, "purpose": "offline again"}},
                [{"queue": {"to": BOB, "type": "introduction"}}], {BOB: 1, UNKNOWN: 1}),
     ], component="relay"))
+    from .presence_vectors import state_vectors
+    out.extend(state_vectors())
     return out

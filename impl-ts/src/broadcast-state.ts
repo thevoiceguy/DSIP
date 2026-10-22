@@ -4,9 +4,13 @@
  *
  * Spec: §9.3 (subscribe/notify, soft state, seq-ordered notifies, anti-enumeration), §22.1
  * (publication records: publisher binding, stream-id namespace, newer ULID replaces), §22.3
- * (provenance statements attach to a record and never replace its publisher).
+ * (provenance statements attach to a record and never replace its publisher); Presence Profile P§3 (a device's
+ * signed record published to its authority: refusals in order, the body with `records`, expiry, the unbind grace,
+ * notifying on body changes), P§4 (`seq` per `(subject, device)`), P§8 (lifetime bounds, T-Presence-Grace, the
+ * publish interval).
  */
 import type { Json, JsonObject } from "./did.js";
+import { byCodePoint } from "./recording/recording.js";
 
 interface Publication {
   id: string;
@@ -16,6 +20,25 @@ interface Publication {
   expires?: number;
   provenance: string[];
 }
+
+/** A device's current presence record, as the authority holds it. Spec: P§3 */
+interface PresenceRecord {
+  id: string;
+  state: string;
+  seq: number;
+  expires_at: number;
+  /** Set while the device is unbound: when its grace runs out. Spec: P§3, P§8 */
+  grace_until?: number;
+}
+
+/** Spec: P§8 — T-Presence-Grace default, seconds. */
+export const PRESENCE_GRACE_DEFAULT_S = 60;
+/** Spec: P§8 — record lifetime bounds (`expires_at − issued_at`), seconds. */
+export const PRESENCE_LIFETIME_MIN_S = 60;
+/** Spec: P§8 — record lifetime upper bound, seconds. */
+export const PRESENCE_LIFETIME_MAX_S = 3600;
+/** Spec: P§8 — least interval between two accepted records of one device, seconds. */
+export const PRESENCE_PUBLISH_INTERVAL_S = 5;
 
 interface Subscription {
   id: string;
@@ -31,6 +54,8 @@ interface Subscription {
 export interface BroadcastContext {
   start: number;
   identities?: Record<string, string>;
+  /** T-Presence-Grace, seconds (default 60). Spec: P§8 */
+  presence_grace?: number;
 }
 
 /** A target's authority: its relay or domain endpoint. */
@@ -42,6 +67,8 @@ export class Authority {
   private readonly publications = new Map<string, Publication>();
   private subscriptions: Subscription[] = [];
   private readonly bound = new Map<string, string>(); // device → identity
+  private readonly records = new Map<string, Map<string, PresenceRecord>>(); // subject → device → record
+  private readonly lastAccepted = new Map<string, number>(); // device → when its last record was accepted
 
   constructor(private readonly ctx: BroadcastContext) {
     this.now = ctx.start;
@@ -54,7 +81,7 @@ export class Authority {
     else if ("recv" in e) this.recv(e["recv"] as JsonObject);
     else if (e["local"] === "policy") this.policy.set(e["target"] as string, { mode: e["mode"] as string, allow: (e["allow"] ?? []) as string[] });
     else if (e["local"] === "issue_capability") this.capabilities.set(e["token"] as string, e["target"] as string);
-    else if (e["relay"] === "bind" || e["relay"] === "unbind") this.presenceChange(e);
+    else if (e["relay"] === "bind" || e["relay"] === "unbind") this.bindingChange(e);
     else throw new Error(`unknown authority event ${JSON.stringify(e)}`);
     return this.emit;
   }
@@ -72,6 +99,19 @@ export class Authority {
         this.subscriptions.map((s) => [s.id, { subscriber: s.subscriber, target: s.target, events: s.events, seq: s.seq, expires_at: s.expires_at }]),
       );
     }
+    if ("presence" in expect) {
+      const presence: JsonObject = {};
+      for (const [subject, held] of this.records) {
+        if (held.size === 0) continue;
+        presence[subject] = Object.fromEntries(
+          [...held].map(([device, r]) => [device, {
+            seq: r.seq, state: r.state, expires_at: r.expires_at,
+            ...(r.grace_until !== undefined ? { grace_until: r.grace_until } : {}),
+          }]),
+        );
+      }
+      out["presence"] = presence;
+    }
     return out;
   }
 
@@ -80,10 +120,7 @@ export class Authority {
   }
 
   private body(target: string, event: string): JsonObject {
-    if (event === "presence") {
-      const online = [...this.bound.values()].includes(target);
-      return { event, state: online ? "available" : "offline" };
-    }
+    if (event === "presence") return this.presenceBody(target);
     const p = this.publications.get(target)!;
     return { event, state: p.state, publication: p.id, ...(p.provenance.length ? { provenance: p.provenance } : {}) };
   }
@@ -98,6 +135,39 @@ export class Authority {
         body: this.body(s.target, event),
       },
     });
+  }
+
+  /**
+   * The presence body for a subject. Spec: §9.3, P§3 — the state is the authority's assertion over the
+   * subject's bound devices that hold no record; `records`, ordered by `device`, when any is held.
+   * Impl: `device` order is code-point order of the DID strings; a record is carried as the vectors README's
+   * `{id, device, state, seq, expires_at}` summary of the signed envelope.
+   */
+  private presenceBody(subject: string): JsonObject {
+    const held = this.records.get(subject) ?? new Map<string, PresenceRecord>();
+    const asserted = [...this.bound].some(([device, identity]) => identity === subject && !held.has(device));
+    const body: JsonObject = { event: "presence", state: asserted ? "available" : "offline" };
+    if (held.size > 0) {
+      body["records"] = [...held.keys()].sort(byCodePoint).map((device) => {
+        const r = held.get(device)!;
+        return { id: r.id, device, state: r.state, seq: r.seq, expires_at: r.expires_at };
+      });
+    }
+    return body;
+  }
+
+  /** The presence bodies of every subject, before an event that may change them. */
+  private presenceBodies(): Map<string, string> {
+    const subjects = new Set<string>([...this.bound.values(), ...this.records.keys()]);
+    for (const s of this.subscriptions) if (s.events.includes("presence")) subjects.add(s.target);
+    return new Map([...subjects].map((subject) => [subject, JSON.stringify(this.presenceBody(subject))]));
+  }
+
+  /** Spec: P§3 — a subscription is notified when an event changes its body; subjects in order. */
+  private notifyChanged(before: Map<string, string>): void {
+    for (const subject of [...before.keys()].sort(byCodePoint)) {
+      if (before.get(subject) !== JSON.stringify(this.presenceBody(subject))) this.notifyAll(subject, "presence");
+    }
   }
 
   private notifyAll(target: string, event: string): void {
@@ -122,14 +192,80 @@ export class Authority {
       this.notify(s, s.events[0]!, "session.expired");
       this.subscriptions = this.subscriptions.filter((x) => x !== s);
     }
+    // P§3: a record past its expires_at, or whose unbind grace has run out, is dropped and its seq
+    // forgotten; each subject that lost one is notified once, subjects in order.
+    const before = this.presenceBodies();
+    for (const held of this.records.values()) {
+      for (const [device, r] of held) {
+        if (r.expires_at <= this.now || (r.grace_until !== undefined && r.grace_until <= this.now)) held.delete(device);
+      }
+    }
+    this.notifyChanged(before);
   }
 
-  private presenceChange(e: JsonObject): void {
+  /**
+   * A device binds to or unbinds from this relay, the source of the authority's assertion (§9.3).
+   * Spec: P§3 — an unbound device keeps its record for T-Presence-Grace (0 drops it at the unbind), counted
+   * from the first unbind; a bind within the grace keeps it as if the device had never left. Subscribers hear only a changed body.
+   */
+  private bindingChange(e: JsonObject): void {
     const identity = e["identity"] as string;
-    const before = [...this.bound.values()].includes(identity);
-    if (e["relay"] === "bind") this.bound.set(e["device"] as string, identity);
-    else this.bound.delete(e["device"] as string);
-    if (before !== [...this.bound.values()].includes(identity)) this.notifyAll(identity, "presence");
+    const device = e["device"] as string;
+    const before = this.presenceBodies();
+    const record = this.records.get(identity)?.get(device);
+    if (e["relay"] === "bind") {
+      this.bound.set(device, identity);
+      if (record) delete record.grace_until;
+    } else {
+      this.bound.delete(device);
+      // P§3: the grace runs from the first unbind; a further unbind while it runs changes nothing.
+      if (record && record.grace_until === undefined) {
+        const grace = this.ctx.presence_grace ?? PRESENCE_GRACE_DEFAULT_S;
+        if (grace === 0) this.records.get(identity)!.delete(device);
+        else record.grace_until = this.now + grace;
+      }
+    }
+    this.notifyChanged(before);
+  }
+
+  /**
+   * A device publishes its record. Spec: P§3 — refused with `error`, the first that applies:
+   * `presence.signer-mismatch` → `presence.lifetime` → `presence.stale` → `policy.rate-limited`; otherwise
+   * it replaces the device's record, unacknowledged, and every subscription to the subject is notified.
+   * Spec: P§3 rule 4 — the publish interval runs from the device's last accepted record, whether or not that
+   * record is still held.
+   */
+  private presence(m: JsonObject): void {
+    const from = m["from"] as string;
+    const subject = m["subject"] as string;
+    const refuse = (reason: string, extra: JsonObject = {}): void =>
+      void this.emit.push({ send: { type: "error", to: from, in_reply_to: m["id"]!, reason, ...extra } });
+    // P§3 rule 1: the record names its signing device, for the identity that device is delegated by
+    // (`context.identities`, the identity its delegation names).
+    if (typeof m["device"] !== "string" || m["device"] !== from || subject !== this.identityOf(from)) {
+      return refuse("presence.signer-mismatch");
+    }
+    // P§3 rule 2, P§8: lifetime 60–3,600 s.
+    const lifetime = (m["expires_at"] as number) - (m["issued_at"] as number);
+    if (lifetime < PRESENCE_LIFETIME_MIN_S || lifetime > PRESENCE_LIFETIME_MAX_S) return refuse("presence.lifetime");
+    // P§3 rule 3, P§4: seq is ordered per (subject, device).
+    const held = this.records.get(subject) ?? new Map<string, PresenceRecord>();
+    const current = held.get(from);
+    if (current && current.seq >= (m["seq"] as number)) return refuse("presence.stale");
+    // P§3 rule 4, P§8: at most one accepted record per device every 5 s; retry_after is the whole seconds left.
+    const last = this.lastAccepted.get(from);
+    if (last !== undefined && this.now - last < PRESENCE_PUBLISH_INTERVAL_S) {
+      return refuse("policy.rate-limited", { retry_after: PRESENCE_PUBLISH_INTERVAL_S - (this.now - last) });
+    }
+    const record: PresenceRecord = {
+      id: m["id"] as string, state: m["state"] as string, seq: m["seq"] as number, expires_at: m["expires_at"] as number,
+    };
+    // P§3: a record accepted from a device in its grace keeps the grace running.
+    if (current?.grace_until !== undefined && !this.bound.has(from)) record.grace_until = current.grace_until;
+    held.set(from, record);
+    this.records.set(subject, held);
+    this.lastAccepted.set(from, this.now);
+    this.notifyAll(subject, "presence");
   }
 
   private recv(m: JsonObject): void {
@@ -175,6 +311,8 @@ export class Authority {
       }
       case "subscribe":
         return this.subscribe(m, sender);
+      case "presence":
+        return this.presence(m);
       default:
         throw new Error(`authority cannot receive ${String(m["type"])}`);
     }

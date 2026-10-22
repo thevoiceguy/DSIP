@@ -1,6 +1,6 @@
 # Outline: DSIP Presence Profile (`presence/0.1`)
 
-**Status:** OUTLINE, not yet a draft (2026-10-19). Spec-gaps 134–137 decided 2026-10-19 as drafted here. Candidate companion profile for v0.17, cite as `P§n` once
+**Status:** superseded by the draft `v0.17/dsip-presence-profile-v0.17-draft.md` (2026-10-22), which pins P§3–P§5 and P§8 with vectors; kept for its history. Spec-gaps 134–137 decided 2026-10-19 as drafted here. Candidate companion profile for v0.17, cite as `P§n` once
 adopted. It collects spec-gaps 134–137 (`impl/docs/spec-gaps.md`). Nothing here is implemented or pinned. Per rule 1,
 each section turns into vectors before any code, and the section's vector plan says which. v0.16 is final, so the
 draft itself goes into `v0.17/` when that version is assembled.
@@ -151,7 +151,7 @@ cheap).
 ## P§11 Sequence
 
 1. ~~The user decides spec-gaps 134–137.~~ Decided 2026-10-19, as drafted.
-2. Write the draft from this outline; write vectors (P§3, P§4 and P§5 first), with Python verdicts.
+2. ~~Write the draft from this outline; write vectors (P§3, P§4 and P§5 first), with Python verdicts.~~ Done 2026-10-22: `presence` is the §9.4 record sent itself (not `publish`, which §22 owns), under `dsip.signaling`, reason category `presence`, timers as drafted.
 3. Implement in Rust (`dsip-broadcast`'s authority already holds subscriptions) and in `impl-ts`, until three-way
    parity holds; then fuzz the combining rule (`fuzz.py`).
 4. Browser client: publish, show the combined state, settings for audiences and shares.

@@ -2,7 +2,7 @@
   "vector": "state/relay-leg-added-at-the-invites-last-second",
   "format": 1,
   "kind": "state",
-  "description": "A device that binds while an attempt is live becomes a leg if the invite is unexpired — as the envelope pipeline means it: expired is expires_at < now, so at now = expires_at it still is one; a second later it is not.",
+  "description": "A device that binds while an attempt is live becomes a leg if the invite is unexpired — as the envelope pipeline means it: expired from expires_at (spec-gap 141), so a second before expires_at it still is one; at expires_at it is not.",
   "spec_ref": [
     "§12.7",
     "§12.9"
@@ -81,7 +81,7 @@
       },
       {
         "event": {
-          "advance": 5
+          "advance": 4
         },
         "expect": {
           "emit": [],
@@ -121,7 +121,7 @@
         "event": {
           "recv": {
             "type": "progress",
-            "id": "01K742SMW8G425A7ATV8HHAXQC",
+            "id": "01K742SKX0G425A7ATV8HHAXQC",
             "from": "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ",
             "session": "01K742SG00YYNVBMYAQK1CB31F",
             "status": "ringing"

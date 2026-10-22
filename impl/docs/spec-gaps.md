@@ -4116,7 +4116,7 @@ assertion, so a subscriber always knows which kind of presence it is looking at.
 
 **Decided (2026-10-19, user: "go with your choices on 134–137"): (a), in a Presence Profile.** A device sends its signed record by `publish`; the authority keeps it until `expires_at` and sends it rather than its own assertion, falling back to assertion when no valid record is left.
 
-**Pinned.** Not yet: the vectors in `impl/docs/presence-profile-outline.md` P§3 come first (rule 1), then Rust and `impl-ts`.
+**Pinned** (2026-10-22, v0.17 draft `v0.17/dsip-presence-profile-v0.17-draft.md` P§3, P§8): `envelope/presence-*` (age bounded by `expires_at`, cap 3,600 s, §12.9), `state/presence-*` (the authority's refusal order, silent acceptance, notify on body change, expiry, T-Presence-Grace, publish interval), `semantic/reason-presence-*`. The outline's `publish` message became the §9.4 `presence` record itself (`publish` is §22's), under `dsip.signaling`, so `presence.not-delegated` is the pipeline's existing `delegation-capability`; refusals use the new `presence` reason category.
 
 **Fix, for the next spec version (v0.16 is final).** §9.3 gains: "How a subject's record reaches its authority is defined by the Presence Profile. An authority holding a valid subject-signed record MUST send it rather than its own assertion." The publish path goes into the Presence Profile draft (P§3) in `v0.17/`.
 
@@ -4146,7 +4146,7 @@ form) is treated as one that comes from a single unnamed device.
 
 **Decided (2026-10-19, user: "go with your choices on 134–137"): (a).** Records carry `device` (= the signer), `seq` is ordered per `(subject, device)`, and the subscriber combines the records by the P§4 precedence rule; a record without `device` is one unnamed device.
 
-**Pinned.** Not yet: the vectors in `impl/docs/presence-profile-outline.md` P§4 come first (rule 1), then Rust and `impl-ts`.
+**Pinned** (2026-10-22, P§4): `presence/aggregate-*` (the combining rule, with its tie-breaks: registered before unknown, code-point order, a record before the assertion), `state/presence-seq-per-device`, `semantic/presence-signer-mismatch`, `envelope/presence-signer-mismatch`.
 
 **Fix, for the next spec version (v0.16 is final).** §9.4's record gains `device`; §9.3's `seq` rule reads "per `(subject, device)`". The combining rule goes into P§4.
 
@@ -4171,7 +4171,7 @@ not touched.
 
 **Decided (2026-10-19, user: "go with your choices on 134–137"): (a).** Registry `dsip-presence-state` (`available`, `busy`, `away`, `dnd`, `offline`), open, unknown tokens shown and ranked as `available`; "invisible" is publishing `offline` or nothing.
 
-**Pinned.** Not yet: the vectors in `impl/docs/presence-profile-outline.md` P§5 come first (rule 1), then Rust and `impl-ts`.
+**Pinned** (2026-10-22, P§5): `payload/presence-*` (the token shape, at most 64 characters), `semantic/presence-unknown-state-fallback` (`effective.state` `available` with warning `presence-state-unknown`), `presence/aggregate-unknown-*`.
 
 **Fix, for the next spec version (v0.16 is final).** §24.2 lists `dsip-presence-state` (Presence Profile P§5, draft); §9.4 says `state` is registry-governed.
 
@@ -4302,3 +4302,47 @@ it.
 **Suggested fix, for the next spec version (v0.16 is final).** M§12.1 gains, after "Devices keep all prior keys": "An
 `archive-key` naming an `akid` the device already holds with a different `key` is ignored: the first key under an
 `akid` stays, so archive already sealed under it stays readable. The device SHOULD surface the conflict."
+
+## 141. §12.9 — the `expires_at` boundary, and id deduplication for records kept past the replay window
+
+**Found (2026-10-22, the Presence Profile vectors; the independent TypeScript reading).** Two inconsistencies, older
+than presence, that presence makes visible:
+
+1. **The boundary.** §12.9's exceptions for `introduction`, `reachability-hint` and now `presence` say a record is
+   accepted "while … `now < expires_at`", so at `now == expires_at` it is expired. The pipeline (all three
+   implementations, and the vectors README `expired` row) rejects only when `expires_at < now`, so it accepts at
+   equality. P§3/P§4 (a record is valid while `expires_at` is after now; the authority drops it when `expires_at` ≤
+   now) use the strict reading. The envelope pipeline therefore accepts a presence record that the authority drops at
+   its next `advance`. No vector sits on the boundary.
+2. **Id deduplication.** §12.9 says a `reachability-hint`'s `id` "is not deduplicated", and the `presence` exception
+   says `seq` decides a re-observed record. Stage 10 (`duplicate-id`) still runs for every type in all three
+   implementations whenever the id is in `context.seen_ids`. A subscriber that verifies each record carried in
+   successive `notify` bodies, with ordinary replay tracking, would reject the second sight of the same record.
+
+Choices:
+
+- **(a) Strict everywhere, and no id dedup for records kept past the window:** `expired` when `now ≥ expires_at`
+  (README row and pipeline change; a boundary vector per type), and stage 10 skipped for `reachability-hint` and
+  `presence` (their `seq` decides).
+- **(b) Keep the pipeline as it is and fix the text:** "while `now ≤ expires_at`", and say stage 10 applies to every
+  type; P§3/P§4 move to the same inclusive bound.
+- **(c) Split:** (a) for the boundary, (b) for dedup.
+
+**Draft choice: (a).** An `expires_at` is the first instant a record is no longer good (as for the authority's drop
+and P§4), and the text has said so since v0.8; the pipeline is the outlier. A record that is forwarded many times by
+design must not trip replay tracking, which the hint text already says.
+
+**Decided (2026-10-22, user: "141 (a)"): (a).** Applied wherever an `expires_at` is judged, not only at stage 9, so one
+reading holds throughout: v0.17 §12.9 gains an **Expiry** paragraph (valid while `now < expires_at`, expired when
+`now ≥ expires_at`), the invite row says "at or after", and the `presence` exception says its id is not deduplicated.
+
+**Pinned.** Stage 9 `expired` at `expires_at ≤ now`, stage 10 skipped for `reachability-hint` and `presence` (vectors
+README rows). New vectors: `envelope/invite-at-expiry`, `envelope/invite-one-second-before-expiry`,
+`envelope/introduction-held-at-expiry`, `envelope/presence-at-expiry`, `envelope/presence-id-already-seen`,
+`dht/hint-at-expiry`, `dht/hint-one-second-before-expiry`, `dht/existing-at-expiry-ignored` (§8.3's existing record),
+`dht/hint-id-already-seen`, `state/invite-at-expiry-before-alerting`, `state/invite-alerting-a-second-before-expiry`,
+`messaging/hub-ephemeral-at-expiry-dropped`, `messaging/mailbox-ephemeral-dropped-at-expiry`. Four vectors that pinned
+the inclusive reading were re-authored to the exclusive one, each still showing both sides of the edge:
+`state/relay-silent-legs-expire-with-the-invite` and `state/relay-leg-added-at-the-invites-last-second` (spec-gap 132
+had taken its boundary from the pipeline row), `messaging/client-activity-shown-until-expiry` (M§11.2) and
+`messaging/mailbox-introduction-dropped-at-expiry` (§19.4).

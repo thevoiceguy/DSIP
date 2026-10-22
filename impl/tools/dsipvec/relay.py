@@ -87,8 +87,8 @@ class Relay:
             for sid, a in sorted(self.attempts.items()):  # id order when several attempts are live (spec-gap 89)
                 if a.identity == identity and a.outcome is None and device not in a.legs:
                     inv = self.invites.get(sid)
-                    # unexpired as the envelope pipeline means it: `expired` is expires_at < now (§12.9)
-                    if inv is not None and inv.get("expires_at", self.now + 1) >= self.now:
+                    # unexpired as the envelope pipeline means it: `expired` from expires_at (§12.9, spec-gap 141)
+                    if inv is not None and inv.get("expires_at", self.now + 1) > self.now:
                         a.legs[device] = "delivered"
                         a.last = self.now
                         self.emit({"deliver": {"leg": device, "type": "invite", "id": sid}})
@@ -118,14 +118,14 @@ class Relay:
 
     def expire_silent_legs(self) -> None:
         """§12.7 rule 3 (v0.16, spec-gap 132): a leg that has sent nothing — no progress, answer or reject — once the invite has
-        expired (expires_at < now, §12.9) is expired. A responder acts only on an unexpired invite and acts at once
+        expired (from expires_at, §12.9, spec-gap 141) is expired. A responder acts only on an unexpired invite and acts at once
         (progress, answer or reject), so silence past expiry means the invite was never processed; a leg that rings
         ends itself with reject user.no-answer at T-Ring-Local (§12.9). When that leaves no leg outstanding the
         attempt completes as §12.7 rule 6 says. Attempts in id order, legs in device order (spec-gap 89); an attempt
         forked by a `relay invite` event carries no invite and is expired only by `leg_expired`."""
         for sid in sorted(self.attempts):
             a, inv = self.attempts[sid], self.invites.get(sid)
-            if inv is None or "expires_at" not in inv or inv["expires_at"] >= self.now:
+            if inv is None or "expires_at" not in inv or inv["expires_at"] > self.now:
                 continue
             silent = [leg for leg in sorted(a.legs) if a.legs[leg] == "delivered" and leg not in a.heard]
             for leg in silent:

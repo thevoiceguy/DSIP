@@ -1,0 +1,32 @@
+{
+  "vector": "presence/aggregate-expired-ignored",
+  "format": 1,
+  "kind": "presence",
+  "description": "A record whose expires_at is now is no longer valid; the away record stands.",
+  "spec_ref": [
+    "P§4"
+  ],
+  "context": {
+    "now": 1760000000
+  },
+  "input": {
+    "check": "aggregate",
+    "records": [
+      {
+        "state": "busy",
+        "expires_at": 1760000000,
+        "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+      },
+      {
+        "state": "away",
+        "expires_at": 1760000100,
+        "device": "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ"
+      }
+    ]
+  },
+  "expect": {
+    "state": "away",
+    "token": "away",
+    "source": "record"
+  }
+}

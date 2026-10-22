@@ -1,0 +1,31 @@
+{
+  "vector": "presence/aggregate-legacy-record-no-device",
+  "format": 1,
+  "kind": "presence",
+  "description": "A v0.16-form record without device counts as one unnamed device's.",
+  "spec_ref": [
+    "P§4"
+  ],
+  "context": {
+    "now": 1760000000
+  },
+  "input": {
+    "check": "aggregate",
+    "records": [
+      {
+        "state": "busy",
+        "expires_at": 1760000100
+      },
+      {
+        "state": "away",
+        "expires_at": 1760000100,
+        "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+      }
+    ]
+  },
+  "expect": {
+    "state": "busy",
+    "token": "busy",
+    "source": "record"
+  }
+}

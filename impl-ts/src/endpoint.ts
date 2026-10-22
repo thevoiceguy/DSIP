@@ -221,8 +221,8 @@ export class Endpoint {
         return this.end(id, s);
       case "alert": {
         if (!s || s.state !== "OFFERED") return void this.emit.push({ refused: "invalid-state" });
-        if (s.inviteExpires !== undefined && s.inviteExpires < this.now) {
-          // §12.9: expires_at bounds pre-alerting delivery
+        if (s.inviteExpires !== undefined && s.inviteExpires <= this.now) {
+          // §12.9: expires_at bounds pre-alerting delivery; exclusive, expired at expires_at (spec-gap 141)
           this.send("reject", s.to, { session: id, reason: "session.expired" });
           return this.end(id, s);
         }
@@ -508,7 +508,8 @@ export class Endpoint {
       if (existing.state === "ENDED") return void this.emit.push({ drop: "ended-session" });
       return this.invalidState(m);
     }
-    if (typeof m["expires_at"] === "number" && m["expires_at"] < this.now) {
+    // §12.9 (spec-gap 141): an invite is expired when now >= expires_at
+    if (typeof m["expires_at"] === "number" && m["expires_at"] <= this.now) {
       this.sessions.set(id, fresh("ENDED"));
       return this.send("reject", from, { session: id, reason: "session.expired" });
     }

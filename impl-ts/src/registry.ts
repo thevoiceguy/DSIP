@@ -2,7 +2,7 @@
  * Registries with receiver fallback: membership never rejects a well-formed token.
  *
  * Spec: §15.1 (fallback rule), §15.3 (categories), §15.4 (`dsip-reason`), §12.10 (`dsip-progress-status`),
- * §14.3 (`dsip-answered-by`).
+ * §14.3 (`dsip-answered-by`), P§5 (`dsip-presence-state`), P§9 (the `presence` reason category).
  */
 
 /** `dsip-reason`: token → message types it is valid on. Spec: §15.4 */
@@ -68,10 +68,13 @@ const REASONS: Record<string, string[]> = {
   "mailbox.hub-unreachable": ["error"], // M§16 (spec-gap 72); not yet in the core §15.4 table
   "mailbox.not-served": ["error"], // M§16 (v0.16, spec-gap 130): unserved and cannot enrol, or a release from one not served
   "mailbox.not-enrolled": ["error"], // M§16 (v0.16, spec-gap 130): a release for a configured identity
+  "presence.signer-mismatch": ["error"], // P§9 (v0.17, spec-gap 134); not in the core §15.4 table
+  "presence.lifetime": ["error"], // P§9
+  "presence.stale": ["error"], // P§9
 };
 
 /** Reason categories. Spec: §15.1 token grammar */
-const CATEGORIES = ["user", "endpoint", "identity", "session", "media", "policy", "transport", "gateway", "mailbox"];
+const CATEGORIES = ["user", "endpoint", "identity", "session", "media", "policy", "transport", "gateway", "mailbox", "presence"];
 
 /** True when `token` is in the `dsip-reason` registry. Spec: §15.4 */
 export function isRegisteredReason(token: string): boolean {
@@ -105,4 +108,17 @@ export function effectiveAnsweredBy(value: string): string {
 /** Spec: §12.10 — unknown `progress.status` values are treated as `trying`. */
 export function effectiveStatus(value: string): string {
   return ["trying", "ringing", "queued", "forwarded"].includes(value) ? value : "trying";
+}
+
+/** Spec: P§5 — the initial values of `dsip-presence-state`, ranked for P§4 (higher wins). */
+export const PRESENCE_STATE_RANK: Readonly<Record<string, number>> = { dnd: 4, busy: 3, available: 2, away: 1, offline: 0 };
+
+/** True when `token` is a registered `dsip-presence-state` value. Spec: P§5 */
+export function isRegisteredPresenceState(token: string): boolean {
+  return Object.prototype.hasOwnProperty.call(PRESENCE_STATE_RANK, token);
+}
+
+/** Spec: P§5 — the registry is open; an unknown state is shown (and ranked) as `available`. */
+export function effectivePresenceState(token: string): string {
+  return isRegisteredPresenceState(token) ? token : "available";
 }

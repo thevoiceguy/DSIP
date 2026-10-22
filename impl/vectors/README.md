@@ -1,6 +1,6 @@
 # DSIP Conformance Test Vectors
 
-**Tracks:** DSIP v0.16, final at `poc-v0.16` (v0.15 final at `poc-v0.15`) + JSON Schema set v0.16 (draft 2020-12); the Messaging Profile schema set for `messaging/`
+**Tracks:** DSIP v0.17, in progress (v0.16 final at `poc-v0.16`) + JSON Schema set v0.17 (draft 2020-12); the Messaging Profile schema set for `messaging/`
 **Format version:** 1
 
 These vectors are the language-neutral conformance contract for DSIP Core v1.0.
@@ -37,6 +37,9 @@ vectors/
   tn-binding/  Number Attestation Profile draft: a STIR-signed number → DID binding and its checks (N§3), the claim and
                identity-change warning (N§4–N§5), a node's store and the reader's choice (N§6–N§7), and the gateway's
                PASSporT verification, routing and assertion (N§4.1, N§6.1, G§5) (spec-gap 110)
+  presence/    Presence Profile draft (P§4–P§5): the subscriber's rule combining several devices' records (spec-gaps 135, 136);
+               the record's age (envelope/), shape (payload/), checks (semantic/) and the authority (state/) are beside
+               their kinds
 ```
 
 One vector per file. The vector id is its path relative to `vectors/` without
@@ -130,9 +133,10 @@ implementation under test MUST emit that token when it signals the failure.
 | `delegation-capability` | delegation lacks `dsip.signaling` (every envelope binds under it; spec-gap 56) | `transport.hello-rejected` on `hello` |
 | `delegation-revoked` | a `delegation-revocation` signed by the subject covers the delegation (held, or in the subject's document) (§7.4, v0.8) | `transport.hello-rejected` on `hello` |
 | `expiry-order` | `expires_at ≤ issued_at` (check 1) | |
-| `replay-window` | `issued_at` outside `[now − 300, now + 300]` (§12.9, check 1); for `introduction` (spec-gap 31) and `reachability-hint` (spec-gap 96) only the future bound applies — their age is bounded by `expires_at` (§12.9, v0.8) | |
+| `replay-window` | `issued_at` outside `[now − 300, now + 300]` (§12.9, check 1); for `introduction` (spec-gap 31), `reachability-hint` (spec-gap 96) and `presence` (spec-gap 134, v0.17) only the future bound applies — their age is bounded by `expires_at` (§12.9) | |
 | `introduction-validity` | `introduction` with `expires_at − issued_at` > 604,800 s (§12.9, §19.4; spec-gap 31) | |
 | `hint-validity` | `reachability-hint` with `expires_at − issued_at` > 3,600 s (§12.9, DHT profile §2; spec-gap 96) | |
+| `presence-validity` | `presence` with `expires_at − issued_at` > 3,600 s (§12.9, P§3, P§8; v0.17, spec-gap 134) | |
 | `sealed-not-critical` | a payload carries `sealed` but `dsip.critical` does not list `sealed-body/1.0` (§10.4; spec-gap 97) | |
 | `sealed-alg-unsupported` | `sealed.alg` is not `hpke-base-x25519-sha256-aes128gcm` (§10.4; also sealed introductions, kind `messaging`) | |
 | `body-unseal-failed` | `enc`/`ct` not base64url, or the HPKE open fails — wrong key, tampered, or AAD of another message (§10.4) | |
@@ -148,14 +152,15 @@ implementation under test MUST emit that token when it signals the failure.
 | `mls-truncated` / `mls-length-invalid` / `mls-length-non-minimal` / `mls-trailing-bytes` | MLS extension wire encoding (RFC 9420 §2.1.2; kind `messaging`) | |
 | `credential-type` / `credential-identity` / `delegation-missing` / `credential-key-mismatch` | MLS leaf authentication (M§6.2; kind `messaging`; also uses `delegation-invalid`/`-capability`/`-expired`) | |
 | `blob-size-mismatch` / `blob-hash-mismatch` / `sealed-too-short` / `aead-open-failed` | AES-GCM formats (M§8.4, M§11.1, M§12.2; kind `messaging`) | |
-| `expired` | `expires_at < now` (§12.9) | `session.expired` on `invite` |
-| `duplicate-id` | `id` already seen within the replay window (§12.9) | |
+| `expired` | `expires_at ≤ now` (§12.9: valid while `now < expires_at`, spec-gap 141) | `session.expired` on `invite` |
+| `duplicate-id` | `id` already seen within the replay window (§12.9); never for a `reachability-hint` or a `presence` record, whose ids are not deduplicated (spec-gap 141) | |
 | `ulid-issued-at-mismatch` | ULID timestamp component differs from `issued_at` by more than 300 s (§20.6, check 2) | |
 | `version-unsupported` | §11 negotiation failed | one of the `session.unsupported-*` tokens |
 | `schema-invalid` | payload fails its JSON Schema | |
 | `unknown-type` | `type` is not a known message type | |
 | `selection-not-subset` | `answer`/`reject` selection not ⊆ referenced offer (check 9) | |
 | `subscription-lifetime-exceeded` | `expires_in` above the per-event cap (presence 3,600) (§9.3) | `policy.subscription-lifetime` on `error` (v0.7) |
+| `presence-signer-mismatch` | a `presence` record whose `device` is present and is not `from` (P§3; v0.17, spec-gap 135) | `presence.signer-mismatch` on `error` |
 | `rotation-subject-mismatch` | `key-rotation.from` ≠ `subject` (§7.5) | |
 | `rotation-next-same-as-previous` | `key-rotation.next` = `previous` (§7.5) | |
 | `rotation-signer-not-previous` | `key-rotation` signed by a method other than `previous` without `recovery: true` (§7.5; `context.signer_kid`) | |
@@ -190,8 +195,8 @@ runs 13 only; `kind: semantic` runs 12–14).
 6. `payload-not-utf8` → `payload-not-json` → `payload-float` → `payload-shape`
 7. `signer-mismatch` / `delegation-*` (binding `kid` to `from`; on `hello` with `on_behalf_of`, additionally binding `from` to `on_behalf_of`)
 8. `expiry-order`
-9. `introduction-validity` (introductions only) / `hint-validity` (reachability hints only) → `replay-window` → `expired`
-10. `duplicate-id`
+9. `introduction-validity` (introductions only) / `hint-validity` (reachability hints only) / `presence-validity` (presence records only) → `replay-window` → `expired`
+10. `duplicate-id` (not for `reachability-hint` or `presence`)
 11. `ulid-issued-at-mismatch`
 11b. `hello-required` (transport binding state: `context.hello_verified` is `false` and the type is not `hello`)
 12. `version-unsupported`
@@ -203,7 +208,7 @@ runs 13 only; `kind: semantic` runs 12–14).
     no sealable fields admits none (`sealed-field-not-sealable` for any opened key). On success the opened fields replace `sealed` and stages 13–14
     run on the merged payload.
 13. `unknown-type` → `schema-invalid`
-14. Stateless semantic checks (`selection-not-subset`, `subscription-lifetime-exceeded`, `introduction-too-large`, `grant-unknown-introduction`, `hello-in-reply-to-mismatch`, `rotation-*`)
+14. Stateless semantic checks (`selection-not-subset`, `subscription-lifetime-exceeded`, `introduction-too-large`, `grant-unknown-introduction`, `hello-in-reply-to-mismatch`, `presence-signer-mismatch`, `rotation-*`)
 
 Stage 13 also validates `info.data` against the binding schema named by `about` when the
 receiver implements that binding (`transport:webrtc` → `webrtc-info-data.schema.json`); an
@@ -222,7 +227,9 @@ Registry membership (check 5) never rejects a well-formed token. It yields an
 `fallback` ∈ `none` (registered), `category` (unregistered condition in a
 known category), `unknown-category` (→ `session.failed`). For `answered_by`,
 `effective.answered_by` is `service` for unknown values; for `progress`,
-`effective.status` is `trying` for unknown values. A registered token that the
+`effective.status` is `trying` for unknown values; for `presence` (P§5, v0.17), `effective.state` is the record's
+`state` when registered (`available`, `busy`, `away`, `dnd`, `offline`) and otherwise `available`, with
+`warnings: ["presence-state-unknown"]`. A registered token that the
 registry does not list as valid on the carrying message type is accepted with
 `warnings: ["reason-not-valid-on-type"]` (Impl decision; see spec-gap list). `effective.reason` is
 reported for `reject`, `cancel`, `bye`, `error` and a `notify` that carries a `reason`; the "valid on"
@@ -351,12 +358,12 @@ transition depends on (`status`, `ring_timeout`, `queue_timeout`, `reason`,
 | `{"relay":"leg_expired","session":ID,"leg":DEVICE}` | relay's own per-leg delivery expiry |
 | `{"relay":"bind"|"unbind","device":DEVICE,"identity":IDENTITY}` | a device (un)binds via `hello` (§13.2); binding flushes queued introductions |
 | `{"recv": introduction}` / `{"recv": invite}` (without `legs`) | routed by the relay's bindings; introductions to unknown/offline identities are queued with no error (§19.4 anti-enumeration) |
-| `{"recv": any}` to a *known* but unbound identity/device | queued (§13.3 store-and-forward) until `min(expires_at, context.offline_retention_s)` (default 86,400, the §13.3 RECOMMENDED value, when the context gives none); `advance` expires queues; `bind` flushes the identity's and the device's queues together in arrival order — the order the relay received them, whichever of the two each was addressed to (spec-gap 98) — turning queued invites into tracked legs |
+| `{"recv": any}` to a *known* but unbound identity/device | queued (§13.3 store-and-forward) until `min(expires_at, context.offline_retention_s)` (default 86,400, the §13.3 RECOMMENDED value, when the context gives none), dropped at that instant (spec-gap 141); `advance` expires queues; `bind` flushes the identity's and the device's queues together in arrival order — the order the relay received them, whichever of the two each was addressed to (spec-gap 98) — turning queued invites into tracked legs |
 | `{"advance": SECONDS}` | clock; expires queues, then silent legs, then forgets (below) |
 
 **Silent legs expire with the invite (§12.7 rule 3, spec-gap 132).** After expiring queues, every `advance` expires each leg
 that is still `delivered` and has never sent the attempt anything — no `progress`, `answer` or `reject` — once the
-attempt's invite has expired (`expires_at < now`; at `now = expires_at` it has not). A leg that has sent any of those
+attempt's invite has expired (`expires_at ≤ now`, spec-gap 141: a second before `expires_at` it has not). A leg that has sent any of those
 is not expired this way: it ends itself (a ringing leg rejects `user.no-answer` at T-Ring-Local). Attempts go in id order,
 their legs in device order (spec-gap 89), and each attempt whose legs changed is then completed as §12.7 rule 6 says
 (the most informative `reject` forwarded, or `send error transport.no-response`), so those emissions come in attempt
@@ -409,7 +416,7 @@ named, or to every device bound for the identity named, in device order; queued 
 offline; otherwise `send error transport.unknown-recipient` to the sender (`in_reply_to` the message's id). Nothing is
 dropped for naming a session the relay does not know. A `cancel` whose `to` is one leg's device cancels that leg alone
 (§12.11): the attempt goes on, and the identity's queued invite stays queued. A leg can be added while
-`expires_at >= now`. Queued envelopes that expire in the same step are reported in recipient order. Wherever one step
+`expires_at > now`. Queued envelopes that expire in the same step are reported in recipient order. Wherever one step
 reaches several legs or attempts, it goes in device (DID) order and id order — the suite's order wherever a relay or
 mailbox fans out: a `cancel` to the identity reaches its live legs in DID order, whatever order they were delivered
 in, and a device that binds into several live attempts gets their invites in id order (spec-gap 89). An invite to an identity that has never bound here is answered `send error transport.unknown-recipient`.
@@ -470,11 +477,34 @@ A statement has no `integrity_mode` of its own (§22.3, spec-gap 77): the one in
 
 ### State components `authority` and `subscriber`
 
-`authority` (a target's relay/domain endpoint, §9.3/§22): events `{"recv": publish|unpublish|subscribe|provenance}`,
+`authority` (a target's relay/domain endpoint, §9.3/§22): events `{"recv": publish|unpublish|subscribe|provenance|presence}`,
 `{"local":"policy","target":T,"mode":"public"|"allow","allow":[…]}`, `{"local":"issue_capability","token":S,"target":T}`,
-`{"relay":"bind"|"unbind",…}` (presence source), `advance`. Emissions: `send notify {to, subscription, seq, state, reason?, body}`,
-`send reject {to, session, reason}`, `{"publication": {"stream", "state"}}`, `{"provenance": {"stream","processor"}}`,
-`{"subscription": {"id","state": "replaced"|"terminated"}}`, `drop` reasons. Snapshots `publications` and `subscriptions`.
+`{"relay":"bind"|"unbind","device","identity"}` (presence source), `advance`. Emissions: `send notify {to, subscription, seq, state, reason?, body}`,
+`send reject {to, session, reason}`, `send error {to, in_reply_to, reason, retry_after?}`, `{"publication": {"stream", "state"}}`, `{"provenance": {"stream","processor"}}`,
+`{"subscription": {"id","state": "replaced"|"terminated"}}`, `drop` reasons. Snapshots `publications`, `subscriptions` and
+`presence`.
+
+**Presence records** (Presence Profile P§3, P§4, P§8; v0.17, spec-gaps 134, 135). `context.identities` maps each device
+to its identity; `context.presence_grace` is T-Presence-Grace (default 60). A received `presence` (`from`, `subject`,
+`device?`, `state`, `seq`, `issued_at`, `expires_at`) is refused with `send error {to: from, in_reply_to: id, reason}`,
+the first that applies: `presence.signer-mismatch` (no `device`, `device` ≠ `from`, or `subject` ≠ the identity of
+`from` in `context.identities`, the identity its delegation names) → `presence.lifetime` (`expires_at − issued_at` below 60 or above 3,600) → `presence.stale` (a record held for
+`(subject, device)` with `seq` ≥ this one) → `policy.rate-limited` with `retry_after` = 5 − elapsed (a record of this
+device accepted less than 5 s ago on the authority's clock, whether or not that record is still held). Otherwise it is accepted with no emission of its own: it
+becomes the device's record and every presence subscription to the subject is notified.
+
+The presence `body` is `{"event": "presence", "state": A}` plus `records` when any record is held for the subject:
+`A` is `available` when any bound device of the subject holds no record, else `offline`; `records` lists every held
+record of the subject as `{id, device, state, seq, expires_at}`, ordered by `device` (the trace's summary of each
+record; on the wire a host carries the signed envelope, P§3). A subscription is notified on an
+event exactly when it changes its subject's body: an accepted record, a dropped record, a bind or unbind. On `unbind` of
+a device holding a record, the record is kept until the clock reaches unbind time + grace (with grace 0 it is dropped
+at the unbind); the grace runs from the first unbind, so an `unbind` of a device already in its grace changes nothing,
+and a record accepted from a device in its grace keeps the grace running; a `bind` of that device before then cancels
+the drop. On `advance`, after subscription lapses and
+publication expiry, every record with `expires_at` ≤ now and every record whose grace has run out (unbind time + grace
+≤ now) is dropped, its `seq` forgotten, and each subject that lost one is notified once, subjects in order. Snapshot
+`presence: {subject: {device: {seq, state, expires_at, grace_until?}}}`.
 
 `subscriber`: `{"local":"subscribe","id","to","target","events","expires_in"}`, `{"recv": notify|reject}`, `advance`.
 Emissions: `send subscribe`, `{"ui":"notify","event","state"}`, `{"ui":"subscription_terminated","reason"}`,
@@ -483,7 +513,7 @@ Emissions: `send subscribe`, `{"ui":"notify","event","state"}`, `{"ui":"subscrip
 
 ## Kind: `media-binding`
 
-WebRTC Media Binding 1.0 (`v0.16/dsip-webrtc-media-binding-v0.16.md`) conformance, below the
+WebRTC Media Binding 1.0 (`v0.17/dsip-webrtc-media-binding-v0.17.md`) conformance, below the
 envelope pipeline: inputs are decoded payloads or event traces. `input.check` selects:
 
 | check | input | expect |
@@ -562,9 +592,9 @@ Details the table leaves out, all part of the contract:
 
 ## Kind: `messaging`
 
-DSIP Messaging Profile 1.0 (`v0.16/dsip-messaging-profile-v0.16.md`, cited `M§n`), tranche 1.
+DSIP Messaging Profile 1.0 (`v0.17/dsip-messaging-profile-v0.17.md`, cited `M§n`), tranche 1.
 Written **before** any implementation. The profile schema set is staged at
-`v0.16/dsip-messaging-schemas-draft/` (generated, freshness-checked like the core set). MLS is
+`v0.17/dsip-messaging-schemas-draft/` (generated, freshness-checked like the core set). MLS is
 abstracted: traces carry what a hub or mailbox observes (epoch, commit adds/removes, validity, a
 digest of the MLS bytes), just as relay traces abstract signatures. `input.check` selects:
 
@@ -602,7 +632,7 @@ digest of the MLS bytes), just as relay traces abstract signatures. `input.check
 | `commit-retry-trace` | `steps` of `{answer: {reason?}}` / `{synced: {still_needed, hub_moved?}}`; `context.max_attempts` | per step `emit` (`merge`, `discard`, `sync`, `repropose {attempt}`, `done`, `surface`) and `state {attempt, state}` (M§6.5, spec-gap 58; `mailbox.unknown-group` retried only when `hub_moved`, spec-gap 60) |
 | `successor-trace` | `steps` of `{welcome: {group, successor_of, creator, roster}}` / `{create: {predecessor}}` / `{created: {group, successor_of}}`; `context.groups` (group → roster by identity) | per step `emit` (`join`, `decline`, `leave`, `first_contact`, `create {successor_of, roster}`, `use`, `refuse`) and `state {predecessor: {successor, candidates}}` (M§7.5, spec-gap 61) |
 | `history-trace` | `steps` of `{archive: {cursor, akid, group, seq, id, object?}}` / `{archive_key: {akid, created_at}}` / `{mls: {group, seq, epoch, id, object?}}` / `{sent: {group, seq, id, object?}}` / `{joined: {group, epoch}}`; `object` is the object's type: absent or `content` is a timeline entry, `receipt` or `call-event` is state (archived and applied once by `id`, never in the timeline; spec-gaps 63, 64, 68), wherever it came from; `context.keys`, `joined` | per step `emit` (`hold`, `show`, `apply` (a receipt or call event, spec-gaps 63–64, 68), `duplicate`, `prejoin`, `archive {group, seq, akid}`) and `state {timeline, held, current_akid}` (M§12.2, M§12.3, M§8.5) |
-| `hub-trace` | `steps` of `{deposit: {id, device, identity, class, epoch?, digest, commit?: {adds, removes, valid?, external?, moves_to?}, expires_at?, handover_seq?, view?: {epoch, roster}}}` / `{ack: {identity, seq, class?}}` (`class: welcome` acknowledges the welcome queue, spec-gap 66) / `{advance: s}` / `{restart: {}}` (spec-gap 59: full state survives; every unacknowledged queue head is re-sent); a commit with `moves_to` leaves the hub refusing the group (spec-gap 60). **Return** (spec-gap 128): while moved, a `group-info` deposit carrying `handover_seq` brings the group back; its `view` is the epoch and roster of the GroupInfo, which names this hub. It is refused `policy.blocked` when the depositor's identity is not in `view.roster`, or when `handover_seq` is below the hub's `next_seq` (a seq would be given twice). Otherwise the hub is no longer moved; its epoch and roster become the view's, `next_seq` becomes `handover_seq` + 1, and it holds a GroupInfo. Its queues and welcome holds are kept and drain as before. It answers `accepted` with no seq, then fans the group-info out to every identity of the new roster, in identity order. Every other deposit while moved, a `group-info` without `handover_seq` included, is still `mailbox.unknown-group`; `context.epoch`, `roster`, `kind`, `owner?`, `mls_retention_s?` (default 2,592,000). The hub's clock is `context.now` plus every `advance` so far; an `ephemeral` whose `expires_at` is before it is dropped silently (M§11.2). **Retention** (spec-gap 119): per member identity the hub keeps a clock over everything queued for it, items and welcome together. It starts when that identity's queues go from all empty to not, restarts at every acknowledgement of a queue head that leaves something queued, and stops when they are empty again. An acknowledgement that is not of a head changes nothing. At an `advance` that brings an identity's clock to `mls_retention_s` or beyond, the hub drops every queue it holds for that identity, welcome included, and lifts its welcome hold; the identity stays in the roster, and what is sequenced afterwards is queued and fanned out to it as to any member (a returning device re-joins by external commit, M§6.8). Several identities are dropped in identity order. The clock survives `restart` | per step `emit` (`accepted {to, in_reply_to, seq, duplicate?}`, `error {to, in_reply_to, reason}`, `fanout {to, seq, class}` (a welcome carries the commit's seq, spec-gap 66), `forward {to, class: ephemeral}`, `dropped {identity, pending, welcomes}` (the seqs that were queued, in order)) and `state {epoch, next_seq, roster, pending, welcomes}` |
+| `hub-trace` | `steps` of `{deposit: {id, device, identity, class, epoch?, digest, commit?: {adds, removes, valid?, external?, moves_to?}, expires_at?, handover_seq?, view?: {epoch, roster}}}` / `{ack: {identity, seq, class?}}` (`class: welcome` acknowledges the welcome queue, spec-gap 66) / `{advance: s}` / `{restart: {}}` (spec-gap 59: full state survives; every unacknowledged queue head is re-sent); a commit with `moves_to` leaves the hub refusing the group (spec-gap 60). **Return** (spec-gap 128): while moved, a `group-info` deposit carrying `handover_seq` brings the group back; its `view` is the epoch and roster of the GroupInfo, which names this hub. It is refused `policy.blocked` when the depositor's identity is not in `view.roster`, or when `handover_seq` is below the hub's `next_seq` (a seq would be given twice). Otherwise the hub is no longer moved; its epoch and roster become the view's, `next_seq` becomes `handover_seq` + 1, and it holds a GroupInfo. Its queues and welcome holds are kept and drain as before. It answers `accepted` with no seq, then fans the group-info out to every identity of the new roster, in identity order. Every other deposit while moved, a `group-info` without `handover_seq` included, is still `mailbox.unknown-group`; `context.epoch`, `roster`, `kind`, `owner?`, `mls_retention_s?` (default 2,592,000). The hub's clock is `context.now` plus every `advance` so far; an `ephemeral` whose `expires_at` is at or before it is dropped silently (M§11.2, spec-gap 141). **Retention** (spec-gap 119): per member identity the hub keeps a clock over everything queued for it, items and welcome together. It starts when that identity's queues go from all empty to not, restarts at every acknowledgement of a queue head that leaves something queued, and stops when they are empty again. An acknowledgement that is not of a head changes nothing. At an `advance` that brings an identity's clock to `mls_retention_s` or beyond, the hub drops every queue it holds for that identity, welcome included, and lifts its welcome hold; the identity stays in the roster, and what is sequenced afterwards is queued and fanned out to it as to any member (a returning device re-joins by external commit, M§6.8). Several identities are dropped in identity order. The clock survives `restart` | per step `emit` (`accepted {to, in_reply_to, seq, duplicate?}`, `error {to, in_reply_to, reason}`, `fanout {to, seq, class}` (a welcome carries the commit's seq, spec-gap 66), `forward {to, class: ephemeral}`, `dropped {identity, pending, welcomes}` (the seqs that were queued, in order)) and `state {epoch, next_seq, roster, pending, welcomes}` |
 | `mailbox-trace` | `steps` of `welcome`, `hub_deposit`, `sync`, `unbind`, `config`, `archive`, `kp_upload`, `kp_fetch`, `advance`, `restart` (spec-gap 59: durable state survives, live bindings do not); a `hub_deposit` whose `seq` is at or below the group's highest stored is a redelivery (`accepted` with `duplicate`, and the retained item's cursor — found by group and seq, across a registration the owner left and made again, never an archive record's: spec-gap 92); a `config` group naming another `hub` with `handover_seq` moves the registration (spec-gap 60); a `kp_fetch` with `successor_of` naming a registered group needs no grant (spec-gap 61); `context.owner`, `serves`, `devices`, `mode`, `admit`, `groups`, `key_packages`, `pending_group_ttl`, `pending_group_max_items`, optional `quota_bytes` (spec-gap 99: a `welcome`, a stored `hub_deposit` or an `archive` may carry `size`; when the bytes of the retained items plus `size` would exceed `quota_bytes`, the deposit is refused `mailbox.quota-exceeded` — after the duplicate checks, so a redelivery is never refused, and before anything is stored or registered — a `group-info` that would replace the group's previous one is checked with the previous one still counted; every other refusal of that deposit (pending-group bound, hub move, queue-mode archive) comes first; `first_contact` items are never counted or refused for quota; the quota survives `restart`) | per step `emit` (`accepted {to, in_reply_to, cursor?, duplicate?}`, `error`, `items {to, in_reply_to, cursors, next}`, `push {to, cursor}` / `push {to, class: ephemeral}`, `key_packages {to, in_reply_to, devices}`) and `state {items: [cursor], groups: {group: pending\|joined}, key_packages}` (plus `used_bytes`, the sum of the retained items' `size`, when `quota_bytes` is set) |
 
 Checks the table above did not list (found by the second implementation; all are in the suite):
@@ -659,7 +689,7 @@ An external joiner's identity is not sent its own commit unless it was already a
 expires_at}` (spec-gap 54) — rate-limited per sender identity and per recipient inbox at `context.intro_limit` per
 `intro_window` (`error policy.rate-limited {retry_after}`, the seconds until the oldest counted deposit leaves the window;
 both kinds count and both are limited, except a solicited grant — below), then accepted **without a cursor** for an unserved recipient or an inbox already
-holding `inbox_cap` introductions, else stored until `expires_at` (kept at it, dropped after); `forward {id, device,
+holding `inbox_cap` introductions, else stored until `expires_at` (kept a second before it, dropped at it, spec-gap 141); `forward {id, device,
 identity, group, to}` (spec-gap 45) → `{"forward": {to, id}}`, or `policy.blocked` (not the owner's device) /
 `mailbox.unknown-group` (unregistered group, or `to` is not its hub); `forward_failed {id, device, to}` → `error
 mailbox.hub-unreachable` (spec-gap 72). Other emissions: `{"handover_expired": {group, hub: the OLD hub, missing}}`
@@ -829,7 +859,7 @@ lowercase hex. Everything else, non-ASCII included, is written as UTF-8.
 
 ## Kind: `device-events`
 
-Device Events Profile draft (`v0.16/dsip-device-events-profile-v0.16-draft.md`, cited `E§n`; spec-gap 103). There are two
+Device Events Profile draft (`v0.17/dsip-device-events-profile-v0.17-draft.md`, cited `E§n`; spec-gap 103). There are two
 shapes: stateless checks (`input.check`) and alarm-list traces (`input.steps`).
 
 **`check: "trap"`** (E§3), with `input.trap`, outputs `{"snmp": {version, uptime, trap_oid, varbinds}}` or
@@ -1282,7 +1312,7 @@ expect is `{"emit": [...], "held": [...]}`. `held` lists the held clears, sorted
 
 ## Kind: `recording`
 
-Recording Profile draft (`v0.16/dsip-recording-profile-v0.16-draft.md`, cited `C§n`; spec-gap 107). Three shapes:
+Recording Profile draft (`v0.17/dsip-recording-profile-v0.17-draft.md`, cited `C§n`; spec-gap 107). Three shapes:
 consent traces (C§4), `check: "conversation"` (C§5) and `check: "recording-session"` (C§6).
 
 **`check: "add-devices"`** (C§5, M§5.5, M§7.2) is the devices a device adds for an identity, given what its KeyPackage
@@ -1381,7 +1411,7 @@ it has opened with `bye` and `policy.blocked`. The checks run in this order:
 
 ## Kind: `alias-transparency`
 
-Alias Transparency Profile draft, stage 1 (`v0.16/dsip-alias-transparency-profile-v0.16-draft.md`, cited `T§n`;
+Alias Transparency Profile draft, stage 1 (`v0.17/dsip-alias-transparency-profile-v0.17-draft.md`, cited `T§n`;
 spec-gap 104). These are the KEYTRANS building blocks, following the editors' copy of draft-ietf-keytrans-protocol
 (2026-09-16) and the editor's implementation katie (commit `e1640671`), plus the profile's own rules. Every computed
 value here was confirmed with katie. The editors' copy differs from -05 only in the mode-1 Configuration.
@@ -1694,6 +1724,23 @@ order, or `{"error": "malformed"}`:
 steps backwards, this is ahead of the clock: the one case the profile allows, since a lower `seq` is refused
 everywhere. A result above 2^53−1, which every reader rejects (`check: "hint"` step 4), is `{"error": "exhausted"}`:
 the publisher signs nothing.
+
+## Kind: `presence`
+
+Presence Profile draft (`v0.17/dsip-presence-profile-v0.17-draft.md`, cited `P§n`; spec-gaps 135, 136): the subscriber's
+side. `input.check` selects:
+
+| check | input | expect |
+|---|---|---|
+| `aggregate` | `records` (each `{state, expires_at, device?}`), `asserted?` (`available` / `offline`, the body's `state`); `context.now` | `{state, token, source}` (P§4) |
+
+`aggregate`: a record is valid while `expires_at` > now. The candidates are each valid record's `state` (source
+`record`) and, when `asserted` is `available`, `available` (source `assertion`). With none the result is
+`{"state": "offline", "token": "offline", "source": "none"}`. Otherwise the winner has the highest rank — `dnd` 4,
+`busy` 3, `available` 2, `away` 1, `offline` 0, any other token ranking as `available` — and among equal ranks a
+record before the assertion, then a registered token (`available`, `busy`, `away`, `dnd`, `offline`) before an
+unknown one, then unknown tokens in code-point order. `token` is the winner's token, `state` the winner itself when registered and
+`available` otherwise (P§5), `source` the winner's source. A record's `device` plays no part.
 
 ## Kind: `tn-binding`
 
@@ -2131,6 +2178,18 @@ Each item has a matching `spec-gap` issue draft in `impl/docs/spec-gaps.md`.
     was, not how the call finished: `session.cancelled` when we withdrew it (§12.5 rule 3), `session.already-answered`
     when an answer was applied (however the call then ended), `session.failed` when the attempt was never answered
     (`state/fork-late-answer-after-the-call-ended`, `fork-late-answer-after-our-hangup`).
+141. §12.9: **decided** (v0.17) — `expires_at` is exclusive everywhere: expired when `now ≥ expires_at`, at receipt and
+    wherever a held message, kept record, leg or activity is judged; `reachability-hint` and `presence` ids are not
+    deduplicated (`envelope/*-at-expiry`, `envelope/presence-id-already-seen`, `dht/hint-*`, `state/invite-*-expiry*`,
+    `messaging/*-at-expiry*`).
+134. §9.3 / §9.4: **decided** (v0.17, Presence Profile P§3) — a device publishes its signed `presence` record to its
+    authority, which keeps it to `expires_at` (age bounded by `expires_at`, cap 3,600 s, §12.9), refuses it in the P§3
+    order and notifies on body changes; an unbound device's record outlives the unbind by T-Presence-Grace
+    (`envelope/presence-*`, `state/presence-*`).
+135. §9.4: **decided** (v0.17, P§4) — one record per device (`device` = signer, `seq` per `(subject, device)`), combined
+    by the subscriber (`presence/aggregate-*`, `state/presence-seq-per-device`, `semantic/presence-signer-mismatch`).
+136. §9.3 / §9.4: **decided** (v0.17, P§5) — `dsip-presence-state` is open; an unknown state is shown and ranked as
+    `available` (`payload/presence-*`, `semantic/presence-unknown-state-fallback`, `presence/aggregate-unknown-*`).
 133. C§4 / G§3 / G§7: **decided** (next spec version) — a gateway is not the recorded party's client: it accepts a recording
     the DSIP side declares (C§3) on the PSTN party's behalf, and the crossing is downgraded with a new G§7 loss,
     `recording-not-disclosed`, last in the table order (`gateway/downgrade-outbound-recording-not-disclosed`,

@@ -45,9 +45,10 @@ export class Client implements Machine {
     const emit: Json[] = [];
     if ("advance" in e) {
       this.now += e["advance"] as number;
-      // M§11.2: clear an indicator when no refresh arrived before the last one's expires_at
+      // M§11.2: clear an indicator when no refresh arrived before the last one's expires_at; shown while
+      // now < expires_at, cleared at it (§12.9, spec-gap 141)
       for (const [sender, shown] of Object.entries(this.activity)) {
-        for (const [name, until] of Object.entries(shown)) if (this.now > until) delete shown[name];
+        for (const [name, until] of Object.entries(shown)) if (this.now >= until) delete shown[name];
         if (Object.keys(shown).length === 0) delete this.activity[sender];
       }
       // M§10.3: when the interval passes, the latest watermark is sent once
@@ -84,7 +85,7 @@ export class Client implements Machine {
       if (a.state === "stopped") {
         delete this.activity[a.sender]?.[a.activity];
         if (this.activity[a.sender] && Object.keys(this.activity[a.sender]!).length === 0) delete this.activity[a.sender];
-      } else if (this.now <= a.expires_at) {
+      } else if (this.now < a.expires_at) {
         (this.activity[a.sender] ??= {})[a.activity] = a.expires_at; // an activity that arrives already expired is ignored
       }
     }

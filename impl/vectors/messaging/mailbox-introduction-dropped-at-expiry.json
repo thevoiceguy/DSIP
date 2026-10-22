@@ -2,9 +2,10 @@
   "vector": "messaging/mailbox-introduction-dropped-at-expiry",
   "format": 1,
   "kind": "messaging",
-  "description": "A held introduction is kept only until its envelope expires.",
+  "description": "A held introduction is kept only until its envelope expires: kept a second before its expires_at, dropped at it (§12.9, spec-gap 141).",
   "spec_ref": [
-    "§19.4"
+    "§19.4",
+    "§12.9"
   ],
   "context": {
     "component": "mailbox",
@@ -45,7 +46,7 @@
       },
       {
         "event": {
-          "advance": 600
+          "advance": 599
         }
       },
       {

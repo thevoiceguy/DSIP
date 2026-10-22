@@ -106,8 +106,8 @@ def run_dht_tail(v: dict, verdict: Verdict, ver) -> dict:
     winner, conflict = "input", "none"
     if existing is not None:
         ex = json.loads(b64url_decode(existing["payload"]).decode("utf-8"))
-        if ex.get("expires_at", 0) < ctx["now"]:
-            winner, conflict = "input", "none"          # §8.3: expired records are invalid
+        if ex.get("expires_at", 0) <= ctx["now"]:
+            winner, conflict = "input", "none"          # §8.3: expired records are invalid (§12.9, spec-gap 141: at expires_at)
         elif p["seq"] > ex["seq"]:
             winner, conflict = "input", "newer-seq"      # §8.3: newer sequence wins
         elif p["seq"] < ex["seq"]:
@@ -181,6 +181,8 @@ def snapshot_for(comp, key: str, expected) -> object:
         return comp.inbox_snapshot()
     if key == "publications":
         return comp.snapshot_publications()
+    if key == "presence":
+        return comp.snapshot_presence()
     if key == "subscriptions":
         return comp.snapshot_subscriptions() if isinstance(comp, Authority) else comp.snapshot()
     raise KeyError(key)
@@ -238,6 +240,9 @@ def run_vector(v: dict) -> Result:
         elif kind == "recording":
             from . import recording as RECORDING
             actual = RECORDING.run(v)
+        elif kind == "presence":
+            from . import presence as PRESENCE
+            actual = PRESENCE.run(v)
         elif kind == "did-webvh":
             i = v["input"]
             actual = WEBVH.resolve(i["did"], i["log"], i["witness"], i["cache"], i["now"])

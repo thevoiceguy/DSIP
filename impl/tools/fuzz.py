@@ -890,6 +890,54 @@ def gen_roster_change(r: random.Random):
     return "messaging", "roster-change", {}, {"committer": committer, "roster": roster, "adds": adds, "removes": removes}
 
 
+def gen_presence_aggregate(r: random.Random):
+    """A subscriber's held records and the body's assertion (P§4, P§5; README kind `presence`, check `aggregate`)."""
+    states = ["available", "busy", "away", "dnd", "offline", "in-transit", "zz-later", "a"]
+    records = []
+    for _ in range(r.randint(0, 4)):
+        rec = {"state": r.choice(states), "expires_at": NOW + r.choice([-1, 0, 0, 1, 100])}
+        if r.random() < 0.8:
+            rec["device"] = r.choice([A1, A2, B1, B2])
+        records.append(rec)
+    body = {"records": records}
+    if r.random() < 0.8:
+        body["asserted"] = r.choice(["available", "offline"])
+    return "presence", "aggregate", {"now": NOW}, body
+
+
+def gen_presence_authority(r: random.Random):
+    """Records, bindings and the clock at a subject's authority (P§3, P§4, P§8; README authority "Presence records")."""
+    sub = ulid(20)
+    ev = [{"local": "policy", "target": BOB, "mode": "public"},
+          {"recv": {"type": "subscribe", "id": sub, "from": A1, "to": RELAY, "target": BOB, "events": ["presence"],
+                    "expires_in": 3600}}]
+    counter, clock = [2000], [NOW]
+    for _ in range(r.randint(3, 12)):
+        x = r.random()
+        if x < 0.25:
+            d = r.choice([B1, B2])
+            ev.append({"relay": r.choice(["bind", "bind", "unbind"]), "device": d, "identity": BOB})
+        elif x < 0.7:
+            counter[0] += 1
+            d = r.choice([B1, B1, B2])
+            m = {"type": "presence", "id": ulid(counter[0]), "from": d, "to": RELAY,
+                 "subject": r.choice([BOB] * 8 + [ALICE]), "state": r.choice(["busy", "away", "available", "dnd", "offline", "x-new"]),
+                 "seq": r.choice([1, 2, 3, 3, 5, 9]), "issued_at": clock[0],
+                 "expires_at": clock[0] + r.choice([59, 60, 61, 120, 300, 3600, 3601])}
+            if r.random() < 0.9:
+                m["device"] = r.choice([d] * 8 + [B2 if d == B1 else B1])
+            ev.append({"recv": m})
+        else:
+            step = r.choice([1, 2, 4, 5, 6, 59, 60, 61, 120, 300])
+            clock[0] += step
+            ev.append({"advance": step})
+    ctx = {"component": "authority", "start": NOW, "identities": IDENTITY}
+    if r.random() < 0.4:
+        ctx["presence_grace"] = r.choice([0, 0, 1, 30, 300])
+    snapshot = {"presence": {}, "subscriptions": {}}
+    return "state", None, ctx, [(e, snapshot) for e in ev]
+
+
 def gen_tnbinding(r: random.Random):
     """A number binding (N§3.4): random TNAuthLists, CA constraints, chains, clocks, claims and byte mutations."""
     sys.path.insert(0, str(REPO / "impl/tools"))
@@ -1104,6 +1152,7 @@ TARGETS = {
     "call-record": gen_call_record, "call-record-outcome": gen_call_record_outcome,
     "alias-query": gen_alias_query, "alias-monitor": gen_alias_monitor, "alias-head": gen_alias_head,
     "alias-lookup": gen_alias_lookup, "leave-proposals": gen_leave, "roster-change": gen_roster_change,
+    "presence-aggregate": gen_presence_aggregate, "presence-authority": gen_presence_authority,
 }
 
 # Targets where the implementations are known to differ and the difference is a protocol decision, not a bug

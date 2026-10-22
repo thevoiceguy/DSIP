@@ -269,8 +269,8 @@ class Endpoint:
                 self.emit({"refused": "invalid-state"})
         elif kind == "alert":
             if s.role == "responder" and s.state == "OFFERED":
-                if self.now > s.invite_expires_at:
-                    # Spec §12.4/§12.9: invite expires_at passed before alerting began → session.expired
+                if self.now >= s.invite_expires_at:
+                    # Spec §12.4/§12.9: invite expired (from expires_at, spec-gap 141) before alerting began → session.expired
                     self.send(type="reject", to=s.peer, session=s.id, reason="session.expired")
                     self.end(s, None)
                     return
