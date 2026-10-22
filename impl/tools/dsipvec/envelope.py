@@ -309,10 +309,12 @@ def verify(envelope: Any, ctx: Context, frame_text: str | None = None) -> tuple[
             return Verdict.reject("replay-window"), None
     elif ia < ctx.now - REPLAY_WINDOW_S or ia > ctx.now + REPLAY_WINDOW_S:
         return Verdict.reject("replay-window"), None
-    if ea < ctx.now:
+    # §12.9 (spec-gap 141): expires_at is the first instant the message is no longer valid
+    if ea <= ctx.now:
         return Verdict.reject("expired", "session.expired" if msg_type == "invite" else None), None
-    # Stage 10: dedup
-    if p["id"] in ctx.seen_ids:
+    # Stage 10: dedup. Not for a record kept and forwarded for its lifetime (§12.9, spec-gap 141): §8.3 decides a
+    # re-observed hint, `seq` a re-observed presence record (P§3)
+    if msg_type not in ("reachability-hint", "presence") and p["id"] in ctx.seen_ids:
         return Verdict.reject("duplicate-id"), None
     # Stage 11: ULID timestamp vs issued_at (§20.6)
     if abs(ulid_mod.timestamp_ms(p["id"]) // 1000 - ia) > ULID_TOLERANCE_S:

@@ -106,8 +106,8 @@ def run_dht_tail(v: dict, verdict: Verdict, ver) -> dict:
     winner, conflict = "input", "none"
     if existing is not None:
         ex = json.loads(b64url_decode(existing["payload"]).decode("utf-8"))
-        if ex.get("expires_at", 0) < ctx["now"]:
-            winner, conflict = "input", "none"          # §8.3: expired records are invalid
+        if ex.get("expires_at", 0) <= ctx["now"]:
+            winner, conflict = "input", "none"          # §8.3: expired records are invalid (§12.9, spec-gap 141: at expires_at)
         elif p["seq"] > ex["seq"]:
             winner, conflict = "input", "newer-seq"      # §8.3: newer sequence wins
         elif p["seq"] < ex["seq"]:

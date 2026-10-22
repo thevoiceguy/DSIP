@@ -174,8 +174,9 @@ export class Mailbox implements Machine {
 
   private advance(seconds: number): void {
     this.now += seconds;
-    // held introductions and grants are kept only until their envelope expires
-    this.items = this.items.filter((i) => i.until === undefined || this.now <= i.until);
+    // held introductions and grants are kept only until their envelope expires: kept while now < expires_at,
+    // dropped at it (§12.9, spec-gap 141)
+    this.items = this.items.filter((i) => i.until === undefined || this.now < i.until);
     for (const [g, r] of this.groups) {
       // M§6.6: an unconfirmed pending group is dropped, with its items, after pending_group_ttl — the hub deposits it
       // admitted; an archive record that references the group is the owner's history (M§12.2), kept whatever the
@@ -214,8 +215,8 @@ export class Mailbox implements Machine {
       if (seq !== null && seq <= prev.handover_seq) return this.error(from, id, "policy.blocked");
     }
     if (cls === "ephemeral") {
-      // M§11.2: pushed to bound devices, never stored, dropped at the originating expires_at
-      if (typeof d["expires_at"] === "number" && d["expires_at"] < this.now) return;
+      // M§11.2: pushed to bound devices, never stored, dropped at the originating expires_at (§12.9, spec-gap 141)
+      if (typeof d["expires_at"] === "number" && d["expires_at"] <= this.now) return;
       for (const device of [...this.devices].sort()) if (this.live.has(device)) this.emit.push({ push: { to: device, class: "ephemeral" } });
       return;
     }

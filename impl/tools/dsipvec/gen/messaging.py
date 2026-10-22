@@ -652,6 +652,11 @@ def hub_vectors():
                      ["M§11.2"], "hub-trace", hub_ctx(), [
                          (dep("typ-old", APH, ALICE, "ephemeral", expires_at=NOW - 1), [], hs(1, 1, R)),
                      ]))
+    out.append(trace("hub-ephemeral-at-expiry-dropped", "Activity reaching the hub at exactly its expires_at has expired "
+                     "(§12.9, spec-gap 141) and is dropped silently.",
+                     ["M§11.2", "§12.9"], "hub-trace", hub_ctx(), [
+                         (dep("typ-edge", APH, ALICE, "ephemeral", expires_at=NOW), [], hs(1, 1, R)),
+                     ]))
     out.append(trace("hub-ephemeral-expiry-judged-at-the-hubs-clock",
                      "Expiry is judged at the hub's clock as time passes, not at the time it started: activity that was live at "
                      "the start is dropped once the hub's clock has passed its expires_at (found by fuzz.py, 2026-10-12).",
@@ -1059,6 +1064,17 @@ def mailbox_vectors():
                          ({"advance": 11}, [], ms([], J)),
                          ({"hub_deposit": {**hubdep("typ2", None, cls="ephemeral")["hub_deposit"], "expires_at": NOW + 10}}, [], ms([], J)),
                      ]))
+    out.append(trace("mailbox-ephemeral-dropped-at-expiry",
+                     "An ephemeral item is pushed a second before the originating deposit's expires_at and dropped at it "
+                     "(§12.9, spec-gap 141).", ["M§11.2", "§12.9"], T, mbx_ctx(groups=QJ), [
+                         ({"sync": {"id": uid("s1"), "device": BLA, "since": None, "live": True}},
+                          [{"items": {"to": BLA, "in_reply_to": uid("s1"), "cursors": [], "next": None}}], ms([], J)),
+                         ({"advance": 9}, [], ms([], J)),
+                         ({"hub_deposit": {**hubdep("typ", None, cls="ephemeral")["hub_deposit"], "expires_at": NOW + 10}},
+                          [{"push": {"to": BLA, "class": "ephemeral"}}], ms([], J)),
+                         ({"advance": 1}, [], ms([], J)),
+                         ({"hub_deposit": {**hubdep("typ2", None, cls="ephemeral")["hub_deposit"], "expires_at": NOW + 10}}, [], ms([], J)),
+                     ]))
     out.append(trace("mailbox-archive-first-wins",
                      "The first archive item per (group, seq) is kept; later ones are acknowledged as duplicates.",
                      ["M§12.2"], T, mbx_ctx(groups=QJ), [
@@ -1440,10 +1456,11 @@ def client_vectors():
     ain = lambda sender, activity="typing", state="active", exp=NOW + 10: {"activity_in": {"sender": sender, "activity": activity,
                                                                                       "state": state, "expires_at": exp}}
     out.append(trace("client-activity-shown-until-expiry",
-                     "A received activity is shown until the expires_at of its last refresh, then cleared with no message.",
-                     ["M§11.2"], T, cl_ctx(), [
+                     "A received activity is shown until the expires_at of its last refresh, then cleared with no message: "
+                     "shown a second before it, gone at it (§12.9, spec-gap 141).",
+                     ["M§11.2", "§12.9"], T, cl_ctx(), [
                          (ain(ALICE), [], cs(activity={ALICE: {"typing": NOW + 10}})),
-                         ({"advance": 10}, [], cs(activity={ALICE: {"typing": NOW + 10}})),
+                         ({"advance": 9}, [], cs(activity={ALICE: {"typing": NOW + 10}})),
                          ({"advance": 1}, [], cs()),
                      ]))
     out.append(trace("client-activity-refresh-extends",
@@ -2328,9 +2345,10 @@ def first_contact_vectors():
                          (intro_ev("i3"), [macc(APH, "i3")], ms([c(1), c(2)])),
                      ]))
     out.append(trace("mailbox-introduction-dropped-at-expiry",
-                     "A held introduction is kept only until its envelope expires.", ["§19.4"], T, ctx, [
+                     "A held introduction is kept only until its envelope expires: kept a second before its expires_at, "
+                     "dropped at it (§12.9, spec-gap 141).", ["§19.4", "§12.9"], T, ctx, [
                          (intro_ev("i1", exp=NOW + 600), [acc_c(APH, "i1", 1)], ms([c(1)])),
-                         ({"advance": 600}, [], ms([c(1)])),
+                         ({"advance": 599}, [], ms([c(1)])),
                          ({"advance": 1}, [], ms()),
                      ]))
     out.append(trace("mailbox-grant-stored-for-owner",

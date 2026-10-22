@@ -134,8 +134,8 @@ export class Hub implements Machine {
     if (this.movedTo !== null) return this.refuse(d, "mailbox.unknown-group");
     // rule 1: a hub orders handshake and application, forwards ephemeral, keeps group-info; nothing else
     if (!["handshake", "application", "ephemeral", "group-info"].includes(d.class)) return this.refuse(d, "mailbox.unsupported-class");
-    // M§11.2: activity past its expires_at is dropped silently, whoever sent it
-    if (d.class === "ephemeral" && d.expires_at !== undefined && d.expires_at < this.now) return;
+    // M§11.2: activity at or past its expires_at is dropped silently, whoever sent it (§12.9, spec-gap 141)
+    if (d.class === "ephemeral" && d.expires_at !== undefined && d.expires_at <= this.now) return;
     // M§9.3: the same MLS bytes again get the original seq and fan out nothing. A sequenced item is
     // recognised before anything else is asked of it: its bytes were authenticated when first accepted.
     const known = d.class === "handshake" || d.class === "application" ? this.digests.get(d.digest) : undefined;

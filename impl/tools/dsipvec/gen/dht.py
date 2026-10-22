@@ -80,4 +80,18 @@ def vectors() -> list[dict]:
     out.append(dv("hint-held-duplicate", "A held hint re-observed (replication re-puts it): a no-op under §8.3, not a duplicate-id rejection.",
                   ["§12.9", "§8.3"], held, accept(type="reachability-hint", signer=ALICE, identity=ALICE, winner="existing", conflict="none"),
                   existing=held))
+    # Spec-gap 141 (a): expires_at is the first instant a record is invalid, and a hint's id is not deduplicated
+    out.append(dv("hint-at-expiry", "A hint received at exactly its expires_at is expired (§12.9: valid while now < expires_at, "
+                  "spec-gap 141).", ["§12.9", "§8.3"], signed(hint("hhe", ALICE, ALICE, 3, at=NOW - 3600), "alice"), reject("expired")))
+    edge_ok = signed(hint("hhl", ALICE, ALICE, 3, at=NOW - 3599), "alice")
+    out.append(dv("hint-one-second-before-expiry", "A hint received one second before its expires_at is live.", ["§12.9", "§8.3"],
+                  edge_ok, accept(type="reachability-hint", signer=ALICE, identity=ALICE, winner="input", conflict="none")))
+    out.append(dv("existing-at-expiry-ignored", "An existing record at exactly its expires_at carries no authority: the live input "
+                  "wins though its seq is lower (§8.3, §12.9, spec-gap 141).", ["§8.3", "§12.9"], h1,
+                  accept(type="reachability-hint", signer=ALICE, identity=ALICE, winner="input", conflict="none"),
+                  existing=signed(hint("hse", ALICE, ALICE, 9, at=NOW - 3600), "alice")))
+    out.append(dv("hint-id-already-seen", "A hint whose id the receiver has already seen is not a duplicate-id rejection: hint ids are "
+                  "not deduplicated, §8.3 decides a re-observed hint (§12.9, spec-gap 141).", ["§12.9", "§8.3"], held,
+                  accept(type="reachability-hint", signer=ALICE, identity=ALICE, winner="input", conflict="none"),
+                  ctx=default_context(seen_ids=[hint("hh", ALICE, ALICE, 3, at=NOW - 1000)["id"]])))
     return out

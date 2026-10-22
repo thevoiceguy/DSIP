@@ -42,7 +42,7 @@ export interface ReceiverContext extends SemanticContext {
   delegations?: Json[];
   /** Delegation revocations held by the verifier (envelopes). Spec: §7.4 (v0.8) */
   revocations?: Json[];
-  /** Message ids already seen inside the replay window. Spec: §12.9 */
+  /** Message ids already seen inside the replay window; not consulted for `reachability-hint` or `presence`. Spec: §12.9 (spec-gap 141) */
   seen_ids?: string[];
   /** False while the connection has no verified `hello`. Spec: §13.2 */
   hello_verified?: boolean;
@@ -306,8 +306,11 @@ export function verifyEnvelope(envelope: Json, ctx: ReceiverContext, schemas: Sc
   } else if (issued < ctx.now - REPLAY_WINDOW_S || issued > ctx.now + REPLAY_WINDOW_S) {
     return reject("replay-window");
   }
-  if (expires < ctx.now) return reject("expired", type === "invite" ? "session.expired" : undefined);
-  if ((ctx.seen_ids ?? []).includes(id as string)) return reject("duplicate-id");
+  // §12.9 (v0.17, spec-gap 141): expires_at is exclusive — valid while now < expires_at.
+  if (expires <= ctx.now) return reject("expired", type === "invite" ? "session.expired" : undefined);
+  // §12.9 (spec-gap 141): reachability-hint and presence records are never id-deduplicated.
+  const deduplicated = type !== "reachability-hint" && type !== "presence";
+  if (deduplicated && (ctx.seen_ids ?? []).includes(id as string)) return reject("duplicate-id");
   const ulidAt = ulidSeconds(id as string);
   if (ulidAt !== null && Math.abs(ulidAt - issued) > ULID_TOLERANCE_S) return reject("ulid-issued-at-mismatch");
   if (ctx.hello_verified === false && type !== "hello") return reject("hello-required", "transport.hello-required");

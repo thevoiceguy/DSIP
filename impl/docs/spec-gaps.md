@@ -4332,4 +4332,17 @@ Choices:
 and P§4), and the text has said so since v0.8; the pipeline is the outlier. A record that is forwarded many times by
 design must not trip replay tracking, which the hint text already says.
 
-**Not yet decided.** Until it is, the vectors keep the current pipeline behaviour, and no vector sits on either edge.
+**Decided (2026-10-22, user: "141 (a)"): (a).** Applied wherever an `expires_at` is judged, not only at stage 9, so one
+reading holds throughout: v0.17 §12.9 gains an **Expiry** paragraph (valid while `now < expires_at`, expired when
+`now ≥ expires_at`), the invite row says "at or after", and the `presence` exception says its id is not deduplicated.
+
+**Pinned.** Stage 9 `expired` at `expires_at ≤ now`, stage 10 skipped for `reachability-hint` and `presence` (vectors
+README rows). New vectors: `envelope/invite-at-expiry`, `envelope/invite-one-second-before-expiry`,
+`envelope/introduction-held-at-expiry`, `envelope/presence-at-expiry`, `envelope/presence-id-already-seen`,
+`dht/hint-at-expiry`, `dht/hint-one-second-before-expiry`, `dht/existing-at-expiry-ignored` (§8.3's existing record),
+`dht/hint-id-already-seen`, `state/invite-at-expiry-before-alerting`, `state/invite-alerting-a-second-before-expiry`,
+`messaging/hub-ephemeral-at-expiry-dropped`, `messaging/mailbox-ephemeral-dropped-at-expiry`. Four vectors that pinned
+the inclusive reading were re-authored to the exclusive one, each still showing both sides of the edge:
+`state/relay-silent-legs-expire-with-the-invite` and `state/relay-leg-added-at-the-invites-last-second` (spec-gap 132
+had taken its boundary from the pipeline row), `messaging/client-activity-shown-until-expiry` (M§11.2) and
+`messaging/mailbox-introduction-dropped-at-expiry` (§19.4).

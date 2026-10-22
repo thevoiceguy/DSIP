@@ -202,9 +202,10 @@ export class Relay {
       }
     }
     // §12.7 rule 3: a device that binds while an attempt is live becomes a leg, if the invite is unexpired
+    // (§12.9, spec-gap 141: unexpired while now < expires_at)
     // several live attempts: in id order
     for (const [session, a] of [...this.attempts].sort(([x], [y]) => (x < y ? -1 : x > y ? 1 : 0))) {
-      const live = a.outcome === null && (a.expires === undefined || a.expires >= this.now);
+      const live = a.outcome === null && (a.expires === undefined || this.now < a.expires);
       if (live && a.to === identity && !a.legs.has(device) && !flushed.has(session)) this.addLeg(session, a, device, true);
     }
   }
@@ -297,7 +298,7 @@ export class Relay {
   }
 
   /**
-   * Silent legs expire with the invite: once an attempt's invite has expired (`expires_at < now`), every leg still
+   * Silent legs expire with the invite: once an attempt's invite has expired (`expires_at <= now`, §12.9, spec-gap 141), every leg still
    * `delivered` that has never sent the attempt a `progress`, `answer` or `reject` becomes `expired`, and the attempt is
    * then completed as rule 6 says. A leg that has spoken ends itself (a ringing leg rejects at T-Ring-Local).
    * Spec: §12.7 rule 3 (a leg is tracked until it terminates), §12.7 rule 6 (attempt outcome), §12.9 (timers: the
@@ -309,7 +310,7 @@ export class Relay {
    */
   private expireSilentLegs(): void {
     for (const [session, a] of [...this.attempts].sort(([x], [y]) => (x < y ? -1 : x > y ? 1 : 0))) {
-      if (a.expires === undefined || !(a.expires < this.now)) continue;
+      if (a.expires === undefined || a.expires > this.now) continue;
       for (const leg of [...a.legs.keys()].sort()) {
         if (a.legs.get(leg) === "delivered" && !a.heard.has(leg)) this.legEnded(session, leg, "expired");
       }

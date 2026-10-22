@@ -36,6 +36,13 @@ def envelope_vectors() -> list[dict]:
         ev("presence-held-expired", "A presence record signed 4,000 s ago with an hour's lifetime is expired, not a "
            "replay-window rejection.", ["§12.9", "P§3"], signed(record("phx", at=NOW - 4000, ttl=3600), "bob-phone"),
            reject("expired")),
+        ev("presence-at-expiry", "A presence record received at exactly its expires_at is expired (§12.9: valid while "
+           "now < expires_at; spec-gap 141), as the authority drops it then (P§3).", ["§12.9", "P§3"],
+           signed(record("phe", at=NOW - 300), "bob-phone"), reject("expired")),
+        vector("envelope/presence-id-already-seen", "envelope", "A presence record whose id the receiver has already seen is "
+               "accepted: a record is forwarded in notify bodies for its lifetime, so its seq, not its id, decides a "
+               "re-observed record (§12.9, P§3, spec-gap 141).", ["§12.9", "P§3"],
+               default_context(seen_ids=[record("phs")["id"]]), {"envelope": signed(record("phs"), "bob-phone")}, ok()),
         ev("presence-future-rejected", "A presence record issued 400 s in the future: the future bound of the replay window "
            "still applies.", ["§12.9", "P§3"], signed(record("phf", at=NOW + 400), "bob-phone"), reject("replay-window")),
         ev("presence-validity-over-cap", "A presence record whose expires_at − issued_at is 3,601 s: over the 3,600 s cap.",

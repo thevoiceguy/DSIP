@@ -229,6 +229,14 @@ def vectors() -> list[dict]:
     expired_prog = session_msg("progress", "prog-exp", inv["id"], BPH, APH, NOW - 100, status="ringing")
     out.append(env_vector("non-invite-expired", "Expired non-invite envelope: rejected without a reason token.", ["§12.9"],
                           signed(expired_prog, "bob-phone"), reject("expired")))
+    # spec-gap 141 (a): expires_at is the first instant the message is no longer valid
+    edge_inv = invite("inv-exp-edge", at=NOW - 30, ttl=30)
+    out.append(env_vector("invite-at-expiry", "Invite received at exactly its expires_at: expired, session.expired (§12.9: valid "
+                          "while now < expires_at, spec-gap 141).", ["§12.9"],
+                          signed(edge_inv, "alice-phone"), reject("expired", "session.expired")))
+    live_inv = invite("inv-live-edge", at=NOW - 29, ttl=30)
+    out.append(env_vector("invite-one-second-before-expiry", "Invite received one second before its expires_at is accepted.",
+                          ["§12.9"], signed(live_inv, "alice-phone"), accept(type="invite", signer=APH, identity=APH)))
     out.append(env_vector("duplicate-id", "id already seen within the replay window.", ["§12.9"],
                           good, reject("duplicate-id"), ctx=default_context(seen_ids=[inv["id"]])))
     backdated = {**inv, "id": uid("backdated", NOW - 3600)}
@@ -262,6 +270,11 @@ def vectors() -> list[dict]:
     out.append(env_vector("introduction-held-expired",
                           "Held introduction delivered after its expires_at is rejected as expired.", ["§19.4", "§12.9"],
                           signed(stale, "carol-phone"), reject("expired")))
+    edge_at = NOW - 604800
+    edge_intro = {**intro, "id": uid("intro-edge", edge_at), "issued_at": edge_at, "expires_at": NOW}
+    out.append(env_vector("introduction-held-at-expiry",
+                          "Held introduction delivered at exactly its expires_at is expired (§12.9, spec-gap 141).",
+                          ["§19.4", "§12.9"], signed(edge_intro, "carol-phone"), reject("expired")))
     fut_intro = {**intro, "id": uid("intro-future", NOW + 301), "issued_at": NOW + 301, "expires_at": NOW + 301 + 604800}
     out.append(env_vector("introduction-future-rejected",
                           "The future bound of the replay window still applies to introductions (Impl: spec-gap 31).",

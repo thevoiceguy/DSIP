@@ -2,9 +2,10 @@
   "vector": "messaging/client-activity-shown-until-expiry",
   "format": 1,
   "kind": "messaging",
-  "description": "A received activity is shown until the expires_at of its last refresh, then cleared with no message.",
+  "description": "A received activity is shown until the expires_at of its last refresh, then cleared with no message: shown a second before it, gone at it (§12.9, spec-gap 141).",
   "spec_ref": [
-    "M§11.2"
+    "M§11.2",
+    "§12.9"
   ],
   "context": {
     "component": "client",
@@ -34,7 +35,7 @@
       },
       {
         "event": {
-          "advance": 10
+          "advance": 9
         }
       },
       {

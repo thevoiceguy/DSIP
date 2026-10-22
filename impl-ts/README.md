@@ -32,7 +32,7 @@ python3 ../impl/tools/parity_ts.py       # Python harness vs this implementation
 
 ## Coverage
 
-**Every vector: 2196 of 2196**, no kind skipped. Python/TypeScript parity compares actual with actual on all of them.
+**Every vector: 2209 of 2209**, no kind skipped. Python/TypeScript parity compares actual with actual on all of them.
 
 | Kind | Vectors | Modules |
 |---|---|---|
