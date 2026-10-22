@@ -577,7 +577,7 @@ A presence record may be visible only to: existing contacts, same organization, 
 }
 ```
 
-- `to` is the authority answering for the target (the target's relay or domain endpoint per its DID document); `target` is the subject.
+- `to` is the authority answering for the target (the target's relay or domain endpoint per its DID document); `target` is the subject. A subscriber reaches that authority as any device reaches a relay: it binds there (§13.2), at the relay or endpoint the target's DID document names or, when the target has none (a `did:key` identity), the one the target's reachability hint names (§8.3). A hint-located authority is hint-sourced (§8.1): its own assertion (below) is a claim from a relay the target says it uses, while the subject-signed records it carries are verified by the subscriber whatever relay carries them (§9.4). The binding has the effects of any other: while it lasts the subscriber is reachable through that relay, and an authority that counts bound devices counts it.
 - `events` names registered event classes (registry `dsip-subscription-event`; initial values: `presence`, `publication`).
 - `expires_in` is the requested subscription lifetime in seconds. Hard caps: 3,600 for `presence`, 86,400 for `publication`; when several event classes are named, the tightest cap applies. A `subscribe` whose `expires_in` exceeds the cap MUST be refused with `error` (reason `policy.subscription-lifetime`); an authority MUST NOT silently clamp, because a clamped lifetime leaves the subscriber's view of its own subscription wrong. Subscriptions are soft state: they expire unless renewed by a fresh `subscribe` for the same `target`+`events` (which replaces the prior subscription). `expires_in: 0` terminates a matching subscription.
 - Optional fields `claims` (verifiable credential presentations) and `capability` (an opaque authorization token previously issued by the target's authority, e.g. via a contact grant or a broadcast follow token) carry authorization evidence.
@@ -629,7 +629,7 @@ A signed presence record, as a device publishes it to its authority (Presence Pr
   "dsip": {
     "core": "1.0",
     "min_core": "1.0",
-    "profiles": ["interactive-media/1.0"],
+    "profiles": ["presence/0.1"],
     "extensions": [],
     "critical": []
   },
@@ -654,7 +654,10 @@ A signed presence record, as a device publishes it to its authority (Presence Pr
 }
 ```
 
-The signature covers the payload bytes. `device` names the device the record describes and MUST equal the signer;
+The signature covers the payload bytes. A record names the Presence Profile, `presence/0.1`, in `dsip.profiles`; an
+authority or subscriber that processes presence records lists it among the profiles it supports, and one that does not
+refuses the record as any other with no supported profile (§11.2). `device` names the device the record describes and
+MUST equal the signer;
 `seq` is ordered per `(subject, device)`. `state` is from the open registry `dsip-presence-state` (P§5). How a device
 publishes the record, how the authority carries it and how several devices' records combine are the Presence
 Profile's (P§3, P§4); a record's age at any receiver is bounded by its own `expires_at` (§12.9).
@@ -2616,6 +2619,10 @@ v0.16 is final at tag `poc-v0.16`. v0.17 is in progress. Each item is listed wit
 - Expiry is exclusive everywhere (spec-gap 141, §12.9): a message is valid while `now < expires_at` and expired from
   `expires_at` on, at receipt and wherever a held message, a kept record or an activity is judged. Record ids that are
   kept and forwarded for their lifetime (`reachability-hint`, `presence`) are not deduplicated.
+- A presence record names `presence/0.1` in `dsip.profiles` (spec-gap 142, §9.4); a processor of records lists it as
+  supported (§11.2).
+- A subscriber reaches the target's authority by binding there, at the relay its DID document names or, without one,
+  the one its hint names, with the effects of any binding (spec-gap 143, §9.3).
 
 ---
 

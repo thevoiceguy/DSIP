@@ -4366,7 +4366,10 @@ Choices:
 combining); a receiver that does not implement it refusing the record is correct, and (c) would claim a profile the
 record has nothing to do with.
 
-**Impl (not yet decided):** `dsip_broadcast::presence::PROFILE` = `presence/0.1` in every record the clients send;
+**Decided (2026-10-22, user: "142 (a)"): (a).** v0.17 §9.4: the example names `presence/0.1`, and the text says a
+record names it and a processor of records lists it as supported (§11.2); P§3 says the same; A.14 entry.
+
+**Implemented.** `dsip_broadcast::presence::PROFILE` = `presence/0.1` in every record the clients send;
 `Supported::all_known()` lists it, so the relay and the endpoints accept it. No vector depends on it (vectors pin
 negotiation with explicit contexts).
 
@@ -4393,6 +4396,12 @@ Choices:
 **Draft choice: (a).** It is what an introduction already does (§19.4, the browser opens a connection to the relay the
 target's hint names) and needs no new machinery; records are verified end to end whatever relay carries them.
 
-**Impl (not yet decided):** the browser subscribes at its own relay, or, when the contact's hint names another, over a
-connection to that relay kept open for the notifies (`presenceRelay` in `impl/web/app.js`); the CLI subscribes at the
-relay it is given.
+**Decided (2026-10-22, user: "143 (a)"): (a).** v0.17 §9.3's `to` bullet: the subscriber binds at the target's
+authority, the relay or endpoint its DID document names or, without one, the one its hint names; a hint-located
+authority's assertion is hint-sourced, the records it carries are verified end to end; the binding has the effects of
+any other. A.14 entry.
+
+**Implemented.** The browser subscribes at its own relay, or, when the contact's hint names another, over its one
+connection to that relay (`peerRelay` in `impl/web/app.js`), shared with the calls and introductions routed there: a
+second binding of the device would replace the first, and the two would keep replacing each other. The CLI subscribes
+at the relay it is given.
