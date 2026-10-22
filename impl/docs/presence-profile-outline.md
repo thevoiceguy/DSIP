@@ -154,5 +154,5 @@ cheap).
 2. ~~Write the draft from this outline; write vectors (P§3, P§4 and P§5 first), with Python verdicts.~~ Done 2026-10-22: `presence` is the §9.4 record sent itself (not `publish`, which §22 owns), under `dsip.signaling`, reason category `presence`, timers as drafted.
 3. Implement in Rust (`dsip-broadcast`'s authority already holds subscriptions) and in `impl-ts`, until three-way
    parity holds; then fuzz the combining rule (`fuzz.py`).
-4. Browser client: publish, show the combined state, settings for audiences and shares.
+4. Browser client: publish, show the combined state, settings for audiences and shares. Publish and show done 2026-10-22 (CLI `dsip presence publish|watch`, `demos/presence-demo.sh`, browser picker and contact badges, `web/test/presence.mjs`; spec-gaps 142–143 drafted); audiences and shares wait for P§6/P§7.
 5. The draft goes into `v0.17/` at assembly.

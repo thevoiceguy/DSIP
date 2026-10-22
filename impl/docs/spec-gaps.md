@@ -4346,3 +4346,53 @@ the inclusive reading were re-authored to the exclusive one, each still showing 
 `state/relay-silent-legs-expire-with-the-invite` and `state/relay-leg-added-at-the-invites-last-second` (spec-gap 132
 had taken its boundary from the pipeline row), `messaging/client-activity-shown-until-expiry` (M§11.2) and
 `messaging/mailbox-introduction-dropped-at-expiry` (§19.4).
+
+## 142. §9.4 / P§3 — the profile a `presence` record names in `dsip.profiles`
+
+**Found (2026-10-22, the presence clients).** §11.2 has a receiver reject a payload with `session.unsupported-profile-version`
+when none of the `profiles` it names is one the receiver supports. The §9.4 example record names
+`interactive-media/1.0`; P§ calls itself `presence/0.1` but never says a record names it. The first record the CLI sent
+named `presence/0.1`, and the relay, which implements P§3 but listed only the two 1.0 profiles, refused it.
+
+Choices:
+
+- **(a) A record names `presence/0.1`,** and an authority or subscriber that implements P§ lists it among its supported
+  profiles; the §9.4 example changes to it.
+- **(b) A record names no profile** (`profiles: []`, which §11.2 accepts); presence stays a core message whose processing
+  P§ describes.
+- **(c) A record names `interactive-media/1.0`,** as the example does.
+
+**Draft choice: (a).** The profile is what tells a receiver how to process the record (P§3's authority rules, P§4's
+combining); a receiver that does not implement it refusing the record is correct, and (c) would claim a profile the
+record has nothing to do with.
+
+**Impl (not yet decided):** `dsip_broadcast::presence::PROFILE` = `presence/0.1` in every record the clients send;
+`Supported::all_known()` lists it, so the relay and the endpoints accept it. No vector depends on it (vectors pin
+negotiation with explicit contexts).
+
+## 143. §9.3 — how a subscriber reaches the target's authority
+
+**Found (2026-10-22, the presence clients).** §9.3: `to` is "the authority answering for the target (the target's relay
+or domain endpoint per its DID document)". Two things are unsaid:
+
+1. **A `did:key` target has no DID document,** so its relay is known only from its reachability hint (§8.3), which is
+   not authoritative (§8.1). A hint-located authority is fine for presence records, which the subscriber verifies itself
+   (P§3), but its own assertion (§9.3) is then a claim from a relay the target only says it uses.
+2. **A relay routes frames from connections that bound to it** (§13.2). A subscriber bound elsewhere has to bind at the
+   target's relay to send the `subscribe` and to receive the notifies. That binding also makes the subscriber reachable
+   through that relay, and an authority that counts bound devices sees it.
+
+Choices:
+
+- **(a) The subscriber binds at the target's relay,** found through the target's DID document or, failing one, its
+  hint; the text says so, and that the binding has the same effects as any other (§13.2).
+- **(b) A relay forwards a `subscribe` for a target it does not serve to the target's relay, and the notifies back,**
+  relay to relay; nothing in the core defines relay-to-relay forwarding yet.
+- **(c) Only identities with a DID document can be watched** across relays.
+
+**Draft choice: (a).** It is what an introduction already does (§19.4, the browser opens a connection to the relay the
+target's hint names) and needs no new machinery; records are verified end to end whatever relay carries them.
+
+**Impl (not yet decided):** the browser subscribes at its own relay, or, when the contact's hint names another, over a
+connection to that relay kept open for the notifies (`presenceRelay` in `impl/web/app.js`); the CLI subscribes at the
+relay it is given.
