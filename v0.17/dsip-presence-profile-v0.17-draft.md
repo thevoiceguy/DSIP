@@ -41,11 +41,13 @@ encrypted to subscribers (P§11); enterprise policy distribution (a deployment p
 A device publishes by sending its §9.4 `presence` record, signed by itself, to its **authority**: the relay it binds to
 (§13.2), which answers `subscribe` for its identity (§9.3). `to` is the authority's DID. Publishing needs no capability
 beyond `dsip.signaling`, which every envelope's delegation already carries (§7.4): a device that may bind can already
-make the authority assert it `available`, so a record reveals nothing a binding does not.
+make the authority assert it `available`, so a record reveals nothing a binding does not. The record names this
+profile, `presence/0.1`, in `dsip.profiles` (spec-gap 142); an authority or subscriber that implements it lists it as
+supported, and one that does not refuses the record (§11.2).
 
 ```json
 {
-  "dsip": {"core": "1.0", "min_core": "1.0", "profiles": ["interactive-media/1.0"], "extensions": [], "critical": []},
+  "dsip": {"core": "1.0", "min_core": "1.0", "profiles": ["presence/0.1"], "extensions": [], "critical": []},
   "type": "presence",
   "id": "01K742SG0000000000PRES0001",
   "from": "did:key:z6MkAlicePhone",
