@@ -4240,3 +4240,65 @@ as processed, so it is acknowledged and later copies are duplicates.
 whose processing fails leaves no change to the device's MLS state. Since that failure recurs on redelivery, the device
 SHOULD then treat the item as processed: it advances its cursor and seq positions past it, and later copies are
 duplicates (M§8.5)."
+
+## 139. M§7.5 — the roster recorded for the successor checks: does a lapsed leaf's identity count?
+
+**Found (2026-10-21, dsip-rs: the last `Config` options).** M§7.5 has a receiving device check that a successor group
+adds nobody outside "the predecessor's last roster", and spec-gap 61 made that "the roster the checking device last
+processed". The roster is by identity, and M§6.2 says the identity a leaf belongs to is its delegation's `subject`. It
+does not say whether a leaf whose delegation no longer verifies (expired, or its subject's key rotated as compromised
+or lost) still counts. Such a leaf is common: a phone offline for longer than its delegation lasts. The two clients
+differed. dsip-msg recorded no roster while any leaf failed to authenticate, so the recorded one went stale and could
+refuse a successor that re-adds someone added since. The browser recorded only the identities of leaves that
+authenticate, so a member whose only leaf had lapsed dropped out of it, and a valid successor re-adding them was
+treated as first contact.
+
+Choices:
+
+- **(a) Only leaves that authenticate now.** A lapsed member drops out of the roster, and out of every successor.
+- **(b) Nothing while any leaf fails.** The roster stays as it was before the lapse; it misses changes made since.
+- **(c) Every leaf's delegation subject, live or not.** A leaf was authenticated when it entered (M§6.2), and only a
+  commit ends a membership (M§7.3 lets any member remove a lapsed leaf, which is that commit).
+
+**Draft choice: (c).** Membership is a commit's to change; a delegation lapsing changes what a leaf may say (M§6.2: its
+content is unauthenticated), not who is in the group. (a) lets the clock remove members from successors; (b) loses
+changes that were made properly. The successor's creator uses the same roster for whom it re-adds, so it adds nobody a
+checker would refuse.
+
+**Decided (2026-10-21, user: "go with all three recommendations"): (c).**
+
+**Pinned.** Not by a vector: `successor-check` takes `predecessor_roster` as input, and which roster a device records
+is its local state. `dsip-messaging-device`'s `commits::roster` (over `dsip_mls::leaf_subject`) implements (c) for both
+clients, the recorded roster and the successor's re-adds alike; `tests/commits.rs` covers a lapsed leaf.
+
+**Suggested fix, for the next spec version (v0.16 is final).** M§7.5 spec-gap 61 "The check", after "the roster the
+checking device last processed", adds: "by identity: the `subject` of every leaf's delegation, whether or not that
+delegation is still live (M§6.2). A lapsed leaf stays in the roster until a commit removes it."
+
+## 140. M§12.1 — an `archive-key` under an `akid` already held, with another key
+
+**Found (2026-10-21, dsip-rs: the last `Config` options).** M§12.1 has devices keep every archive key by `akid`, a
+ULID, but does not say what a device does when an `archive-key` arrives naming an `akid` it already holds with a
+different `key`. Only the identity's own devices send to the personal group, so this happens only through a bug or a
+compromised device. dsip-msg replaced the held key; the browser kept the first.
+
+Choices:
+
+- **(a) Keep the first, ignore the other, and surface it.**
+- **(b) Replace it with the newer.**
+- **(c) Keep both and try each when opening an archive record.**
+
+**Draft choice: (a).** An `akid` names one key: archive records already sealed under it were sealed with the first, so
+replacing it makes them unreadable to this device (b). (c) makes an `akid` ambiguous for every reader. A compromised
+sibling gains nothing from (a) it does not already have, since it can read the archive anyway; surfacing the conflict is
+what tells the person.
+
+**Decided (2026-10-21, user: "go with all three recommendations"): (a).**
+
+**Pinned.** Not by a vector: archive keys are a device's local state. `dsip-messaging-device`'s `archive::take_key`
+implements (a) for both clients, and the `Messenger` reports the conflict as `{ui: dropped}`; `tests/history.rs` covers
+it.
+
+**Suggested fix, for the next spec version (v0.16 is final).** M§12.1 gains, after "Devices keep all prior keys": "An
+`archive-key` naming an `akid` the device already holds with a different `key` is ignored: the first key under an
+`akid` stays, so archive already sealed under it stays readable. The device SHOULD surface the conflict."
