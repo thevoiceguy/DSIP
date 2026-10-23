@@ -182,6 +182,11 @@ jobs:
         # and is then dropped; a state newer than Alice's client shows as available with its token raw.
         run: timeout 300 bash demos/presence-demo.sh | tail -16
         working-directory: impl
+      - name: presence audiences and time-boxed shares (Presence Profile draft, P§6, P§7)
+        # Self-verifying: Bob's phone publishes a record per audience; a family grant sees busy, a plain 25 s share sees
+        # only the record with no audience, and the share ends the watch at its valid_until (policy.terminated).
+        run: timeout 300 bash demos/presence-audiences-demo.sh | tail -16
+        working-directory: impl
       - name: reachability hints on Pkarr (v0.9 draft)
         # Self-verifying: Bob publishes _dsip records signed by his did:key to two Pkarr relays (local stand-ins of the
         # HTTP API); Alice, knowing only his did:key, rejects a hostile relay's forged newer packet and calls him through

@@ -9,6 +9,8 @@ in impl/docs/spec-gaps.md.
 """
 from __future__ import annotations
 
+import re
+
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -188,10 +190,13 @@ class Endpoint:
             self.send(type="reject", to=s.peer, session=s.id, reason="user.no-answer")
             self.end(s, "user.no-answer")
 
-    def issue_grant(self, gid: str, grantee: str, scope: list, valid_until: int, introduction: str) -> None:
-        """§19.4 outcome 1: a signed contact grant; the consent receipt (§19.3) in message form."""
+    def issue_grant(self, gid: str, grantee: str, scope: list, valid_until: int, introduction: str,
+                    presence_audience: str | None = None) -> None:
+        """§19.4 outcome 1: a signed contact grant; the consent receipt (§19.3) in message form. P§6: it may name the
+        presence audience it admits to."""
         self.grants_issued[gid] = {"grantee": grantee, "scope": list(scope), "valid_until": valid_until}
-        self.send(type="grant", to=grantee, session=introduction, id=gid, scope=list(scope), valid_until=valid_until)
+        self.send(type="grant", to=grantee, session=introduction, id=gid, scope=list(scope), valid_until=valid_until,
+                  presence_audience=presence_audience)
 
     def held_grant_for(self, identity: str) -> str | None:
         for gid, g in sorted(self.grants_held.items()):
@@ -222,11 +227,17 @@ class Endpoint:
                       contact_token=ev.get("contact_token"))
             return
         if kind == "grant":
-            req = self.requests.pop(ev["introduction"], None)
-            if req is None:
+            if ev["introduction"] not in self.requests:
                 self.emit({"refused": "unknown-introduction"})
                 return
-            self.issue_grant(ev["id"], req["from"], ev.get("scope", ["dsip.invite"]), ev["valid_until"], ev["introduction"])
+            audience = ev.get("presence_audience")
+            if audience is not None and not re.fullmatch(r"[a-z][a-z0-9-]{0,63}", audience):
+                # P§6: an audience is a token [a-z][a-z0-9-]*, at most 64 characters; nothing is sent, the request stays
+                self.emit({"refused": "invalid-audience"})
+                return
+            req = self.requests.pop(ev["introduction"])
+            self.issue_grant(ev["id"], req["from"], ev.get("scope", ["dsip.invite"]), ev["valid_until"], ev["introduction"],
+                             audience)
             return
         if kind == "reject_introduction":
             req = self.requests.pop(ev["introduction"], None)
