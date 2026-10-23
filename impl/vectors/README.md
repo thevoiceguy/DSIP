@@ -477,8 +477,8 @@ A statement has no `integrity_mode` of its own (§22.3, spec-gap 77): the one in
 
 ### State components `authority` and `subscriber`
 
-`authority` (a target's relay/domain endpoint, §9.3/§22): events `{"recv": publish|unpublish|subscribe|provenance|presence}`,
-`{"local":"policy","target":T,"mode":"public"|"allow","allow":[…]}`, `{"local":"issue_capability","token":S,"target":T}`,
+`authority` (a target's relay/domain endpoint, §9.3/§22): events `{"recv": publish|unpublish|subscribe|provenance|presence|grant-revocation}`,
+`{"local":"policy","target":T,"mode":"public"|"allow","allow":[…],"audience"?}`, `{"local":"issue_capability","token":S,"target":T}`,
 `{"relay":"bind"|"unbind","device","identity"}` (presence source), `advance`. Emissions: `send notify {to, subscription, seq, state, reason?, body}`,
 `send reject {to, session, reason}`, `send error {to, in_reply_to, reason, retry_after?}`, `{"publication": {"stream", "state"}}`, `{"provenance": {"stream","processor"}}`,
 `{"subscription": {"id","state": "replaced"|"terminated"}}`, `drop` reasons. Snapshots `publications`, `subscriptions` and
@@ -505,6 +505,46 @@ the drop. On `advance`, after subscription lapses and
 publication expiry, every record with `expires_at` ≤ now and every record whose grace has run out (unbind time + grace
 ≤ now) is dropped, its `seq` forgotten, and each subject that lost one is notified once, subjects in order. Snapshot
 `presence: {subject: {device: {seq, state, expires_at, grace_until?}}}`.
+
+**Who may watch, audiences, shares** (P§6, P§7; v0.17, spec-gaps 144–147). A `subscribe` naming `presence` is admitted
+by the first that applies, after the existing target-exists check (an unknown target is `policy.blocked` whatever is
+presented): (1) the subscriber's identity is the target — `own`, sees every record; (2) the first entry of `claims`
+of the form `{"type": "dsip-grant", "grant": G}` that admits, where `G` is the host's summary of the verified grant
+envelope `{id, from, identity, to, scope, valid_until, presence_audience?, verified?}` (`identity` is the identity its
+signer acts for; `verified: false` when its signature or delegation failed; a grant's replay window and delivery expiry
+are not applied). It admits when `verified` is not false, `identity` = target, `to` = the subscriber's identity, `scope`
+contains `dsip.subscribe`, `valid_until` > now, and (target, `id`) is not revoked; the subscription's audience is its
+`presence_audience` and it records the grant; (3) a `capability` issued for the target; (4) a `policy` for the target
+that admits (`public`, or the identity in `allow`), the audience being the policy's `audience`. With none of these, the
+uniform `reject policy.blocked`. With **no policy** for a target only (1)–(3) admit: presence is private by default.
+(A `subscribe` naming only `publication` keeps the publication rules: no policy admits. One naming `presence` and
+`publication` is admitted by these rules, and the target-exists check is the publication one.) The target-exists check
+is the existing one: for presence, a target is known when it is an identity in `context.identities`, has a bound device,
+or has a policy; a capability alone does not make it known. A refused renewal leaves the earlier subscription as it
+was, to lapse or end by itself.
+
+A `presence` record MAY carry `audience`. Records are kept per `(subject, device, audience)` (absent = an audience of
+its own): `presence.stale` compares `seq` within that key and the publish interval runs per `(device, audience)`. Each
+record expires by itself; an unbind's grace is per device and, when it runs out, drops all the device's records. A
+subscription sees the records with no `audience`, those whose `audience` equals its own, and, when `own`, all. Its body
+is computed over what it sees: `records` (each summary with `audience` when it has one), ordered by device then audience
+(none first), and the assertion `available` when any bound device of the subject holds no record the subscription sees,
+else `offline`. Every event that may change presence (an accepted record, a bind, an unbind, an `advance` that drops
+records) notifies exactly the subscriptions whose own body changed since their last notify. "Subscription order"
+throughout is code-point order of subscription ids; across subjects (an `advance`), subjects in order, then
+subscriptions in order. The unbind grace belongs to the device: once started it runs until it ends or the device binds
+again, whatever its records do meanwhile (a record accepted during it is dropped with the others when it ends); a
+device that unbinds holding no record starts none.
+
+A received `grant-revocation` (`from`, `grant`, `grantee`, `valid_until`) is not answered: (the identity of `from`,
+`grant`) is revoked until `valid_until`, and every subscription admitted by that grant whose target is that identity
+gets `notify` `terminated` with `reason: policy.terminated`, in subscription order. `grantee` is informative: the match
+is by the grant id and the revoking identity. On `advance`, one pass over the subscriptions in subscription order ends
+each that lapsed (`session.expired`, which wins at the same instant) or whose admitting grant's `valid_until` ≤ now
+(`policy.terminated`); then revocations whose `valid_until` ≤ now are forgotten; then publications expire and records
+are dropped as above, so a subscription ended in this pass gets no notify for the drops. In the `presence` snapshot a record with an
+audience is keyed `device/audience`. The `subscriptions` snapshot adds `own: true`, `grant` (the admitting grant's id)
+and `audience` when present.
 
 `subscriber`: `{"local":"subscribe","id","to","target","events","expires_in"}`, `{"recv": notify|reject}`, `advance`.
 Emissions: `send subscribe`, `{"ui":"notify","event","state"}`, `{"ui":"subscription_terminated","reason"}`,
@@ -2178,6 +2218,19 @@ Each item has a matching `spec-gap` issue draft in `impl/docs/spec-gaps.md`.
     was, not how the call finished: `session.cancelled` when we withdrew it (§12.5 rule 3), `session.already-answered`
     when an answer was applied (however the call then ended), `session.failed` when the attempt was never answered
     (`state/fork-late-answer-after-the-call-ended`, `fork-late-answer-after-our-hangup`).
+144. §9.2 / §9.3 / P§6: **decided** (v0.17) — presence is private by default; a presented grant with `dsip.subscribe`
+    admits a subscriber, after the subject's own devices and before a capability and the authority's policy; with no
+    policy only those three admit (`state/presence-private-by-default`, `-grant-admits`, `-grant-not-admitting`,
+    `-first-admitting-grant`, `-policy-admits-with-its-audience`, `payload/subscribe-with-grant-claim-valid`).
+145. P§6: **decided** (v0.17) — a record's `audience` and a grant's `presence_audience`; records, `seq` and the publish
+    interval per audience (`state/presence-audiences`, `-seq-and-interval-per-audience`, `-expiry-per-audience`,
+    `-grace-drops-every-audience`, `payload/presence-audience-*`, `payload/grant-presence-audience-*`).
+146. P§6: **decided** (v0.17) — a body per subscription; a device with no record the subscription sees counts in its
+    assertion (`state/presence-assertion-per-subscription`).
+147. P§7 / §19.4: **decided** (v0.17) — a share is a grant; its `valid_until` ends the subscriptions it admitted
+    (`policy.terminated`, a lapse at the same instant wins); `grant-revocation` ends them early
+    (`state/presence-share-ends-at-valid-until`, `-lapse-before-share-end`, `-revocation-*`, `-revoked-before-subscribe`,
+    `payload/grant-revocation-*`, `envelope/grant-revocation-accepted`).
 141. §12.9: **decided** (v0.17) — `expires_at` is exclusive everywhere: expired when `now ≥ expires_at`, at receipt and
     wherever a held message, kept record, leg or activity is judged; `reachability-hint` and `presence` ids are not
     deduplicated (`envelope/*-at-expiry`, `envelope/presence-id-already-seen`, `dht/hint-*`, `state/invite-*-expiry*`,

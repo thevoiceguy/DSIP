@@ -586,6 +586,13 @@ A presence record may be visible only to: existing contacts, same organization, 
 
 Authorization is the **target authority's policy decision** based on the verified subscriber identity, optionally informed by presented `claims` or a `capability` token. The protocol defines the carriage of authorization evidence, not the policy: contacts-only, same-organization, follower-token, and public are all deployment policies applied at the authority.
 
+**Presence is private by default (v0.17, spec-gap 144).** For the `presence` event class an authority admits a
+subscriber that presents, in `claims`, a grant from the target whose `scope` includes `dsip.subscribe` (§19.4): an
+entry `{"type": "dsip-grant", "grant": <the signed grant envelope>}`. The grantee holds the grant, so the authority
+need not have seen it before. The Presence Profile gives the full admission order (P§6). An authority that has no
+policy for a target, and is shown no admitting grant or capability, MUST refuse a presence subscription to it with the
+uniform `policy.blocked`, except from the target's own devices; it never serves presence publicly by default.
+
 **Anti-enumeration rule.** An authority MUST return the identical response — `reject` with reason `policy.blocked` — for (a) an unauthorized subscription to an existing target and (b) a subscription to a nonexistent target, and SHOULD normalize response timing. Distinguishing "you may not see Alice" from "there is no Alice" turns the subscription system into an account-enumeration oracle. `identity.unknown` is reserved for contexts where existence is already public (e.g., broadcast stream ids published openly).
 
 #### Notification
@@ -809,6 +816,8 @@ info         Carry transport-binding data within an established session (§12.12
 bye          End an established session
 introduction Request permission for future contact from an unknown identity (§19.4)
 grant        Issue a signed contact grant in response to an introduction (§19.4)
+grant-revocation
+             Withdraw a grant before its valid_until (§19.4; v0.17)
 publish      Publish a signed broadcast/session availability record
 subscribe    Subscribe to presence or publication events (§9.3)
 notify       Deliver a subscription update (§9.3)
@@ -1885,7 +1894,11 @@ Three outcomes, deliberately including silence:
 }
 ```
 
-   The grant is the consent receipt (§19.3) in message form: `scope` names what it permits (registry `dsip-grant-scope`; initial values `dsip.invite`, `dsip.subscribe`, and `dsip.message` for the Messaging Profile since v0.8), and `valid_until` bounds its life independently of the envelope's delivery expiry. The recipient's endpoint and relay record the grant; the grantee also holds the signed grant and MAY reference it in a future invite via the optional `grant` field (the grant's `id`) to aid stateless or migrated relays. A live grant admits an invite when the invite's `grant` names it **or** the inviting identity is the grantee — the `grant` field is an optimisation, never a requirement — and a grant admits only the operations in its `scope`: an invite requires `dsip.invite`. Grants are revocable: revocation is local policy at the granting side, optionally propagated as a signed revocation in deployments that need it.
+   The grant is the consent receipt (§19.3) in message form: `scope` names what it permits (registry `dsip-grant-scope`; initial values `dsip.invite`, `dsip.subscribe`, and `dsip.message` for the Messaging Profile since v0.8), and `valid_until` bounds its life independently of the envelope's delivery expiry. The recipient's endpoint and relay record the grant; the grantee also holds the signed grant and MAY reference it in a future invite via the optional `grant` field (the grant's `id`) to aid stateless or migrated relays. A live grant admits an invite when the invite's `grant` names it **or** the inviting identity is the grantee — the `grant` field is an optimisation, never a requirement — and a grant admits only the operations in its `scope`: an invite requires `dsip.invite`. Grants are revocable: revocation is local policy at the granting side, optionally propagated as a signed `grant-revocation` (below).
+
+   A grant MAY carry `presence_audience` (v0.17, spec-gap 145): the audience, a token `[a-z][a-z0-9-]*` of at most 64 characters chosen by the grantor, whose presence records a subscriber admitted by this grant sees (Presence Profile P§6).
+
+   **`grant-revocation`** (v0.17, spec-gap 147). A device of the granting identity withdraws a grant before its `valid_until` by sending its authority (its relay, §9.3) a signed `grant-revocation` naming the grant's `id` (`grant`), the grantee identity (`grantee`) and the grant's `valid_until`. It is not answered. The authority keeps it until that `valid_until`. A grant so revoked no longer admits anything there: neither a presence subscription (P§7, which also ends the subscriptions it admitted) nor an invite, where that relay admits invites by grants. The granting endpoint itself stops honouring the grant when the user revokes it, whether or not a revocation is sent. Revocation stops what follows; it recalls nothing already delivered.
 
 2. **`reject`** — with `session` set to the introduction `id` and a registered reason (`user.declined`, `policy.blocked`). Sending a rejection is a policy choice, not an obligation.
 
@@ -2619,6 +2632,11 @@ v0.16 is final at tag `poc-v0.16`. v0.17 is in progress. Each item is listed wit
 - Expiry is exclusive everywhere (spec-gap 141, §12.9): a message is valid while `now < expires_at` and expired from
   `expires_at` on, at receipt and wherever a held message, a kept record or an activity is judged. Record ids that are
   kept and forwarded for their lifetime (`reachability-hint`, `presence`) are not deduplicated.
+- Presence is private by default (spec-gap 144, §9.3): a grant from the target with `dsip.subscribe`, presented in
+  `claims`, admits a presence subscriber; an authority with no policy and no admitting grant refuses, except the
+  target's own devices.
+- A grant MAY carry `presence_audience` (spec-gap 145, §19.4), and the new core message `grant-revocation` withdraws a
+  grant before its `valid_until` (spec-gap 147, §19.4).
 - A presence record names `presence/0.1` in `dsip.profiles` (spec-gap 142, §9.4); a processor of records lists it as
   supported (§11.2).
 - A subscriber reaches the target's authority by binding there, at the relay its DID document names or, without one,

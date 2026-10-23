@@ -41,6 +41,12 @@
     "valid_until": {
       "$ref": "#/$defs/timestamp",
       "description": "Grant lifetime, independent of the envelope delivery expiry."
+    },
+    "presence_audience": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$",
+      "maxLength": 64,
+      "description": "The presence audience a subscriber admitted by this grant sees (P6; v0.17, spec-gap 145)."
     }
   },
   "required": [

@@ -1,0 +1,37 @@
+{
+  "vector": "payload/grant-revocation-valid",
+  "format": 1,
+  "kind": "payload",
+  "description": "A grant-revocation names the grant, its grantee and its valid_until (§19.4, P§7).",
+  "spec_ref": [
+    "§19.4",
+    "P§7"
+  ],
+  "context": {},
+  "input": {
+    "schema": "grant-revocation",
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "interactive-media/1.0"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "grant-revocation",
+      "id": "01K742SG00ED1BMZSYTWYD3JC2",
+      "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+      "to": "did:web:relay.example.com",
+      "grant": "01K742SG00A1YWQ2XD806NEF9Q",
+      "grantee": "did:key:z6MkhzX9qTeXBWkucyMVric1E9JrqUD5LPAkD2BNavakAptf",
+      "valid_until": 1760086400,
+      "issued_at": 1760000000,
+      "expires_at": 1760000030
+    }
+  },
+  "expect": {
+    "verdict": "accept"
+  }
+}

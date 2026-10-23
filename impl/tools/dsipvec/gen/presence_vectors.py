@@ -49,6 +49,10 @@ def envelope_vectors() -> list[dict]:
            ["§12.9", "P§8"], signed(record("phc", ttl=3601), "bob-phone"), reject("presence-validity")),
         ev("presence-validity-at-cap", "A presence record with exactly 3,600 s of lifetime is valid.", ["§12.9", "P§8"],
            signed(record("pha", ttl=3600), "bob-phone"), ok()),
+        ev("grant-revocation-accepted", "A grant-revocation signed by the granting identity's device passes the pipeline "
+           "as any core message (§19.4, P§7).", ["§19.4", "P§7"],
+           signed(base("grant-revocation", "erv", BPH, NOW, to=F.RELAY_WEB, grant=uid("erv-g", NOW - 600), grantee=ALICE,
+                       valid_until=NOW + 86400), "bob-phone"), accept(type="grant-revocation", signer=BPH, identity=BPH)),
         ev("presence-signer-mismatch", "A record signed by bob-phone naming bob-laptop as its device fails the payload "
            "check after the pipeline's own stages pass (P§3).", ["P§3", "§9.4"],
            signed(record("phm", device=BLA, frm=BPH), "bob-phone"), reject("presence-signer-mismatch", "presence.signer-mismatch")),
@@ -83,6 +87,42 @@ def payload_vectors() -> list[dict]:
         pv("presence-with-audience-and-endpoints-valid", "The §9.4 example's audience, profiles and endpoints are allowed.",
            ["§9.4"], {**r, "audience": "contacts-only", "profiles": ["interactive-media"],
                       "endpoints": [{"transport": "wss", "uri": "wss://relay.example.com/dsip/bob"}]}),
+        pv("presence-audience-uppercase-invalid", "An audience is a lower-case token (P§6, spec-gap 145).", ["P§6"],
+           {**r, "audience": "Family"}, ok=False),
+        pv("presence-audience-too-long", "An audience is at most 64 characters (P§6).", ["P§6"], {**r, "audience": "a" * 65},
+           ok=False),
+    ] + grant_payload_vectors()
+
+
+def grant_payload_vectors() -> list[dict]:
+    """§19.4 (v0.17): a grant's presence_audience (spec-gap 145), the grant-revocation message (spec-gap 147) and a
+    subscribe presenting a grant in claims (spec-gap 144)."""
+    def pv(vid, desc, refs, schema, payload, ok=True):
+        return vector(f"payload/{vid}", "payload", desc, refs, {}, {"schema": schema, "payload": payload},
+                      accept() if ok else reject("schema-invalid"))
+
+    g = base("grant", "pg", F.did("bob-phone"), NOW, to=ALICE, session=uid("pg-intro", NOW - 60),
+             scope=["dsip.invite", "dsip.subscribe"], valid_until=NOW + 86400)
+    rv = base("grant-revocation", "prv", F.did("bob-phone"), NOW, to=F.RELAY_WEB, grant=g["id"], grantee=ALICE,
+              valid_until=NOW + 86400)
+    sub = base("subscribe", "psg", APH, NOW, to=F.RELAY_WEB, target=BOB, events=["presence"], expires_in=3600,
+               claims=[{"type": "dsip-grant", "grant": {"protected": "e30", "payload": "e30", "signature": "AA"}}])
+    drop = lambda m, k: {key: v for key, v in m.items() if key != k}
+    return [
+        pv("grant-presence-audience-valid", "A grant may name the presence audience its subscriber sees (§19.4, P§6).",
+           ["§19.4", "P§6"], "grant", {**g, "presence_audience": "family"}),
+        pv("grant-presence-audience-uppercase-invalid", "presence_audience is a lower-case token (§19.4, P§6).",
+           ["§19.4", "P§6"], "grant", {**g, "presence_audience": "Family"}, ok=False),
+        pv("grant-revocation-valid", "A grant-revocation names the grant, its grantee and its valid_until (§19.4, P§7).",
+           ["§19.4", "P§7"], "grant-revocation", rv),
+        pv("grant-revocation-missing-grant", "A revocation names the grant it withdraws.", ["§19.4"], "grant-revocation",
+           drop(rv, "grant"), ok=False),
+        pv("grant-revocation-missing-valid-until", "A revocation carries the grant's valid_until, how long it is kept "
+           "(§19.4).", ["§19.4"], "grant-revocation", drop(rv, "valid_until"), ok=False),
+        pv("grant-revocation-is-not-session-scoped", "A revocation carries no session (§19.4).", ["§19.4"],
+           "grant-revocation", {**rv, "session": uid("prv-s", NOW)}, ok=False),
+        pv("subscribe-with-grant-claim-valid", "A subscribe may present a grant in claims as {type: dsip-grant, grant} "
+           "(§9.3, P§6).", ["§9.3", "P§6"], "subscribe", sub),
     ]
 
 
@@ -335,6 +375,309 @@ def state_vectors() -> list[dict]:
         step({"recv": x1}, [notify(3, body("available", x1))]),
         step({"recv": x2}, [notify(4, body("offline", x1, x2))]),
         adv(120, [notify(5, body("available"))], presence={}),
+    ]))
+    return out + admission_vectors()
+
+
+# ---------------------------------------------------------------- state: who may watch, audiences, shares (P§6, P§7)
+
+def admission_vectors() -> list[dict]:
+    """P§6 (spec-gaps 144–146) and P§7 (spec-gap 147): admission without a policy, by a presented grant, audiences, a
+    body per subscription, and a grant's expiry and revocation ending what it admitted."""
+    from .state import IDENTITIES
+
+    CPH, CAROL, MAL = F.did("carol-phone"), F.did("carol"), F.did("mallory")  # mallory: a did:key identity on its own
+
+    def step(event, emit, **snaps):
+        return {"event": event, "expect": {"emit": emit, **snaps}}
+
+    def trace(vid, desc, refs, steps):
+        ctx = {"component": "authority", "start": NOW, "identities": IDENTITIES}
+        return vector(f"state/{vid}", "state", desc, refs, ctx, {"steps": steps}, {})
+
+    def rec(label, device=BPH, seq=1, state="busy", at=NOW, ttl=300, audience=None):
+        m = {"type": "presence", "id": uid(label, at), "from": device, "to": AUTH, "subject": BOB, "device": device,
+             "state": state, "seq": seq, "issued_at": at, "expires_at": at + ttl}
+        if audience is not None:
+            m["audience"] = audience
+        return m
+
+    def summary(r):
+        out = {"id": r["id"], "device": r["device"], "state": r["state"], "seq": r["seq"], "expires_at": r["expires_at"]}
+        if "audience" in r:
+            out["audience"] = r["audience"]
+        return out
+
+    def body(asserted, *recs):
+        b = {"event": "presence", "state": asserted}
+        if recs:
+            b["records"] = [summary(r) for r in sorted(recs, key=lambda r: (r["device"], r.get("audience", "")))]
+        return b
+
+    def grant(label, to=ALICE, issuer=BOB, scope=("dsip.subscribe",), until=NOW + 86400, audience=None, verified=None):
+        """A presented grant as the host summarises it after verifying the envelope: `identity` is the identity its
+        signer acts for (§7.4); `verified: false` when its signature or delegation did not verify."""
+        g = {"id": uid(label, NOW - 1000), "from": BPH, "identity": issuer, "to": to, "scope": list(scope), "valid_until": until}
+        if audience is not None:
+            g["presence_audience"] = audience
+        if verified is not None:
+            g["verified"] = verified
+        return g
+
+    def subscribe(label, frm=APH, grants=(), at=NOW, target=BOB, expires_in=3600):
+        m = {"type": "subscribe", "id": uid(label, at), "from": frm, "to": AUTH, "target": target, "events": ["presence"],
+             "expires_in": expires_in}
+        if grants:
+            m["claims"] = [{"type": "dsip-grant", "grant": g} for g in grants]
+        return m
+
+    def notify(sub, seq, b, state="active", reason=None):
+        n = {"type": "notify", "to": sub["from"], "subscription": sub["id"], "seq": seq, "state": state}
+        if reason:
+            n["reason"] = reason
+        n["body"] = b
+        return {"send": n}
+
+    def in_order(*emits):
+        """notifies to several subscriptions of one subject go in subscription order (P§3)"""
+        return sorted(emits, key=lambda e: e["send"]["subscription"])
+
+    def blocked(sub):
+        return {"send": {"type": "reject", "to": sub["from"], "session": sub["id"], "reason": "policy.blocked"}}
+
+    def subsnap(sub, seq, subscriber, expires_at=NOW + 3600, **extra):
+        return {sub["id"]: {"subscriber": subscriber, "target": BOB, "events": ["presence"], "seq": seq,
+                            "expires_at": expires_at, **extra}}
+
+    def revocation(label, g, frm=BPH, at=NOW):
+        return {"type": "grant-revocation", "id": uid(label, at), "from": frm, "to": AUTH, "grant": g["id"],
+                "grantee": g["to"], "valid_until": g["valid_until"]}
+
+    bind = lambda d=BPH: step({"relay": "bind", "device": d, "identity": BOB}, [])
+    adv = lambda s, emit=None, **snaps: step({"advance": s}, emit or [], **snaps)
+    out = []
+
+    stranger = subscribe("a-stranger")
+    own = subscribe("a-own", frm=BLA)
+    r1 = rec("a-r1")
+    out.append(trace("presence-private-by-default",
+                     "With no policy for Bob, a subscriber that presents nothing gets the uniform policy.blocked, while "
+                     "Bob's own laptop is admitted and sees his phone's record (§9.2, §9.3, P§6, spec-gap 144).",
+                     ["§9.2", "§9.3", "P§6"], [
+        bind(),
+        step({"recv": stranger}, [blocked(stranger)]),
+        step({"recv": own}, [notify(own, 1, body("available"))]),
+        step({"recv": r1}, [notify(own, 2, body("offline", r1))], subscriptions=subsnap(own, 2, BOB, own=True)),
+    ]))
+
+    g = grant("a-g1")
+    by_grant = subscribe("a-bygrant", grants=[g])
+    out.append(trace("presence-grant-admits",
+                     "With no policy, Alice is admitted by the grant she presents: issued by Bob's identity, to hers, "
+                     "scope dsip.subscribe, valid_until after now. The authority had never seen the grant (P§6, "
+                     "spec-gap 144).", ["P§6", "§19.4", "§9.3"], [
+        bind(),
+        step({"recv": by_grant}, [notify(by_grant, 1, body("available"))],
+             subscriptions=subsnap(by_grant, 1, ALICE, grant=g["id"])),
+        step({"recv": r1}, [notify(by_grant, 2, body("offline", r1))]),
+    ]))
+
+    bad = [
+        ("unverified", grant("a-bad1", verified=False)),
+        ("issued by another identity", grant("a-bad2", issuer=CAROL)),
+        ("to another identity", grant("a-bad3", to=CAROL)),
+        ("without dsip.subscribe", grant("a-bad4", scope=("dsip.invite", "dsip.message"))),
+        ("ending now", grant("a-bad5", until=NOW)),
+    ]
+    steps = [bind()]
+    for i, (_, bg) in enumerate(bad):
+        sb = subscribe(f"a-badsub{i}", grants=[bg])
+        steps.append(step({"recv": sb}, [blocked(sb)]))
+    steps[-1]["expect"]["subscriptions"] = {}
+    out.append(trace("presence-grant-not-admitting",
+                     "A presented grant admits only when it verifies, was issued by the target's identity, is to the "
+                     "subscriber's identity, has dsip.subscribe in its scope and its valid_until is after now (exclusive, "
+                     "§12.9). Each of these fails alone and gets policy.blocked: " + "; ".join(w for w, _ in bad) + " (P§6).",
+                     ["P§6", "§12.9", "§19.4"], steps))
+
+    fam = grant("a-fam", audience="family")
+    first = subscribe("a-first", grants=[grant("a-bad6", scope=("dsip.invite",)), fam, grant("a-work", audience="work")])
+    out.append(trace("presence-first-admitting-grant",
+                     "Of several presented grants the first that admits, in claims order, is used: the first names only "
+                     "dsip.invite, so the family grant admits and fixes the subscription's audience (P§6, spec-gap 145).",
+                     ["P§6"], [
+        bind(),
+        step({"recv": first}, [notify(first, 1, body("available"))],
+             subscriptions=subsnap(first, 1, ALICE, grant=fam["id"], audience="family")),
+    ]))
+
+    carol = subscribe("a-carol", frm=CPH)
+    out.append(trace("presence-policy-admits-with-its-audience",
+                     "An authority's own policy still admits: Carol is in the allow list, which names the audience work, "
+                     "so she sees Bob's work record and his records with no audience, but not his family record (P§6).",
+                     ["P§6", "§9.3"], [
+        bind(),
+        step({"local": "policy", "target": BOB, "mode": "allow", "allow": [CAROL], "audience": "work"}, []),
+        step({"recv": carol}, [notify(carol, 1, body("available"))], subscriptions=subsnap(carol, 1, CAROL, audience="work")),
+        step({"recv": (fr := rec("a-pf", audience="family"))}, []),
+        step({"recv": (wr := rec("a-pw", state="away", audience="work"))}, [notify(carol, 2, body("offline", wr))]),
+    ]))
+
+    fam_sub = subscribe("a-famsub", grants=[fam])
+    work_sub = subscribe("a-worksub", frm=CPH, grants=[grant("a-cwork", to=CAROL, audience="work")])
+    plain_sub = subscribe("a-plainsub", frm=MAL, grants=[grant("a-plain", to=MAL)])
+    own_sub = subscribe("a-ownsub", frm=BLA)
+    subs = sorted([fam_sub, work_sub, plain_sub, own_sub], key=lambda x: x["id"])
+    base_rec = rec("a-base", state="available")
+    fam_rec = rec("a-famrec", state="busy", audience="family")
+    work_rec = rec("a-workrec", state="away", audience="work")
+    seen = {fam_sub["id"]: [base_rec, fam_rec], work_sub["id"]: [base_rec, work_rec], plain_sub["id"]: [base_rec],
+            own_sub["id"]: [base_rec, fam_rec, work_rec]}
+    def after(recs_now, prev_count):
+        """notifies for every subscription whose visible records changed, in subscription order"""
+        emits = []
+        for sb in subs:
+            vis = [r for r in seen[sb["id"]] if r in recs_now]
+            if len(vis) != prev_count[sb["id"]]:
+                prev_count[sb["id"]] = len(vis)
+                seqs[sb["id"]] += 1
+                emits.append(notify(sb, seqs[sb["id"]], body("offline" if vis else "available", *vis)))
+        return emits
+    seqs = {sb["id"]: 1 for sb in subs}
+    counts = {sb["id"]: 0 for sb in subs}
+    steps = [bind()] + [step({"recv": sb}, [notify(sb, 1, body("available"))]) for sb in
+                        [fam_sub, work_sub, plain_sub, own_sub]]
+    have = []
+    for r in (base_rec, fam_rec, work_rec):
+        have.append(r)
+        steps.append(step({"recv": r}, after(have, counts)))
+    steps[-1]["expect"]["presence"] = {BOB: {BPH: {"seq": 1, "state": "available", "expires_at": NOW + 300},
+                                             f"{BPH}/family": {"seq": 1, "state": "busy", "expires_at": NOW + 300},
+                                             f"{BPH}/work": {"seq": 1, "state": "away", "expires_at": NOW + 300}}}
+    out.append(trace("presence-audiences",
+                     "Bob's phone publishes a record with no audience, one for family and one for work, in the same "
+                     "second: per (device, audience) they are neither stale nor rate-limited. A family grant sees the "
+                     "first two, a work grant the first and the work record, a grant naming no audience only the first, "
+                     "and Bob's own laptop all three. Each subscription is notified only when a record it sees arrives "
+                     "(P§6, spec-gaps 145, 146).", ["P§6", "P§3", "P§8"], steps))
+
+    f5 = rec("a-f5", seq=5, audience="family")
+    w1 = rec("a-w1", seq=1, state="away", audience="work")
+    f6 = rec("a-f6", seq=6, state="dnd", at=NOW + 2, audience="family")
+    w0 = rec("a-w0", seq=1, state="dnd", at=NOW + 2, audience="work")
+    f7 = rec("a-f7", seq=7, state="dnd", at=NOW + 5, audience="family")
+    out.append(trace("presence-seq-and-interval-per-audience",
+                     "seq and the publish interval run per (subject, device, audience): work's seq 1 after family's seq 5 "
+                     "is not stale, family again 2 s later is rate-limited with 3 s left, work's seq 1 again is stale, "
+                     "and family at 5 s is accepted (P§3, P§6, P§8).", ["P§3", "P§6", "P§8"], [
+        bind(),
+        step({"recv": f5}, []),
+        step({"recv": w1}, []),
+        adv(2),
+        step({"recv": f6}, [{"send": {"type": "error", "to": BPH, "in_reply_to": f6["id"], "reason": "policy.rate-limited", "retry_after": 3}}]),
+        step({"recv": w0}, [{"send": {"type": "error", "to": BPH, "in_reply_to": w0["id"], "reason": "presence.stale"}}]),
+        adv(3),
+        step({"recv": f7}, [], presence={BOB: {f"{BPH}/family": {"seq": 7, "state": "dnd", "expires_at": NOW + 305},
+                                               f"{BPH}/work": {"seq": 1, "state": "away", "expires_at": NOW + 300}}}),
+    ]))
+
+    fam_only = rec("a-famonly", audience="family")
+    work_watch = subscribe("a-workwatch", frm=CPH, grants=[grant("a-cw2", to=CAROL, audience="work")])
+    fam_watch = subscribe("a-famwatch", grants=[fam])
+    out.append(trace("presence-assertion-per-subscription",
+                     "A device that publishes only to family counts in the assertion for a work subscriber, exactly as "
+                     "a device that publishes nothing: Carol (work) sees 'available' from the relay and no record, Alice "
+                     "(family) sees the record and an offline assertion. The record changes nothing in Carol's body, so "
+                     "she is not notified (P§6, spec-gap 146).", ["P§6", "P§4", "§9.3"], [
+        bind(),
+        step({"recv": work_watch}, [notify(work_watch, 1, body("available"))]),
+        step({"recv": fam_watch}, [notify(fam_watch, 1, body("available"))]),
+        step({"recv": fam_only}, [notify(fam_watch, 2, body("offline", fam_only))]),
+    ]))
+
+    short = rec("a-short", ttl=60, audience="family")
+    long_ = rec("a-long", state="away", ttl=300, audience="work")
+    out.append(trace("presence-expiry-per-audience",
+                     "Each record expires by itself: the family record's 60 s run out and only the family subscription "
+                     "is notified (P§3, P§6).", ["P§3", "P§6"], [
+        bind(),
+        step({"recv": work_watch}, [notify(work_watch, 1, body("available"))]),
+        step({"recv": fam_watch}, [notify(fam_watch, 1, body("available"))]),
+        step({"recv": short}, [notify(fam_watch, 2, body("offline", short))]),
+        step({"recv": long_}, [notify(work_watch, 2, body("offline", long_))]),
+        adv(60, [notify(fam_watch, 3, body("available"))]),
+    ]))
+
+    out.append(trace("presence-grace-drops-every-audience",
+                     "The unbind grace is per device: when it runs out, all the device's records go, and each subscription "
+                     "that saw one is notified once (P§3, P§6).", ["P§3", "P§6", "P§8"], [
+        bind(),
+        step({"recv": work_watch}, [notify(work_watch, 1, body("available"))]),
+        step({"recv": fam_watch}, [notify(fam_watch, 1, body("available"))]),
+        step({"recv": short}, [notify(fam_watch, 2, body("offline", short))]),
+        step({"recv": long_}, [notify(work_watch, 2, body("offline", long_))]),
+        step({"relay": "unbind", "device": BPH, "identity": BOB}, []),
+        adv(59),
+        adv(1, in_order(notify(work_watch, 3, body("offline")), notify(fam_watch, 3, body("offline"))), presence={}),
+    ]))
+
+    share = grant("a-share", until=NOW + 600)
+    shared = subscribe("a-shared", grants=[share])
+    out.append(trace("presence-share-ends-at-valid-until",
+                     "A share is a grant with a short valid_until: when the authority's clock reaches it, the subscription "
+                     "it admitted ends with a terminated notify, reason policy.terminated, and a renewal presenting it is "
+                     "refused (P§7, spec-gap 147).", ["P§7", "§9.3", "§12.9"], [
+        bind(),
+        step({"recv": shared}, [notify(shared, 1, body("available"))]),
+        adv(599),
+        adv(1, [notify(shared, 2, body("available"), "terminated", "policy.terminated")], subscriptions={}),
+        step({"recv": (again := subscribe("a-again", grants=[share], at=NOW + 600))}, [blocked(again)]),
+    ]))
+
+    tie = grant("a-tie", until=NOW + 3600)
+    tied = subscribe("a-tied", grants=[tie])
+    out.append(trace("presence-lapse-before-share-end",
+                     "A subscription that lapses at the instant its grant ends ends as lapsed: session.expired, not "
+                     "policy.terminated (P§7, §9.3).", ["P§7", "§9.3"], [
+        bind(),
+        step({"recv": tied}, [notify(tied, 1, body("available"))]),
+        adv(3600, [notify(tied, 2, body("available"), "terminated", "session.expired")], subscriptions={}),
+    ]))
+
+    rg = grant("a-rg")
+    s1 = subscribe("a-rs1", grants=[rg])
+    other = subscribe("a-rs3", frm=CPH, grants=[grant("a-rgc", to=CAROL)])
+    out.append(trace("presence-revocation-ends-subscriptions",
+                     "Bob's phone revokes the grant Alice subscribed with: her subscription ends at once, terminated with "
+                     "policy.terminated; Carol's, under another grant, goes on; the revocation is not answered; and a "
+                     "later subscribe presenting the grant is refused (P§7, §19.4, spec-gap 147).", ["P§7", "§19.4", "§9.3"], [
+        bind(),
+        step({"recv": s1}, [notify(s1, 1, body("available"))]),
+        step({"recv": other}, [notify(other, 1, body("available"))]),
+        step({"recv": revocation("a-rev", rg, at=NOW)},
+             [notify(s1, 2, body("available"), "terminated", "policy.terminated")],
+             subscriptions=subsnap(other, 1, CAROL, grant=other["claims"][0]["grant"]["id"])),
+        step({"recv": (s4 := subscribe("a-rs4", grants=[rg], at=NOW + 1))}, [blocked(s4)]),
+    ]))
+
+    cg = grant("a-cg")
+    cs = subscribe("a-cs", grants=[cg])
+    out.append(trace("presence-revocation-by-another-identity",
+                     "A revocation covers only grants issued by its signer's identity: Carol's phone naming Bob's grant id "
+                     "ends nothing (P§7).", ["P§7", "§19.4"], [
+        bind(),
+        step({"recv": cs}, [notify(cs, 1, body("available"))]),
+        step({"recv": revocation("a-crev", cg, frm=CPH)}, [], subscriptions=subsnap(cs, 1, ALICE, grant=cg["id"])),
+    ]))
+
+    pre = grant("a-pre")
+    out.append(trace("presence-revoked-before-subscribe",
+                     "A grant revoked before anyone subscribed with it admits nothing; until its valid_until passes the "
+                     "authority keeps the revocation (P§7).", ["P§7", "§19.4"], [
+        bind(),
+        step({"recv": revocation("a-prerev", pre)}, []),
+        adv(3600),
+        step({"recv": (ps := subscribe("a-presub", grants=[pre], at=NOW + 3600))}, [blocked(ps)]),
     ]))
     return out
 
