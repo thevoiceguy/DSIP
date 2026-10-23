@@ -460,8 +460,8 @@ schemas["presence"] = base(
         "state": {"type": "string", "pattern": "^[a-z][a-z0-9-]*$", "maxLength": 64,
                   "description": "dsip-presence-state token (P5): available, busy, away, dnd, offline; open."},
         "seq": {"type": "integer", "minimum": 0, "description": "Ordered per (subject, device) (P4)."},
-        "audience": {"type": "string", "minLength": 1, "maxLength": 64,
-                     "description": "The audience this record is for (P6; not yet pinned)."},
+        "audience": {"type": "string", "pattern": "^[a-z][a-z0-9-]*$", "maxLength": 64,
+                     "description": "The audience this record is for, a token the subject chooses (P6, spec-gap 145); absent: every admitted subscriber."},
         "profiles": {"type": "array", "items": {"type": "string", "minLength": 1}},
         "endpoints": {
             "type": "array",
@@ -487,7 +487,7 @@ schemas["subscribe"] = base(
                    "description": "Registered event classes (dsip-subscription-event): presence, publication."},
         "expires_in": {"type": "integer", "minimum": 0, "maximum": 86400},
         "claims": {"type": "array", "items": {"type": "object"},
-                   "description": "Optional VC presentations as authorization evidence."},
+                   "description": "Optional authorization evidence: VC presentations, or {type: dsip-grant, grant: <signed grant envelope>} presenting a grant from the target with dsip.subscribe (spec 9.3, P6; v0.17, spec-gap 144)."},
         "capability": {"type": "string", "maxLength": 2048,
                        "description": "Optional opaque authorization token previously issued by the target authority."},
     },
@@ -567,8 +567,21 @@ schemas["grant"] = base(
                   "description": "Registered grant scopes (dsip-grant-scope): dsip.invite, dsip.subscribe, dsip.message (v0.8)."},
         "valid_until": {"$ref": "#/$defs/timestamp",
                         "description": "Grant lifetime, independent of the envelope delivery expiry."},
+        "presence_audience": {"type": "string", "pattern": "^[a-z][a-z0-9-]*$", "maxLength": 64,
+                              "description": "The presence audience a subscriber admitted by this grant sees (P6; v0.17, spec-gap 145)."},
     },
     extra_required=["scope", "valid_until"],
+)
+
+schemas["grant-revocation"] = base(
+    "grant-revocation", session_scoped=False,
+    description="Withdraws a grant before its valid_until (spec 19.4; v0.17, spec-gap 147). Signed by a device of the granting identity and sent to its authority, which keeps it until valid_until; it ends the presence subscriptions the grant admitted (P7) and admits nothing further. Not answered.",
+    extra_props={
+        "grant": {"$ref": "#/$defs/ulid", "description": "The revoked grant's id."},
+        "grantee": {"$ref": "#/$defs/did", "description": "The grant's grantee identity."},
+        "valid_until": {"$ref": "#/$defs/timestamp", "description": "The revoked grant's valid_until: how long the authority keeps the revocation."},
+    },
+    extra_required=["grant", "grantee", "valid_until"],
 )
 
 # ---------------------------------------------------------------- envelope & dispatcher

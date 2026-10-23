@@ -938,6 +938,62 @@ def gen_presence_authority(r: random.Random):
     return "state", None, ctx, [(e, snapshot) for e in ev]
 
 
+def gen_presence_admission(r: random.Random):
+    """Who may watch, audiences, shares at a subject's authority (P§6, P§7; README authority "Who may watch, audiences,
+    shares"): grants presented and revoked, policies with audiences, records per audience, bindings and the clock."""
+    audiences = [None, None, "family", "work"]
+    grants = []
+    for i in range(r.randint(1, 4)):
+        g = {"id": ulid(3000 + i), "from": B1, "identity": r.choice([BOB] * 6 + [CAROL]), "to": r.choice([ALICE, CAROL, MALLORY]),
+             "scope": r.choice([["dsip.subscribe"], ["dsip.invite", "dsip.subscribe"], ["dsip.invite"]]),
+             "valid_until": NOW + r.choice([0, 5, 60, 300, 3600, 86400])}
+        if (a := r.choice(audiences)) is not None:
+            g["presence_audience"] = a
+        if r.random() < 0.1:
+            g["verified"] = False
+        grants.append(g)
+    ev = []
+    if r.random() < 0.4:
+        pol = {"local": "policy", "target": BOB, "mode": r.choice(["public", "allow"]), "allow": r.sample([ALICE, CAROL, MALLORY], r.randint(0, 2))}
+        if (a := r.choice(audiences)) is not None:
+            pol["audience"] = a
+        ev.append(pol)
+    counter, clock = [4000], [NOW]
+    for _ in range(r.randint(4, 16)):
+        x = r.random()
+        counter[0] += 1
+        if x < 0.15:
+            ev.append({"relay": r.choice(["bind", "bind", "unbind"]), "device": r.choice([B1, B2]), "identity": BOB})
+        elif x < 0.4:
+            frm = r.choice([A1, A2, C1, M1, B2])
+            m = {"type": "subscribe", "id": ulid(counter[0]), "from": frm, "to": RELAY, "target": BOB, "events": ["presence"],
+                 "expires_in": r.choice([0, 60, 600, 3600])}
+            if r.random() < 0.8:
+                m["claims"] = [{"type": "dsip-grant", "grant": g} for g in r.sample(grants, r.randint(1, len(grants)))]
+            ev.append({"recv": m})
+        elif x < 0.7:
+            d = r.choice([B1, B1, B2])
+            m = {"type": "presence", "id": ulid(counter[0]), "from": d, "to": RELAY, "subject": BOB, "device": d,
+                 "state": r.choice(["busy", "away", "available", "dnd"]), "seq": r.choice([1, 2, 3, 5]), "issued_at": clock[0],
+                 "expires_at": clock[0] + r.choice([60, 120, 300])}
+            if (a := r.choice(audiences)) is not None:
+                m["audience"] = a
+            ev.append({"recv": m})
+        elif x < 0.8:
+            g = r.choice(grants)
+            ev.append({"recv": {"type": "grant-revocation", "id": ulid(counter[0]), "from": r.choice([B1, B2, C1]), "to": RELAY,
+                                "grant": g["id"], "grantee": g["to"], "valid_until": g["valid_until"]}})
+        else:
+            step = r.choice([1, 4, 5, 59, 60, 300, 600])
+            clock[0] += step
+            ev.append({"advance": step})
+    ctx = {"component": "authority", "start": NOW, "identities": IDENTITY}
+    if r.random() < 0.4:
+        ctx["presence_grace"] = r.choice([0, 1, 30])
+    snapshot = {"presence": {}, "subscriptions": {}}
+    return "state", None, ctx, [(e, snapshot) for e in ev]
+
+
 def gen_tnbinding(r: random.Random):
     """A number binding (N§3.4): random TNAuthLists, CA constraints, chains, clocks, claims and byte mutations."""
     sys.path.insert(0, str(REPO / "impl/tools"))
@@ -1153,6 +1209,7 @@ TARGETS = {
     "alias-query": gen_alias_query, "alias-monitor": gen_alias_monitor, "alias-head": gen_alias_head,
     "alias-lookup": gen_alias_lookup, "leave-proposals": gen_leave, "roster-change": gen_roster_change,
     "presence-aggregate": gen_presence_aggregate, "presence-authority": gen_presence_authority,
+    "presence-admission": gen_presence_admission,
 }
 
 # Targets where the implementations are known to differ and the difference is a protocol decision, not a bug

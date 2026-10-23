@@ -1,0 +1,123 @@
+{
+  "vector": "state/presence-first-admitting-grant",
+  "format": 1,
+  "kind": "state",
+  "description": "Of several presented grants the first that admits, in claims order, is used: the first names only dsip.invite, so the family grant admits and fixes the subscription's audience (P§6, spec-gap 145).",
+  "spec_ref": [
+    "P§6"
+  ],
+  "context": {
+    "component": "authority",
+    "start": 1760000000,
+    "identities": {
+      "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu": "did:key:z6MkhzX9qTeXBWkucyMVric1E9JrqUD5LPAkD2BNavakAptf",
+      "did:key:z6MkfhenvjQ7awdpVWzPaeBuPkXCBLwzJKyosCrTL3huMb66": "did:key:z6MkhzX9qTeXBWkucyMVric1E9JrqUD5LPAkD2BNavakAptf",
+      "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+      "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+      "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL": "did:key:z6Mkt5yU6sK3v7gxFHncQbmZ7VQvnVuJBGrDAbqhZp2gDW7G"
+    }
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "relay": "bind",
+          "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+          "identity": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R"
+        },
+        "expect": {
+          "emit": []
+        }
+      },
+      {
+        "event": {
+          "recv": {
+            "type": "subscribe",
+            "id": "01K742SG00TZ51ZEMG172Q8FWM",
+            "from": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+            "to": "did:key:z6MkAuthorityRelay11111111111111111111111111",
+            "target": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+            "events": [
+              "presence"
+            ],
+            "expires_in": 3600,
+            "claims": [
+              {
+                "type": "dsip-grant",
+                "grant": {
+                  "id": "01K741TZE00D9EZXPDVFS8T26M",
+                  "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+                  "identity": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+                  "to": "did:key:z6MkhzX9qTeXBWkucyMVric1E9JrqUD5LPAkD2BNavakAptf",
+                  "scope": [
+                    "dsip.invite"
+                  ],
+                  "valid_until": 1760086400
+                }
+              },
+              {
+                "type": "dsip-grant",
+                "grant": {
+                  "id": "01K741TZE0QNN9YP7CNEAX0CD6",
+                  "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+                  "identity": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+                  "to": "did:key:z6MkhzX9qTeXBWkucyMVric1E9JrqUD5LPAkD2BNavakAptf",
+                  "scope": [
+                    "dsip.subscribe"
+                  ],
+                  "valid_until": 1760086400,
+                  "presence_audience": "family"
+                }
+              },
+              {
+                "type": "dsip-grant",
+                "grant": {
+                  "id": "01K741TZE0R3KF5SFWC3TZ0SDN",
+                  "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+                  "identity": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+                  "to": "did:key:z6MkhzX9qTeXBWkucyMVric1E9JrqUD5LPAkD2BNavakAptf",
+                  "scope": [
+                    "dsip.subscribe"
+                  ],
+                  "valid_until": 1760086400,
+                  "presence_audience": "work"
+                }
+              }
+            ]
+          }
+        },
+        "expect": {
+          "emit": [
+            {
+              "send": {
+                "type": "notify",
+                "to": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+                "subscription": "01K742SG00TZ51ZEMG172Q8FWM",
+                "seq": 1,
+                "state": "active",
+                "body": {
+                  "event": "presence",
+                  "state": "available"
+                }
+              }
+            }
+          ],
+          "subscriptions": {
+            "01K742SG00TZ51ZEMG172Q8FWM": {
+              "subscriber": "did:key:z6MkhzX9qTeXBWkucyMVric1E9JrqUD5LPAkD2BNavakAptf",
+              "target": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+              "events": [
+                "presence"
+              ],
+              "seq": 1,
+              "expires_at": 1760003600,
+              "grant": "01K741TZE0QNN9YP7CNEAX0CD6",
+              "audience": "family"
+            }
+          }
+        }
+      }
+    ]
+  },
+  "expect": {}
+}

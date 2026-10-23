@@ -1,0 +1,36 @@
+{
+  "vector": "payload/grant-revocation-missing-valid-until",
+  "format": 1,
+  "kind": "payload",
+  "description": "A revocation carries the grant's valid_until, how long it is kept (§19.4).",
+  "spec_ref": [
+    "§19.4"
+  ],
+  "context": {},
+  "input": {
+    "schema": "grant-revocation",
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "interactive-media/1.0"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "grant-revocation",
+      "id": "01K742SG00ED1BMZSYTWYD3JC2",
+      "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+      "to": "did:web:relay.example.com",
+      "grant": "01K742SG00A1YWQ2XD806NEF9Q",
+      "grantee": "did:key:z6MkhzX9qTeXBWkucyMVric1E9JrqUD5LPAkD2BNavakAptf",
+      "issued_at": 1760000000,
+      "expires_at": 1760000030
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "schema-invalid"
+  }
+}

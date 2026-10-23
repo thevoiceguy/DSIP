@@ -50,7 +50,7 @@
       "items": {
         "type": "object"
       },
-      "description": "Optional VC presentations as authorization evidence."
+      "description": "Optional authorization evidence: VC presentations, or {type: dsip-grant, grant: <signed grant envelope>} presenting a grant from the target with dsip.subscribe (spec 9.3, P6; v0.17, spec-gap 144)."
     },
     "capability": {
       "type": "string",

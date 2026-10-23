@@ -32,17 +32,17 @@ python3 ../impl/tools/parity_ts.py       # Python harness vs this implementation
 
 ## Coverage
 
-**Every vector: 2209 of 2209**, no kind skipped. Python/TypeScript parity compares actual with actual on all of them.
+**Every vector: 2234 of 2234**, no kind skipped. Python/TypeScript parity compares actual with actual on all of them.
 
 | Kind | Vectors | Modules |
 |---|---|---|
-| `envelope`, `transport`, `dht` | 71, 13, 18 | `envelope.ts`, `did.ts`, `encoding.ts`, `dht.ts` |
-| `payload`, `semantic` | 122, 93 | `schema.ts`, `semantic.ts`, `registry.ts` |
-| `state` | 130 | `endpoint.ts`, `relay.ts`, `broadcast-state.ts` (v0.17: the authority's presence records, P§3), `timers.ts` |
+| `envelope`, `transport`, `dht` | 77, 13, 22 | `envelope.ts`, `did.ts`, `encoding.ts`, `dht.ts` |
+| `payload`, `semantic` | 131, 93 | `schema.ts`, `semantic.ts`, `registry.ts` |
+| `state` | 147 | `endpoint.ts`, `relay.ts`, `broadcast-state.ts` (v0.17: the authority's presence records, P§3; who may watch, audiences and the body per subscription, P§6; shares and `grant-revocation`, P§7), `timers.ts` |
 | `presence` | 18 | `presence/presence.ts` (Presence Profile draft P§4–P§5: the subscriber's combining rule); the authority's side is `broadcast-state.ts` |
-| `broadcast`, `trust`, `media-binding` | 21, 16, 42 | `broadcast.ts`, `trust.ts`, `binding.ts` |
-| `gateway` | 66 | `gateway.ts` |
-| `messaging` | 552 | `messaging/`: `message`, `object`, `rules`, `blobs`, `crypto` (stateless); `device`, `sync`, `client`, `hub`, `mailbox`, `enrolment` (the trace machines) |
+| `broadcast`, `trust`, `media-binding` | 21, 17, 42 | `broadcast.ts`, `trust.ts`, `binding.ts` |
+| `gateway` | 69 | `gateway.ts` |
+| `messaging` | 556 | `messaging/`: `message`, `object`, `rules`, `blobs`, `crypto` (stateless); `device`, `sync`, `client`, `hub`, `mailbox`, `enrolment` (the trace machines) |
 | `did-webvh` | 67 | `did/webvh.ts` (log verification, restricted JCS, I-JSON), `encoding.ts` |
 | `device-events` | 313 | `events/device-events.ts` (trap translation, syslog table, rule mapping; the alarm-list and escalation machine; inform deduplication; the clear hold-down), `events/syslog.ts` (RFC 5424 / RFC 3164 datagram parsing, syslog rules), `events/usm.ts` (SNMPv3 USM: key localization, BER, the RFC 3414 §3.2 receiver with HMAC-SHA-2 and AES-128-CFB, the engine cache), `events/tsm.ts` (SNMPv3 over TLS: the certificate-to-security-name table, TLS stream framing, the v0.11 DTLS record check — one record is exactly one message, else dropped — and the TSM receiver with RFC 5343 discovery), `events/syslog-sign.ts` (RFC 5848 signed syslog: the collector's held messages and waiting hashes, Certificate Block assembly and reboot sessions, Signature Block groups, v0.11 gap detection; OpenPGP MPIs, DSA verification on BigInt with FIPS 186 digest truncation, the DSA key of a `C` signer's certificate; the key blob types of a Certificate Block payload — `C`, `K`, the OpenPGP `P` key (v0.11: the KeyID and an OpenPGP certificate framed as RFC 4880 packets, its first a v4 DSA Public-Key packet, the KeyID checked against the SHA-1 V4 fingerprint), `N` (no key sent: the configured key) and `U` (refused `unsupported-key-blob`)) |
 | `alias-transparency` | 140 | `kt/alias-transparency.ts` (alias normalization, with v0.12's `tel:` aliases — a global number, separators removed, E.164 digits, the label `tel:+<digits>`; VrfInput, commitments, prefix and log trees, Configuration, tree head, search tree, ladder), `kt/vrf.ts` (ECVRF-EDWARDS25519-SHA512-TAI verify on BigInt Edwards25519 arithmetic; RFC 9381 Examples 16–18 are vectors) |
@@ -118,6 +118,7 @@ Stage 6 (`messaging`, the nine trace machines):
 | 23 | Deciding spec-gap 82 (a relay routes by `to`) took the relay fuzz target out of quarantine, and its first clean-rules runs split the implementations four more ways: traffic from a device that is not a leg, a `cancel` addressed to one leg's device (this implementation cancelled every leg; §12.11 says one), a leg added in the invite's last second, and the order of simultaneous expiries. | Spec §13.3; ten `state/relay-*` vectors; all three implementations. |
 | 24 | Spec-gap 83 (a device starts counting at its welcome's `seq`) reversed a vector: `deposit-welcome-with-seq-refused` pinned the reading the decision rejects, and became `deposit-welcome-with-seq-valid`. This implementation also did not treat an external-commit re-join as a join, so a late welcome for the group was processed twice. | M§5.2, M§6.5; `resume-*` vectors incl. `resume-rejoin-is-a-join`. |
 | 25 | The gateway checks (`passport`, `route`, `assert`), written from the README alone, passed every vector and still left five readings to the implementer: where a parameter value starts when it holds `=`, a trailing `;`, the case of `alg`/`ppt` values, an empty `info` URI, and whether a SEC1 `EC PRIVATE KEY` PEM is "a PKCS#8 PEM" (the Python reference would have read it). | README text; five `passport-*`/`assert-*` vectors; the Python reference fixed (spec-gap 110 I). |
+| 26 | Presence admission, audiences and shares (P§6, P§7; spec-gaps 144–147) passed the suite and still split from the Python harness under `fuzz.py` (`presence-admission`, `presence-authority`) three ways the README does not settle: which targets "exist" for the uniform reject before a grant is looked at (an identity of `context.identities` that never bound and has no policy; a target only a capability names); whether a share's end waits for every lapse in the same `advance` or both are one pass in subscription order; and whether the unbind grace, once started, outlives a record that expires during it. Also unwritten: "subscription order" is subscription-id order, not arrival. | Reported as findings; this implementation takes the readings probes showed (`Impl:` notes in `broadcast-state.ts`). |
 
 Readings this implementation makes that no vector pins yet (found by mutating the code and seeing the suite stay green):
 

@@ -28,7 +28,8 @@ def stream_in_namespace(stream_id: str, publisher: str) -> bool:
 class Authority:
     """Spec: §9.3 (subscribe/notify, authorization, anti-enumeration), §22.1 (publication records),
     §22.3 (provenance statements carried with the record); P§3 (presence records published, kept, expired, held through
-    an unbind's grace) and P§4 (one record per device)."""
+    an unbind's grace), P§4 (one record per device), P§6 (who may watch, audiences, a body per subscription) and P§7
+    (a grant's expiry and revocation end the subscriptions it admitted)."""
 
     def __init__(self, ctx: dict):
         self.now = ctx.get("start", 0)
@@ -36,12 +37,14 @@ class Authority:
         self.publications: dict[str, dict] = {}      # stream_id → {"publication", "publisher", "state", "expires_at", "variants", "policy"}
         self.provenance: dict[str, list[dict]] = {}  # stream_id → provenance statements (abbrev)
         self.subscriptions: dict[str, dict] = {}     # subscription id → {...}
-        self.policy: dict[str, dict] = {}            # target → {"mode": "public"|"allow", "allow": [...]}
+        self.policy: dict[str, dict] = {}            # target → {"mode": "public"|"allow", "allow": [...], "audience"?}
         self.capabilities: dict[str, str] = {}       # token → target
         self.bound: dict[str, set[str]] = {}         # identity → its bound devices (presence)
-        self.records: dict[tuple[str, str], dict] = {}  # (subject, device) → the device's current presence record (P§3)
-        self.grace_until: dict[str, int] = {}        # device → when its record is dropped, after an unbind (P§3)
-        self.last_accepted: dict[str, int] = {}      # device → when its last record was accepted (P§8 publish interval)
+        # (subject, device, audience) → the device's current record for that audience (P§3, P§6; "" = no audience)
+        self.records: dict[tuple[str, str, str], dict] = {}
+        self.grace_until: dict[str, int] = {}        # device → when its records are dropped, after an unbind (P§3)
+        self.last_accepted: dict[tuple[str, str], int] = {}  # (device, audience) → its last accepted record (P§8, P§6)
+        self.revoked: dict[tuple[str, str], int] = {}  # (granting identity, grant id) → the grant's valid_until (P§7)
         self.grace = ctx.get("presence_grace", PRESENCE_GRACE_S)  # P§8 T-Presence-Grace, the authority's choice
         self.out: list[dict] = []
 
@@ -65,21 +68,19 @@ class Authority:
             self.local(event)
         elif "relay" in event:
             identity, device = event["identity"], event["device"]
-            before = self.presence_body(identity)
             if event["relay"] == "bind":
                 self.bound.setdefault(identity, set()).add(device)
                 self.grace_until.pop(device, None)  # P§3: back within the grace, the record stays
             elif event["relay"] == "unbind":
                 self.bound.get(identity, set()).discard(device)
-                if (identity, device) in self.records and device not in self.grace_until:
-                    # P§3: the record outlives the binding by T-Presence-Grace, from the first unbind; 0 drops it now
+                if self.holds_record(identity, device) and device not in self.grace_until:
+                    # P§3: the records outlive the binding by T-Presence-Grace, from the first unbind; 0 drops them now
                     if self.grace == 0:
-                        self.drop_record(identity, device)
+                        self.drop_device(identity, device)
                     else:
                         self.grace_until[device] = self.now + self.grace
-            # P§3: a binding change notifies only when it changes the body
-            if self.presence_body(identity) != before:
-                self.presence_changed(identity)
+            # P§3, P§6: a binding change notifies only the subscriptions whose body it changes
+            self.presence_changed(identity)
         else:
             raise ValueError(event)
         return self.out
@@ -88,7 +89,7 @@ class Authority:
 
     def local(self, ev: dict) -> None:
         if ev["local"] == "policy":
-            self.policy[ev["target"]] = {"mode": ev["mode"], "allow": list(ev.get("allow", []))}
+            self.policy[ev["target"]] = {"mode": ev["mode"], "allow": list(ev.get("allow", [])), "audience": ev.get("audience")}
         elif ev["local"] == "issue_capability":
             self.capabilities[ev["token"]] = ev["target"]
         else:
@@ -144,6 +145,8 @@ class Authority:
             self.recv_subscribe(m, identity)
         elif t == "presence":
             self.recv_presence(m, identity)
+        elif t == "grant-revocation":
+            self.recv_revocation(m, identity)
         else:
             self.emit({"drop": "not-broadcast"})
 
@@ -159,28 +162,48 @@ class Authority:
             return refuse("presence.signer-mismatch")
         if not RECORD_MIN_LIFETIME_S <= m["expires_at"] - m["issued_at"] <= RECORD_MAX_LIFETIME_S:
             return refuse("presence.lifetime")  # P§8
-        held = self.records.get((identity, device))
+        audience = m.get("audience", "")
+        key = (identity, device, audience)
+        held = self.records.get(key)
         if held is not None and m["seq"] <= held["seq"]:
-            return refuse("presence.stale")  # P§4: seq is ordered per (subject, device)
-        last = self.last_accepted.get(device)
+            return refuse("presence.stale")  # P§4, P§6: seq is ordered per (subject, device, audience)
+        last = self.last_accepted.get((device, audience))
         if last is not None and self.now - last < PUBLISH_INTERVAL_S:
-            return refuse("policy.rate-limited", retry_after=PUBLISH_INTERVAL_S - (self.now - last))  # P§8
-        self.records[(identity, device)] = {"id": m["id"], "device": device, "state": m["state"], "seq": m["seq"],
-                                            "expires_at": m["expires_at"]}
-        self.last_accepted[device] = self.now
+            return refuse("policy.rate-limited", retry_after=PUBLISH_INTERVAL_S - (self.now - last))  # P§8, per audience
+        rec = {"id": m["id"], "device": device, "state": m["state"], "seq": m["seq"], "expires_at": m["expires_at"]}
+        if audience:
+            rec["audience"] = audience
+        self.records[key] = rec
+        self.last_accepted[(device, audience)] = self.now
         self.presence_changed(identity)
 
-    def drop_record(self, subject: str, device: str) -> None:
-        """P§3: an expired record, or one whose grace ran out, is dropped and its seq forgotten."""
-        self.records.pop((subject, device), None)
+    def recv_revocation(self, m: dict, identity: str) -> None:
+        """P§7, §19.4: a grant withdrawn by its grantor's device; every subscription it admitted ends at once."""
+        self.revoked[(identity, m["grant"])] = m["valid_until"]
+        for sid in sorted(self.subscriptions):
+            sub = self.subscriptions[sid]
+            if sub.get("grant") == m["grant"] and sub["target"] == identity:
+                self.notify(sid, "terminated", "policy.terminated")
+
+    def holds_record(self, subject: str, device: str) -> bool:
+        return any(s == subject and d == device for (s, d, _) in self.records)
+
+    def drop_device(self, subject: str, device: str) -> None:
+        """P§3: a device whose grace ran out loses every record, and their seqs are forgotten."""
+        for key in [k for k in self.records if k[0] == subject and k[1] == device]:
+            del self.records[key]
         self.grace_until.pop(device, None)
 
-    def presence_body(self, subject: str) -> dict:
-        """P§3: the assertion over the subject's devices that hold no record, and the records held, by device."""
+    def presence_body(self, subject: str, sub: dict | None = None) -> dict:
+        """P§3, P§6: over the records `sub` sees, the assertion for the bound devices that hold none of them, and those
+        records by device, then audience (none first). `sub` None: every record (the subject's own view)."""
+        def sees(rec: dict) -> bool:
+            a = rec.get("audience")
+            return sub is None or sub.get("own") or a is None or a == sub.get("audience")
+        recs = [r for (subj, _, _), r in sorted(self.records.items()) if subj == subject and sees(r)]
         bound = self.bound.get(subject, set())
-        asserted = "available" if any((subject, d) not in self.records for d in bound) else "offline"
+        asserted = "available" if any(all(r["device"] != d for r in recs) for d in bound) else "offline"
         body: dict = {"event": "presence", "state": asserted}
-        recs = [r for (subj, _), r in sorted(self.records.items()) if subj == subject]
         if recs:
             body["records"] = recs
         return body
@@ -193,7 +216,29 @@ class Authority:
         pol = self.policy.get(target, {"mode": "public", "allow": []})
         return pol["mode"] == "public" or identity in pol["allow"]
 
+    def admit_presence(self, target: str, identity: str, m: dict) -> dict | None:
+        """P§6 (spec-gap 144): the first rule that admits a presence subscriber — its own identity, a presented grant,
+        a capability, the authority's policy — and what it fixes: the audience (spec-gap 145), the admitting grant. With
+        no policy for the target only the first three can admit: presence is private by default (§9.2)."""
+        if identity == target:
+            return {"own": True}
+        for claim in m.get("claims", []):
+            g = claim.get("grant") if claim.get("type") == "dsip-grant" else None
+            if (g is not None and g.get("verified", True) and g["identity"] == target and g["to"] == identity
+                    and "dsip.subscribe" in g["scope"] and g["valid_until"] > self.now
+                    and (target, g["id"]) not in self.revoked):
+                return {"grant": g["id"], "grant_until": g["valid_until"], "audience": g.get("presence_audience")}
+        token = m.get("capability")
+        if token is not None and self.capabilities.get(token) == target:
+            return {}
+        pol = self.policy.get(target)
+        if pol is not None and (pol["mode"] == "public" or identity in pol["allow"]):
+            return {"audience": pol.get("audience")}
+        return None
+
     def target_exists(self, target: str, events: list) -> bool:
+        """§9.3: a target this authority has seen. Impl (spec-gap 149): an identity it holds a device for, one with a
+        bound device, or one with a policy; a capability alone does not make a target seen."""
         if "publication" in events:
             return target in self.publications
         return target in self.identities.values() or bool(self.bound.get(target)) or any(t == target for t in self.policy)
@@ -211,7 +256,9 @@ class Authority:
                 self.emit({"drop": "no-matching-subscription"})
             return
         # §9.3 anti-enumeration: unauthorized and nonexistent targets get the identical reject
-        if not self.target_exists(target, events) or not self.authorized(target, identity, m.get("capability")):
+        admitted = {} if "presence" not in events else self.admit_presence(target, identity, m)
+        if (not self.target_exists(target, events) or admitted is None
+                or ("presence" not in events and not self.authorized(target, identity, m.get("capability")))):
             self.send(type="reject", to=m["from"], session=m["id"], reason="policy.blocked")
             return
         cap = min(SUBSCRIPTION_EVENTS.get(e, 86400) for e in events)
@@ -221,7 +268,7 @@ class Authority:
             del self.subscriptions[existing]
             self.emit({"subscription": {"id": existing, "state": "replaced"}})
         sub = {"subscriber": identity, "device": m["from"], "target": target, "events": events,
-               "expires_at": self.now + lifetime, "seq": 0}
+               "expires_at": self.now + lifetime, "seq": 0, **{k: v for k, v in admitted.items() if v is not None}}
         self.subscriptions[m["id"]] = sub
         # Acceptance is signaled by the first notify, which carries the current state
         self.notify(m["id"], "active")
@@ -236,13 +283,14 @@ class Authority:
                 if prov:
                     body["provenance"] = [p["processor"] for p in prov]
             return body
-        return self.presence_body(sub["target"])
+        return self.presence_body(sub["target"], sub)
 
     def notify(self, sid: str, state: str, reason: str | None = None) -> None:
         sub = self.subscriptions[sid]
         sub["seq"] += 1
+        sub["body"] = self.body_for(sub)
         self.send(type="notify", to=sub["device"], subscription=sid, seq=sub["seq"], state=state, reason=reason,
-                  body=self.body_for(sub))
+                  body=sub["body"])
         if state == "terminated":
             del self.subscriptions[sid]
 
@@ -251,13 +299,22 @@ class Authority:
             self.notify(sid, "active")
 
     def presence_changed(self, identity: str) -> None:
-        self.notify_all("presence", identity)
+        """P§6 (spec-gap 146): each presence subscription to the subject is notified exactly when its own body changed."""
+        for sid in sorted(s for s, sub in self.subscriptions.items() if sub["target"] == identity and "presence" in sub["events"]):
+            sub = self.subscriptions[sid]
+            if self.body_for(sub) != sub.get("body"):
+                self.notify(sid, "active")
 
     def expire(self) -> None:
         for sid in sorted(self.subscriptions):
-            if self.subscriptions[sid]["expires_at"] <= self.now:
+            sub = self.subscriptions[sid]
+            if sub["expires_at"] <= self.now:
                 # §9.3: soft state — lapsed subscriptions end with a terminal notify carrying session.expired
                 self.notify(sid, "terminated", "session.expired")
+            elif "grant_until" in sub and sub["grant_until"] <= self.now:
+                self.notify(sid, "terminated", "policy.terminated")  # P§7: the admitting grant (the share) has ended
+        # P§7: a revocation is kept until the revoked grant's valid_until
+        self.revoked = {k: until for k, until in self.revoked.items() if until > self.now}
         for stream, pub in list(self.publications.items()):
             if pub["state"] in ("live", "scheduled") and pub["expires_at"] <= self.now:
                 pub["state"] = "expired"
@@ -265,9 +322,14 @@ class Authority:
                 self.notify_all("publication", stream)
         # P§3: records past expires_at, and those whose grace ran out, are dropped; one notify per subject, in order
         changed = set()
-        for (subject, device), rec in sorted(self.records.items()):
-            if rec["expires_at"] <= self.now or self.grace_until.get(device, self.now + 1) <= self.now:
-                self.drop_record(subject, device)
+        for (subject, device, audience), rec in sorted(self.records.items()):
+            if (subject, device, audience) not in self.records:
+                continue  # dropped with its device's other records
+            if self.grace_until.get(device, self.now + 1) <= self.now:
+                self.drop_device(subject, device)
+                changed.add(subject)
+            elif rec["expires_at"] <= self.now:
+                del self.records[(subject, device, audience)]
                 changed.add(subject)
         for subject in sorted(changed):
             self.presence_changed(subject)
@@ -277,18 +339,25 @@ class Authority:
                 for s, p in sorted(self.publications.items())}
 
     def snapshot_presence(self) -> dict:
-        """P§3: `{subject: {device: {seq, state, expires_at, grace_until?}}}`."""
+        """P§3: `{subject: {device: {seq, state, expires_at, grace_until?}}}`, the key `device/audience` for a record with
+        an audience (P§6)."""
         out: dict = {}
-        for (subject, device), r in sorted(self.records.items()):
+        for (subject, device, audience), r in sorted(self.records.items()):
             snap = {"seq": r["seq"], "state": r["state"], "expires_at": r["expires_at"]}
             if device in self.grace_until:
                 snap["grace_until"] = self.grace_until[device]
-            out.setdefault(subject, {})[device] = snap
+            out.setdefault(subject, {})[f"{device}/{audience}" if audience else device] = snap
         return out
 
     def snapshot_subscriptions(self) -> dict:
-        return {sid: {"subscriber": s["subscriber"], "target": s["target"], "events": s["events"], "seq": s["seq"],
-                      "expires_at": s["expires_at"]} for sid, s in sorted(self.subscriptions.items())}
+        out = {}
+        for sid, s in sorted(self.subscriptions.items()):
+            snap = {"subscriber": s["subscriber"], "target": s["target"], "events": s["events"], "seq": s["seq"],
+                    "expires_at": s["expires_at"]}
+            # P§6: how a presence subscription was admitted, when it was not by policy or a capability
+            snap.update({k: s[k] for k in ("own", "grant", "audience") if k in s})
+            out[sid] = snap
+        return out
 
 
 # ---------------------------------------------------------------- subscriber

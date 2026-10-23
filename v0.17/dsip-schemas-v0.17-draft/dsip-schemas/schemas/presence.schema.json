@@ -47,9 +47,9 @@
     },
     "audience": {
       "type": "string",
-      "minLength": 1,
+      "pattern": "^[a-z][a-z0-9-]*$",
       "maxLength": 64,
-      "description": "The audience this record is for (P6; not yet pinned)."
+      "description": "The audience this record is for, a token the subject chooses (P6, spec-gap 145); absent: every admitted subscriber."
     },
     "profiles": {
       "type": "array",

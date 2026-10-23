@@ -1,0 +1,102 @@
+{
+  "vector": "state/presence-revoked-before-subscribe",
+  "format": 1,
+  "kind": "state",
+  "description": "A grant revoked before anyone subscribed with it admits nothing; until its valid_until passes the authority keeps the revocation (P§7).",
+  "spec_ref": [
+    "P§7",
+    "§19.4"
+  ],
+  "context": {
+    "component": "authority",
+    "start": 1760000000,
+    "identities": {
+      "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu": "did:key:z6MkhzX9qTeXBWkucyMVric1E9JrqUD5LPAkD2BNavakAptf",
+      "did:key:z6MkfhenvjQ7awdpVWzPaeBuPkXCBLwzJKyosCrTL3huMb66": "did:key:z6MkhzX9qTeXBWkucyMVric1E9JrqUD5LPAkD2BNavakAptf",
+      "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+      "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+      "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL": "did:key:z6Mkt5yU6sK3v7gxFHncQbmZ7VQvnVuJBGrDAbqhZp2gDW7G"
+    }
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "relay": "bind",
+          "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+          "identity": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R"
+        },
+        "expect": {
+          "emit": []
+        }
+      },
+      {
+        "event": {
+          "recv": {
+            "type": "grant-revocation",
+            "id": "01K742SG00JDPYKYAA1ECYEA33",
+            "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "to": "did:key:z6MkAuthorityRelay11111111111111111111111111",
+            "grant": "01K741TZE0Y3VDTDWAG2BQQXF1",
+            "grantee": "did:key:z6MkhzX9qTeXBWkucyMVric1E9JrqUD5LPAkD2BNavakAptf",
+            "valid_until": 1760086400
+          }
+        },
+        "expect": {
+          "emit": []
+        }
+      },
+      {
+        "event": {
+          "advance": 3600
+        },
+        "expect": {
+          "emit": []
+        }
+      },
+      {
+        "event": {
+          "recv": {
+            "type": "subscribe",
+            "id": "01K7467BM0QM1J254XCJRVS31X",
+            "from": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+            "to": "did:key:z6MkAuthorityRelay11111111111111111111111111",
+            "target": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+            "events": [
+              "presence"
+            ],
+            "expires_in": 3600,
+            "claims": [
+              {
+                "type": "dsip-grant",
+                "grant": {
+                  "id": "01K741TZE0Y3VDTDWAG2BQQXF1",
+                  "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+                  "identity": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+                  "to": "did:key:z6MkhzX9qTeXBWkucyMVric1E9JrqUD5LPAkD2BNavakAptf",
+                  "scope": [
+                    "dsip.subscribe"
+                  ],
+                  "valid_until": 1760086400
+                }
+              }
+            ]
+          }
+        },
+        "expect": {
+          "emit": [
+            {
+              "send": {
+                "type": "reject",
+                "to": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+                "session": "01K7467BM0QM1J254XCJRVS31X",
+                "reason": "policy.blocked"
+              }
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "expect": {}
+}

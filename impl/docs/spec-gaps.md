@@ -4442,6 +4442,19 @@ with no policy and no grant never serves presence publicly by accident.
 subscriptions for targets with no policy, except for the subscriber's own identity (its other devices). The browser
 contact badges would then show nothing for contacts, which would also make the WAN presence check fail.
 
+**Decided (2026-10-23, user: "144 (a)"): (a).** v0.17 §9.3 gains "Presence is private by default": a grant from the
+target with `dsip.subscribe`, presented in `claims` as `{"type": "dsip-grant", "grant": <envelope>}`, admits; an
+authority with no policy and no admitting grant or capability refuses, except the target's own devices. P§6 gives the
+admission order: own devices, a grant, a capability, the authority's policy. A presented grant is verified as the
+mailbox already verifies one (M§14.2): signature and delegation now, not its delivery window (`dsip_core::grant`).
+
+**Pinned.** `state/presence-private-by-default`, `-grant-admits`, `-grant-not-admitting`, `-first-admitting-grant`,
+`-policy-admits-with-its-audience`, `payload/subscribe-with-grant-claim-valid`.
+
+**Implemented.** The authority in all three implementations; the relay verifies presented grants and has
+`--presence-public DID` for its own policy; the CLI and the browser present held grants when watching and grant
+`dsip.subscribe` with contact; the interim stopgap was not needed.
+
 ## 145. P§6 — audiences: what a record is for and who sees it
 
 **Found (2026-10-23, drafting P§6).** P§6 sketches one record per audience, named by `audience` (in the §9.4 schema
@@ -4471,6 +4484,13 @@ together without tripping its own rate limit or `seq`.
 Audiences already let a device publish a coarser state to some people (for example `available` to `work` while
 `family` sees `busy`). New fields can come in a later version without changing the audience rule.
 
+**Decided (2026-10-23, user: "145 (a)"): (a).** P§6 Audiences; §19.4 `presence_audience`; the record's `audience` is a
+token (schema pattern). Detail levels are out of 0.1 (P§1, P§6 Detail).
+
+**Pinned.** `state/presence-audiences`, `-seq-and-interval-per-audience`, `-expiry-per-audience`,
+`-grace-drops-every-audience`, `payload/presence-audience-*`, `payload/grant-presence-audience-*`. The clients do not
+publish per-audience records yet.
+
 ## 146. P§4 / P§6 — a device with no record for a subscriber's audience (P§11 question 3)
 
 **Found (2026-10-23, drafting P§6).** Under 145, a subscriber sees some of a device's records and not others. When a
@@ -4490,6 +4510,9 @@ Choices:
 `available (relay says)`. It also keeps P§2.2: under (b), a subscriber shown `offline` while the subject is bound learns
 that the device publishes to some other audience, which is a presence oracle in a small way. Under (a), what a
 subscriber sees depends only on what it may see.
+
+**Decided (2026-10-23, user: "146 (a)"): (a).** P§6 "The body per subscription". **Pinned:**
+`state/presence-assertion-per-subscription`.
 
 ## 147. P§7 / §19.4 — time-boxed shares, and ending a share early
 
@@ -4516,6 +4539,17 @@ person"). (a) does it with one small message that also fills the gap §19.4 has 
 enforced where the subscription lives, so the subscriber's client does not have to cooperate. Revocation stops
 future notifies only; what was already shown stays shown, as P§7 says.
 
+**Decided (2026-10-23, user: "147 (a)"): (a).** P§7 rewritten; §19.4 defines `grant-revocation` (new core message,
+schema `grant-revocation.schema.json`), kept by the authority until the grant's `valid_until`; `grantee` is
+informative (the match is by grant id and the revoking identity).
+
+**Pinned.** `state/presence-share-ends-at-valid-until`, `-lapse-before-share-end`, `-revocation-ends-subscriptions`,
+`-revocation-by-another-identity`, `-revoked-before-subscribe`, `payload/grant-revocation-*`,
+`envelope/grant-revocation-accepted`.
+
+**Implemented.** The browser revokes the grants it issued when a contact is removed; the CLI console's `revoke` sends
+the revocation to the relay.
+
 ## 148. P§11 question 4 — presence in messaging groups
 
 **Found (2026-10-23, drafting P§6).** M§11 activity already travels inside a conversation's MLS group, encrypted to
@@ -4530,3 +4564,26 @@ Choices:
 **Draft choice: (a).** Two paths with different audiences would make a person's presence depend on which path a
 watcher used. Encrypted presence (P§11 question 1) is the better reason to revisit this, and it waits for P§6 to
 settle.
+
+**Decided (2026-10-23, user: "148 (a)"): (a).** P§1 out of scope, P§11 question 3.
+
+## 149. §9.3 — which targets an authority has "seen", for the uniform reject
+
+**Found (2026-10-23, the independent TypeScript reading of P§6).** §9.3's anti-enumeration rule refuses targets the
+authority "has never seen" exactly as unauthorized ones, but "seen" is not defined. The PoC (README authority rules)
+counts a presence target as known when it is an identity the authority holds a device for, has a bound device, or has
+a policy. A target named only by a capability the authority issued is not known, so the capability cannot admit
+until that identity has bound once. impl-ts first read it otherwise and diverged both ways; it now matches.
+
+Choices:
+
+- **(a) Seen = has bound here (now or within the relay's retention, §13.3 spec-gap 131), or has a policy or an issued
+  capability here.** A capability or policy the authority holds for a target is itself knowledge of it.
+- **(b) Seen = has bound here, or has a policy here** (the PoC's rule; a capability alone does not count).
+- **(c) Leave "seen" to the authority,** only requiring that the answer for an unseen target equal the one for an
+  unauthorized target.
+
+**Draft choice: (a).** An authority that issued a follow token for a target plainly knows it, and refusing the token's
+holder until the target binds is surprising. The retention link keeps "seen" from growing forever.
+
+**Impl (not yet decided):** the PoC's rule (b), now stated in the vectors README.

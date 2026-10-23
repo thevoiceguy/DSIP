@@ -3,7 +3,8 @@
 **Status:** DRAFT, companion profile to DSIP v0.17. Cite as `P§n`. It collects spec-gaps 134–137, decided 2026-10-19,
 and the choices made 2026-10-22 on the outline (`impl/docs/presence-profile-outline.md`): a device sends its signed
 `presence` record itself (no new message), under `dsip.signaling`, with the timers of P§8 and the reason category
-`presence` (P§9). P§3–P§5 and P§8 are pinned by vectors; P§6 and P§7 are not yet.
+`presence` (P§9). Spec-gaps 142–148, decided 2026-10-22/23, add the record's profile token, how a subscriber reaches
+the authority, who may watch, audiences and shares (P§6, P§7). P§3–P§8 are pinned by vectors.
 
 The core stays as it is: presence is optional (§9.1), private by default (§9.2), carried by `subscribe`/`notify`
 (§9.3), and never published to the DHT (§8.5). This profile fills in what §9 leaves open: how a device's signed record
@@ -17,12 +18,13 @@ This profile defines:
 - how a device **publishes** its signed presence record to its authority (P§3);
 - **per-device records** and the rule that combines them into an identity's presence (P§4);
 - the **`dsip-presence-state`** registry and its fallback (P§5);
-- **audiences**: what detail a subscriber is shown (P§6, not yet pinned);
-- **time-boxed shares** of presence (P§7, not yet pinned);
+- **who may watch** and **audiences**: which subscribers are admitted, and which records each sees (P§6);
+- **time-boxed shares** of presence, and ending one early (P§7);
 - the profile's **timers** (P§8) and **reason tokens** (P§9).
 
 Out of scope: presence bridged to SIP SIMPLE, XMPP or carrier presence; calendar or meeting integration; presence
-encrypted to subscribers (P§11); enterprise policy distribution (a deployment pattern, P§11).
+encrypted to subscribers (P§11); enterprise policy distribution (a deployment pattern, P§11); detail levels beyond the
+state (`activity`, `note`; P§6); presence carried in messaging groups (P§11, spec-gap 148).
 
 ## P§2 Principles
 
@@ -78,13 +80,14 @@ envelope pipeline is refused with `error` (`to` the publishing device,
 1. `presence.signer-mismatch`: the record names no `device`, or its `subject` is not the identity the signing device
    is delegated by (§7.4), as the authority learned it when the device bound (§13.2).
 2. `presence.lifetime`: `expires_at − issued_at` is below 60 s or above 3,600 s (P§8).
-3. `presence.stale`: the authority holds a record for the same `(subject, device)` whose `seq` is equal or greater.
-4. `policy.rate-limited`: the authority accepted a record from this device less than 5 s earlier (P§8), whether or not
-   that record is still held; the `error` carries `retry_after`, the whole seconds left.
+3. `presence.stale`: the authority holds a record for the same `(subject, device, audience)` (P§6) whose `seq` is equal
+   or greater.
+4. `policy.rate-limited`: the authority accepted a record from this device for the same audience less than 5 s earlier
+   (P§8), whether or not that record is still held; the `error` carries `retry_after`, the whole seconds left.
 
 Otherwise the record is accepted. The authority does not acknowledge it (as for `publish`, §22.1): it keeps it as the
-device's current record, replacing any earlier one, and every active presence subscription to the subject gets a
-`notify` (§9.3) carrying the new body.
+device's current record for its audience, replacing any earlier one, and every active presence subscription to the
+subject whose body it changes (P§6) gets a `notify` (§9.3) carrying the new body.
 
 **The body.** A presence `notify` body is `{"event": "presence", "state": S}`, as in §9.3, where `S` is the authority's
 assertion about the subject's devices that hold **no** record: `available` when any of them is bound to it, else
@@ -131,24 +134,64 @@ a binding change of a device that holds no record. A binding change that leaves 
 - "Invisible" is client behaviour, not a state: an invisible device publishes `offline`, or nothing. P§2.2 is what
   keeps it from leaking.
 
-## P§6 Audiences and detail (not yet pinned)
+## P§6 Who may watch, and audiences (spec-gaps 144–146)
 
-- Three detail levels: `basic` (available or unavailable), `standard` (P§5 states), `detailed` (plus `activity`,
-  registry `dsip-presence-activity` with `in-call`, `in-meeting`, `presenting`, and a free-text `note`).
-- A device may publish one record per audience it shares with, each signed, with the record's `audience` naming it.
-  The authority sends each subscriber only the records for that subscriber's audience, as its policy decides from the
-  verified identity, `claims` and `capability` (§9.3). The authority never edits a record, so a reduced view is a
-  separately signed record, never a redacted one.
-- A subscriber in no audience gets the uniform `policy.blocked` (§9.3).
-- The authority sees every audience's records in plaintext. That is accepted (it already sees the bindings), and it is
-  why encryption is P§11.
+**Admission** (spec-gap 144). Presence is private by default (§9.2). An authority admits a presence `subscribe` by
+the first of these that applies, at every `subscribe`, a renewal included:
 
-## P§7 Time-boxed shares (not yet pinned)
+1. **The subject's own devices:** the subscriber's identity is the target. Such a subscription sees every record.
+2. **A grant:** an entry of the `subscribe`'s `claims` is `{"type": "dsip-grant", "grant": E}`, where `E` is a signed
+   `grant` envelope (§19.4) whose signature and delegation verify (§10.2, §7.4); its `issued_at` and `expires_at`
+   bound its delivery, not its life, so the replay window and delivery expiry are not applied. It admits when the
+   identity its signer acts for is the target, its `to` is the subscriber's identity, its `scope` includes
+   `dsip.subscribe`, its `valid_until` is after now (§12.9), and the target has not revoked it (P§7). The first
+   admitting entry, in `claims` order, is used.
+3. **A capability** the authority issued for the target (§9.3).
+4. **The authority's own policy** for the target (for example `public` for a public figure, or an organisation's
+   directory).
 
-- A share is a `capability` token (§9.3) the subject's authority issues for one subscriber DID and an audience, with
-  an expiry. When the token expires, the subscription ends with a `terminated` notify, reason `policy.terminated`;
-  revoking it early does the same.
-- Issuing a share is out of band, as for `contact_token` (§19.4): a link, a QR code, or a grant.
+Otherwise the answer is `reject` with `policy.blocked`, as for a target that does not exist (§9.3). An authority with
+no policy for a target admits by 1–3 only.
+
+**Audiences** (spec-gap 145). A record MAY carry `audience`, and a grant MAY carry `presence_audience`: a token
+`[a-z][a-z0-9-]*` of at most 64 characters that the subject chooses (`family`, `work`, …). A subscription's audience
+is fixed when it is admitted: under rule 1, every audience; under rule 2, the grant's `presence_audience`, or none when
+the grant has none; under rules 3 and 4, none, unless the authority's policy names one. A subscription sees the records
+with no `audience`, and those whose `audience` equals its own.
+
+A device publishes one record per audience it shares with, each signed by itself. The authority never edits a record,
+so a reduced view is a separately signed record, never a redacted one. Records are kept per `(subject, device,
+audience)`, a record without `audience` counting as an audience of its own. P§3's `presence.stale` compares `seq`
+within that key, and the publish interval runs per device and audience. Each record expires by itself; the unbind
+grace is per device and applies to all of the device's records.
+
+**The body per subscription** (spec-gap 146). A subscription's `notify` body is P§3's body computed over what that
+subscription sees. `records` lists the records it sees, ordered by device, then by audience, a record without one
+first. The assertion is `available` when any bound device of the subject holds no record the subscription sees, else
+`offline`. A device that publishes only to other audiences therefore counts in the assertion, exactly as a device that
+publishes nothing. Bodies differ between subscriptions, and a subscription is notified exactly when an event changes
+its own body.
+
+**Detail.** This version defines no detail beyond the state: `activity` and `note` are not fields of a record. A
+coarser view for an audience is a record with a coarser state (for example `available` for `work` while `family` sees
+`busy`).
+
+The authority sees every audience's records in plaintext. That is accepted (it already sees the bindings), and it is
+why encryption is P§11's.
+
+## P§7 Time-boxed shares (spec-gap 147)
+
+- **A share is a grant** with `dsip.subscribe`, optionally a `presence_audience`, and a `valid_until` at the end of the
+  share. It is issued as any grant is (§19.4): in answer to an introduction, which a contact token handed over out of
+  band (a link, a QR code) may admit.
+- **Expiry.** A subscription admitted by a grant ends when the authority's clock reaches the grant's `valid_until`: a
+  `terminated` notify with reason `policy.terminated`. A subscription that lapses at the same instant ends with
+  `session.expired` instead (§9.3).
+- **Ending a share early.** A device of the subject sends its authority a `grant-revocation` (§19.4) for the grant.
+  The authority keeps it until the grant's `valid_until`. Every subscription that grant admitted, the grant issued by
+  the revocation signer's identity, ends at once with a `terminated` notify, reason `policy.terminated`, in
+  subscription order. A later `subscribe` presenting the grant is not admitted by it (rule 2); another rule may still
+  admit. A revocation is not answered.
 - Revocation stops future notifies only. What was already shown cannot be recalled.
 
 ## P§8 Timers
@@ -188,9 +231,9 @@ condition: the record is refused; the device does not send the same record again
 
 1. **Encryption to subscribers.** One route: an MLS group per audience, with presence sealed under its exporter, as
    Messaging Profile activity is (M§11). It reuses existing key distribution and removal; the cost is a group per
-   audience, and every share is a membership change. Deferred until P§6 is pinned.
+   audience, and every share is a membership change. Deferred to a later version.
 2. **Enterprise policy.** A deployment pattern, not protocol: an organisation runs the `did:web` authority for its
    identities and applies policy there (§9.3 already makes authorization the authority's decision).
-3. **A device with no record for an audience** (P§6): fall back to assertion, or show nothing?
-4. **Messaging:** should a member's presence also travel in its groups (M§11 activity)? That would give a second path
-   with its own audiences.
+3. **Messaging** (spec-gap 148, decided for 0.1): presence has one path, through the authority. A client MAY show
+   messaging activity (M§11) beside presence; the two are not combined. Encrypted presence (question 1) is the
+   occasion to revisit this.

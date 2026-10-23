@@ -1,0 +1,186 @@
+{
+  "vector": "state/presence-seq-and-interval-per-audience",
+  "format": 1,
+  "kind": "state",
+  "description": "seq and the publish interval run per (subject, device, audience): work's seq 1 after family's seq 5 is not stale, family again 2 s later is rate-limited with 3 s left, work's seq 1 again is stale, and family at 5 s is accepted (P§3, P§6, P§8).",
+  "spec_ref": [
+    "P§3",
+    "P§6",
+    "P§8"
+  ],
+  "context": {
+    "component": "authority",
+    "start": 1760000000,
+    "identities": {
+      "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu": "did:key:z6MkhzX9qTeXBWkucyMVric1E9JrqUD5LPAkD2BNavakAptf",
+      "did:key:z6MkfhenvjQ7awdpVWzPaeBuPkXCBLwzJKyosCrTL3huMb66": "did:key:z6MkhzX9qTeXBWkucyMVric1E9JrqUD5LPAkD2BNavakAptf",
+      "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+      "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+      "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL": "did:key:z6Mkt5yU6sK3v7gxFHncQbmZ7VQvnVuJBGrDAbqhZp2gDW7G"
+    }
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "relay": "bind",
+          "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+          "identity": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R"
+        },
+        "expect": {
+          "emit": []
+        }
+      },
+      {
+        "event": {
+          "recv": {
+            "type": "presence",
+            "id": "01K742SG00H3SBZ76QZ4RT7Z29",
+            "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "to": "did:key:z6MkAuthorityRelay11111111111111111111111111",
+            "subject": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+            "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "state": "busy",
+            "seq": 5,
+            "issued_at": 1760000000,
+            "expires_at": 1760000300,
+            "audience": "family"
+          }
+        },
+        "expect": {
+          "emit": []
+        }
+      },
+      {
+        "event": {
+          "recv": {
+            "type": "presence",
+            "id": "01K742SG005F7NDYWKEN5WMHF3",
+            "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "to": "did:key:z6MkAuthorityRelay11111111111111111111111111",
+            "subject": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+            "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "state": "away",
+            "seq": 1,
+            "issued_at": 1760000000,
+            "expires_at": 1760000300,
+            "audience": "work"
+          }
+        },
+        "expect": {
+          "emit": []
+        }
+      },
+      {
+        "event": {
+          "advance": 2
+        },
+        "expect": {
+          "emit": []
+        }
+      },
+      {
+        "event": {
+          "recv": {
+            "type": "presence",
+            "id": "01K742SHYGDBHRWQBYBC1RJ3AJ",
+            "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "to": "did:key:z6MkAuthorityRelay11111111111111111111111111",
+            "subject": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+            "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "state": "dnd",
+            "seq": 6,
+            "issued_at": 1760000002,
+            "expires_at": 1760000302,
+            "audience": "family"
+          }
+        },
+        "expect": {
+          "emit": [
+            {
+              "send": {
+                "type": "error",
+                "to": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+                "in_reply_to": "01K742SHYGDBHRWQBYBC1RJ3AJ",
+                "reason": "policy.rate-limited",
+                "retry_after": 3
+              }
+            }
+          ]
+        }
+      },
+      {
+        "event": {
+          "recv": {
+            "type": "presence",
+            "id": "01K742SHYG6E6FPRY7065SMEFK",
+            "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "to": "did:key:z6MkAuthorityRelay11111111111111111111111111",
+            "subject": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+            "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "state": "dnd",
+            "seq": 1,
+            "issued_at": 1760000002,
+            "expires_at": 1760000302,
+            "audience": "work"
+          }
+        },
+        "expect": {
+          "emit": [
+            {
+              "send": {
+                "type": "error",
+                "to": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+                "in_reply_to": "01K742SHYG6E6FPRY7065SMEFK",
+                "reason": "presence.stale"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "event": {
+          "advance": 3
+        },
+        "expect": {
+          "emit": []
+        }
+      },
+      {
+        "event": {
+          "recv": {
+            "type": "presence",
+            "id": "01K742SMW85Y3RTZE4VG7YJ0E9",
+            "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "to": "did:key:z6MkAuthorityRelay11111111111111111111111111",
+            "subject": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+            "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "state": "dnd",
+            "seq": 7,
+            "issued_at": 1760000005,
+            "expires_at": 1760000305,
+            "audience": "family"
+          }
+        },
+        "expect": {
+          "emit": [],
+          "presence": {
+            "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R": {
+              "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn/family": {
+                "seq": 7,
+                "state": "dnd",
+                "expires_at": 1760000305
+              },
+              "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn/work": {
+                "seq": 1,
+                "state": "away",
+                "expires_at": 1760000300
+              }
+            }
+          }
+        }
+      }
+    ]
+  },
+  "expect": {}
+}

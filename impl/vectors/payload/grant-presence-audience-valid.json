@@ -1,0 +1,41 @@
+{
+  "vector": "payload/grant-presence-audience-valid",
+  "format": 1,
+  "kind": "payload",
+  "description": "A grant may name the presence audience its subscriber sees (§19.4, P§6).",
+  "spec_ref": [
+    "§19.4",
+    "P§6"
+  ],
+  "context": {},
+  "input": {
+    "schema": "grant",
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "interactive-media/1.0"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "grant",
+      "id": "01K742SG00A1YWQ2XD806NEF9Q",
+      "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+      "to": "did:key:z6MkhzX9qTeXBWkucyMVric1E9JrqUD5LPAkD2BNavakAptf",
+      "session": "01K742QND0D655MW870YVF8HJ1",
+      "scope": [
+        "dsip.invite",
+        "dsip.subscribe"
+      ],
+      "valid_until": 1760086400,
+      "issued_at": 1760000000,
+      "expires_at": 1760000030,
+      "presence_audience": "family"
+    }
+  },
+  "expect": {
+    "verdict": "accept"
+  }
+}

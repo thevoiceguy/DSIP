@@ -1,0 +1,39 @@
+{
+  "vector": "payload/presence-audience-too-long",
+  "format": 1,
+  "kind": "payload",
+  "description": "An audience is at most 64 characters (P§6).",
+  "spec_ref": [
+    "P§6"
+  ],
+  "context": {},
+  "input": {
+    "schema": "presence",
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "interactive-media/1.0"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "presence",
+      "id": "01K742SG00V5479984E3DB4FP0",
+      "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+      "to": "did:web:relay.example.com",
+      "subject": "did:web:example.com:users:bob",
+      "state": "busy",
+      "seq": 1,
+      "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+      "issued_at": 1760000000,
+      "expires_at": 1760000300,
+      "audience": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "schema-invalid"
+  }
+}

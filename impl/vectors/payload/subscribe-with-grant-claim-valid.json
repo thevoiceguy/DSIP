@@ -1,0 +1,49 @@
+{
+  "vector": "payload/subscribe-with-grant-claim-valid",
+  "format": 1,
+  "kind": "payload",
+  "description": "A subscribe may present a grant in claims as {type: dsip-grant, grant} (§9.3, P§6).",
+  "spec_ref": [
+    "§9.3",
+    "P§6"
+  ],
+  "context": {},
+  "input": {
+    "schema": "subscribe",
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "interactive-media/1.0"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "subscribe",
+      "id": "01K742SG008T9WRD7CM2R8GWDC",
+      "from": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+      "to": "did:web:relay.example.com",
+      "target": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+      "events": [
+        "presence"
+      ],
+      "expires_in": 3600,
+      "claims": [
+        {
+          "type": "dsip-grant",
+          "grant": {
+            "protected": "e30",
+            "payload": "e30",
+            "signature": "AA"
+          }
+        }
+      ],
+      "issued_at": 1760000000,
+      "expires_at": 1760000030
+    }
+  },
+  "expect": {
+    "verdict": "accept"
+  }
+}
