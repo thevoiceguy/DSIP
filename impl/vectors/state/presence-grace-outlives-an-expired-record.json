@@ -1,0 +1,189 @@
+{
+  "vector": "state/presence-grace-outlives-an-expired-record",
+  "format": 1,
+  "kind": "state",
+  "description": "The grace belongs to the unbind, not to a record: the record expires inside it, a record accepted meanwhile is still dropped when the grace runs out, and one accepted after that has no grace and lives to its own expires_at (P§3).",
+  "spec_ref": [
+    "P§3",
+    "P§8"
+  ],
+  "context": {
+    "component": "authority",
+    "start": 1760000000,
+    "identities": {
+      "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu": "did:key:z6MkhzX9qTeXBWkucyMVric1E9JrqUD5LPAkD2BNavakAptf",
+      "did:key:z6MkfhenvjQ7awdpVWzPaeBuPkXCBLwzJKyosCrTL3huMb66": "did:key:z6MkhzX9qTeXBWkucyMVric1E9JrqUD5LPAkD2BNavakAptf",
+      "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+      "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+      "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL": "did:key:z6Mkt5yU6sK3v7gxFHncQbmZ7VQvnVuJBGrDAbqhZp2gDW7G"
+    }
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "recv": {
+            "type": "presence",
+            "id": "01K742SG00QFSAW6JS8FPVMCBK",
+            "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "to": "did:key:z6MkAuthorityRelay11111111111111111111111111",
+            "subject": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+            "state": "busy",
+            "seq": 1,
+            "issued_at": 1760000000,
+            "expires_at": 1760000060,
+            "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+          }
+        },
+        "expect": {
+          "emit": [],
+          "presence": {
+            "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R": {
+              "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn": {
+                "seq": 1,
+                "state": "busy",
+                "expires_at": 1760000060
+              }
+            }
+          }
+        }
+      },
+      {
+        "event": {
+          "advance": 4
+        },
+        "expect": {
+          "emit": []
+        }
+      },
+      {
+        "event": {
+          "relay": "unbind",
+          "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+          "identity": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R"
+        },
+        "expect": {
+          "emit": []
+        }
+      },
+      {
+        "event": {
+          "advance": 56
+        },
+        "expect": {
+          "emit": [],
+          "presence": {}
+        }
+      },
+      {
+        "event": {
+          "advance": 2
+        },
+        "expect": {
+          "emit": []
+        }
+      },
+      {
+        "event": {
+          "recv": {
+            "type": "presence",
+            "id": "01K742VCHGKRYBBKMBZZCA81VN",
+            "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "to": "did:key:z6MkAuthorityRelay11111111111111111111111111",
+            "subject": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+            "state": "away",
+            "seq": 2,
+            "issued_at": 1760000062,
+            "expires_at": 1760000122,
+            "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+          }
+        },
+        "expect": {
+          "emit": [],
+          "presence": {
+            "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R": {
+              "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn": {
+                "seq": 2,
+                "state": "away",
+                "expires_at": 1760000122,
+                "grace_until": 1760000064
+              }
+            }
+          }
+        }
+      },
+      {
+        "event": {
+          "advance": 2
+        },
+        "expect": {
+          "emit": [],
+          "presence": {}
+        }
+      },
+      {
+        "event": {
+          "advance": 6
+        },
+        "expect": {
+          "emit": []
+        }
+      },
+      {
+        "event": {
+          "recv": {
+            "type": "presence",
+            "id": "01K742VMBGSDEDQRZ5GG3BSQM3",
+            "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "to": "did:key:z6MkAuthorityRelay11111111111111111111111111",
+            "subject": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+            "state": "dnd",
+            "seq": 3,
+            "issued_at": 1760000070,
+            "expires_at": 1760000130,
+            "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+          }
+        },
+        "expect": {
+          "emit": [],
+          "presence": {
+            "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R": {
+              "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn": {
+                "seq": 3,
+                "state": "dnd",
+                "expires_at": 1760000130
+              }
+            }
+          }
+        }
+      },
+      {
+        "event": {
+          "advance": 59
+        },
+        "expect": {
+          "emit": [],
+          "presence": {
+            "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R": {
+              "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn": {
+                "seq": 3,
+                "state": "dnd",
+                "expires_at": 1760000130
+              }
+            }
+          }
+        }
+      },
+      {
+        "event": {
+          "advance": 1
+        },
+        "expect": {
+          "emit": [],
+          "presence": {}
+        }
+      }
+    ]
+  },
+  "expect": {}
+}

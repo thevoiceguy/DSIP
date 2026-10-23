@@ -332,6 +332,8 @@ class Authority:
             elif rec["expires_at"] <= self.now:
                 del self.records[(subject, device, audience)]
                 changed.add(subject)
+        # P§3: a grace that ran out is over even when the device's records expired first; a later record has none
+        self.grace_until = {d: until for d, until in self.grace_until.items() if until > self.now}
         for subject in sorted(changed):
             self.presence_changed(subject)
 

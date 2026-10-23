@@ -336,6 +336,26 @@ def state_vectors() -> list[dict]:
         adv(1, [notify(4, body("offline"))], presence={}),
     ]))
 
+    e1 = rec("pe1", ttl=60)
+    e2 = rec("pe2", seq=2, state="away", at=NOW + 62, ttl=60)
+    e3 = rec("pe3", seq=3, state="dnd", at=NOW + 70, ttl=60)
+    out.append(trace("presence-grace-outlives-an-expired-record",
+                     "The grace belongs to the unbind, not to a record: the record expires inside it, a record accepted "
+                     "meanwhile is still dropped when the grace runs out, and one accepted after that has no grace and lives "
+                     "to its own expires_at (P§3).", ["P§3", "P§8"], [
+        step({"recv": e1}, [], presence=snap(e1)),
+        adv(4),
+        unbind(),
+        adv(56, presence={}),
+        adv(2),
+        step({"recv": e2}, [], presence=snap(e2, grace={BPH: NOW + 64})),
+        adv(2, presence={}),
+        adv(6),
+        step({"recv": e3}, [], presence=snap(e3)),
+        adv(59, presence=snap(e3)),
+        adv(1, presence={}),
+    ]))
+
     z1 = rec("pz1")
     z2 = rec("pz2", seq=2, state="away", at=NOW + 2)
     out.append(trace("presence-rate-limit-runs-after-a-drop",
