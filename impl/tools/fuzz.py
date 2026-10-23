@@ -940,7 +940,9 @@ def gen_presence_authority(r: random.Random):
 
 def gen_presence_admission(r: random.Random):
     """Who may watch, audiences, shares at a subject's authority (P§6, P§7; README authority "Who may watch, audiences,
-    shares"): grants presented and revoked, policies with audiences, records per audience, bindings and the clock."""
+    shares"): grants presented and revoked, policies with audiences, capabilities, records per audience, bindings and
+    the clock. DAVE never binds and is in no device map: only a policy or a capability makes him seen (spec-gap 149)."""
+    DAVE = "did:web:dave.example"
     audiences = [None, None, "family", "work"]
     grants = []
     for i in range(r.randint(1, 4)):
@@ -954,7 +956,8 @@ def gen_presence_admission(r: random.Random):
         grants.append(g)
     ev = []
     if r.random() < 0.4:
-        pol = {"local": "policy", "target": BOB, "mode": r.choice(["public", "allow"]), "allow": r.sample([ALICE, CAROL, MALLORY], r.randint(0, 2))}
+        pol = {"local": "policy", "target": r.choice([BOB, BOB, DAVE]), "mode": r.choice(["public", "allow"]),
+               "allow": r.sample([ALICE, CAROL, MALLORY], r.randint(0, 2))}
         if (a := r.choice(audiences)) is not None:
             pol["audience"] = a
         ev.append(pol)
@@ -962,14 +965,18 @@ def gen_presence_admission(r: random.Random):
     for _ in range(r.randint(4, 16)):
         x = r.random()
         counter[0] += 1
-        if x < 0.15:
+        if x < 0.12:
             ev.append({"relay": r.choice(["bind", "bind", "unbind"]), "device": r.choice([B1, B2]), "identity": BOB})
+        elif x < 0.15:
+            ev.append({"local": "issue_capability", "token": r.choice(["t1", "t2"]), "target": r.choice([BOB, DAVE, DAVE])})
         elif x < 0.4:
             frm = r.choice([A1, A2, C1, M1, B2])
-            m = {"type": "subscribe", "id": ulid(counter[0]), "from": frm, "to": RELAY, "target": BOB, "events": ["presence"],
-                 "expires_in": r.choice([0, 60, 600, 3600])}
+            m = {"type": "subscribe", "id": ulid(counter[0]), "from": frm, "to": RELAY, "target": r.choice([BOB, BOB, BOB, DAVE]),
+                 "events": ["presence"], "expires_in": r.choice([0, 60, 600, 3600])}
             if r.random() < 0.8:
                 m["claims"] = [{"type": "dsip-grant", "grant": g} for g in r.sample(grants, r.randint(1, len(grants)))]
+            if r.random() < 0.3:
+                m["capability"] = r.choice(["t1", "t2", "nope"])
             ev.append({"recv": m})
         elif x < 0.7:
             d = r.choice([B1, B1, B2])

@@ -336,6 +336,26 @@ def state_vectors() -> list[dict]:
         adv(1, [notify(4, body("offline"))], presence={}),
     ]))
 
+    e1 = rec("pe1", ttl=60)
+    e2 = rec("pe2", seq=2, state="away", at=NOW + 62, ttl=60)
+    e3 = rec("pe3", seq=3, state="dnd", at=NOW + 70, ttl=60)
+    out.append(trace("presence-grace-outlives-an-expired-record",
+                     "The grace belongs to the unbind, not to a record: the record expires inside it, a record accepted "
+                     "meanwhile is still dropped when the grace runs out, and one accepted after that has no grace and lives "
+                     "to its own expires_at (P§3).", ["P§3", "P§8"], [
+        step({"recv": e1}, [], presence=snap(e1)),
+        adv(4),
+        unbind(),
+        adv(56, presence={}),
+        adv(2),
+        step({"recv": e2}, [], presence=snap(e2, grace={BPH: NOW + 64})),
+        adv(2, presence={}),
+        adv(6),
+        step({"recv": e3}, [], presence=snap(e3)),
+        adv(59, presence=snap(e3)),
+        adv(1, presence={}),
+    ]))
+
     z1 = rec("pz1")
     z2 = rec("pz2", seq=2, state="away", at=NOW + 2)
     out.append(trace("presence-rate-limit-runs-after-a-drop",
@@ -521,6 +541,26 @@ def admission_vectors() -> list[dict]:
         step({"recv": carol}, [notify(carol, 1, body("available"))], subscriptions=subsnap(carol, 1, CAROL, audience="work")),
         step({"recv": (fr := rec("a-pf", audience="family"))}, []),
         step({"recv": (wr := rec("a-pw", state="away", audience="work"))}, [notify(carol, 2, body("offline", wr))]),
+    ]))
+
+    # spec-gap 149 (a): a capability the authority issued for a target makes it seen, before it ever binds
+    cap = lambda sub, token: {**sub, "capability": token}
+    pre = subscribe("a-cap-pre", target=MAL)
+    plain = subscribe("a-cap-plain", target=MAL)
+    wrong = cap(subscribe("a-cap-wrong", target=MAL), "follow-wrong")
+    held = cap(subscribe("a-cap-held", target=MAL), "follow-mal")
+    out.append(trace("presence-capability-makes-target-seen",
+                     "Mallory has never bound here and has no policy. Before a capability is issued for her, Alice is "
+                     "refused; once it is, the capability admits Alice although Mallory has still never bound, and her "
+                     "body asserts offline. Presenting nothing, or another token, is still the uniform policy.blocked "
+                     "(§9.3, P§6 rule 3, spec-gap 149).", ["§9.3", "P§6"], [
+        step({"recv": pre}, [blocked(pre)]),
+        step({"local": "issue_capability", "token": "follow-mal", "target": MAL}, []),
+        step({"recv": plain}, [blocked(plain)]),
+        step({"recv": wrong}, [blocked(wrong)]),
+        step({"recv": held}, [notify(held, 1, {"event": "presence", "state": "offline"})],
+             subscriptions={held["id"]: {"subscriber": ALICE, "target": MAL, "events": ["presence"], "seq": 1,
+                                         "expires_at": NOW + 3600}}),
     ]))
 
     fam_sub = subscribe("a-famsub", grants=[fam])

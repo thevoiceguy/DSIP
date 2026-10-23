@@ -146,7 +146,8 @@ the first of these that applies, at every `subscribe`, a renewal included:
    identity its signer acts for is the target, its `to` is the subscriber's identity, its `scope` includes
    `dsip.subscribe`, its `valid_until` is after now (§12.9), and the target has not revoked it (P§7). The first
    admitting entry, in `claims` order, is used.
-3. **A capability** the authority issued for the target (§9.3).
+3. **A capability** the authority issued for the target (§9.3). Issuing it makes the target seen (§9.3, spec-gap 149),
+   so it admits before the target has ever bound.
 4. **The authority's own policy** for the target (for example `public` for a public figure, or an organisation's
    directory).
 

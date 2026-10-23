@@ -520,7 +520,9 @@ uniform `reject policy.blocked`. With **no policy** for a target only (1)–(3) 
 (A `subscribe` naming only `publication` keeps the publication rules: no policy admits. One naming `presence` and
 `publication` is admitted by these rules, and the target-exists check is the publication one.) The target-exists check
 is the existing one: for presence, a target is known when it is an identity in `context.identities`, has a bound device,
-or has a policy; a capability alone does not make it known. A refused renewal leaves the earlier subscription as it
+or the authority holds a policy or an issued capability for it (spec-gap 149 (a): what an authority issued or was told
+about a target is knowledge of it, so a capability admits before its target ever binds); for publication, when it is
+a published stream. A refused renewal leaves the earlier subscription as it
 was, to lapse or end by itself.
 
 A `presence` record MAY carry `audience`. Records are kept per `(subject, device, audience)` (absent = an audience of
@@ -2231,6 +2233,9 @@ Each item has a matching `spec-gap` issue draft in `impl/docs/spec-gaps.md`.
     (`policy.terminated`, a lapse at the same instant wins); `grant-revocation` ends them early
     (`state/presence-share-ends-at-valid-until`, `-lapse-before-share-end`, `-revocation-*`, `-revoked-before-subscribe`,
     `payload/grant-revocation-*`, `envelope/grant-revocation-accepted`).
+149. §9.3 / P§6: **decided** (v0.17, (a)) — a presence target is seen when it has bound here or the authority holds a
+    policy or an issued capability for it, so a capability admits before its target ever binds; a publication target
+    when it is published (`state/presence-capability-makes-target-seen`).
 141. §12.9: **decided** (v0.17) — `expires_at` is exclusive everywhere: expired when `now ≥ expires_at`, at receipt and
     wherever a held message, kept record, leg or activity is judged; `reachability-hint` and `presence` ids are not
     deduplicated (`envelope/*-at-expiry`, `envelope/presence-id-already-seen`, `dht/hint-*`, `state/invite-*-expiry*`,

@@ -443,17 +443,17 @@ export class Authority {
    * grant (its `presence_audience`), (3) a capability issued for the target, (4) the authority's policy (its
    * audience); with no policy, only (1)–(3) admit. A `subscribe` naming only `publication` keeps the publication
    * rules: a policy (public or allow) or a capability, under a policy.
-   * Impl: a target is "seen" when a policy names it, a device of it has bound here, or it is an identity of
-   * `context.identities` (the identities the authority knows its devices by). A capability issued for a target does
-   * not make it seen. Neither the spec ("targets the authority has never seen", §9.3) nor the vectors README defines
-   * this; the reading is the one the Python harness was observed to take through probe vectors (a finding).
+   * Spec: §9.3 (spec-gap 149 (a)) — a target is "seen" when a policy or an issued capability names it, a device of it
+   * has bound here, or it is an identity of `context.identities` (the identities the authority knows its devices by);
+   * a publication target must also be published.
    * Impl: a `subscribe` naming `presence` together with other events is admitted by the presence rules.
    */
   private admit(m: JsonObject, subscriber: string, target: string, events: string[]):
     Pick<Subscription, "own" | "grant" | "audience"> | undefined {
     const policy = this.policy.get(target);
     const capability = this.capabilities.get(m["capability"] as string) === target;
-    const known = policy !== undefined || this.seen.has(target) || Object.values(this.ctx.identities ?? {}).includes(target);
+    const known = policy !== undefined || this.seen.has(target) || Object.values(this.ctx.identities ?? {}).includes(target)
+      || [...this.capabilities.values()].includes(target);
     if (!known || (events.includes("publication") && !this.publications.has(target))) return undefined;
     const byPolicy = policy !== undefined && (policy.mode === "public" || policy.allow.includes(subscriber));
     if (!events.includes("presence")) return policy !== undefined && (byPolicy || capability) ? {} : undefined;
