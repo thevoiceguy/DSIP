@@ -523,6 +523,26 @@ def admission_vectors() -> list[dict]:
         step({"recv": (wr := rec("a-pw", state="away", audience="work"))}, [notify(carol, 2, body("offline", wr))]),
     ]))
 
+    # spec-gap 149 (a): a capability the authority issued for a target makes it seen, before it ever binds
+    cap = lambda sub, token: {**sub, "capability": token}
+    pre = subscribe("a-cap-pre", target=MAL)
+    plain = subscribe("a-cap-plain", target=MAL)
+    wrong = cap(subscribe("a-cap-wrong", target=MAL), "follow-wrong")
+    held = cap(subscribe("a-cap-held", target=MAL), "follow-mal")
+    out.append(trace("presence-capability-makes-target-seen",
+                     "Mallory has never bound here and has no policy. Before a capability is issued for her, Alice is "
+                     "refused; once it is, the capability admits Alice although Mallory has still never bound, and her "
+                     "body asserts offline. Presenting nothing, or another token, is still the uniform policy.blocked "
+                     "(§9.3, P§6 rule 3, spec-gap 149).", ["§9.3", "P§6"], [
+        step({"recv": pre}, [blocked(pre)]),
+        step({"local": "issue_capability", "token": "follow-mal", "target": MAL}, []),
+        step({"recv": plain}, [blocked(plain)]),
+        step({"recv": wrong}, [blocked(wrong)]),
+        step({"recv": held}, [notify(held, 1, {"event": "presence", "state": "offline"})],
+             subscriptions={held["id"]: {"subscriber": ALICE, "target": MAL, "events": ["presence"], "seq": 1,
+                                         "expires_at": NOW + 3600}}),
+    ]))
+
     fam_sub = subscribe("a-famsub", grants=[fam])
     work_sub = subscribe("a-worksub", frm=CPH, grants=[grant("a-cwork", to=CAROL, audience="work")])
     plain_sub = subscribe("a-plainsub", frm=MAL, grants=[grant("a-plain", to=MAL)])

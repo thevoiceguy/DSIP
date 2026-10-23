@@ -4586,4 +4586,9 @@ Choices:
 **Draft choice: (a).** An authority that issued a follow token for a target plainly knows it, and refusing the token's
 holder until the target binds is surprising. The retention link keeps "seen" from growing forever.
 
-**Impl (not yet decided):** the PoC's rule (b), now stated in the vectors README.
+**Decided (2026-10-23, user: "149 (a)"): (a).** §9.3 defines a seen presence target after the anti-enumeration rule
+(bound within the §13.3 retention, or a policy or issued capability held for it); a publication target is seen while
+published (unchanged). P§6 rule 3 points to it. Vector `state/presence-capability-makes-target-seen` (a capability
+admits a target that never bound; nothing or another token is still `policy.blocked`); the harness, the Rust authority
+and impl-ts count an issued capability. The authority trace keeps `context.identities` and current bindings as its
+stand-in for retention: it models no retention clock.

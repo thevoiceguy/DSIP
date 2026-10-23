@@ -593,7 +593,7 @@ need not have seen it before. The Presence Profile gives the full admission orde
 policy for a target, and is shown no admitting grant or capability, MUST refuse a presence subscription to it with the
 uniform `policy.blocked`, except from the target's own devices; it never serves presence publicly by default.
 
-**Anti-enumeration rule.** An authority MUST return the identical response — `reject` with reason `policy.blocked` — for (a) an unauthorized subscription to an existing target and (b) a subscription to a nonexistent target, and SHOULD normalize response timing. Distinguishing "you may not see Alice" from "there is no Alice" turns the subscription system into an account-enumeration oracle. `identity.unknown` is reserved for contexts where existence is already public (e.g., broadcast stream ids published openly).
+**Anti-enumeration rule.** An authority MUST return the identical response — `reject` with reason `policy.blocked` — for (a) an unauthorized subscription to an existing target and (b) a subscription to a nonexistent target, and SHOULD normalize response timing. Distinguishing "you may not see Alice" from "there is no Alice" turns the subscription system into an account-enumeration oracle. `identity.unknown` is reserved for contexts where existence is already public (e.g., broadcast stream ids published openly). An authority has **seen** a presence target when a device has bound to it for that identity within its retention (§13.3: while bound, and for `offline_retention_s` after the last binding ended), or when it holds a policy for that target or has issued a capability for it (v0.17, spec-gap 149): what the authority issued or was told about a target is knowledge of it, so a capability admits its holder before the target first binds. A publication target is seen while it is published.
 
 #### Notification
 
@@ -2641,6 +2641,9 @@ v0.16 is final at tag `poc-v0.16`. v0.17 is in progress. Each item is listed wit
   supported (§11.2).
 - A subscriber reaches the target's authority by binding there, at the relay its DID document names or, without one,
   the one its hint names, with the effects of any binding (spec-gap 143, §9.3).
+- A presence target is *seen*, for the uniform reject, when it has bound within the authority's retention or the
+  authority holds a policy or an issued capability for it (spec-gap 149, §9.3): a capability admits before its target
+  first binds.
 
 ---
 

@@ -237,11 +237,12 @@ class Authority:
         return None
 
     def target_exists(self, target: str, events: list) -> bool:
-        """§9.3: a target this authority has seen. Impl (spec-gap 149): an identity it holds a device for, one with a
-        bound device, or one with a policy; a capability alone does not make a target seen."""
+        """§9.3: a target this authority has seen. Spec-gap 149 (a): for presence, an identity it holds a device for, one
+        with a bound device, or one it holds a policy or an issued capability for; for publication, a published stream."""
         if "publication" in events:
             return target in self.publications
-        return target in self.identities.values() or bool(self.bound.get(target)) or any(t == target for t in self.policy)
+        return (target in self.identities.values() or bool(self.bound.get(target)) or target in self.policy
+                or target in self.capabilities.values())
 
     def recv_subscribe(self, m: dict, identity: str) -> None:
         target, events = m["target"], list(m["events"])

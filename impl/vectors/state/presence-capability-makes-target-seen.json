@@ -1,0 +1,162 @@
+{
+  "vector": "state/presence-capability-makes-target-seen",
+  "format": 1,
+  "kind": "state",
+  "description": "Mallory has never bound here and has no policy. Before a capability is issued for her, Alice is refused; once it is, the capability admits Alice although Mallory has still never bound, and her body asserts offline. Presenting nothing, or another token, is still the uniform policy.blocked (§9.3, P§6 rule 3, spec-gap 149).",
+  "spec_ref": [
+    "§9.3",
+    "P§6"
+  ],
+  "context": {
+    "component": "authority",
+    "start": 1760000000,
+    "identities": {
+      "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu": "did:key:z6MkhzX9qTeXBWkucyMVric1E9JrqUD5LPAkD2BNavakAptf",
+      "did:key:z6MkfhenvjQ7awdpVWzPaeBuPkXCBLwzJKyosCrTL3huMb66": "did:key:z6MkhzX9qTeXBWkucyMVric1E9JrqUD5LPAkD2BNavakAptf",
+      "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+      "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+      "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL": "did:key:z6Mkt5yU6sK3v7gxFHncQbmZ7VQvnVuJBGrDAbqhZp2gDW7G"
+    }
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "recv": {
+            "type": "subscribe",
+            "id": "01K742SG0025FG91867YDE55P8",
+            "from": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+            "to": "did:key:z6MkAuthorityRelay11111111111111111111111111",
+            "target": "did:key:z6MkrQ4CKj5x3MGbqmYBbfSXyh865wpvDStxi3HeGvfyJw8H",
+            "events": [
+              "presence"
+            ],
+            "expires_in": 3600
+          }
+        },
+        "expect": {
+          "emit": [
+            {
+              "send": {
+                "type": "reject",
+                "to": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+                "session": "01K742SG0025FG91867YDE55P8",
+                "reason": "policy.blocked"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "event": {
+          "local": "issue_capability",
+          "token": "follow-mal",
+          "target": "did:key:z6MkrQ4CKj5x3MGbqmYBbfSXyh865wpvDStxi3HeGvfyJw8H"
+        },
+        "expect": {
+          "emit": []
+        }
+      },
+      {
+        "event": {
+          "recv": {
+            "type": "subscribe",
+            "id": "01K742SG00RXFYT6WVMMXEM8G5",
+            "from": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+            "to": "did:key:z6MkAuthorityRelay11111111111111111111111111",
+            "target": "did:key:z6MkrQ4CKj5x3MGbqmYBbfSXyh865wpvDStxi3HeGvfyJw8H",
+            "events": [
+              "presence"
+            ],
+            "expires_in": 3600
+          }
+        },
+        "expect": {
+          "emit": [
+            {
+              "send": {
+                "type": "reject",
+                "to": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+                "session": "01K742SG00RXFYT6WVMMXEM8G5",
+                "reason": "policy.blocked"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "event": {
+          "recv": {
+            "type": "subscribe",
+            "id": "01K742SG001J2HZY2TA281R1W9",
+            "from": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+            "to": "did:key:z6MkAuthorityRelay11111111111111111111111111",
+            "target": "did:key:z6MkrQ4CKj5x3MGbqmYBbfSXyh865wpvDStxi3HeGvfyJw8H",
+            "events": [
+              "presence"
+            ],
+            "expires_in": 3600,
+            "capability": "follow-wrong"
+          }
+        },
+        "expect": {
+          "emit": [
+            {
+              "send": {
+                "type": "reject",
+                "to": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+                "session": "01K742SG001J2HZY2TA281R1W9",
+                "reason": "policy.blocked"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "event": {
+          "recv": {
+            "type": "subscribe",
+            "id": "01K742SG002RV0HTHPT5CW92G3",
+            "from": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+            "to": "did:key:z6MkAuthorityRelay11111111111111111111111111",
+            "target": "did:key:z6MkrQ4CKj5x3MGbqmYBbfSXyh865wpvDStxi3HeGvfyJw8H",
+            "events": [
+              "presence"
+            ],
+            "expires_in": 3600,
+            "capability": "follow-mal"
+          }
+        },
+        "expect": {
+          "emit": [
+            {
+              "send": {
+                "type": "notify",
+                "to": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+                "subscription": "01K742SG002RV0HTHPT5CW92G3",
+                "seq": 1,
+                "state": "active",
+                "body": {
+                  "event": "presence",
+                  "state": "offline"
+                }
+              }
+            }
+          ],
+          "subscriptions": {
+            "01K742SG002RV0HTHPT5CW92G3": {
+              "subscriber": "did:key:z6MkhzX9qTeXBWkucyMVric1E9JrqUD5LPAkD2BNavakAptf",
+              "target": "did:key:z6MkrQ4CKj5x3MGbqmYBbfSXyh865wpvDStxi3HeGvfyJw8H",
+              "events": [
+                "presence"
+              ],
+              "seq": 1,
+              "expires_at": 1760003600
+            }
+          }
+        }
+      }
+    ]
+  },
+  "expect": {}
+}
