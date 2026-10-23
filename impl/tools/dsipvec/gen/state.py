@@ -769,6 +769,29 @@ def vectors() -> list[dict]:
                [S(type="reject", to=CAR, session=uid("inv-b", NOW + 10), reason="policy.first-contact-required")],
                {uid("inv-b", NOW + 10): sess("responder", "ENDED")}),
     ]))
+    out.append(fctrace("first-contact-grant-presence-audience",
+                       "A grant may name the presence audience it admits to (P§6, spec-gap 145): presence_audience rides in "
+                       "the grant sent, a 64-character token ending in a hyphen included; one that is not a token (upper case, "
+                       "empty, a leading digit or hyphen, an underscore, 65 characters) is refused, nothing is sent, and the "
+                       "request stays pending.", BOBPH_SELF, [
+        fcstep({"recv": intro1}, [UI("introduction_received", **{"from": CAROL})]),
+        fcstep({"local": "grant", "introduction": I1, "id": G1, "scope": ["dsip.subscribe"], "valid_until": NOW + 3600,
+                "presence_audience": 'Family'}, [{"refused": "invalid-audience"}], {}, contacts(requests=[I1])),
+        fcstep({"local": "grant", "introduction": I1, "id": G1, "scope": ["dsip.subscribe"], "valid_until": NOW + 3600,
+                "presence_audience": ''}, [{"refused": "invalid-audience"}], {}, contacts(requests=[I1])),
+        fcstep({"local": "grant", "introduction": I1, "id": G1, "scope": ["dsip.subscribe"], "valid_until": NOW + 3600,
+                "presence_audience": '1family'}, [{"refused": "invalid-audience"}], {}, contacts(requests=[I1])),
+        fcstep({"local": "grant", "introduction": I1, "id": G1, "scope": ["dsip.subscribe"], "valid_until": NOW + 3600,
+                "presence_audience": '-work'}, [{"refused": "invalid-audience"}], {}, contacts(requests=[I1])),
+        fcstep({"local": "grant", "introduction": I1, "id": G1, "scope": ["dsip.subscribe"], "valid_until": NOW + 3600,
+                "presence_audience": 'work_mates'}, [{"refused": "invalid-audience"}], {}, contacts(requests=[I1])),
+        fcstep({"local": "grant", "introduction": I1, "id": G1, "scope": ["dsip.subscribe"], "valid_until": NOW + 3600,
+                "presence_audience": 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'}, [{"refused": "invalid-audience"}], {}, contacts(requests=[I1])),
+        fcstep({"local": "grant", "introduction": I1, "id": G1, "scope": ["dsip.invite", "dsip.subscribe"], "valid_until": NOW + 3600,
+                "presence_audience": "f" + "a" * 62 + "-"},
+               [S(type="grant", to=CAROL, session=I1, id=G1, scope=["dsip.invite", "dsip.subscribe"], valid_until=NOW + 3600,
+                  presence_audience="f" + "a" * 62 + "-")], {}, contacts(grants_issued=[G1])),
+    ]))
     out.append(fctrace("first-contact-reject-and-silence",
                        "Rejecting an introduction is a policy choice naming the introduction id and addressed, like a grant, to the "
                        "introducing identity (spec-gap 74); ignoring it is the default; granting an unknown introduction is refused.",
