@@ -290,8 +290,14 @@ export class Endpoint {
         const intro = e["introduction"] as string;
         const grantee = this.requests.get(intro)?.identity;
         if (grantee === undefined) return void this.emit.push({ refused: "unknown-introduction" });
+        const audience = e["presence_audience"];
+        // P§6 (spec-gap 145): an audience token; a malformed one sends nothing and keeps the request pending
+        if (audience !== undefined && !(typeof audience === "string" && /^[a-z][a-z0-9-]{0,63}$/.test(audience))) {
+          return void this.emit.push({ refused: "invalid-audience" });
+        }
         this.requests.delete(intro);
-        return this.issueGrant(intro, grantee, e["id"] as string, e["scope"] as string[], e["valid_until"] as number);
+        return this.issueGrant(intro, grantee, e["id"] as string, e["scope"] as string[], e["valid_until"] as number,
+          audience as string | undefined);
       }
       case "reject_introduction": {
         const intro = e["introduction"] as string;
@@ -312,9 +318,10 @@ export class Endpoint {
     }
   }
 
-  private issueGrant(intro: string, grantee: string, id: string, scope: string[], valid_until: number): void {
+  private issueGrant(intro: string, grantee: string, id: string, scope: string[], valid_until: number,
+    presence_audience?: string): void {
     this.grantsIssued.set(id, { id, grantee, scope, valid_until });
-    this.send("grant", grantee, { session: intro, id, scope, valid_until });
+    this.send("grant", grantee, { session: intro, id, scope, valid_until, ...(presence_audience !== undefined ? { presence_audience } : {}) });
   }
 
   // ---- received messages

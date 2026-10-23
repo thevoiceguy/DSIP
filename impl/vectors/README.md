@@ -332,7 +332,7 @@ attempt — through a scripted event sequence with a mock clock.
 | `{"local":"reject_update","session":ID,"in_reply_to":ULID,"reason":TOKEN}` | reject it |
 | `{"local":"info","session":ID}` | send `info` |
 | `{"local":"introduce","id":ULID,"to":DID,"purpose":S,"contact_token":S?}` | send `introduction` (§19.4) |
-| `{"local":"grant","introduction":ID,"id":ULID,"scope":[…],"valid_until":T}` | issue a contact grant for a pending request: `send grant {to: the introducing IDENTITY, session: introduction id, id, scope, valid_until}`; unknown request → `refused unknown-introduction` |
+| `{"local":"grant","introduction":ID,"id":ULID,"scope":[…],"valid_until":T,"presence_audience"?:A}` | issue a contact grant for a pending request: `send grant {to: the introducing IDENTITY, session: introduction id, id, scope, valid_until, presence_audience?}`; unknown request → `refused unknown-introduction`; then a `presence_audience` that is not a P§6 token (`[a-z][a-z0-9-]*`, at most 64 characters) → `refused invalid-audience`, nothing sent and the request kept (spec-gap 145) |
 | `{"local":"reject_introduction","introduction":ID,"reason":TOKEN}` | decline a pending request (a policy choice): `send reject {to: the introducing IDENTITY, session, reason}` — the same addressee as a grant (§19.4, spec-gap 74) |
 | `{"local":"revoke","grant":ID}` | revoke an issued grant (local policy); unknown grant → `refused unknown-grant` |
 | `{"local":"issue_token","token":S,"grant_id":ULID}` | pre-authorize an out-of-band contact token: the first introduction carrying it surfaces `introduction_received {token: true}` and is auto-granted at once — id `grant_id`, scope `["dsip.invite"]`, `valid_until` = now + 31,536,000 (Impl) — and the token is consumed |
@@ -447,7 +447,7 @@ Only the sessions / attempts named in `expect` are compared (`{}` names none); `
 | `{"queue": {"to": IDENTITY, "type": "introduction"}}` | relay queued an introduction for an unbound identity |
 | `{"ui": "error", "reason": …}` | a received `error` is surfaced; no state change |
 | `{"info": {"about": …}}` | an `info` with a recognized `about` is handed to the binding |
-| `{"refused": REASON}` | a local request was refused by the engine (`unknown-session` for any request about a session the endpoint does not hold, `update-pending`, `no-pending-update`, `unknown-introduction`, `unknown-grant`) |
+| `{"refused": REASON}` | a local request was refused by the engine (`unknown-session` for any request about a session the endpoint does not hold, `update-pending`, `no-pending-update`, `unknown-introduction`, `invalid-audience`, `unknown-grant`) |
 | `{"drop": REASON}` | message silently ignored (`ended-session`, `unknown-about`, `stale-update-reply`, `duplicate-introduction`, `unknown-introduction`) |
 
 ## Kind: `broadcast`
