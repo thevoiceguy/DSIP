@@ -4405,3 +4405,128 @@ any other. A.14 entry.
 connection to that relay (`peerRelay` in `impl/web/app.js`), shared with the calls and introductions routed there: a
 second binding of the device would replace the first, and the two would keep replacing each other. The CLI subscribes
 at the relay it is given.
+
+## 144. §9.2 / §9.3 / P§6 — who may watch: the subject's policy, and how its authority learns it
+
+**Found (2026-10-23, drafting P§6; the WAN presence check).** §9.2: "DSIP clients default to private presence." §9.3
+makes authorization the authority's policy decision, but no message lets a subject tell its authority that policy,
+so an authority has only local configuration. The PoC relay has none: with no policy for a target, every
+`subscribe` is admitted (`Authority::authorized`, the `None` arm), so anyone who knows a DID can watch it. Before
+#236 that showed only the relay's assertion (bound or not); since #236 it also shows the records a user publishes from
+the browser picker. The deployed L1/L2 relays behave this way now. Private-by-default is not yet implementable, since
+nothing tells the authority who is allowed.
+
+§19.4 already has the consent receipt this needs: a `grant` whose `scope` may include `dsip.subscribe` (already
+registered, used by nothing yet), signed by the target's device, held by the grantee, with `valid_until`.
+
+Choices:
+
+- **(a) A grant admits a subscriber.** A `subscribe` for presence is admitted when the subscriber's identity holds a
+  live grant from the target whose `scope` includes `dsip.subscribe`. The subscriber presents the signed grant
+  envelope in `claims` (an entry `{"type": "dsip-grant", "grant": <envelope>}`); the authority verifies it against the
+  target's identity (signature, delegation, `to` is the subscriber's identity, `valid_until` after now) and does not
+  need to have seen it before. With no admitting grant and no other policy, the answer is the uniform
+  `policy.blocked`. An authority MAY also admit by local policy (an organisation's directory, `public` for a
+  broadcaster); a client that grants contact includes `dsip.subscribe` unless the user said otherwise.
+- **(b) A new signed `presence-policy` message** from a subject's device to its authority, listing who may watch
+  (and, with 145, in which audience). The authority keeps it per identity.
+- **(c) Local configuration only,** as today; the text says that an authority with no policy for a target MUST refuse.
+
+**Draft choice: (a).** It is private by default with no new message, it reuses consent the user already gives (the
+grant), it works when the subscriber's relay never saw the grant (the grantee presents it), and a presented grant
+cannot be forged by the authority or another subscriber. (b) would duplicate the grant list at the authority and
+need its own revocation. Separately from the choice: (c)'s MUST-refuse rule is needed under any choice, so a relay
+with no policy and no grant never serves presence publicly by accident.
+
+**Interim (not a spec choice):** until this is decided and implemented, the PoC relay could refuse presence
+subscriptions for targets with no policy, except for the subscriber's own identity (its other devices). The browser
+contact badges would then show nothing for contacts, which would also make the WAN presence check fail.
+
+## 145. P§6 — audiences: what a record is for and who sees it
+
+**Found (2026-10-23, drafting P§6).** P§6 sketches one record per audience, named by `audience` (in the §9.4 schema
+since v0.17, unconstrained), and "the authority sends each subscriber only the records for that subscriber's
+audience". Unsaid: what an audience token is, how the authority puts a subscriber in one, what a record without
+`audience` means, and how P§3's per-device rules (`seq`, `presence.stale`, the 5 s interval) apply when one device
+publishes several records at once.
+
+Choices:
+
+- **(a) Audiences are named in the grant.** A grant with `dsip.subscribe` MAY carry `presence_audience`, a token
+  (`[a-z][a-z0-9-]*`, at most 64 characters) that the subject chooses (`family`, `work`, …). A subscriber admitted by a
+  grant sees the records whose `audience` equals its grant's `presence_audience`, and the records with no
+  `audience`. A subscriber admitted by local policy sees only records with no `audience`, unless the policy names an
+  audience. A record's `seq`, staleness and publish interval are per `(subject, device, audience)` (no `audience`
+  counts as one audience of its own).
+- **(b) Three fixed audiences** equal to the detail levels (`basic`, `standard`, `detailed`); the grant says which
+  level.
+- **(c) One audience per subject:** no `audience` field; a reduced view is out of scope for 0.1.
+
+**Draft choice: (a).** The subject chooses who sees what, the grant already identifies who, and the authority only
+compares two tokens. A record with no `audience` stays the default view, so a client that never uses audiences works
+as now. Making the rules per `(subject, device, audience)` lets a device publish its `family` and `work` records
+together without tripping its own rate limit or `seq`.
+
+**Detail levels** (P§6's `basic`/`standard`/`detailed`, the `activity` registry and `note`). **Draft:** not in 0.1.
+Audiences already let a device publish a coarser state to some people (for example `available` to `work` while
+`family` sees `busy`). New fields can come in a later version without changing the audience rule.
+
+## 146. P§4 / P§6 — a device with no record for a subscriber's audience (P§11 question 3)
+
+**Found (2026-10-23, drafting P§6).** Under 145, a subscriber sees some of a device's records and not others. When a
+device has records for other audiences but none this subscriber may see, P§4 has two readings: the device counts in
+the authority's assertion (it has "no record" for this subscriber), or it is left out.
+
+Choices:
+
+- **(a) It counts in the assertion, per subscriber.** The body's assertion `S` is computed over the subject's devices
+  that hold no record *visible to this subscriber*. The body therefore differs between subscribers, and each
+  subscription is notified when its own body changes.
+- **(b) It is left out:** a device with any record is never asserted, whoever is watching.
+- **(c) The authority sends nothing for that device and no assertion at all** to subscribers outside every audience
+  it publishes to.
+
+**Draft choice: (a).** It gives the same answer as P§4 already gives for a device that publishes nothing: bound means
+`available (relay says)`. It also keeps P§2.2: under (b), a subscriber shown `offline` while the subject is bound learns
+that the device publishes to some other audience, which is a presence oracle in a small way. Under (a), what a
+subscriber sees depends only on what it may see.
+
+## 147. P§7 / §19.4 — time-boxed shares, and ending a share early
+
+**Found (2026-10-23, drafting P§7).** P§7 sketches a share as an authority-issued `capability` token for one
+subscriber and an audience, with an expiry. That needs a way for the subject to ask its authority to mint one, which
+does not exist. Under 144 (a) a share is simply a grant with `dsip.subscribe` and a short `valid_until`. What is still
+missing is how a share ends: when `valid_until` passes during a subscription, and when the subject withdraws it
+early. §19.4 calls revocation "local policy at the granting side, optionally propagated as a signed revocation"
+without defining one.
+
+Choices:
+
+- **(a) A share is a grant; the authority enforces `valid_until` on live subscriptions; early withdrawal is a new
+  signed `grant-revocation`** (`grant`: the grant's id, `grantee`: its identity) that a device of the subject sends to
+  its authority. The authority keeps it until the grant's `valid_until`. A subscription admitted by a grant that
+  expires or is revoked gets a `terminated` notify with reason `policy.terminated`, and a later `subscribe` presenting
+  that grant gets `policy.blocked`. The revocation also binds the subject's relay for invites (§19.4).
+- **(b) The same, but early withdrawal is local only:** the subject's device tells nothing to the authority, and a
+  share ends only at `valid_until` (short shares make that acceptable).
+- **(c) The capability-token design as sketched,** with a new subject→authority request to mint tokens.
+
+**Draft choice: (a).** Ending a share early is the reason to have a share at all ("stop showing my presence to this
+person"). (a) does it with one small message that also fills the gap §19.4 has left open for invites. Expiry is
+enforced where the subscription lives, so the subscriber's client does not have to cooperate. Revocation stops
+future notifies only; what was already shown stays shown, as P§7 says.
+
+## 148. P§11 question 4 — presence in messaging groups
+
+**Found (2026-10-23, drafting P§6).** M§11 activity already travels inside a conversation's MLS group, encrypted to
+its members. P§11 asks whether a member's presence should also travel there.
+
+Choices:
+
+- **(a) Not in `presence/0.1`:** presence has one path, through the authority, under 144–147's policy. A client MAY
+  show messaging activity (M§11) beside presence; the two are not combined.
+- **(b) Members also send their presence as an M§11 activity,** combined with P§4.
+
+**Draft choice: (a).** Two paths with different audiences would make a person's presence depend on which path a
+watcher used. Encrypted presence (P§11 question 1) is the better reason to revisit this, and it waits for P§6 to
+settle.
