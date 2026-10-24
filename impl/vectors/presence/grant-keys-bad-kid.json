@@ -1,0 +1,48 @@
+{
+  "vector": "presence/grant-keys-bad-kid",
+  "format": 1,
+  "kind": "presence",
+  "description": "A kid with a leading zero in its epoch is not a kid.",
+  "spec_ref": [
+    "P§12.3",
+    "§19.4"
+  ],
+  "context": {
+    "now": 1760000000
+  },
+  "input": {
+    "check": "grant-keys-open",
+    "grant": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "interactive-media/1.0"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "grant",
+      "id": "01K742SG004X4YQQFP9M4DDQRY",
+      "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+      "to": "did:key:z6MkhzX9qTeXBWkucyMVric1E9JrqUD5LPAkD2BNavakAptf",
+      "session": "01K742QND045D13VXV9PZ3T9CT",
+      "scope": [
+        "dsip.subscribe"
+      ],
+      "valid_until": 1760086400,
+      "issued_at": 1760000000,
+      "expires_at": 1760000030,
+      "presence_keys": {
+        "alg": "hpke-base-x25519-sha256-aes128gcm",
+        "enc": "CCmwgVwOd_fJK7TYBCKw9C_HThssbLqKuBkzQY3nClI",
+        "ct": "ogUbkNSSEKeAj9BLGr7G48R3FlSHW3giWsE8a1SiqxcrWWBMhjEPTYBSo24sc81rRl_k7_7mQi3KvpxEGpEd4qXmiBpXJdCI9zmhMTY1TYCzWFt3_GDPNWTwkxI4lzy7_vwYfysHG3TzZFKtLwgm65e_p94vPhsQV34q7nNlaJkj10zC4aZFXuGGB-wT7Zm5WuOc6eh1H_T40PmtLpXD-Lo4kGOqOjHd4y5UY3nA4XAUo7EDgo4dv5rorQLxVLRPUfOruAQC9EGHuiYEP2HM7En7Bu2-EkvPRMOGs6d3dcxdwWjquobFBkmjnqrLi38rK2CY69gTnOMzX5BFWCHLnFa8ccDc7yptJJNnMehvUPQ"
+      }
+    },
+    "recipient_secret_hex": "b01caa6dc4487f5251b3c3d0ac3b8be4ba7459d7cc16d3a71c34831a6b1086d8"
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "sealed-plaintext-invalid"
+  }
+}

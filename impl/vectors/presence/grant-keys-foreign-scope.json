@@ -1,0 +1,48 @@
+{
+  "vector": "presence/grant-keys-foreign-scope",
+  "format": 1,
+  "kind": "presence",
+  "description": "A grant with no presence_audience carrying the family key: a grant carries no scope but main and its own audience (P§12.3).",
+  "spec_ref": [
+    "P§12.3",
+    "§19.4"
+  ],
+  "context": {
+    "now": 1760000000
+  },
+  "input": {
+    "check": "grant-keys-open",
+    "grant": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "interactive-media/1.0"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "grant",
+      "id": "01K742SG001PMP3SJPXJXFM1SA",
+      "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+      "to": "did:key:z6MkhzX9qTeXBWkucyMVric1E9JrqUD5LPAkD2BNavakAptf",
+      "session": "01K742QND0YF4WHKQ7K9JZJT2R",
+      "scope": [
+        "dsip.subscribe"
+      ],
+      "valid_until": 1760086400,
+      "issued_at": 1760000000,
+      "expires_at": 1760000030,
+      "presence_keys": {
+        "alg": "hpke-base-x25519-sha256-aes128gcm",
+        "enc": "Tjww2aTG-RuqedOaJa1vpnAehprpMuQh6V9iO92ySys",
+        "ct": "JHoD8UQ5UMYhUBnCmL5FyeU1Ff2tQkxfeIsxojCbLm9yIhh5nyK9sqVPvlyTt9XCfJVZ8vT9gFDWr44zXZ4hDFZKA0_yOLrGe2n5okZVwxkVwFCaDhQVibXVyY5gZ_e_myKQYtWmVx3k_GAXtI8x_pt7dsbx7T0u7AnqDO6FpA1QVbBktVWAU44GXAcI5H8w3NfTbV6wN1oMXouQjr8b5CQTM75pJETpjNeahpXz-28ZN1p6Wl9le44FF57N809ZszMW26WsvSpuETYBtYWtcY6wKVBaP8lTwEuSTK9Ovz6VsGEuslZwXfHlQ_sg1IGYdM3tPBxLTttdy7qDRiI94q_IAYtQKDWuePWi2rRvmRI"
+      }
+    },
+    "recipient_secret_hex": "b01caa6dc4487f5251b3c3d0ac3b8be4ba7459d7cc16d3a71c34831a6b1086d8"
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "sealed-plaintext-invalid"
+  }
+}

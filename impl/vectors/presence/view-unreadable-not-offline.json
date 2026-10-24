@@ -1,0 +1,38 @@
+{
+  "vector": "presence/view-unreadable-not-offline",
+  "format": 1,
+  "kind": "presence",
+  "description": "Only an unreadable record and an offline assertion: offline from nothing, never a guess at the sealed state.",
+  "spec_ref": [
+    "P§12.4",
+    "P§4"
+  ],
+  "context": {
+    "now": 1760000000
+  },
+  "input": {
+    "check": "view",
+    "records": [
+      {
+        "subject": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+        "device": "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ",
+        "kid": "main.1",
+        "seq": 1,
+        "expires_at": 1760000300,
+        "sealed_state": "IvgIvdg8uaSBNO7zg1F61DcRF2JT0DpjLNi0xqP0KEtHWCqk1OKzf6wf0WZy6SOffEglxLoMXnopWu_3-qPsnJbvB52w6bp-gr4NWrDKxb4TBLVChm8ByZ55sVGZv816c6jldL46NfYndblmceVFkNQ89YiSEqWk_pHFt3Ekn0OfSs_1h9qZ0JD-rWY3fE1zekoCSKDT5-ipj9oG"
+      }
+    ],
+    "keys": {
+      "main.0": "c4e3a61b986a8b6046b27d4ca521e8c8036a088f59f62ef70597738823d8c02a"
+    },
+    "asserted": "offline"
+  },
+  "expect": {
+    "state": "offline",
+    "token": "offline",
+    "source": "none",
+    "unreadable": [
+      "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ"
+    ]
+  }
+}

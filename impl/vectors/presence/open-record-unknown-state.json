@@ -1,0 +1,30 @@
+{
+  "vector": "presence/open-record-unknown-state",
+  "format": 1,
+  "kind": "presence",
+  "description": "A sealed state outside the registry opens and is returned raw; P§5's fallback is the combining rule's.",
+  "spec_ref": [
+    "P§12.4"
+  ],
+  "context": {
+    "now": 1760000000
+  },
+  "input": {
+    "check": "open-record",
+    "record": {
+      "subject": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+      "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+      "kid": "main.0",
+      "seq": 1,
+      "expires_at": 1760000300,
+      "sealed_state": "BxUNUswHp7dqCwFpHfW4ljzcsD8y0R9ZkLSRrZl59gr24k-aAJ6zfVXyt0pqvbBIhKXrlGW4Xdgq0xU1iVwFXnVgmvtmzuXULwIN02ghYBfaSdkLUToiZ2cWfFOPgSp5apkf6T9hQtfRsq8Ufp9UJTg2Z-xGkO_NZjvZv5DPYMSSIz6QtwSQ-l2CxOIJ6Nc2Xz5j93XN-AIA6EMp"
+    },
+    "keys": {
+      "main.0": "c4e3a61b986a8b6046b27d4ca521e8c8036a088f59f62ef70597738823d8c02a"
+    }
+  },
+  "expect": {
+    "verdict": "accept",
+    "state": "in-transit"
+  }
+}

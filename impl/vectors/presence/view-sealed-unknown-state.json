@@ -1,0 +1,35 @@
+{
+  "vector": "presence/view-sealed-unknown-state",
+  "format": 1,
+  "kind": "presence",
+  "description": "An opened unknown state ranks and shows as available, its token kept (P§5).",
+  "spec_ref": [
+    "P§12.4",
+    "P§4"
+  ],
+  "context": {
+    "now": 1760000000
+  },
+  "input": {
+    "check": "view",
+    "records": [
+      {
+        "subject": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+        "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+        "kid": "main.0",
+        "seq": 1,
+        "expires_at": 1760000300,
+        "sealed_state": "5jqLsJ2nniIRR3jWT0EfVaEoqGe1pJB9gGaJR9d8ov9NYwr-2Ijkz6N6VzWoT6PRNTNvFs1E4LBHyg2pwlxLf4mCN8Uyx7cuPKqvK7XeAfY-r72i0CSCc6CIGu-PjBPEGrH90wiyyd6PFgnLaezlB3rYrvvSf2z3zAbGwxgaYCSdw8FXoIQKKtdA19ucKgQZdraehIbdr1JWcaI9"
+      }
+    ],
+    "keys": {
+      "main.0": "c4e3a61b986a8b6046b27d4ca521e8c8036a088f59f62ef70597738823d8c02a"
+    }
+  },
+  "expect": {
+    "state": "available",
+    "token": "in-transit",
+    "source": "record",
+    "unreadable": []
+  }
+}

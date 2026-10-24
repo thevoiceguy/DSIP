@@ -1,0 +1,51 @@
+{
+  "vector": "semantic/presence-sealed-audience-kid-without-audience",
+  "format": 1,
+  "kind": "semantic",
+  "description": "A record with no audience under an audience's key is refused: it would be routed to every subscriber.",
+  "spec_ref": [
+    "P§12.2"
+  ],
+  "context": {
+    "now": 1760000000,
+    "supported": {
+      "core": "1.0",
+      "profiles": [
+        "interactive-media/1.0",
+        "verified-broadcast/1.0",
+        "presence/0.1",
+        "presence/0.2"
+      ],
+      "extensions": []
+    }
+  },
+  "input": {
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "presence/0.2"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "presence",
+      "id": "01K742SG00M0TGZMVXRM5E52TP",
+      "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+      "to": "did:web:relay.example.com",
+      "subject": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+      "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+      "kid": "k-tkxij7ahuhkuvpff.0",
+      "seq": 1,
+      "expires_at": 1760000300,
+      "sealed_state": "0gX0Al6r_r1dJu8nk0yam6pD8Vi9UXelWCaOY8HYLlWT4NdRIxBr4-5pZRc2aTUtcQVBZ_ijPnabIJUVwrRjIlc3s29QmFQxDBkHhy-ubb-7Q9hYrAmlCxUVD7UttmcWS0PR8dYIovID5G6iwxw7G2ZRvlRvO2PmgVNWwSAbUMPR6bfM9f2uEcaFh1OWFWerDD6pN4BoN4AehXNf",
+      "issued_at": 1760000000
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "presence-sealed-invalid",
+    "reason": "presence.sealed-invalid"
+  }
+}

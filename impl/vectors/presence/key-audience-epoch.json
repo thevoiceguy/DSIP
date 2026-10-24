@@ -1,0 +1,21 @@
+{
+  "vector": "presence/key-audience-epoch",
+  "format": 1,
+  "kind": "presence",
+  "description": "The key of the family audience at epoch 3: the kid is the tag, a dot and the epoch.",
+  "spec_ref": [
+    "P§12.1"
+  ],
+  "context": {
+    "now": 1760000000
+  },
+  "input": {
+    "check": "key",
+    "secret_hex": "9f59fc4eadf005fc2260359c78204f6778346c2cc7a09899a0e38e4a5c0ee916",
+    "subject": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+    "kid": "k-tkxij7ahuhkuvpff.3"
+  },
+  "expect": {
+    "key_hex": "7ee562457b21e14f2e9ee584af321b09659cf8cb5fef670e1dd1c05f9136c041"
+  }
+}

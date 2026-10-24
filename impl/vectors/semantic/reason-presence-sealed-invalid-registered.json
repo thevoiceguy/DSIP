@@ -1,0 +1,51 @@
+{
+  "vector": "semantic/reason-presence-sealed-invalid-registered",
+  "format": 1,
+  "kind": "semantic",
+  "description": "presence.sealed-invalid is registered for error (P§9).",
+  "spec_ref": [
+    "§15.4",
+    "P§9"
+  ],
+  "context": {
+    "now": 1760000000,
+    "supported": {
+      "core": "1.0",
+      "profiles": [
+        "interactive-media/1.0",
+        "verified-broadcast/1.0",
+        "presence/0.1",
+        "presence/0.2"
+      ],
+      "extensions": []
+    }
+  },
+  "input": {
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "interactive-media/1.0"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "error",
+      "id": "01K742SGZ8TD6ZV9430EDXKYSS",
+      "from": "did:web:relay.example.com",
+      "to": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+      "in_reply_to": "01K742SG00NH68KQPT85XJSEF7",
+      "reason": "presence.sealed-invalid",
+      "issued_at": 1760000001,
+      "expires_at": 1760000031
+    }
+  },
+  "expect": {
+    "verdict": "accept",
+    "effective": {
+      "reason": "presence.sealed-invalid",
+      "fallback": "none"
+    }
+  }
+}

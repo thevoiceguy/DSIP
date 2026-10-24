@@ -1,0 +1,43 @@
+{
+  "vector": "presence/view-sealed-and-plain",
+  "format": 1,
+  "kind": "presence",
+  "description": "A plain away record and a sealed dnd record the subscriber can open: dnd.",
+  "spec_ref": [
+    "P§12.4",
+    "P§4"
+  ],
+  "context": {
+    "now": 1760000000
+  },
+  "input": {
+    "check": "view",
+    "records": [
+      {
+        "subject": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+        "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+        "state": "away",
+        "seq": 1,
+        "expires_at": 1760000100
+      },
+      {
+        "subject": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+        "device": "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ",
+        "kid": "main.0",
+        "seq": 1,
+        "expires_at": 1760000300,
+        "sealed_state": "BuC6A5zskcUfutcZ12JyWFyr77ORKqKOYd-oj-mmARmVlMaWMW37WyOhreUg7secYjJ3kqeK2-a5seae5UQZccejHGlozKOVxwqRV-hRgiJw7pBDLXTjMANdEp0QI-yp-_CsDMCDgGyAfp090v7ND6CKbK4dUGAglf-g9Wrf6FfrddmFxfolkVVXVeLldbpaB0A1c48JjouXhHJS"
+      }
+    ],
+    "keys": {
+      "main.0": "c4e3a61b986a8b6046b27d4ca521e8c8036a088f59f62ef70597738823d8c02a"
+    },
+    "asserted": "offline"
+  },
+  "expect": {
+    "state": "dnd",
+    "token": "dnd",
+    "source": "record",
+    "unreadable": []
+  }
+}

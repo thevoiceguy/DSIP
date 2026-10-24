@@ -288,7 +288,9 @@ def vectors() -> list[dict]:
     out.append(env_vector("introduction-too-large", "Encoded introduction envelope exceeds the 4,096-byte core constant.", ["§19.4"],
                           signed(big, "carol-phone"), reject("introduction-too-large")))
     from .presence_vectors import envelope_vectors
+    from . import presence_sealed
     out.extend(envelope_vectors())
+    out.extend(presence_sealed.envelope_vectors())
     return out
 
 

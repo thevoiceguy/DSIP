@@ -217,6 +217,16 @@ export function checkSemantics(payload: JsonObject, ctx: SemanticContext): Verdi
     // P§3: a record's `device`, when present, is its signer; without it, a v0.16-form record (P§4).
     return reject("presence-signer-mismatch", "presence.signer-mismatch");
   }
+  if (type === "presence" && "sealed_state" in payload) {
+    // P§12.2: a sealed record names presence/0.2; its audience is never `main`; its kid's scope is its audience, or `main` without one.
+    const profiles = (payload["dsip"] as JsonObject | undefined)?.["profiles"];
+    const audience = typeof payload["audience"] === "string" ? payload["audience"] : undefined;
+    const kid = String(payload["kid"]);
+    const scope = kid.includes(".") ? kid.slice(0, kid.lastIndexOf(".")) : kid;
+    if (!Array.isArray(profiles) || !profiles.includes("presence/0.2") || audience === "main" || scope !== (audience ?? "main")) {
+      return reject("presence-sealed-invalid", "presence.sealed-invalid");
+    }
+  }
   if (type === "key-rotation") {
     // §7.5
     if (payload["from"] !== payload["subject"]) return reject("rotation-subject-mismatch");

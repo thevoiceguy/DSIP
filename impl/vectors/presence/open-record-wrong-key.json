@@ -1,0 +1,30 @@
+{
+  "vector": "presence/open-record-wrong-key",
+  "format": 1,
+  "kind": "presence",
+  "description": "A key held under the record's kid that is not the key it was sealed with does not open it.",
+  "spec_ref": [
+    "P§12.4"
+  ],
+  "context": {
+    "now": 1760000000
+  },
+  "input": {
+    "check": "open-record",
+    "record": {
+      "subject": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+      "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+      "kid": "main.0",
+      "seq": 1,
+      "expires_at": 1760000300,
+      "sealed_state": "fJOpLar7dOxRS2j6LeV89N1bVh5YU8nBZjPcGALoJhznonJYdjo-JyTsGT5rNwT98WFaQufMRybMnCbjCL0faLIyevTjuK2V-259QyCmISOEjnEZlgqs5nTiDYEcTOYBKlRKJucpe5cjCwZw4YtgxwRgtrPkW4ADs8O00aYQzLjBHP1Kiy_Jxq7b8zFfCcgfAR9rBynTw9WKQsdF"
+    },
+    "keys": {
+      "main.0": "650a8af38ee3626fa47ca5c5a880a3f67764c3fc28bcdf611e14d658f916ef37"
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "aead-open-failed"
+  }
+}

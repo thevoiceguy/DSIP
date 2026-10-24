@@ -1,0 +1,39 @@
+{
+  "vector": "payload/presence-sealed-without-kid-invalid",
+  "format": 1,
+  "kind": "payload",
+  "description": "A sealed record names its key.",
+  "spec_ref": [
+    "P§12.2"
+  ],
+  "context": {},
+  "input": {
+    "schema": "presence",
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "presence/0.2"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "presence",
+      "id": "01K742SG00D80VNT1E85F1QF6F",
+      "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+      "to": "did:web:relay.example.com",
+      "subject": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+      "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+      "seq": 1,
+      "expires_at": 1760000300,
+      "audience": "k-tkxij7ahuhkuvpff",
+      "sealed_state": "yfvDH_4PpgUg27JK43JJoTVPnY-fzUw6fmNfIzyG_bYk2VAnXs9v8_OasYUAqm4l61yI6a_wOEZkx1fC5BSzgnFkpJxN8KZj_6SbKKQ9yDMNSFsfDrhuo_1RZt4w_h_GqOLeRsS-zZ3eV2d9PWf3CyAEq1uKpYRGeK67tML4xt3Iue2_rPZ-BZ-qZQ6q0yBaQQIhZiMf8zJGB3KM",
+      "issued_at": 1760000000
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "schema-invalid"
+  }
+}

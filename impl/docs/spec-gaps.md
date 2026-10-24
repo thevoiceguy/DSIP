@@ -4650,6 +4650,122 @@ Choices:
 **Draft choice: (a).** It is what "an optimisation, never a requirement" means; (b) makes the optimisation a way to be
 refused (exactly the regrant race), and (c) lets anyone who learns a grant id call as its grantee.
 
+## 152. P§11 question 1 / P§6 — presence encrypted to subscribers: how the key reaches them, and rotation
+
+**Found (2026-10-23, the authority reads every record).** P§6's last paragraph accepts that the authority sees every
+audience's states, and P§11 question 1 leaves encryption open, naming an MLS group per audience as one route.
+`impl/docs/presence-encryption-design.md` worked the options (D1) and the rotation that removal needs (D3).
+
+Choices (D1): **(a)** an MLS group per audience (removal is a Remove commit; presence then needs the messaging stack:
+a hub, mailboxes, key packages per grantee device); **(b)** the audience key HPKE-sealed into the grant that admits
+the subscriber (no new message; rotation is a new grant to each remaining grantee, which needs spec-gap 150 (b));
+**(c)** a separate `presence-key` message (rotation leaves grants alone; adds delivery, retry and an admitted-but-no-key
+window). D3: rotation **(i)** never, **(ii)** on removal, **(iii)** on a schedule and on removal.
+
+**Draft choice: D1 (b), D3 (ii).** The key travels with the permission; rotation on removal is the only defence when
+a former subscriber colludes with the authority, and removal is rare next to publishing.
+
+**Decided (2026-10-23, user: "encryption now with (b) and D2–D6 as drafted"): D1 (b), D3 (ii).** P§12.3: a grant MAY
+carry `presence_keys`, `{alg, enc, ct}`, HPKE to the grantee identity's key agreement key, info `dsip presence keys
+v1`, AAD `id ‖ 0x00 ‖ from ‖ 0x00 ‖ to`, plaintext `{"keys": [{kid, key}]}` padded to a multiple of 256 bytes, holding
+`main` and the grant's audience at the grantor's current epoch. P§12.5: rotation when a grant ends (revoked or past
+`valid_until`), at most once per T-Presence-Rotate (P§8, 60 s, 0–3,600 s), and a grant that follows each remaining
+grant (§19.4, spec-gap 150) carries the new keys without revoking it. Core §19.4 and §9.4 name the field. **Pinned**
+(E1): `presence/grant-keys-*` (opening, splicing, scopes, padding), `payload/grant-presence-keys-*`. Rotation and
+re-granting are E2 (state vectors, with spec-gap 159).
+
+## 153. P§6 / P§12 — the audience on the wire when records are sealed
+
+**Found (2026-10-23, same note, D2).** An audience label (`family`) tells the authority how the subject sorts its
+contacts even when no state can be read. Choices: **(i)** keep the label; **(ii)** an opaque tag per audience.
+
+**Draft choice: (ii).** **Decided (2026-10-23): (ii).** Working out D7 (a) (spec-gap 157) refined it: the subject's
+devices must agree on the tag without exchanging anything, so it is derived, `k-` + base32 of 10 bytes of HKDF from the
+identity's key agreement secret, the subject and the label (P§12.1), and stays the same across rotations (the epoch, in
+`kid`, is what changes). **Pinned:** `presence/audience-tag`, `-per-label`, `-per-subject`, `-from-clamped-secret`.
+
+## 154. P§4 / P§12 — a record the subscriber cannot read
+
+**Found (2026-10-23, D4).** A subscriber without the key (or with an old one) holds a record it cannot read; the
+authority cannot tell. Choices: **(i)** it counts as holding no record (the authority's assertion rule unchanged);
+**(ii)** it counts as unknown, shown as "presence hidden".
+
+**Draft choice: (i)**, and a client MAY say it holds presence it cannot read. **Decided (2026-10-23): (i).** P§12.4:
+unreadable, in order, when no key is held for the `kid`, the decoded `sealed_state` is not 156 bytes, it does not open,
+or the plaintext is not exactly `{"state": S}` with `S` a P§5 token; such a record takes no part in combining (P§4).
+**Pinned:** `presence/open-record-*`, `presence/view-*` (`unreadable` lists the devices).
+
+## 155. P§12 — what timing and size still say
+
+**Found (2026-10-23, D5).** A sealed state's length would say which state it is, and a new record's timing says that
+something changed. Choices: **(i)** accept both; **(ii)** pad (MUST) and refresh on a steady cadence (SHOULD).
+
+**Draft choice: (ii).** **Decided (2026-10-23): (ii).** P§12.2: the plaintext is padded with spaces to exactly 128
+bytes, so every `sealed_state` is 156 bytes; P§10 says a steady refresh keeps a change from showing in a record's
+timing. Writing the vectors fixed the sealer's bytes (`{"state":"busy"}`, no whitespace) while a reader accepts any
+JSON text of that one key. **Pinned:** `presence/seal-record` (the exact bytes), `presence/open-record-truncated`.
+
+## 156. P§12 / §11.2 — versioning sealed records, and who is given them
+
+**Found (2026-10-23, D6).** A subscriber that does not implement sealing cannot read a sealed record, and a subject
+moving to sealing may still have such subscribers. Choices: per audience, or per record, or all at once.
+
+**Draft choice:** sealed records name `presence/0.2`; a subject chooses per audience; no record is published in both
+forms; a subscription whose `subscribe` does not list `presence/0.2` is given plain audiences only. **Decided
+(2026-10-23): as drafted.** P§12.6: such a subscription is given no sealed record, and in its assertion their devices
+count as holding none it sees; this applies to the subject's own devices too. P§12.2: a sealed record MUST name
+`presence/0.2`, its `audience` is never `main`, and its `kid`'s scope is its audience (`main` without one): otherwise
+`presence-sealed-invalid`, reason `presence.sealed-invalid` (P§9). Writing the record turned up that the field cannot
+be `sealed`, as the design note had it: a record is addressed to its authority, and an addressee implementing
+`sealed-body/1.0` refuses `sealed` without that extension in `dsip.critical` (§10.4); it is `sealed_state`. **Pinned:**
+`state/presence-sealed-by-profile`, `-sealed-audience-beside-plain`, `-sealed-checked-as-plain`,
+`semantic/presence-sealed-*`, `semantic/reason-presence-sealed-invalid-registered`, `payload/presence-sealed-*`,
+`payload/presence-kid-*`, `envelope/presence-sealed-accepted`; fuzz targets `presence-admission` (sealed records,
+subscriber profiles) and `presence-sealed` (opening).
+
+## 157. P§12 — how the subject's own devices share the keys and the epoch
+
+**Found (2026-10-23, working the construction).** Every device of the subject publishes, so all need the same key per
+audience and epoch, and must agree on the epoch; the design note's D1–D6 did not say how.
+
+Choices: **(a)** derive every key from the identity's X25519 key agreement secret, which every device of the identity
+holds and no grantee does (§10.4), with the epoch in clear in `kid`, each device publishing at the highest epoch it has
+seen; **(b)** random keys sent to sibling devices, sealed to the identity, through the authority or the mailbox (a new
+message, its delivery and retry); **(c)** only one device publishes sealed records.
+
+**Draft choice: (a).** No new message and no coordination beyond what P§6 rule 1 already gives; the authority learns
+how many rotations each audience has had.
+
+**Decided (2026-10-24, user: "157 (a)"): (a).** P§12.1: `s` is the secret after RFC 7748 clamping; tags as spec-gap
+153; `kid` = scope (`main` or the tag) ‖ `.` ‖ epoch (decimal, no leading zeros); `key = HKDF-SHA256(s, "dsip presence
+key v1" ‖ 0x00 ‖ subject ‖ 0x00 ‖ kid)`. P§12.2: AES-256-GCM, AAD `dsip presence v1 ‖ 0x00 ‖ subject ‖ 0x00 ‖ device ‖
+0x00 ‖ audience ‖ 0x00 ‖ kid ‖ 0x00 ‖ u64be(seq) ‖ u64be(expires_at)`. P§12.5: a device's current epoch per scope is
+the highest it has seen in its own identity's records or reached by rotating; every device re-grants the live grants
+*it* issued when an epoch rises, its own rotation or a sibling's, since a device knows only its own grants (an offline
+sibling's grantees cannot read the new epoch until it returns). **Pinned:** `presence/key-*`, `presence/seal-record`,
+`presence/open-record-spliced-*`; the epoch rules are E2.
+
+## 159. P§12.5 / P§7 — a rotation grant leaves its predecessor admitting
+
+**Found (2026-10-24, writing P§12.5).** A rotation re-grants every remaining grantee with a grant that follows theirs
+(spec-gap 150) and does not revoke the old one, so nobody watching is cut off. The authority then holds two grants that
+admit the same grantee, and the subscription it already has was admitted by the old one. When the share later ends,
+the grantor revokes the grant it holds now, the newest: the subscription the old grant admitted keeps running, and the
+old grant still admits a renewal, until its `valid_until`.
+
+Choices:
+
+- **(a) Ending a share revokes its whole chain.** The grantor revokes every grant of the chain still before its
+  `valid_until` (rotation keeps `valid_until`, so the chain is the grants that followed one another by rotation, and the
+  grantor's devices know them because each issued its own). Nothing changes at the authority.
+- **(b) A rotation grant revokes its predecessor**, and the grantee re-subscribes with the new grant at once: one short
+  gap in its notifies per rotation, and a rotation burst becomes a burst of re-subscriptions.
+- **(c) The authority links them:** a grant whose `session` names a grant stands in for it, so revoking either ends
+  what both admitted. The authority must keep the chain, from grants it was shown in `claims`.
+
+**Draft choice: (a).** It keeps the authority as it is and costs one revocation per link, at a moment that is already
+rare (a share ending).
+
 ## 158. §13.2 — a replaced connection cannot tell it was replaced, so it reconnects
 
 **Found (2026-10-24, the presence-audiences demo failing on main; PR #246).** §13.2 makes simultaneous connections from

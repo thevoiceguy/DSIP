@@ -9,7 +9,8 @@
  * signed record published to its authority: refusals in order, the body with `records`, expiry, the unbind grace,
  * notifying on body changes), P§4 (`seq` per `(subject, device)`), P§6 (admission order, audiences, the body per
  * subscription), P§7 (a share's `valid_until`, revocation), P§8 (lifetime bounds, T-Presence-Grace, the
- * publish interval).
+ * publish interval), P§12.6 (sealed records kept and routed as plain ones, given only to subscriptions that
+ * listed `presence/0.2`).
  */
 import type { Json, JsonObject } from "./did.js";
 import { byCodePoint } from "./recording/recording.js";
@@ -29,7 +30,10 @@ interface PresenceRecord {
   device: string;
   /** Absent: the record names no audience, which counts as an audience of its own. Spec: P§6 */
   audience?: string;
-  state: string;
+  /** A plain record's state. A sealed one carries `kid` and `sealed_state` instead, which the authority never opens. Spec: P§12.2, P§12.6 */
+  state?: string;
+  kid?: string;
+  sealed_state?: string;
   seq: number;
   expires_at: number;
 }
@@ -57,6 +61,8 @@ interface Subscription {
   grant?: { id: string; valid_until: number };
   /** The audience fixed at admission. Spec: P§6 */
   audience?: string;
+  /** Its `subscribe` listed `presence/0.2` in `profiles`: it is given sealed records. Spec: P§12.6 */
+  sealed?: boolean;
   /** The last presence body sent, for "notified exactly when its own body changes". Spec: P§6 */
   lastBody?: string;
 }
@@ -137,6 +143,7 @@ export class Authority {
           ...(s.own ? { own: true } : {}),
           ...(s.grant ? { grant: s.grant.id } : {}),
           ...(s.audience !== undefined ? { audience: s.audience } : {}),
+          ...(s.sealed ? { sealed: true } : {}),
         }]),
       );
     }
@@ -147,7 +154,8 @@ export class Authority {
         presence[subject] = Object.fromEntries(
           [...held].map(([key, r]) => {
             const grace = this.graceUntil.get(r.device);
-            return [key, { seq: r.seq, state: r.state, expires_at: r.expires_at, ...(grace !== undefined ? { grace_until: grace } : {}) }];
+            const form: JsonObject = r.state !== undefined ? { state: r.state } : { kid: r.kid! };
+            return [key, { seq: r.seq, ...form, expires_at: r.expires_at, ...(grace !== undefined ? { grace_until: grace } : {}) }];
           }),
         );
       }
@@ -180,8 +188,12 @@ export class Authority {
     });
   }
 
-  /** Spec: P§6 — a subscription sees the records with no audience, those of its own audience, and, when own, all. */
+  /**
+   * Spec: P§6 — a subscription sees the records with no audience, those of its own audience, and, when own, all.
+   * Spec: P§12.6 — but no sealed record unless its `subscribe` listed `presence/0.2`, own or not.
+   */
   private sees(s: Subscription, r: PresenceRecord): boolean {
+    if (r.sealed_state !== undefined && s.sealed !== true) return false;
     return s.own === true || r.audience === undefined || r.audience === s.audience;
   }
 
@@ -198,7 +210,8 @@ export class Authority {
     const body: JsonObject = { event: "presence", state: asserted ? "available" : "offline" };
     if (visible.length > 0) {
       body["records"] = visible.map((r) => ({
-        id: r.id, device: r.device, state: r.state, seq: r.seq, expires_at: r.expires_at,
+        id: r.id, device: r.device, seq: r.seq, expires_at: r.expires_at,
+        ...(r.state !== undefined ? { state: r.state } : { kid: r.kid!, sealed_state: r.sealed_state! }),
         ...(r.audience !== undefined ? { audience: r.audience } : {}),
       }));
     }
@@ -338,7 +351,9 @@ export class Authority {
     // P§3: a record accepted from a device in its grace keeps the grace running (the grace is the device's).
     held.set(key, {
       id: m["id"] as string, device: from, ...(audience !== undefined ? { audience } : {}),
-      state: m["state"] as string, seq: m["seq"] as number, expires_at: m["expires_at"] as number,
+      // P§12.6: a sealed record is checked and kept as any other; its state stays sealed.
+      ...(typeof m["state"] === "string" ? { state: m["state"] } : { kid: m["kid"] as string, sealed_state: m["sealed_state"] as string }),
+      seq: m["seq"] as number, expires_at: m["expires_at"] as number,
     });
     this.records.set(subject, held);
     this.lastAccepted.set(key, this.now);
@@ -496,6 +511,7 @@ export class Authority {
     const s: Subscription = {
       id: m["id"] as string, device: m["from"] as string, subscriber, target, events, seq: 0,
       expires_at: this.now + (m["expires_in"] as number), ...admitted,
+      ...(Array.isArray(m["profiles"]) && m["profiles"].includes("presence/0.2") ? { sealed: true } : {}),
     };
     this.subscriptions.push(s);
     // §9.3: the first notify carries current state

@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://dsip.org/schema/1.0/presence.schema.json",
   "title": "DSIP presence payload",
-  "description": "A device's signed presence record (spec 9.4), published to its authority and carried in notify bodies (Presence Profile P3, v0.17). device, when present, must equal from (semantic check); its age is bounded by expires_at, capped at 3600 s (spec 12.9). state is from the open registry dsip-presence-state: unknown tokens are accepted and shown as available (P5).",
+  "description": "A device's signed presence record (spec 9.4), published to its authority and carried in notify bodies (Presence Profile P3, v0.17). device, when present, must equal from (semantic check); its age is bounded by expires_at, capped at 3600 s (spec 12.9). state is from the open registry dsip-presence-state: unknown tokens are accepted and shown as available (P5). A sealed record (presence/0.2, P12) carries kid and sealed_state in place of state.",
   "type": "object",
   "properties": {
     "dsip": {
@@ -51,6 +51,18 @@
       "maxLength": 64,
       "description": "The audience this record is for, a token the subject chooses (P6, spec-gap 145); absent: every admitted subscriber."
     },
+    "kid": {
+      "type": "string",
+      "pattern": "^(main|[a-z][a-z0-9-]*)\\.(0|[1-9][0-9]*)$",
+      "maxLength": 86,
+      "description": "A sealed record's key: scope (main, or the audience tag) . epoch (P12.1; spec-gaps 152, 157). Its scope matches audience (semantic check)."
+    },
+    "sealed_state": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]+$",
+      "minLength": 1,
+      "description": "base64url nonce || AES-256-GCM ciphertext || tag of {\"state\": S} padded to 128 bytes (P12.2)."
+    },
     "profiles": {
       "type": "array",
       "items": {
@@ -86,7 +98,6 @@
     "expires_at",
     "to",
     "subject",
-    "state",
     "seq"
   ],
   "additionalProperties": false,
@@ -355,5 +366,37 @@
       "additionalProperties": false,
       "description": "Unverified-by-default identity presentation; claims carry VC presentations (spec 17). Display fields are claims, not truth."
     }
-  }
+  },
+  "oneOf": [
+    {
+      "required": [
+        "state"
+      ],
+      "not": {
+        "anyOf": [
+          {
+            "required": [
+              "sealed_state"
+            ]
+          },
+          {
+            "required": [
+              "kid"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "required": [
+        "kid",
+        "sealed_state"
+      ],
+      "not": {
+        "required": [
+          "state"
+        ]
+      }
+    }
+  ]
 }

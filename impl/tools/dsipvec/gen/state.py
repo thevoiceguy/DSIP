@@ -1582,5 +1582,7 @@ def vectors() -> list[dict]:
                [{"queue": {"to": BOB, "type": "introduction"}}], {BOB: 1, UNKNOWN: 1}),
     ], component="relay"))
     from .presence_vectors import state_vectors
+    from . import presence_sealed
     out.extend(state_vectors())
+    out.extend(presence_sealed.state_vectors())
     return out

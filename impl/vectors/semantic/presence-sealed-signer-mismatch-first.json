@@ -1,0 +1,52 @@
+{
+  "vector": "semantic/presence-sealed-signer-mismatch-first",
+  "format": 1,
+  "kind": "semantic",
+  "description": "A sealed record whose device is not its signer fails the signer check first (P§3 before P§12.2).",
+  "spec_ref": [
+    "P§3",
+    "P§12.2"
+  ],
+  "context": {
+    "now": 1760000000,
+    "supported": {
+      "core": "1.0",
+      "profiles": [
+        "interactive-media/1.0",
+        "verified-broadcast/1.0",
+        "presence/0.1",
+        "presence/0.2"
+      ],
+      "extensions": []
+    }
+  },
+  "input": {
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "presence/0.1"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "presence",
+      "id": "01K742SG00F7B6CF9MDAMM23ZV",
+      "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+      "to": "did:web:relay.example.com",
+      "subject": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+      "device": "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ",
+      "kid": "main.0",
+      "seq": 1,
+      "expires_at": 1760000300,
+      "sealed_state": "XdzvuexAuDy37ohzkxEn7OAioHVGDl0F37pgB4NZ1UYzkEXEAXNMQwwoJ6Y1ZfjQg8KFs9v-qZDqFPiikx874EurH-nkXV_F6HGV5IQ-bEXl3s4B3q5wsWazwoMucvqRaalFvgEenRpdLFER_LJy43utELEpV2WI4CdVE8lXd2MgooJisMILk-XP8KoK0eu0a0J9ufmuvT_PJi38",
+      "issued_at": 1760000000
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "presence-signer-mismatch",
+    "reason": "presence.signer-mismatch"
+  }
+}

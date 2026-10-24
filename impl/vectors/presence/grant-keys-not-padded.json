@@ -1,0 +1,48 @@
+{
+  "vector": "presence/grant-keys-not-padded",
+  "format": 1,
+  "kind": "presence",
+  "description": "A plaintext that is not a multiple of 256 bytes is refused.",
+  "spec_ref": [
+    "P§12.3",
+    "§19.4"
+  ],
+  "context": {
+    "now": 1760000000
+  },
+  "input": {
+    "check": "grant-keys-open",
+    "grant": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "interactive-media/1.0"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "grant",
+      "id": "01K742SG00CY912TTCA5J5BM4R",
+      "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+      "to": "did:key:z6MkhzX9qTeXBWkucyMVric1E9JrqUD5LPAkD2BNavakAptf",
+      "session": "01K742QND0VK92GVB9H00SB6EA",
+      "scope": [
+        "dsip.subscribe"
+      ],
+      "valid_until": 1760086400,
+      "issued_at": 1760000000,
+      "expires_at": 1760000030,
+      "presence_keys": {
+        "alg": "hpke-base-x25519-sha256-aes128gcm",
+        "enc": "xK5vighI7_RkDgnWkM_HXBqZxPTTs8M9_lWdPwQO60w",
+        "ct": "_km5HgmAYXsXxxrwhv5rV0rtgHhRgScBaIsQ-GzdsqWQ9rlEXWa0EoDGA25Ch8ANxKtj6bKxkcYn-7wSSgk0fW4xFnodQ-u8qVkA15W91eQTr-6n_4P9_hVHy4XspZWOLk5D"
+      }
+    },
+    "recipient_secret_hex": "b01caa6dc4487f5251b3c3d0ac3b8be4ba7459d7cc16d3a71c34831a6b1086d8"
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "sealed-plaintext-invalid"
+  }
+}

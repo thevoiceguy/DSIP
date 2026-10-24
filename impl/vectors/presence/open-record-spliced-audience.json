@@ -1,0 +1,31 @@
+{
+  "vector": "presence/open-record-spliced-audience",
+  "format": 1,
+  "kind": "presence",
+  "description": "A family ciphertext with its audience changed to work, its kid kept, does not open: the audience is in the AAD.",
+  "spec_ref": [
+    "P§12.4"
+  ],
+  "context": {
+    "now": 1760000000
+  },
+  "input": {
+    "check": "open-record",
+    "record": {
+      "subject": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+      "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+      "kid": "k-tkxij7ahuhkuvpff.3",
+      "seq": 1,
+      "expires_at": 1760000300,
+      "audience": "k-s4kxqsgrog77hbae",
+      "sealed_state": "QkIA8QJc873AqRW7bw__U0PSSjVXnSAZOStfRpmaXA5Wjhh1ol-JL8ftLGuczsfUH1IkMpBgvf0_xrhGchDWH40BkJUzaOl8GnXVSHDANuUYwPtIaNiQ5gUsxj2WWTuTyM22UmpnOrNXZc-hGP27DR6MjKdMjXiGlEfpbeOZDPDRFyU9E9FW1C48HecZXEqDSqlbYO2wXk8gDSDy"
+    },
+    "keys": {
+      "k-tkxij7ahuhkuvpff.3": "7ee562457b21e14f2e9ee584af321b09659cf8cb5fef670e1dd1c05f9136c041"
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "aead-open-failed"
+  }
+}

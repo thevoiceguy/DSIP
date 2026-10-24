@@ -1,0 +1,21 @@
+{
+  "vector": "presence/key-main",
+  "format": 1,
+  "kind": "presence",
+  "description": "The key of main.0, the first epoch of records with no audience (P§12.1).",
+  "spec_ref": [
+    "P§12.1"
+  ],
+  "context": {
+    "now": 1760000000
+  },
+  "input": {
+    "check": "key",
+    "secret_hex": "9f59fc4eadf005fc2260359c78204f6778346c2cc7a09899a0e38e4a5c0ee916",
+    "subject": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+    "kid": "main.0"
+  },
+  "expect": {
+    "key_hex": "c4e3a61b986a8b6046b27d4ca521e8c8036a088f59f62ef70597738823d8c02a"
+  }
+}

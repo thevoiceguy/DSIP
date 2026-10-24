@@ -170,7 +170,9 @@ class Authority:
         last = self.last_accepted.get((device, audience))
         if last is not None and self.now - last < PUBLISH_INTERVAL_S:
             return refuse("policy.rate-limited", retry_after=PUBLISH_INTERVAL_S - (self.now - last))  # P§8, per audience
-        rec = {"id": m["id"], "device": device, "state": m["state"], "seq": m["seq"], "expires_at": m["expires_at"]}
+        rec = {"id": m["id"], "device": device, "seq": m["seq"], "expires_at": m["expires_at"]}
+        # P§12.6: a sealed record is kept and routed as any other; its state is not the authority's to read
+        rec.update({k: m[k] for k in ("state", "kid", "sealed_state") if k in m})
         if audience:
             rec["audience"] = audience
         self.records[key] = rec
@@ -198,6 +200,9 @@ class Authority:
         """P§3, P§6: over the records `sub` sees, the assertion for the bound devices that hold none of them, and those
         records by device, then audience (none first). `sub` None: every record (the subject's own view)."""
         def sees(rec: dict) -> bool:
+            # P§12.6 (spec-gap 156): a subscription that did not list presence/0.2 is given no sealed record
+            if "sealed_state" in rec and sub is not None and not sub.get("sealed"):
+                return False
             a = rec.get("audience")
             return sub is None or sub.get("own") or a is None or a == sub.get("audience")
         recs = [r for (subj, _, _), r in sorted(self.records.items()) if subj == subject and sees(r)]
@@ -270,6 +275,8 @@ class Authority:
             self.emit({"subscription": {"id": existing, "state": "replaced"}})
         sub = {"subscriber": identity, "device": m["from"], "target": target, "events": events,
                "expires_at": self.now + lifetime, "seq": 0, **{k: v for k, v in admitted.items() if v is not None}}
+        if "presence/0.2" in m.get("profiles", []):
+            sub["sealed"] = True  # P§12.6: the subscriber reads sealed records
         self.subscriptions[m["id"]] = sub
         # Acceptance is signaled by the first notify, which carries the current state
         self.notify(m["id"], "active")
@@ -346,7 +353,8 @@ class Authority:
         an audience (P§6)."""
         out: dict = {}
         for (subject, device, audience), r in sorted(self.records.items()):
-            snap = {"seq": r["seq"], "state": r["state"], "expires_at": r["expires_at"]}
+            snap = {"seq": r["seq"], **({"state": r["state"]} if "state" in r else {"kid": r["kid"]}),
+                    "expires_at": r["expires_at"]}
             if device in self.grace_until:
                 snap["grace_until"] = self.grace_until[device]
             out.setdefault(subject, {})[f"{device}/{audience}" if audience else device] = snap
@@ -358,7 +366,7 @@ class Authority:
             snap = {"subscriber": s["subscriber"], "target": s["target"], "events": s["events"], "seq": s["seq"],
                     "expires_at": s["expires_at"]}
             # P§6: how a presence subscription was admitted, when it was not by policy or a capability
-            snap.update({k: s[k] for k in ("own", "grant", "audience") if k in s})
+            snap.update({k: s[k] for k in ("own", "grant", "audience", "sealed") if k in s})
             out[sid] = snap
         return out
 

@@ -1,7 +1,7 @@
 # Presence encrypted to subscribers — design note (P§11 question 1)
 
-Status: **decided 2026-10-23** (user: "encryption now with (b) and D2–D6 as drafted"), except **D7**, which working
-out the construction (§8) turned up and is open. Docs only: the spec text, vectors and code follow D7, vectors first.
+Status: **decided.** 2026-10-23 (user: "encryption now with (b) and D2–D6 as drafted"); **D7 decided (a)** 2026-10-24.
+The wire detail that D7 (a) settles, and three findings it turned up, are §9; the work is staged in §10.
 Spec-gaps: 152 = D1 with D3, 153 = D2, 154 = D4, 155 = D5, 156 = D6, 157 = D7 (151 went to the invite-admission
 finding of spec-gap 150's work). They are written into `spec-gaps.md` with the implementation, after #243 merges.
 
@@ -163,7 +163,7 @@ Roughly the size of the audiences work (#237 + #240–#242), plus spec-gap 150.
 
 Answered 2026-10-23: now; D1 (b); D2–D6 as drafted.
 
-## 8. The construction, and D7 (open)
+## 8. The construction, and D7 (decided (a), 2026-10-24)
 
 Working the decisions into wire detail:
 
@@ -206,3 +206,51 @@ same key for each audience and epoch, and must agree on the current epoch. The n
 
 **Draft: (a).** It needs no new message and no coordination beyond what P§6 rule 1 already allows, and a device always
 derives the key it needs; the only coordination is the epoch number, which can lag harmlessly.
+
+## 9. The construction as specified (P§12), and what D7 (a) changed
+
+D7 (a) means nothing is sent between the subject's own devices, so everything they must agree on is derived from the
+identity's X25519 key agreement secret `s` (§10.4: every device acting for the identity holds it, a grantee never does)
+or read off records they already see. Working that through changed three things from §5 and §8:
+
+1. **The audience tag is derived, not a key's ULID** (refines D2 (ii)). Siblings must use the same tag for an audience
+   or their records land in different audiences. `tag(L) = "k-" ‖ base32 (lower case, unpadded) of the first 10 bytes
+   of HKDF-SHA256(s, info "dsip presence audience v1" ‖ 0x00 ‖ subject ‖ 0x00 ‖ L)`, 18 characters, a valid P§6
+   token. The label `L` never leaves the subject's devices; the tag stays the same across rotations (the epoch, in
+   `kid`, is what changes), so the authority sees "audience k-… rotated 3 times", as D7 (a) already accepted.
+2. **The record field is `sealed_state`, not `sealed`.** A `presence` record is addressed to the authority, and an
+   addressee implementing `sealed-body/1.0` refuses any payload carrying `sealed` without that extension in
+   `dsip.critical` (§10.4). A record named `sealed` would be refused by exactly the authorities that implement the
+   most privacy. The record carries `kid` and `sealed_state` in place of `state`.
+3. **Rotation crosses devices by observation** (refines D3 (ii) for several devices). A device knows only the grants it
+   issued. So the device that ends a grant rotates; every other device of the subject sees the higher epoch in its own
+   identity's records (P§6 rule 1) and re-grants the live grants *it* issued. A sibling that is offline re-grants when
+   it returns, and until then its grantees cannot read the new epoch: they see the authority's assertion (D4).
+
+Keys: `kid` = scope ‖ "." ‖ epoch, the scope `main` (records with no audience) or the tag; `key = HKDF-SHA256(s,
+info "dsip presence key v1" ‖ 0x00 ‖ subject ‖ 0x00 ‖ kid, 32)`. Record: plaintext `{"state": S}` padded with spaces
+to 128 bytes, AES-256-GCM, AAD `"dsip presence v1" ‖ 0x00 ‖ subject ‖ 0x00 ‖ device ‖ 0x00 ‖ audience ‖ 0x00 ‖ kid ‖
+0x00 ‖ u64be(seq) ‖ u64be(expires_at)`. Grant: `presence_keys` = `{alg, enc, ct}`, HPKE as a sealed purpose, info
+`dsip presence keys v1`, AAD `id ‖ 0x00 ‖ from ‖ 0x00 ‖ to`, plaintext `{"keys": [{kid, key}]}` padded to a multiple of
+256 bytes. All of it is P§12.
+
+**A further finding, for stage E2 (spec-gap 159, drafted in `spec-gaps.md`).** A rotation grant follows the old one
+without revoking it (so nobody is cut off mid-watch), which leaves the old grant admitting at the authority. When the
+share later ends, revoking only the newest grant leaves a subscription the old one admitted running. Draft (a): ending
+a share revokes every grant of its chain that is still before its `valid_until` (rotation keeps `valid_until`, so the
+chain is the grants that followed one another by rotation). (b) Rotation grants do revoke their predecessor, and the
+grantee re-subscribes at once with the new grant, a short gap in its notifies. (c) The authority treats a grant whose
+`session` names a grant as standing in for it: revoking either ends what both admitted. Draft: (a), it changes nothing
+at the authority.
+
+## 10. Stages
+
+- **E1 — wire, keys, authority** (this PR): spec-gaps 152–157 in `spec-gaps.md`; P§12 and core §19.4 text; schemas
+  (`kid`, `sealed_state`, `presence_keys`); vectors for derivation, sealing and opening a record, opening a grant's
+  keys, the subscriber's view with unreadable records (D4), the payload rules, and the authority's routing by profile
+  (D6); Python, Rust and impl-ts.
+- **E2 — the endpoint**: key state per scope and epoch, the sealed records a device publishes, keys put in a grant,
+  rotation on revocation and on `valid_until` with T-Presence-Rotate, re-granting on a sibling's higher epoch, the
+  subscriber keeping two epochs; state vectors first; spec-gap 159.
+- **E3 — clients and the testbed**: `dsip presence publish|watch`, the browser (Settings audiences sealed, badges, a
+  "presence not readable" note), demos, web tests, then the relay and web redeployed and a sealed WAN presence check.

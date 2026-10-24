@@ -1,0 +1,210 @@
+{
+  "vector": "state/presence-sealed-by-profile",
+  "format": 1,
+  "kind": "state",
+  "description": "Bob's phone is bound and publishes a sealed record. Alice's subscription listed presence/0.2 and is given it, and Bob's phone, holding a record she sees, no longer counts in her assertion. Carol's did not list presence/0.2: she is given no sealed record, so the phone counts in her assertion as before, her body does not change, and she is not notified (P§12.6, spec-gap 156).",
+  "spec_ref": [
+    "P§12.6",
+    "P§6"
+  ],
+  "context": {
+    "component": "authority",
+    "start": 1760000000,
+    "identities": {
+      "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu": "did:key:z6MkhzX9qTeXBWkucyMVric1E9JrqUD5LPAkD2BNavakAptf",
+      "did:key:z6MkfhenvjQ7awdpVWzPaeBuPkXCBLwzJKyosCrTL3huMb66": "did:key:z6MkhzX9qTeXBWkucyMVric1E9JrqUD5LPAkD2BNavakAptf",
+      "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+      "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+      "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL": "did:key:z6Mkt5yU6sK3v7gxFHncQbmZ7VQvnVuJBGrDAbqhZp2gDW7G"
+    }
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "relay": "bind",
+          "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+          "identity": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R"
+        },
+        "expect": {
+          "emit": []
+        }
+      },
+      {
+        "event": {
+          "recv": {
+            "type": "subscribe",
+            "id": "01K742SG004PERZ2V79XEVYKRS",
+            "from": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+            "to": "did:key:z6MkAuthorityRelay11111111111111111111111111",
+            "target": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+            "events": [
+              "presence"
+            ],
+            "expires_in": 3600,
+            "profiles": [
+              "presence/0.1",
+              "presence/0.2"
+            ],
+            "claims": [
+              {
+                "type": "dsip-grant",
+                "grant": {
+                  "id": "01K741TZE0CP6FVW2AQZ9F7B4Z",
+                  "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+                  "identity": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+                  "to": "did:key:z6MkhzX9qTeXBWkucyMVric1E9JrqUD5LPAkD2BNavakAptf",
+                  "scope": [
+                    "dsip.subscribe"
+                  ],
+                  "valid_until": 1760086400
+                }
+              }
+            ]
+          }
+        },
+        "expect": {
+          "emit": [
+            {
+              "send": {
+                "type": "notify",
+                "to": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+                "subscription": "01K742SG004PERZ2V79XEVYKRS",
+                "seq": 1,
+                "state": "active",
+                "body": {
+                  "event": "presence",
+                  "state": "available"
+                }
+              }
+            }
+          ]
+        }
+      },
+      {
+        "event": {
+          "recv": {
+            "type": "subscribe",
+            "id": "01K742SG00Y61E6SZ2KC105WK2",
+            "from": "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL",
+            "to": "did:key:z6MkAuthorityRelay11111111111111111111111111",
+            "target": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+            "events": [
+              "presence"
+            ],
+            "expires_in": 3600,
+            "claims": [
+              {
+                "type": "dsip-grant",
+                "grant": {
+                  "id": "01K741TZE06WMKQZFEYV5NVGDV",
+                  "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+                  "identity": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+                  "to": "did:key:z6Mkt5yU6sK3v7gxFHncQbmZ7VQvnVuJBGrDAbqhZp2gDW7G",
+                  "scope": [
+                    "dsip.subscribe"
+                  ],
+                  "valid_until": 1760086400
+                }
+              }
+            ]
+          }
+        },
+        "expect": {
+          "emit": [
+            {
+              "send": {
+                "type": "notify",
+                "to": "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL",
+                "subscription": "01K742SG00Y61E6SZ2KC105WK2",
+                "seq": 1,
+                "state": "active",
+                "body": {
+                  "event": "presence",
+                  "state": "available"
+                }
+              }
+            }
+          ]
+        }
+      },
+      {
+        "event": {
+          "recv": {
+            "type": "presence",
+            "id": "01K742SG00N9PNSRQG88N6ECA3",
+            "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "to": "did:key:z6MkAuthorityRelay11111111111111111111111111",
+            "subject": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+            "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "seq": 1,
+            "issued_at": 1760000000,
+            "expires_at": 1760000300,
+            "kid": "main.0",
+            "sealed_state": "sZ7FkghgtqGosBICfxDo7bc8FcyeaRD9ICYjSFioJ_NNyfq6TIgpLMrytj5wW7pDTZOcR_MMKRm_1o2tYzK8dnQxevoGpdSs3KasbXJiQ7DvfBZuvgVpcNLp7ZKvw9m5or0KX3prfogWWakig-Trf1YEi-y__QMLMPdLAKOMGKWXYMqyPOVaPUjXOes2Yx8sSRJfSoyM-kTinmtM"
+          }
+        },
+        "expect": {
+          "emit": [
+            {
+              "send": {
+                "type": "notify",
+                "to": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+                "subscription": "01K742SG004PERZ2V79XEVYKRS",
+                "seq": 2,
+                "state": "active",
+                "body": {
+                  "event": "presence",
+                  "state": "offline",
+                  "records": [
+                    {
+                      "id": "01K742SG00N9PNSRQG88N6ECA3",
+                      "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+                      "seq": 1,
+                      "expires_at": 1760000300,
+                      "kid": "main.0",
+                      "sealed_state": "sZ7FkghgtqGosBICfxDo7bc8FcyeaRD9ICYjSFioJ_NNyfq6TIgpLMrytj5wW7pDTZOcR_MMKRm_1o2tYzK8dnQxevoGpdSs3KasbXJiQ7DvfBZuvgVpcNLp7ZKvw9m5or0KX3prfogWWakig-Trf1YEi-y__QMLMPdLAKOMGKWXYMqyPOVaPUjXOes2Yx8sSRJfSoyM-kTinmtM"
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "presence": {
+            "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R": {
+              "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn": {
+                "seq": 1,
+                "kid": "main.0",
+                "expires_at": 1760000300
+              }
+            }
+          },
+          "subscriptions": {
+            "01K742SG004PERZ2V79XEVYKRS": {
+              "subscriber": "did:key:z6MkhzX9qTeXBWkucyMVric1E9JrqUD5LPAkD2BNavakAptf",
+              "target": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+              "events": [
+                "presence"
+              ],
+              "seq": 2,
+              "expires_at": 1760003600,
+              "grant": "01K741TZE0CP6FVW2AQZ9F7B4Z",
+              "sealed": true
+            },
+            "01K742SG00Y61E6SZ2KC105WK2": {
+              "subscriber": "did:key:z6Mkt5yU6sK3v7gxFHncQbmZ7VQvnVuJBGrDAbqhZp2gDW7G",
+              "target": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+              "events": [
+                "presence"
+              ],
+              "seq": 1,
+              "expires_at": 1760003600,
+              "grant": "01K741TZE06WMKQZFEYV5NVGDV"
+            }
+          }
+        }
+      }
+    ]
+  },
+  "expect": {}
+}

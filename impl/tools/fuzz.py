@@ -912,6 +912,57 @@ def gen_presence_aggregate(r: random.Random):
     return "presence", "aggregate", {"now": NOW}, body
 
 
+def gen_presence_sealed(r: random.Random):
+    """A sealed record or a grant's keys, opened (P§12.3, P§12.4; README kind `presence`, `open-record`,
+    `grant-keys-open`, `view`): real ciphertexts, then field, key and byte mutations, so the checks' order is probed."""
+    sys.path.insert(0, str(REPO / "impl/tools"))
+    from dsipvec.gen import presence_sealed as S
+    kids = ["main.0", "main.1", f"{S.FAMILY}.0", f"{S.FAMILY}.3"]
+    keys = lambda: {k: S.key(S.BOB_S, S.BOB, k).hex() for k in r.sample(kids, r.randint(0, 3))}
+    if r.random() < 0.35:
+        held = {k: S.key(S.BOB_S, S.BOB, k) for k in r.sample(kids, r.randint(0, 3))}
+        audience = r.choice([None, S.FAMILY, "work"])
+        pt = None
+        if r.random() < 0.3:
+            pt = r.choice([b'{"keys": []}', b'{"keys": [1]}', b'{"keys": [], "x": 1}', b"[]", b"\xff"]).ljust(r.choice([200, 256, 512]), b" ")
+        g = S.grant_with_keys(f"fz{r.randint(0, 9999)}", held, audience=audience, plaintext=pt,
+                              alg=r.choice(["hpke-base-x25519-sha256-aes128gcm"] * 5 + ["x"]))
+        if r.random() < 0.2:
+            g[r.choice(["id", "from", "to"])] = S.CAROL
+        if r.random() < 0.2:
+            g["presence_keys"]["ct"] = g["presence_keys"]["ct"][:-r.randint(1, 8)]
+        return "presence", "grant-keys-open", {"now": NOW}, {"grant": g, "recipient_secret_hex": r.choice([S.ALICE_S, S.ALICE_S, S.CAROL_S]).hex()}
+
+    def record():
+        kid = r.choice(kids)
+        audience = S.FAMILY if not kid.startswith("main") and r.random() < 0.8 else r.choice([None, "work"])
+        pt = None
+        if r.random() < 0.25:
+            pt = r.choice(['{"state": "busy"}', '{"state": "Busy"}', '{"state": 1}', '{"state": "busy", "a": 1}', "busy",
+                           '{"state": "' + "a" * 65 + '"}', '{"state": "in-transit"}']).encode().ljust(128, b" ")
+        rec = S.sealed_fields(f"fz{r.randint(0, 9999)}", device=r.choice([S.BPH, S.BLA]), seq=r.choice([1, 2]),
+                              audience=audience, kid=kid, state=r.choice(["busy", "dnd", "away", "in-transit"]), plaintext=pt,
+                              at=NOW - r.choice([0, 0, 400]))
+        x = r.random()
+        if x < 0.1:
+            rec["seq"] += 1
+        elif x < 0.2:
+            rec["sealed_state"] = rec["sealed_state"][:-r.randint(1, 6)]
+        elif x < 0.25:
+            rec["device"] = S.CPH
+        return rec
+
+    if r.random() < 0.5:
+        return "presence", "open-record", {"now": NOW}, {"record": record(), "keys": keys()}
+    recs = [record() if r.random() < 0.6 else {"subject": S.BOB, "device": r.choice([S.BPH, S.BLA]), "seq": 1,
+                                               "state": r.choice(["busy", "away"]), "expires_at": NOW + 100}
+            for _ in range(r.randint(0, 4))]
+    body = {"records": recs, "keys": keys()}
+    if r.random() < 0.8:
+        body["asserted"] = r.choice(["available", "offline"])
+    return "presence", "view", {"now": NOW}, body
+
+
 def gen_presence_authority(r: random.Random):
     """Records, bindings and the clock at a subject's authority (P§3, P§4, P§8; README authority "Presence records")."""
     sub = ulid(20)
@@ -948,7 +999,9 @@ def gen_presence_authority(r: random.Random):
 def gen_presence_admission(r: random.Random):
     """Who may watch, audiences, shares at a subject's authority (P§6, P§7; README authority "Who may watch, audiences,
     shares"): grants presented and revoked, policies with audiences, capabilities, records per audience, bindings and
-    the clock. DAVE never binds and is in no device map: only a policy or a capability makes him seen (spec-gap 149)."""
+    the clock. DAVE never binds and is in no device map: only a policy or a capability makes him seen (spec-gap 149).
+    Records are sometimes sealed and subscribers sometimes list presence/0.2 (P§12.6): the authority never opens a
+    seal, so `sealed_state` is any string."""
     DAVE = "did:web:dave.example"
     audiences = [None, None, "family", "work"]
     grants = []
@@ -984,6 +1037,8 @@ def gen_presence_admission(r: random.Random):
                 m["claims"] = [{"type": "dsip-grant", "grant": g} for g in r.sample(grants, r.randint(1, len(grants)))]
             if r.random() < 0.3:
                 m["capability"] = r.choice(["t1", "t2", "nope"])
+            if r.random() < 0.5:
+                m["profiles"] = r.choice([["presence/0.2"], ["presence/0.1", "presence/0.2"], ["presence/0.1"], []])
             ev.append({"recv": m})
         elif x < 0.7:
             d = r.choice([B1, B1, B2])
@@ -992,6 +1047,10 @@ def gen_presence_admission(r: random.Random):
                  "expires_at": clock[0] + r.choice([60, 120, 300])}
             if (a := r.choice(audiences)) is not None:
                 m["audience"] = a
+            if r.random() < 0.4:
+                del m["state"]
+                m["kid"] = f"{a or 'main'}.{r.choice([0, 1])}"
+                m["sealed_state"] = r.choice(["c2VhbGVk", "b3RoZXI"])
             ev.append({"recv": m})
         elif x < 0.8:
             g = r.choice(grants)
@@ -1223,7 +1282,7 @@ TARGETS = {
     "alias-query": gen_alias_query, "alias-monitor": gen_alias_monitor, "alias-head": gen_alias_head,
     "alias-lookup": gen_alias_lookup, "leave-proposals": gen_leave, "roster-change": gen_roster_change,
     "presence-aggregate": gen_presence_aggregate, "presence-authority": gen_presence_authority,
-    "presence-admission": gen_presence_admission,
+    "presence-admission": gen_presence_admission, "presence-sealed": gen_presence_sealed,
 }
 
 # Targets where the implementations are known to differ and the difference is a protocol decision, not a bug

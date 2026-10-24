@@ -1,0 +1,45 @@
+{
+  "vector": "payload/grant-presence-keys-extra-field-invalid",
+  "format": 1,
+  "kind": "payload",
+  "description": "presence_keys takes no other field.",
+  "spec_ref": [
+    "P§12.3"
+  ],
+  "context": {},
+  "input": {
+    "schema": "grant",
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "interactive-media/1.0"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "grant",
+      "id": "01K742SG00AR3CWFX7J7XGXZFJ",
+      "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+      "to": "did:key:z6MkhzX9qTeXBWkucyMVric1E9JrqUD5LPAkD2BNavakAptf",
+      "session": "01K742QND0G8S7KAXRD69ZQSYR",
+      "scope": [
+        "dsip.subscribe"
+      ],
+      "valid_until": 1760086400,
+      "issued_at": 1760000000,
+      "expires_at": 1760000030,
+      "presence_keys": {
+        "alg": "hpke-base-x25519-sha256-aes128gcm",
+        "enc": "Y6frIiKpNBpVzLQHjAmlxFSLZ8RdJ6itx3mepwRwDzs",
+        "ct": "1jA0hEVQMZcJI8IPKL9Pkxj7hrrGjPFAof60AuR9rJe-bQNygPrNlg0s2QrHJctgI3IQeWaQbDft3kRTlGnm_Vnm78JDZECAgDBNp3N_EsYQIDAastwiWlqcQjQcNBV4X1wXETzjYKJrw5vCWkKcdTfRKlXoY787sgA-S8KpGur5ezk7SUBgO0fmOWcHrZmy8LkxKqViGL6E8xsW-N8RPxWjF8uCuay1STutGxruCVe6WKR-fgrYOSoCDA08WdFB6ZU_hzrCRJEEt3OvqWq3MkWzZvSy9sK_dL2lw6zGzZS5yJanQnI1WqrMJjbyyuVmQrHrxRu80HtuupXoPxbdXccjPbP33NXrSsaDwSUhMaI",
+        "kid": "main.0"
+      }
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "schema-invalid"
+  }
+}

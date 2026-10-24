@@ -1,0 +1,28 @@
+{
+  "vector": "presence/seal-record",
+  "format": 1,
+  "kind": "presence",
+  "description": "A busy record under main.0 with a given nonce: the nonce, then AES-256-GCM of {\"state\": \"busy\"} padded with spaces to 128 bytes, AAD binding subject, device, audience, kid, seq and expires_at (P§12.2).",
+  "spec_ref": [
+    "P§12.2"
+  ],
+  "context": {
+    "now": 1760000000
+  },
+  "input": {
+    "check": "seal-record",
+    "record": {
+      "subject": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+      "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+      "kid": "main.0",
+      "seq": 1,
+      "expires_at": 1760000300
+    },
+    "state": "busy",
+    "key_hex": "c4e3a61b986a8b6046b27d4ca521e8c8036a088f59f62ef70597738823d8c02a",
+    "nonce_hex": "7c93a92daafb74ec514b68fa"
+  },
+  "expect": {
+    "sealed_state": "fJOpLar7dOxRS2j6LeV89N1bVh5YU8nBZjPcGALoJhznonJYdjo-JyTsGT5rNwT98WFaQufMRybMnCbjCL0faLIyevTjuK2V-259QyCmISOEjnEZlgqs5nTiDYEcTOYBKlRKJucpe5cjCwZw4YtgxwRgtrPkW4ADs8O00aYQzLjBHP1Kiy_Jxq7b8zFfCcgfAR9rBynTw9WKQsdF"
+  }
+}

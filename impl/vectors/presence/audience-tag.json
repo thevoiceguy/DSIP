@@ -1,0 +1,21 @@
+{
+  "vector": "presence/audience-tag",
+  "format": 1,
+  "kind": "presence",
+  "description": "An audience Bob labels family is written on the wire as k- and the base32 of 10 bytes of HKDF from his key agreement secret (P§12.1): the label never leaves his devices.",
+  "spec_ref": [
+    "P§12.1"
+  ],
+  "context": {
+    "now": 1760000000
+  },
+  "input": {
+    "check": "audience-tag",
+    "secret_hex": "9f59fc4eadf005fc2260359c78204f6778346c2cc7a09899a0e38e4a5c0ee916",
+    "subject": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+    "label": "family"
+  },
+  "expect": {
+    "tag": "k-tkxij7ahuhkuvpff"
+  }
+}
