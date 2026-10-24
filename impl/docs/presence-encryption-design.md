@@ -1,7 +1,9 @@
 # Presence encrypted to subscribers — design note (P§11 question 1)
 
-Status: **draft for decision** (2026-10-23). Docs only: nothing here is spec text, a vector or code. Each decision
-below becomes a spec-gap once chosen, and the text lands in the Presence Profile after that, vectors first.
+Status: **decided 2026-10-23** (user: "encryption now with (b) and D2–D6 as drafted"), except **D7**, which working
+out the construction (§8) turned up and is open. Docs only: the spec text, vectors and code follow D7, vectors first.
+Spec-gaps: 152 = D1 with D3, 153 = D2, 154 = D4, 155 = D5, 156 = D6, 157 = D7 (151 went to the invite-admission
+finding of spec-gap 150's work). They are written into `spec-gaps.md` with the implementation, after #243 merges.
 
 ## 1. What problem this solves, and what it does not
 
@@ -159,4 +161,48 @@ Roughly the size of the audiences work (#237 + #240–#242), plus spec-gap 150.
 2. D1: (a) MLS, (b) key in the grant, or (c) separate key message? Draft (b).
 3. D2–D6 as drafted?
 
-Decided items become spec-gaps 151 onward (D1 with D3, D2, D4, D5, D6), recorded in `spec-gaps.md` as each one is.
+Answered 2026-10-23: now; D1 (b); D2–D6 as drafted.
+
+## 8. The construction, and D7 (open)
+
+Working the decisions into wire detail:
+
+- **Keys.** One 32-byte key per audience per epoch, plus one for "no audience" (the main record, which every grantee
+  sees). A record names its key with `kid`; it keeps `audience` (the D2 tag) for routing, and the main record has none,
+  so P§6's routing is unchanged.
+- **The record.** `sealed` replaces `state`; plaintext `{"state": S}` UTF-8, right-padded with spaces to 128 bytes
+  (D5; a state is at most 64 characters). AES-256-GCM, random 12-byte nonce, AAD = `subject` ‖ `device` ‖ `audience`
+  (or empty) ‖ `kid` ‖ `seq` ‖ `expires_at`. `sealed` = base64url `nonce ‖ ct ‖ tag`, as M§11.1. Profile
+  `presence/0.2` (D6).
+- **The grant.** `presence_keys`: the keys this grantee needs (no-audience, and its audience's), HPKE-sealed to the
+  grantee identity's key agreement key (§10.4) and bound to the grant's `id`, `from` and `to`, as a sealed purpose is
+  (§19.4). Every device of the grantee can open it.
+- **Rotation (D3).** When a grant ends (revoked, or past `valid_until`), the next record for each key it held uses a
+  new epoch, and every remaining grantee holding that key gets a grant that follows theirs (spec-gap 150) carrying the
+  new keys. A pure rotation changes nothing the grantee may do, so it needs no revocation at the authority: the old grant
+  admits what the new one does until it expires, and nobody is cut off mid-watch. Note the cost: ending any share
+  rotates the no-audience key, so **every** grantee gets a new grant. T-Presence-Rotate bounds how often (removals in
+  one window are batched).
+- **Subscribers.** Keep the keys of the current and the previous epoch (records under the old one live until their own
+  `expires_at`). A record whose `kid` they hold no key for counts as unreadable (D4).
+- **Authority.** Checks and routing as today. A subscription whose `subscribe` does not list `presence/0.2` is not
+  given sealed records, and its assertion counts their devices as holding none (D6).
+
+**D7 — how the subject's own devices share the keys.** Every device of the subject publishes, so all of them need the
+same key for each audience and epoch, and must agree on the current epoch. The note did not cover this. Choices:
+
+- **(a) Derive, and read the epoch off the authority.** `key = HKDF(identity's X25519 key agreement secret, "dsip
+  presence" ‖ kid)`, `kid` = the audience tag ‖ "." ‖ the epoch number. Every device of an identity holds that secret
+  (§10.4) and a grantee never does, so no key is sent between the subject's devices. The epoch number is in the clear in
+  `kid`: a device publishes at the highest epoch it has seen for that audience, in its own records (it watches its own
+  identity, P§6 rule 1) or in a grant-revocation it sent. Cost: the authority sees how many rotations each audience has
+  had; a device that has not caught up publishes one record under the old epoch (still unreadable to the removed
+  grantee unless the authority colludes).
+- **(b) Random keys, distributed to siblings.** The device that rotates sends the new key to its own identity's other
+  devices, sealed to the identity's key agreement key, through the authority or the mailbox. Needs a new message and
+  its delivery and retry; a sibling offline at rotation publishes under the old key until it catches up.
+- **(c) One publishing device.** Only one device publishes sealed records; the others publish plain or nothing.
+  Simplest, and it loses P§4's per-device records for sealed audiences.
+
+**Draft: (a).** It needs no new message and no coordination beyond what P§6 rule 1 already allows, and a device always
+derives the key it needs; the only coordination is the epoch number, which can lag harmlessly.
