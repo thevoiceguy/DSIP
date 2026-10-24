@@ -1140,7 +1140,7 @@ The URI scheme MUST be `wss`. Plaintext `ws` MUST NOT be advertised, offered, or
 - Connections are always **client-initiated and outbound**. An endpoint behind NAT or firewall dials out to its own relay and to (or via) the peer's advertised endpoint; no inbound port is ever required of an endpoint. This is a deliberate property, not a limitation.
 - One connection carries **any number of concurrent sessions**. Implementations MUST NOT require a connection per session.
 - The session state machine is independent of connection state. A dropped connection does not, by itself, change any session's state; it suspends delivery.
-- A device MAY hold simultaneous connections to **different** relays (multihoming for redundancy); each connection carries its own `hello` and is an independent delivery path. Simultaneous connections from the same device to the **same** relay are undefined behavior in `ws/1.0`: a relay MAY treat a new verified `hello` from an already-bound device as replacing the prior connection and MAY close the old one.
+- A device MAY hold simultaneous connections to **different** relays (multihoming for redundancy); each connection carries its own `hello` and is an independent delivery path. Simultaneous connections from the same device to the **same** relay are undefined behavior in `ws/1.0`: a relay MAY treat a new verified `hello` from an already-bound device as replacing the prior connection and MAY close the old one. (v0.17, spec-gap 158) A relay that replaces a connection MUST send on it, before closing it, a signed `error` with reason `transport.replaced`. A client that receives `transport.replaced` from the relay it is bound to MUST NOT reconnect to that relay by itself: its device is bound there on another connection, which a reconnect would replace in turn, and so on for as long as both run. It SHOULD tell its user, and MAY reconnect when the user asks it to.
 
 #### Framing
 
@@ -1224,7 +1224,7 @@ Rules:
 #### Keepalive and reconnection
 
 - Idle connections are kept alive with WebSocket Ping/Pong frames, not DSIP envelopes. RECOMMENDED: client Ping after 30 s of inactivity; either side MAY close after 90 s with no traffic and no Pong. These numbers are connection liveness, not session liveness; session liveness is governed by §12.9 timers and media-layer consent freshness.
-- On unexpected connection loss, an endpoint SHOULD reconnect with exponential backoff plus jitter (RECOMMENDED: initial 1 s, factor 2, max 60 s, full jitter), and MUST send a fresh `hello` before anything else.
+- On unexpected connection loss, an endpoint SHOULD reconnect with exponential backoff plus jitter (RECOMMENDED: initial 1 s, factor 2, max 60 s, full jitter), and MUST send a fresh `hello` before anything else. A connection the relay closed after `transport.replaced` was not lost unexpectedly and is not reconnected (Connection model; spec-gap 158).
 - Sessions in ACTIVE state survive reconnection: media continues independently, and signaling resumes when the connection returns. Sessions mid-establishment during a prolonged outage resolve via the §12.9 timers; implementations MUST NOT assume the peer observed the outage. The replay window's deduplication protects against duplicates arising from relay retransmission across reconnects.
 
 ### 13.3 Offline Delivery Boundary
@@ -1455,6 +1455,7 @@ The "valid on" column governs the four session message types, `reject`, `cancel`
 | `transport.unknown-recipient` | Relay has no route for the addressed identity/device | error |
 | `transport.rate-limited` | Sender exceeded relay rate policy | error |
 | `transport.no-response` | Every leg of a forked invite expired without any response; sent by the forking relay as the attempt outcome (§12.7 rule 6; spec-gap 76) | error |
+| `transport.replaced` | The device bound to this relay again on another connection, which replaced this one; sent by the relay on the replaced connection before closing it (§13.2; spec-gap 158). Unlike the category default, the client does not reconnect | error |
 
 **gateway.**
 
@@ -2649,6 +2650,9 @@ v0.16 is final at tag `poc-v0.16`. v0.17 is in progress. Each item is listed wit
 - A grant MAY follow a live grant without a new introduction (spec-gap 150, §19.4): its `session` names the grant it
   replaces, and the grantee holds it in place of the old one. A share's audience or length changes this way, and a
   share ends while calls stay.
+- A relay that replaces a device's connection with a newer one says so on the old one, `error` `transport.replaced`
+  (spec-gap 158, §13.2, §15), and the client does not reconnect: two connections of one device (two processes, two
+  tabs) no longer replace each other in turn.
 
 ---
 

@@ -275,7 +275,8 @@ jobs:
         working-directory: impl
       - name: a second hello replaces the prior connection, and only it (§13.2)
         # Self-verifying: a frozen device's connection is replaced by the same device's new hello; the relay closes
-        # the old one and keeps the new one bound (it used to drop both).
+        # the old one and keeps the new one bound (it used to drop both), and tells it transport.replaced, so the
+        # replaced client stops instead of reconnecting (spec-gap 158).
         run: timeout 120 bash demos/relay-rebind-demo.sh | tail -8
         working-directory: impl
       - name: status pages (relay and mailbox --status-listen)
