@@ -29,6 +29,8 @@ export interface SemanticContext {
   offer?: JsonObject;
   /** Ids of introductions this receiver sent or holds (check 11). */
   known_introductions?: string[];
+  /** Live grants held from the signer's identity, which a grant may follow (spec-gap 150; with check 11 only). */
+  held_grants?: string[];
   /** Id of the client `hello` actually sent on this connection (check 7). */
   sent_hello_id?: string;
   /** Size of the envelope as received, in bytes (check 11). */
@@ -203,8 +205,9 @@ export function checkSemantics(payload: JsonObject, ctx: SemanticContext): Verdi
       return reject("introduction-too-large"); // §19.4
     }
   }
-  if (type === "grant" && ctx.known_introductions && !ctx.known_introductions.includes(payload["session"] as string)) {
-    return reject("grant-unknown-introduction"); // §19.4
+  if (type === "grant" && ctx.known_introductions && !ctx.known_introductions.includes(payload["session"] as string)
+    && !(ctx.held_grants ?? []).includes(payload["session"] as string)) {
+    return reject("grant-unknown-introduction"); // §19.4, spec-gap 150
   }
   if (type === "hello" && "in_reply_to" in payload && ctx.sent_hello_id !== undefined) {
     // §13.2, §20.5: anti-splicing — the relay's hello answers the hello this client sent.

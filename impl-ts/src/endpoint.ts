@@ -76,7 +76,7 @@ export class Endpoint {
   private readonly requests = new Map<string, { device: string; identity: string }>(); // by introduction id
   private readonly pendingSent = new Set<string>();
   private readonly grantsIssued = new Map<string, Grant>();
-  private readonly grantsHeld = new Map<string, string>(); // grant id → granting identity
+  private readonly grantsHeld = new Map<string, { by: string; valid_until: number }>(); // grant id → granting identity, life
   private readonly tokens = new Map<string, string>(); // contact token → grant id to issue
 
   constructor(private readonly ctx: EndpointContext) {
@@ -204,7 +204,7 @@ export class Endpoint {
         const to = e["to"] as string;
         this.sessions.set(id, { role: "initiator", state: "INVITING", to, outstanding: null, media: false, requeues: 0, initiatorSpoke: false });
         // §19.4: the grantee MAY reference a held grant in the invite's `grant` field
-        const held = [...this.grantsHeld.entries()].find(([, by]) => by === this.identityOf(to))?.[0];
+        const held = [...this.grantsHeld.entries()].find(([, g]) => g.by === this.identityOf(to))?.[0];
         this.send("invite", to, { session: id, ...(held !== undefined ? { grant: held } : {}) });
         this.start("T-Establish", id, this.ctx.timers?.t_establish ?? T_ESTABLISH);
         return;
@@ -299,6 +299,19 @@ export class Endpoint {
         return this.issueGrant(intro, grantee, e["id"] as string, e["scope"] as string[], e["valid_until"] as number,
           audience as string | undefined);
       }
+      case "regrant": {
+        // §19.4 (spec-gap 150): a grant may follow a live grant we issued, without an introduction
+        const followed = e["grant"] as string;
+        const old = this.grantsIssued.get(followed);
+        if (old === undefined || old.valid_until <= this.now) return void this.emit.push({ refused: "unknown-grant" });
+        const audience = e["presence_audience"];
+        if (audience !== undefined && !(typeof audience === "string" && /^[a-z][a-z0-9-]{0,63}$/.test(audience))) {
+          return void this.emit.push({ refused: "invalid-audience" }); // P§6; nothing sent, the followed grant kept
+        }
+        this.grantsIssued.delete(followed); // the new grant withdraws the one it follows
+        return this.issueGrant(followed, old.grantee, e["id"] as string, e["scope"] as string[], e["valid_until"] as number,
+          audience as string | undefined);
+      }
       case "reject_introduction": {
         const intro = e["introduction"] as string;
         const from = this.requests.get(intro);
@@ -318,6 +331,7 @@ export class Endpoint {
     }
   }
 
+  /** `session` is the introduction answered, or the grant followed (spec-gap 150). */
   private issueGrant(intro: string, grantee: string, id: string, scope: string[], valid_until: number,
     presence_audience?: string): void {
     this.grantsIssued.set(id, { id, grantee, scope, valid_until });
@@ -586,10 +600,18 @@ export class Endpoint {
 
   private recvIntroductionOutcome(m: JsonObject): void {
     const intro = m["session"] as string;
-    if (!this.pendingSent.has(intro)) return void this.emit.push({ drop: "unknown-introduction" });
-    this.pendingSent.delete(intro);
+    const by = this.identityOf(m["from"] as string);
+    const followed = this.grantsHeld.get(intro);
+    if (this.pendingSent.has(intro)) {
+      this.pendingSent.delete(intro);
+    } else if (m["type"] === "grant" && followed !== undefined && followed.by === by && followed.valid_until > this.now) {
+      // §19.4 (spec-gap 150): a grant following a live grant we hold from the same identity replaces it
+      this.grantsHeld.delete(intro);
+    } else {
+      return void this.emit.push({ drop: "unknown-introduction" });
+    }
     if (m["type"] === "grant") {
-      this.grantsHeld.set(m["id"] as string, this.identityOf(m["from"] as string));
+      this.grantsHeld.set(m["id"] as string, { by, valid_until: m["valid_until"] as number });
       this.emit.push({ ui: "granted", by: this.identityOf(m["from"] as string) });
     } else {
       this.emit.push({ ui: "introduction_rejected", reason: this.reasonOf(m) });

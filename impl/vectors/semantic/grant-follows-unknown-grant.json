@@ -1,0 +1,54 @@
+{
+  "vector": "semantic/grant-follows-unknown-grant",
+  "format": 1,
+  "kind": "semantic",
+  "description": "A grant whose session names neither a pending introduction nor a grant held from its signer is grant-unknown-introduction (spec-gap 150).",
+  "spec_ref": [
+    "§19.4"
+  ],
+  "context": {
+    "now": 1760000000,
+    "supported": {
+      "core": "1.0",
+      "profiles": [
+        "interactive-media/1.0",
+        "verified-broadcast/1.0"
+      ],
+      "extensions": []
+    },
+    "known_introductions": [
+      "01K742SG00Z41R1RN63EB956CH"
+    ],
+    "held_grants": [
+      "01K742SG00RTN62K0981QFQHR7"
+    ]
+  },
+  "input": {
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "interactive-media/1.0"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "grant",
+      "id": "01K742SG00M1QT0Z0Q4WP533VW",
+      "session": "01K742SG00Z04W40AG6VQ8JDK5",
+      "from": "did:web:example.com:users:bob",
+      "to": "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL",
+      "scope": [
+        "dsip.invite"
+      ],
+      "valid_until": 1791536000,
+      "issued_at": 1760000600,
+      "expires_at": 1760000630
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "grant-unknown-introduction"
+  }
+}

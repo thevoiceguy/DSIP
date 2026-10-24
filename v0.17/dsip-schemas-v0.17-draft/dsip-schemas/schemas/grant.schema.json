@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://dsip.org/schema/1.0/grant.schema.json",
   "title": "DSIP grant payload",
-  "description": "Signed contact grant answering an introduction (spec 19.4); session references the introduction id. The consent receipt in message form: scoped, time-bounded via valid_until, revocable at the granting side.",
+  "description": "Signed contact grant answering an introduction (spec 19.4); session references the introduction id, or (v0.17, spec-gap 150) the live grant from the same grantor that this grant replaces. The consent receipt in message form: scoped, time-bounded via valid_until, revocable at the granting side.",
   "type": "object",
   "properties": {
     "dsip": {

@@ -4592,3 +4592,60 @@ published (unchanged). P§6 rule 3 points to it. Vector `state/presence-capabili
 admits a target that never bound; nothing or another token is still `policy.blocked`); the harness, the Rust authority
 and impl-ts count an issued capability. The authority trace keeps `context.identities` and current bindings as its
 stand-in for retention: it models no retention clock.
+
+## 150. §19.4 / P§7 — changing a grant, or ending a share and keeping calls
+
+**Found (2026-10-23, the browser's grant controls).** A grant is issued only in answer to an introduction (§19.4
+outcome 1; P§7: a share "is issued as any grant is"), and it is withdrawn whole. The browser grants
+`dsip.invite` and `dsip.subscribe` in one grant, so a user who wants to stop sharing presence also stops the contact's
+calls, and changing a share's audience or length means asking the contact to introduce again. Nothing in §19.4 says
+whether a grantor may issue a grant without a fresh introduction, or answer one introduction with more than one grant.
+
+Choices:
+
+- **(a) Status quo.** One grant per introduction, withdrawn whole. A client that wants presence and calls separable
+  must say so before granting; any change needs a new introduction. No spec change.
+- **(b) A grantor MAY issue a further grant to an identity it holds a live grant for, without an introduction.** The
+  new grant's `session` names the grant it follows (not an introduction). The grantor then revokes the old one if it
+  replaces it. One mechanism covers narrowing (an invite-only grant, then revoke the old), a new audience and a new
+  length. Needs §19.4 text, a schema change to the grant's `session` and vectors; the anti-spam bound is that the
+  grantee already holds a grant from the same identity.
+- **(c) An introduction MAY be answered by more than one grant.** Clients issue calls and presence as separate grants,
+  so a share can be revoked alone. Changing an audience or length still needs a new introduction.
+
+**Draft choice: (b).** It is the only choice that lets a user change a share without involving the contact, which is
+what a share's controls are for; (c) helps only with the first of the two cases and (a) with neither. The bound keeps
+it from becoming unsolicited contact: a grant can only follow a grant.
+
+**Decided (2026-10-23, user: "150 (b)"): (b).** §19.4 "A grant that follows a grant": the new grant's `session` names
+the live grant it replaces (no schema change; ids are ULIDs, so an introduction id and a grant id never collide), the
+grantor withdraws the old one and SHOULD send its authority a `grant-revocation` for it, and the grantee holds the new
+grant in place of the old one only when it holds a live grant with that id from the same identity; any other grant
+whose `session` names neither is dropped. P§7 "Changing a share". Vectors `state/first-contact-regrant`,
+`-regrant-expired`, `-initiator-regranted`, `-initiator-regrant-of-expired`, `semantic/grant-follows-held-grant`,
+`-follows-unknown-grant` (context `held_grants`); the endpoint's local event `regrant`; fuzz endpoint target extended.
+
+## 151. §19.4 — which grant admits an invite, and which one an invite names
+
+**Found (2026-10-23, probing the three implementations while implementing spec-gap 150).** §19.4: "A live grant admits
+an invite when the invite's `grant` names it **or** the inviting identity is the grantee — the `grant` field is an
+optimisation, never a requirement". The three readings differ, and no vector separates them:
+
+- Python and Rust admit when the inviting identity is the grantee of a live `dsip.invite` grant **and**, when the
+  invite names a grant, it names that one. An invite naming a replaced or unknown grant is refused even though its
+  sender holds a live grant: after a regrant (spec-gap 150), an invite in flight naming the old grant is refused.
+- impl-ts admits when the invite names **any** live issued grant **or** the identity is a grantee. Bob's invite naming
+  the id of a grant issued to Carol is admitted; so is Carol's naming a grant that does not exist.
+- The sender side differs too: Python and Rust reference only a held grant that is live and has `dsip.invite`; impl-ts
+  references any grant held from the callee, expired or presence-only.
+
+Choices:
+
+- **(a) Admission is by grantee only; `grant` is a hint.** An invite is admitted when its identity is the grantee of a
+  live grant with `dsip.invite`; the `grant` field never admits and never refuses (a stateless relay may use it to find
+  the grant). A sender names only a live `dsip.invite` grant it holds.
+- **(b) Grantee, and the reference must match when given** (Python and Rust today): `grant` can refuse but never admit.
+- **(c) The literal "or"** (impl-ts today): a reference to any live grant admits, whoever sends it.
+
+**Draft choice: (a).** It is what "an optimisation, never a requirement" means; (b) makes the optimisation a way to be
+refused (exactly the regrant race), and (c) lets anyone who learns a grant id call as its grantee.

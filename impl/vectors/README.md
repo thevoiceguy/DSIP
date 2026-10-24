@@ -165,7 +165,7 @@ implementation under test MUST emit that token when it signals the failure.
 | `rotation-next-same-as-previous` | `key-rotation.next` = `previous` (§7.5) | |
 | `rotation-signer-not-previous` | `key-rotation` signed by a method other than `previous` without `recovery: true` (§7.5; `context.signer_kid`) | |
 | `introduction-too-large` | encoded introduction envelope > 4,096 bytes (§19.4) | |
-| `grant-unknown-introduction` | `grant.session` references no known introduction (§19.4) | |
+| `grant-unknown-introduction` | `grant.session` references no known introduction (§19.4) and none of `context.held_grants` — the live grants the receiver holds from the signer's identity, which a grant may follow (spec-gap 150; absent = none) | |
 | `hello-in-reply-to-mismatch` | relay `hello.in_reply_to` ≠ the client hello id actually sent (§13.2, §20.5) | |
 | `hello-required` | session traffic before a verified `hello` (§13.2) | `transport.hello-required` |
 | `hint-subject-mismatch` | DHT hint whose verified identity is not its `subject` (§8.3) | |
@@ -268,7 +268,7 @@ Input is a decoded payload plus whatever receiver context the check needs:
 
 ```json
 "context": { "now": …, "supported": {…}, "offer": {"media": [...], "transports": [...]},
-             "known_introductions": [], "sent_hello_id": "…", "encoded_size": 4200, "signer_kid": "did:…#key-1" },
+             "known_introductions": [], "held_grants": [], "sent_hello_id": "…", "encoded_size": 4200, "signer_kid": "did:…#key-1" },
 "input":   { "payload": { ... } },
 "expect":  { "verdict": "accept", "effective": {...}, "warnings": [...] } | { "verdict": "reject", "code": "…", "reason": "…" }
 ```
@@ -335,6 +335,7 @@ attempt — through a scripted event sequence with a mock clock.
 | `{"local":"grant","introduction":ID,"id":ULID,"scope":[…],"valid_until":T,"presence_audience"?:A}` | issue a contact grant for a pending request: `send grant {to: the introducing IDENTITY, session: introduction id, id, scope, valid_until, presence_audience?}`; unknown request → `refused unknown-introduction`; then a `presence_audience` that is not a P§6 token (`[a-z][a-z0-9-]*`, at most 64 characters) → `refused invalid-audience`, nothing sent and the request kept (spec-gap 145) |
 | `{"local":"reject_introduction","introduction":ID,"reason":TOKEN}` | decline a pending request (a policy choice): `send reject {to: the introducing IDENTITY, session, reason}` — the same addressee as a grant (§19.4, spec-gap 74) |
 | `{"local":"revoke","grant":ID}` | revoke an issued grant (local policy); unknown grant → `refused unknown-grant` |
+| `{"local":"regrant","grant":ID,"id":ULID,"scope":[…],"valid_until":T,"presence_audience"?:A}` | issue a grant that follows the live grant `grant` we issued, without an introduction (§19.4, spec-gap 150): `send grant {to: that grant's grantee identity, session: the followed grant's id, id, scope, valid_until, presence_audience?}`, and the followed grant is withdrawn (no longer in `grants_issued`); a grant we did not issue, already replaced or revoked, or whose `valid_until` has passed → `refused unknown-grant`; then an audience that is not a P§6 token → `refused invalid-audience`, nothing sent and the followed grant kept |
 | `{"local":"issue_token","token":S,"grant_id":ULID}` | pre-authorize an out-of-band contact token: the first introduction carrying it surfaces `introduction_received {token: true}` and is auto-granted at once — id `grant_id`, scope `["dsip.invite"]`, `valid_until` = now + 31,536,000 (Impl) — and the token is consumed |
 
 `context.policy` = `{"first_contact_required": bool, "allow": [identity DIDs]}` (default: off).
@@ -443,7 +444,7 @@ Only the sessions / attempts named in `expect` are compared (`{}` names none); `
 | `{"ui": "ended", "reason": …}` | session reached ENDED because of a remote message or timer |
 | `{"ui": "glare_retry"}` | equal-id glare; MAY retry after 1–4 s |
 | `{"ui": "introduction_received", "from": IDENTITY, "token": true?}` | requests surface (§19.4) — never a ring |
-| `{"ui": "granted", "by": IDENTITY}` / `{"ui": "introduction_rejected", "reason": …}` | sender-side outcomes |
+| `{"ui": "granted", "by": IDENTITY}` / `{"ui": "introduction_rejected", "reason": …}` | sender-side outcomes. A received `grant` is held when its `session` names an introduction we sent (which is then no longer pending), or (spec-gap 150) a grant we hold from the same identity (the signer's) whose `valid_until` has not passed, which it then replaces in `grants_held`; otherwise `drop unknown-introduction` |
 | `{"queue": {"to": IDENTITY, "type": "introduction"}}` | relay queued an introduction for an unbound identity |
 | `{"ui": "error", "reason": …}` | a received `error` is surfaced; no state change |
 | `{"info": {"about": …}}` | an `info` with a recognized `about` is handed to the binding |
