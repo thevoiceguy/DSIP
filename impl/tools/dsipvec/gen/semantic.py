@@ -197,6 +197,14 @@ def vectors() -> list[dict]:
                   grant, accept(), ctx={"known_introductions": [intro_id]}))
     out.append(sv("grant-references-unknown-introduction", "Grant session references no pending introduction.", ["§19.4"],
                   grant, reject("grant-unknown-introduction"), ctx={"known_introductions": [uid("some-other")]}))
+    held = uid("grant-held")
+    follow = {**grant, "id": uid("grant-follow"), "session": held}
+    out.append(sv("grant-follows-held-grant", "A grant whose session names a live grant held from its signer's identity follows it "
+                  "(spec-gap 150): the host lists those grants in held_grants.", ["§19.4"],
+                  follow, accept(), ctx={"known_introductions": [], "held_grants": [held]}))
+    out.append(sv("grant-follows-unknown-grant", "A grant whose session names neither a pending introduction nor a grant held from "
+                  "its signer is grant-unknown-introduction (spec-gap 150).", ["§19.4"],
+                  follow, reject("grant-unknown-introduction"), ctx={"known_introductions": [intro_id], "held_grants": [uid("grant-other")]}))
     intro = {"dsip": F.VERSION, "type": "introduction", "id": intro_id, "from": F.did("carol-phone"), "to": F.BOB_WEB,
              "identity": {"display_name": "Carol Nguyen", "claims": []}, "purpose": "Hello.", "issued_at": NOW, "expires_at": NOW + 604800}
     out.append(sv("introduction-size-from-context", "Encoded size supplied by context exceeds 4,096.", ["§19.4"],

@@ -172,7 +172,8 @@ def check_semantic(payload: dict, ctx: dict, encoded_size: int | None = None) ->
         if signer is not None and signer.split("#", 1)[0] != payload["subject"]:
             return Verdict.reject("revocation-signer-not-subject")
     if t == "grant" and isinstance(ctx.get("known_introductions"), list):
-        if payload["session"] not in ctx["known_introductions"]:  # §19.4
+        # §19.4: an introduction we sent, or (spec-gap 150) a live grant held from the signer's identity that this one follows
+        if payload["session"] not in ctx["known_introductions"] and payload["session"] not in ctx.get("held_grants", []):
             return Verdict.reject("grant-unknown-introduction")
     if t == "presence" and "device" in payload and payload["device"] != payload["from"]:
         # P§3 (v0.17, spec-gap 135): a record describes the device that signs it

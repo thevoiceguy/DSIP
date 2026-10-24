@@ -491,11 +491,18 @@ def gen_endpoint(r: random.Random):
                 ev.append({"local": "reject_introduction", "introduction": r.choice(intro_ids), "reason": "user.declined"})
             elif y < 0.8:
                 ev.append({"local": "revoke", "grant": r.choice(grant_ids)})
-            elif y < 0.9:
+            elif y < 0.85:
                 ev.append({"local": "introduce", "id": intro_ids[0], "to": BOB, "purpose": "hello"})
+            elif y < 0.92:
+                # spec-gap 150: a grant that follows a grant; its session may name an introduction or a held grant
+                ev.append({"recv": {"type": "grant", "id": r.choice(grant_ids), "from": r.choice([B1, B1, B2, C1]),
+                                    "session": r.choice(intro_ids + grant_ids), "scope": ["dsip.invite"],
+                                    "valid_until": NOW + r.choice([60, 100000])}})
             else:
-                ev.append({"recv": {"type": "grant", "id": grant_ids[0], "from": B1, "session": r.choice(intro_ids),
-                                    "scope": ["dsip.invite"], "valid_until": NOW + 100000}})
+                ev.append({"local": "regrant", "grant": r.choice(grant_ids), "id": r.choice(grant_ids),
+                           "scope": r.choice([["dsip.invite"], ["dsip.invite", "dsip.subscribe"]]),
+                           "valid_until": NOW + r.choice([-10, 100000]),
+                           **({"presence_audience": r.choice(["family", "Family"])} if r.random() < 0.3 else {})})
         else:
             ev.append({"advance": r.choice([1, 5, 15, 30, 120, 121])})
             clock += ev[-1]["advance"]

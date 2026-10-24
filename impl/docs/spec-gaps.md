@@ -4616,3 +4616,36 @@ Choices:
 **Draft choice: (b).** It is the only choice that lets a user change a share without involving the contact, which is
 what a share's controls are for; (c) helps only with the first of the two cases and (a) with neither. The bound keeps
 it from becoming unsolicited contact: a grant can only follow a grant.
+
+**Decided (2026-10-23, user: "150 (b)"): (b).** §19.4 "A grant that follows a grant": the new grant's `session` names
+the live grant it replaces (no schema change; ids are ULIDs, so an introduction id and a grant id never collide), the
+grantor withdraws the old one and SHOULD send its authority a `grant-revocation` for it, and the grantee holds the new
+grant in place of the old one only when it holds a live grant with that id from the same identity; any other grant
+whose `session` names neither is dropped. P§7 "Changing a share". Vectors `state/first-contact-regrant`,
+`-regrant-expired`, `-initiator-regranted`, `-initiator-regrant-of-expired`, `semantic/grant-follows-held-grant`,
+`-follows-unknown-grant` (context `held_grants`); the endpoint's local event `regrant`; fuzz endpoint target extended.
+
+## 151. §19.4 — which grant admits an invite, and which one an invite names
+
+**Found (2026-10-23, probing the three implementations while implementing spec-gap 150).** §19.4: "A live grant admits
+an invite when the invite's `grant` names it **or** the inviting identity is the grantee — the `grant` field is an
+optimisation, never a requirement". The three readings differ, and no vector separates them:
+
+- Python and Rust admit when the inviting identity is the grantee of a live `dsip.invite` grant **and**, when the
+  invite names a grant, it names that one. An invite naming a replaced or unknown grant is refused even though its
+  sender holds a live grant: after a regrant (spec-gap 150), an invite in flight naming the old grant is refused.
+- impl-ts admits when the invite names **any** live issued grant **or** the identity is a grantee. Bob's invite naming
+  the id of a grant issued to Carol is admitted; so is Carol's naming a grant that does not exist.
+- The sender side differs too: Python and Rust reference only a held grant that is live and has `dsip.invite`; impl-ts
+  references any grant held from the callee, expired or presence-only.
+
+Choices:
+
+- **(a) Admission is by grantee only; `grant` is a hint.** An invite is admitted when its identity is the grantee of a
+  live grant with `dsip.invite`; the `grant` field never admits and never refuses (a stateless relay may use it to find
+  the grant). A sender names only a live `dsip.invite` grant it holds.
+- **(b) Grantee, and the reference must match when given** (Python and Rust today): `grant` can refuse but never admit.
+- **(c) The literal "or"** (impl-ts today): a reference to any live grant admits, whoever sends it.
+
+**Draft choice: (a).** It is what "an optimisation, never a requirement" means; (b) makes the optimisation a way to be
+refused (exactly the regrant race), and (c) lets anyone who learns a grant id call as its grantee.

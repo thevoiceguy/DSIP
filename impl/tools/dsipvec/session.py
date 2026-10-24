@@ -239,6 +239,20 @@ class Endpoint:
             self.issue_grant(ev["id"], req["from"], ev.get("scope", ["dsip.invite"]), ev["valid_until"], ev["introduction"],
                              audience)
             return
+        if kind == "regrant":
+            # §19.4 (spec-gap 150): a grant may follow a live grant we issued, without an introduction
+            old = self.grants_issued.get(ev["grant"])
+            if old is None or old["valid_until"] <= self.now:
+                self.emit({"refused": "unknown-grant"})
+                return
+            audience = ev.get("presence_audience")
+            if audience is not None and not re.fullmatch(r"[a-z][a-z0-9-]{0,63}", audience):
+                self.emit({"refused": "invalid-audience"})  # P§6, as for a grant; the old grant is kept
+                return
+            del self.grants_issued[ev["grant"]]  # issuing the new grant withdraws the one it follows
+            self.issue_grant(ev["id"], old["grantee"], ev.get("scope", ["dsip.invite"]), ev["valid_until"], ev["grant"],
+                             audience)
+            return
         if kind == "reject_introduction":
             req = self.requests.pop(ev["introduction"], None)
             if req is None:
@@ -409,11 +423,15 @@ class Endpoint:
 
     def recv_grant(self, m: dict) -> None:
         intro = m.get("session")
-        if intro not in self.pending_sent:
+        by = self.identity_of(m["from"])
+        followed = self.grants_held.get(intro)
+        if intro in self.pending_sent:
+            self.pending_sent.pop(intro)
+        elif followed is not None and followed["by"] == by and followed["valid_until"] > self.now:
+            del self.grants_held[intro]  # §19.4 (spec-gap 150): it follows a live grant we hold from them, and replaces it
+        else:
             self.emit({"drop": "unknown-introduction"})
             return
-        self.pending_sent.pop(intro)
-        by = self.identity_of(m["from"])
         self.grants_held[m["id"]] = {"by": by, "scope": list(m.get("scope", [])), "valid_until": m.get("valid_until", 0)}
         self.emit({"ui": "granted", "by": by})
 

@@ -1898,6 +1898,8 @@ Three outcomes, deliberately including silence:
 
    A grant MAY carry `presence_audience` (v0.17, spec-gap 145): the audience, a token `[a-z][a-z0-9-]*` of at most 64 characters chosen by the grantor, whose presence records a subscriber admitted by this grant sees (Presence Profile P§6).
 
+   **A grant that follows a grant** (v0.17, spec-gap 150). The grantor MAY replace a live grant it issued, without a new introduction, by issuing a grant to the same grantee identity whose `session` names the grant it replaces instead of an introduction. The new grant's `scope`, `valid_until` and `presence_audience` are its own, so it can narrow, widen or re-time what the old one permitted (a grant without `dsip.subscribe` ends a presence share and keeps the calls). Issuing it withdraws the old grant at the granting side, and the granting device SHOULD send its authority a `grant-revocation` for the old grant, so that what the old grant admitted there ends (P§7). The grantee accepts such a grant only when it holds a live grant with that id from the same grantor identity, and then holds the new grant in place of the old one. A grant whose `session` names neither an introduction the grantee sent nor such a grant is dropped. A grant can only follow a grant: this gives no way to reach anyone who has not first introduced themselves.
+
    **`grant-revocation`** (v0.17, spec-gap 147). A device of the granting identity withdraws a grant before its `valid_until` by sending its authority (its relay, §9.3) a signed `grant-revocation` naming the grant's `id` (`grant`), the grantee identity (`grantee`) and the grant's `valid_until`. It is not answered. The authority keeps it until that `valid_until`. A grant so revoked no longer admits anything there: neither a presence subscription (P§7, which also ends the subscriptions it admitted) nor an invite, where that relay admits invites by grants. The granting endpoint itself stops honouring the grant when the user revokes it, whether or not a revocation is sent. Revocation stops what follows; it recalls nothing already delivered.
 
 2. **`reject`** — with `session` set to the introduction `id` and a registered reason (`user.declined`, `policy.blocked`). Sending a rejection is a policy choice, not an obligation.
@@ -2644,6 +2646,9 @@ v0.16 is final at tag `poc-v0.16`. v0.17 is in progress. Each item is listed wit
 - A presence target is *seen*, for the uniform reject, when it has bound within the authority's retention or the
   authority holds a policy or an issued capability for it (spec-gap 149, §9.3): a capability admits before its target
   first binds.
+- A grant MAY follow a live grant without a new introduction (spec-gap 150, §19.4): its `session` names the grant it
+  replaces, and the grantee holds it in place of the old one. A share's audience or length changes this way, and a
+  share ends while calls stay.
 
 ---
 

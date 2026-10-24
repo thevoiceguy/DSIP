@@ -194,6 +194,9 @@ why encryption is P§11's.
   subscription order. A later `subscribe` presenting the grant is not admitted by it (rule 2); another rule may still
   admit. A revocation is not answered.
 - Revocation stops future notifies only. What was already shown cannot be recalled.
+- **Changing a share** (spec-gap 150). A share's audience or length changes by a grant that follows it (§19.4): the
+  grantor revokes the old grant at its authority as above, which ends what it admitted, and the grantee subscribes again
+  presenting the new one. A following grant without `dsip.subscribe` ends the share and keeps the calls.
 
 ## P§8 Timers
 

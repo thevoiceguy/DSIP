@@ -560,7 +560,7 @@ schemas["introduction"] = base(
 
 schemas["grant"] = base(
     "grant", session_scoped=True,
-    description="Signed contact grant answering an introduction (spec 19.4); session references the introduction id. The consent receipt in message form: scoped, time-bounded via valid_until, revocable at the granting side.",
+    description="Signed contact grant answering an introduction (spec 19.4); session references the introduction id, or (v0.17, spec-gap 150) the live grant from the same grantor that this grant replaces. The consent receipt in message form: scoped, time-bounded via valid_until, revocable at the granting side.",
     extra_props={
         "scope": {"type": "array", "minItems": 1,
                   "items": {"type": "string", "pattern": "^dsip\\.[a-z][a-z0-9.-]*$"},
