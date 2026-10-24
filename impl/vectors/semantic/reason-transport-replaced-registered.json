@@ -1,0 +1,46 @@
+{
+  "vector": "semantic/reason-transport-replaced-registered",
+  "format": 1,
+  "kind": "semantic",
+  "description": "transport.replaced is registered for error: the relay closes a connection replaced by the device's newer hello with it (§13.2, spec-gap 158).",
+  "spec_ref": [
+    "§13.2",
+    "§15.4"
+  ],
+  "context": {
+    "now": 1760000000,
+    "supported": {
+      "core": "1.0",
+      "profiles": [
+        "interactive-media/1.0",
+        "verified-broadcast/1.0"
+      ],
+      "extensions": []
+    }
+  },
+  "input": {
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "error",
+      "id": "01K742SG00X6KAQ6R38DB0QXNM",
+      "from": "did:web:relay.example.com",
+      "to": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+      "reason": "transport.replaced",
+      "issued_at": 1760000000,
+      "expires_at": 1760000030
+    }
+  },
+  "expect": {
+    "verdict": "accept",
+    "effective": {
+      "reason": "transport.replaced",
+      "fallback": "none"
+    }
+  }
+}

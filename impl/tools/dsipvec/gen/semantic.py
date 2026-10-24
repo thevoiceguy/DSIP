@@ -107,6 +107,14 @@ def vectors() -> list[dict]:
            "reason": "transport.hello-required", "issued_at": NOW, "expires_at": NOW + 30}
     out.append(sv("error-reason-registered", "transport.hello-required on error.", ["§15.4"], err,
                   accept(effective={"reason": "transport.hello-required", "fallback": "none"})))
+    # §13.2 (spec-gap 158): a relay that replaces a connection says so on it, and the client does not reconnect
+    out.append(sv("reason-transport-replaced-registered", "transport.replaced is registered for error: the relay closes a "
+                  "connection replaced by the device's newer hello with it (§13.2, spec-gap 158).", ["§13.2", "§15.4"],
+                  {**err, "id": uid("errrepl"), "reason": "transport.replaced"},
+                  accept(effective={"reason": "transport.replaced", "fallback": "none"})))
+    out.append(sv("reason-transport-replaced-on-reject", "transport.replaced on a reject is outside its valid-on column: "
+                  "accepted with a warning (spec-gap 10).", ["§15.4"], {**rej, "reason": "transport.replaced"},
+                  accept(effective={"reason": "transport.replaced", "fallback": "none"}, warnings=["reason-not-valid-on-type"])))
 
     # --- anti-splicing (check 7)
     hc = hello_client(on_behalf_of=F.BOB_WEB)

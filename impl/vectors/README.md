@@ -2237,6 +2237,10 @@ Each item has a matching `spec-gap` issue draft in `impl/docs/spec-gaps.md`.
 149. §9.3 / P§6: **decided** (v0.17, (a)) — a presence target is seen when it has bound here or the authority holds a
     policy or an issued capability for it, so a capability admits before its target ever binds; a publication target
     when it is published (`state/presence-capability-makes-target-seen`).
+158. §13.2 / §15: **decided** (v0.17, (a)) — a relay that replaces a device's connection sends `error`
+    `transport.replaced` on the old one before closing it, and the client does not reconnect; the token is registered
+    for `error` (`semantic/reason-transport-replaced-registered`, `-on-reject`). Reconnection is outside the vector
+    kinds: `demos/relay-rebind-demo.sh` and `web/test/relay-replaced.mjs` pin the client side on the wire.
 141. §12.9: **decided** (v0.17) — `expires_at` is exclusive everywhere: expired when `now ≥ expires_at`, at receipt and
     wherever a held message, kept record, leg or activity is judged; `reachability-hint` and `presence` ids are not
     deduplicated (`envelope/*-at-expiry`, `envelope/presence-id-already-seen`, `dht/hint-*`, `state/invite-*-expiry*`,

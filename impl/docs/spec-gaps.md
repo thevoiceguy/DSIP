@@ -4649,3 +4649,48 @@ Choices:
 
 **Draft choice: (a).** It is what "an optimisation, never a requirement" means; (b) makes the optimisation a way to be
 refused (exactly the regrant race), and (c) lets anyone who learns a grant id call as its grantee.
+
+## 158. §13.2 — a replaced connection cannot tell it was replaced, so it reconnects
+
+**Found (2026-10-24, the presence-audiences demo failing on main; PR #246).** §13.2 makes simultaneous connections from
+one device to the same relay "undefined behavior in `ws/1.0`", and lets a relay "treat a new verified `hello` from an
+already-bound device as replacing the prior connection" and "close the old one". The relay that closes it had no way to
+say why, and the client no way to tell a replacement from any other drop; §13.2 "Keepalive and reconnection" then says it
+SHOULD reconnect, with a fresh `hello` — which replaces the other connection, and the two connections of one device
+replace each other in turn for as long as both processes live. Observed with two `dsip answer` processes of one device:
+a replacement about every 0.5 s (each loss is a new outage to the client, so its backoff restarts at 1 s); and two tabs of
+one browser profile (one device key) bound 11 and 10 times in 6 s. The browser had worked around it for peer relays by
+sharing one connection per relay; the mailbox keeps a second connection as a standby beside the binding instead of
+replacing it. #246 fixed a separate relay bug on the same path (the replaced connection's cleanup closed the new one too).
+
+Choices:
+
+- **(a) Name the replacement.** A relay that replaces a connection MUST send on it, before closing it, an `error`
+  `transport.replaced` (a new `transport` token, valid on `error`). A client that receives it MUST NOT reconnect to that
+  relay by itself — its device is bound there already — SHOULD tell its user, and MAY reconnect on the user's word. A
+  client that does not know the token falls back to the category default, "reconnect/retry per binding rules", so old
+  clients keep the loop; the registry entry says the token is the exception.
+- **(b) Refuse the second hello.** The relay keeps the first connection. Locks out the common legitimate case, an old
+  connection that is dead and not yet noticed (network change, NAT rebinding): refused until the 90 s Ping/Pong timeout.
+- **(c) Leave it undefined; clients mitigate** (a client whose connection drops within seconds of binding keeps growing
+  its backoff). Slows the loop, does not end it, and never tells the user why.
+- **(d) Define several connections per device** (a standby, as the mailbox has, or delivery to the newest): which
+  connection gets a frame, duplicates and session moves all need rules. A feature, not a `ws/1.0` fix.
+
+**Draft choice: (a).** It keeps replacement, which a relay needs for a stale connection, and tells the replaced side the
+one thing it cannot work out by itself, with the mechanism §13.2 already relies on (no silent drops on a live connection).
+
+**Decided (2026-10-24, user: "158 (a), transport.replaced"): (a).** §13.2 Connection model gains the rule (relay MUST
+send `transport.replaced` on the replaced connection before closing it; the client MUST NOT reconnect by itself, SHOULD
+tell its user, MAY reconnect when asked), "Keepalive and reconnection" says such a close is not an unexpected loss, §15
+registers `transport.replaced` (error; the client does not reconnect, unlike the category default), A.14 lists it.
+
+**Pinned.** `semantic/reason-transport-replaced-registered` (registered on `error`, no fallback) and
+`semantic/reason-transport-replaced-on-reject` (outside its valid-on column: accepted with `reason-not-valid-on-type`,
+spec-gap 10). Reconnection is not modelled by any vector kind, so the wire behaviour is pinned by
+`demos/relay-rebind-demo.sh` (CI: a frozen client, resumed, reads `transport.replaced` and stops; two live processes of
+one device give one rebinding, and the older stops) and `web/test/relay-replaced.mjs` (two tabs of one profile: the first
+says it was replaced and binds once, the second stays bound). Implementations: the relay sends the error and closes the
+old connection cleanly; `dsip-transport`'s agent returns `Error::Replaced` instead of reconnecting (the CLI stops with
+it); the browser's `Relay.replaced()` stops reconnection, for its relay (status line and a notice) and for peer relays.
+The mailbox does not replace a connection (its second connection is a standby) and is unchanged.
