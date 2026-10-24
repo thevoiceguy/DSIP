@@ -273,6 +273,11 @@ jobs:
         # a ringing callee is still ringing well past the invite's 30 s.
         run: timeout 300 bash demos/relay-no-response-demo.sh | tail -8
         working-directory: impl
+      - name: a second hello replaces the prior connection, and only it (§13.2)
+        # Self-verifying: a frozen device's connection is replaced by the same device's new hello; the relay closes
+        # the old one and keeps the new one bound (it used to drop both).
+        run: timeout 120 bash demos/relay-rebind-demo.sh | tail -8
+        working-directory: impl
       - name: status pages (relay and mailbox --status-listen)
         # Self-verifying: the relay follows a call ringing → answered → ended by bye and counts a refusal; the mailbox
         # reports its --serve-any place taken, the owner's KeyPackages, a mailbox.not-served refusal and a blob 404.
