@@ -254,9 +254,15 @@ at the authority.
     on a following grant and on `valid_until` with T-Presence-Rotate, re-granting on a sibling's higher epoch with
     rotation chains, the grantee keeping two epochs; spec-gaps 159, 160 and 161 decided; state vectors
     (`state/presence-keys-*`) and a fuzz target (`presence-keys`) on Python, Rust (`dsip-session`) and impl-ts.
-  - **E2b — Core** (this PR; spec-gap 162 drafted): the wire behind the traces in `dsip-endpoint`: `presence_keys` sealed with HPKE in the grants Core
+  - **E2b — Core** (#250, merged; spec-gap 162 decided): the wire behind the traces in `dsip-endpoint`: `presence_keys` sealed with HPKE in the grants Core
     signs and opened from the ones it receives, key bytes kept per grantor, records sealed at the current epoch
     (`Publisher`) and opened in the watch (`Watch` with the held keys), the own watch fed back as sibling records, the
     `revoke` emission sent as `grant-revocation`s, and the key state persisted with the contacts.
-- **E3 — clients and the testbed**: `dsip presence publish|watch`, the browser (Settings audiences sealed, badges, a
-  "presence not readable" note), demos, web tests, then the relay and web redeployed and a sealed WAN presence check.
+- **E3 — clients and the testbed**, in three parts:
+  - **E3a — the agent and the CLI** (this PR): `AgentConfig.presence`; the agent gives Core its relay as the authority,
+    so revocations of a share and its chain go from Core; `dsip answer --seal-presence` (keys in grants, audience labels
+    sent as tags), `dsip presence publish --sealed` (records sealed, the device's own watch adopting a sibling's epoch),
+    `dsip presence watch` listing `presence/0.2` and opening records with the keys held; `demos/presence-sealed-demo.sh`.
+  - **E3b — the browser**: Settings audiences sealed, badges, a "presence not readable" note; the wasm host on
+    `set_authority`, `sign_presence`, `own_record` and `Watch::view`; a web test.
+  - **E3c — the testbed**: the relay and web redeployed and a sealed WAN presence check.

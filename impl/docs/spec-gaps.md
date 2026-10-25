@@ -4870,6 +4870,6 @@ Choices:
   is not told, and the grant still admits at the authority.
 - **(c) The grantor does not issue it:** a grant for a sealed scope is refused locally when its keys cannot be sealed.
 
-**Draft choice: (a).** Every reason a grant exists other than presence (`dsip.invite`) is unaffected by its keys, and
+**Decided (2026-10-25, user: "162 (a)"): (a).** Every reason a grant exists other than presence (`dsip.invite`) is unaffected by its keys, and
 the failure shows where P§12.4 already shows it. Written into P§12.3 as drafted; `dsip-endpoint` `Core` implements it
 (`Impl:` notes in `core.rs`, `tests/presence_keys.rs`).
