@@ -669,6 +669,11 @@ MUST equal the signer;
 publishes the record, how the authority carries it and how several devices' records combine are the Presence
 Profile's (P§3, P§4); a record's age at any receiver is bounded by its own `expires_at` (§12.9).
 
+A record MAY instead be **sealed** to the subscribers its audience admits (Presence Profile `presence/0.2`, P§12;
+spec-gaps 152–157): it then carries `kid` and `sealed_state`, the state encrypted under a key derived from the
+identity's key agreement secret, in place of `state`, and names `presence/0.2`. The authority checks and routes it
+as any record, reading only fields in clear.
+
 ### 9.5 Scale Tradeoff
 
 Short TTLs reduce stale presence but increase traffic. Long TTLs reduce traffic but create stale presence. Presence freshness is profile-specific:
@@ -1897,7 +1902,9 @@ Three outcomes, deliberately including silence:
 
    The grant is the consent receipt (§19.3) in message form: `scope` names what it permits (registry `dsip-grant-scope`; initial values `dsip.invite`, `dsip.subscribe`, and `dsip.message` for the Messaging Profile since v0.8), and `valid_until` bounds its life independently of the envelope's delivery expiry. The recipient's endpoint and relay record the grant; the grantee also holds the signed grant and MAY reference it in a future invite via the optional `grant` field (the grant's `id`) to aid stateless or migrated relays. A live grant admits an invite when the invite's `grant` names it **or** the inviting identity is the grantee — the `grant` field is an optimisation, never a requirement — and a grant admits only the operations in its `scope`: an invite requires `dsip.invite`. Grants are revocable: revocation is local policy at the granting side, optionally propagated as a signed `grant-revocation` (below).
 
-   A grant MAY carry `presence_audience` (v0.17, spec-gap 145): the audience, a token `[a-z][a-z0-9-]*` of at most 64 characters chosen by the grantor, whose presence records a subscriber admitted by this grant sees (Presence Profile P§6).
+   A grant MAY carry `presence_audience` (v0.17, spec-gap 145): the audience, a token `[a-z][a-z0-9-]*` of at most 64 characters chosen by the grantor, whose presence records a subscriber admitted by this grant sees (Presence Profile P§6). It MAY carry `presence_keys`
+   (spec-gaps 152, 157): the keys of the grantor's sealed presence records that the grantee may read, HPKE-sealed to the
+   grantee identity's key agreement key and bound to the grant's `id`, `from` and `to` (P§12.3).
 
    **A grant that follows a grant** (v0.17, spec-gap 150). The grantor MAY replace a live grant it issued, without a new introduction, by issuing a grant to the same grantee identity whose `session` names the grant it replaces instead of an introduction. The new grant's `scope`, `valid_until` and `presence_audience` are its own, so it can narrow, widen or re-time what the old one permitted (a grant without `dsip.subscribe` ends a presence share and keeps the calls). Issuing it withdraws the old grant at the granting side, and the granting device SHOULD send its authority a `grant-revocation` for the old grant, so that what the old grant admitted there ends (P§7). The grantee accepts such a grant only when it holds a live grant with that id from the same grantor identity, and then holds the new grant in place of the old one. A grant whose `session` names neither an introduction the grantee sent nor such a grant is dropped. A grant can only follow a grant: this gives no way to reach anyone who has not first introduced themselves.
 
@@ -2653,6 +2660,9 @@ v0.16 is final at tag `poc-v0.16`. v0.17 is in progress. Each item is listed wit
 - A relay that replaces a device's connection with a newer one says so on the old one, `error` `transport.replaced`
   (spec-gap 158, §13.2, §15), and the client does not reconnect: two connections of one device (two processes, two
   tabs) no longer replace each other in turn.
+- Presence records MAY be sealed to subscribers (`presence/0.2`, P§12; spec-gaps 152–157, §9.4): the record carries
+  `kid` and `sealed_state` in place of `state`, keys are derived from the identity's key agreement secret, and a grant
+  MAY carry them as `presence_keys` (§19.4). The reason `presence.sealed-invalid` joins the `presence` category.
 
 ---
 

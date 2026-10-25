@@ -1,0 +1,21 @@
+{
+  "vector": "presence/audience-tag-per-subject",
+  "format": 1,
+  "kind": "presence",
+  "description": "The subject is part of the derivation: the same secret and label under another subject name give another tag.",
+  "spec_ref": [
+    "P§12.1"
+  ],
+  "context": {
+    "now": 1760000000
+  },
+  "input": {
+    "check": "audience-tag",
+    "secret_hex": "9f59fc4eadf005fc2260359c78204f6778346c2cc7a09899a0e38e4a5c0ee916",
+    "subject": "did:web:example.com:users:bob",
+    "label": "family"
+  },
+  "expect": {
+    "tag": "k-bxlvopo62out5wma"
+  }
+}

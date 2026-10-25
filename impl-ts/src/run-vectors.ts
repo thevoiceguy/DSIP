@@ -16,6 +16,7 @@ import { resolveWebvh, type WebvhInput } from "./did/webvh.js";
 import { runDeviceEvents } from "./events/device-events.js";
 import { runRecording } from "./recording/recording.js";
 import { runPresence } from "./presence/presence.js";
+import { runSealedPresence } from "./presence/sealed.js";
 import { Endpoint, type EndpointContext } from "./endpoint.js";
 import type { Json, JsonObject } from "./did.js";
 import { verifyEnvelope, type ReceiverContext } from "./envelope.js";
@@ -67,7 +68,7 @@ const RUNNERS: Record<string, (v: Vector) => Json | undefined> = {
   "did-webvh": (v) => resolveWebvh(v.input as unknown as WebvhInput),
   "device-events": (v) => runDeviceEvents(v.context ?? {}, v.input),
   recording: (v) => runRecording(v.context ?? {}, v.input),
-  presence: (v) => runPresence(v.context ?? {}, v.input),
+  presence: (v) => runPresence(v.context ?? {}, v.input) ?? runSealedPresence(v.context ?? {}, v.input),
   "alias-transparency": (v) => runAliasTransparency(v.input),
   pkarr: (v) => runPkarr(v.input),
   "tn-binding": (v) => runTnBinding(v.context as unknown as TnContext, v.input),

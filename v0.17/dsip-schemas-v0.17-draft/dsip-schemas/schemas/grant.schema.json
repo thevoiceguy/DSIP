@@ -47,6 +47,35 @@
       "pattern": "^[a-z][a-z0-9-]*$",
       "maxLength": 64,
       "description": "The presence audience a subscriber admitted by this grant sees (P6; v0.17, spec-gap 145)."
+    },
+    "presence_keys": {
+      "type": "object",
+      "description": "The grantor's sealed-presence keys the grantee may read, HPKE-sealed to the grantee identity's key agreement key (P12.3; v0.17, spec-gaps 152, 157). The plaintext is {\"keys\": [{\"kid\", \"key\"}]} padded to a multiple of 256 bytes.",
+      "properties": {
+        "alg": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Sealing algorithm; hpke-base-x25519-sha256-aes128gcm."
+        },
+        "enc": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_-]+$",
+          "description": "HPKE encapsulated key, base64url."
+        },
+        "ct": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_-]+$",
+          "description": "HPKE ciphertext, base64url."
+        }
+      },
+      "required": [
+        "alg",
+        "enc",
+        "ct"
+      ],
+      "additionalProperties": false
     }
   },
   "required": [

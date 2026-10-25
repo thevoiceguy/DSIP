@@ -1,0 +1,48 @@
+{
+  "vector": "presence/grant-keys-not-keys",
+  "format": 1,
+  "kind": "presence",
+  "description": "A plaintext that is not {\"keys\": [...]} is refused.",
+  "spec_ref": [
+    "P§12.3",
+    "§19.4"
+  ],
+  "context": {
+    "now": 1760000000
+  },
+  "input": {
+    "check": "grant-keys-open",
+    "grant": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "interactive-media/1.0"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "grant",
+      "id": "01K742SG00VT636HHCR9KJQR64",
+      "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+      "to": "did:key:z6MkhzX9qTeXBWkucyMVric1E9JrqUD5LPAkD2BNavakAptf",
+      "session": "01K742QND0ZMHSN61KKP6YW3D3",
+      "scope": [
+        "dsip.subscribe"
+      ],
+      "valid_until": 1760086400,
+      "issued_at": 1760000000,
+      "expires_at": 1760000030,
+      "presence_keys": {
+        "alg": "hpke-base-x25519-sha256-aes128gcm",
+        "enc": "c5KHqC8E-37G-32y99jEcVlVVVbskY8arb7Jc1urOHQ",
+        "ct": "C9Rr2GUjybybpzOtOw7xP5iNqXz1ijp3fseOHnC5ffkjfIymlKupRMeXwG6B0M0cRg56Rot6fZBV4dxncBb0le2mJm2Ns3ZHhBZ1uSNDq5k1Larda31dE1jOBiV8RAwyhPwxSTFrOLixJHE83pWfmSwDsKmHBzmWBYRSUHFV0FNI32_J8JOjIzOFhswxa3udWhi90vqPflRpm6F8Ez60Fw26iZsjUeI0sq5PxYvTuXeSsTAX1T8eUTX8gqavkAveAGp5H8EFmdcgpbe-ZAvAPoamIki5BgTXGAPl2ACUut5XeEO-6OWydO18Ho3oqlOn9oy_Fzys25MEJ9NcK_bEEuup4f8uVnp2-58xUQna-7k"
+      }
+    },
+    "recipient_secret_hex": "b01caa6dc4487f5251b3c3d0ac3b8be4ba7459d7cc16d3a71c34831a6b1086d8"
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "sealed-plaintext-invalid"
+  }
+}

@@ -70,6 +70,7 @@ const REASONS: Record<string, string[]> = {
   "mailbox.not-served": ["error"], // M§16 (v0.16, spec-gap 130): unserved and cannot enrol, or a release from one not served
   "mailbox.not-enrolled": ["error"], // M§16 (v0.16, spec-gap 130): a release for a configured identity
   "presence.signer-mismatch": ["error"], // P§9 (v0.17, spec-gap 134); not in the core §15.4 table
+  "presence.sealed-invalid": ["error"], // P§9, P§12.2 (v0.17, spec-gaps 152, 157)
   "presence.lifetime": ["error"], // P§9
   "presence.stale": ["error"], // P§9
 };

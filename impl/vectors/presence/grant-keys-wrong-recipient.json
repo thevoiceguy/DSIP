@@ -1,0 +1,49 @@
+{
+  "vector": "presence/grant-keys-wrong-recipient",
+  "format": 1,
+  "kind": "presence",
+  "description": "Carol cannot open keys sealed to Alice.",
+  "spec_ref": [
+    "P§12.3",
+    "§19.4"
+  ],
+  "context": {
+    "now": 1760000000
+  },
+  "input": {
+    "check": "grant-keys-open",
+    "grant": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "interactive-media/1.0"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "grant",
+      "id": "01K742SG00CZ3PVTSJYJ4A52KT",
+      "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+      "to": "did:key:z6MkhzX9qTeXBWkucyMVric1E9JrqUD5LPAkD2BNavakAptf",
+      "session": "01K742QND0P7VC7RBYYZXTXNCJ",
+      "scope": [
+        "dsip.subscribe"
+      ],
+      "valid_until": 1760086400,
+      "issued_at": 1760000000,
+      "expires_at": 1760000030,
+      "presence_audience": "k-tkxij7ahuhkuvpff",
+      "presence_keys": {
+        "alg": "hpke-base-x25519-sha256-aes128gcm",
+        "enc": "svjxg5bqVVDNvWVAGSIDwmW4U4EbqYm5a_lLYB_nDWE",
+        "ct": "5_CFR8iQ9uEhpZrB4WAnNFVXa8N3hLe87WabzzojwPdljT3mvXzXJ4azHivtdlVEb-HB50FX5o01hYn-5ioInalAj6nx6cD_tmAzkKHo7rdurtGpeqSvoxf_Zn9_qNZ-1oKhPro5F9v0DAR_1AnVGE6kpshq05mX1QjDVgRCjlPibZaP32UnCD6oOslZOVJKMTyPGVZ-kBu4sGKH57P9DPpw05RwJFKOTRAkmaPt9GghQbz6Re97pRM7U3B31CSs1V95w8DuAb-ZSTVJBIcjVhDTqJK6B_EtDdEhLgtA8RE13Kecx04dG0QwL7nqHrMGkcW5Xssh3NBer2-VTNPZdPLoxfIxAP0M-wc8F-hVaJo"
+      }
+    },
+    "recipient_secret_hex": "7ee057a675737f6389765a10c5f84fbc225a9501d2058931eab84fd9ed36432c"
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "sealed-open-failed"
+  }
+}

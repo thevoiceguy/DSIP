@@ -178,6 +178,13 @@ def check_semantic(payload: dict, ctx: dict, encoded_size: int | None = None) ->
     if t == "presence" and "device" in payload and payload["device"] != payload["from"]:
         # P§3 (v0.17, spec-gap 135): a record describes the device that signs it
         return Verdict.reject("presence-signer-mismatch", "presence.signer-mismatch")
+    if t == "presence" and "sealed_state" in payload:
+        # P§12.2 (v0.17, spec-gaps 152, 157): a sealed record names presence/0.2, and its kid is for its audience
+        profiles = payload["dsip"].get("profiles")
+        audience = payload.get("audience")
+        if (not isinstance(profiles, list) or "presence/0.2" not in profiles or audience == "main"
+                or payload["kid"].rsplit(".", 1)[0] != (audience or "main")):
+            return Verdict.reject("presence-sealed-invalid", "presence.sealed-invalid")
     if t == "key-rotation":  # §7.5 (v0.7, spec-gap 22)
         if payload["subject"] != payload["from"]:
             return Verdict.reject("rotation-subject-mismatch")
@@ -204,7 +211,7 @@ def registry_effects(payload: dict) -> dict:
         eff["answered_by"] = effective_answered_by(payload["answered_by"])
     if t == "progress":
         eff["status"] = effective_progress_status(payload["status"])
-    if t == "presence":
+    if t == "presence" and "state" in payload:  # a sealed record's state is not the pipeline's to read (P§12)
         # P§5 (spec-gap 136): an unknown state is accepted and shown as available
         eff["state"] = payload["state"] if payload["state"] in PRESENCE_STATES else PRESENCE_STATE_FALLBACK
         if payload["state"] not in PRESENCE_STATES:

@@ -1,0 +1,30 @@
+{
+  "vector": "presence/open-record-plaintext-bad-token",
+  "format": 1,
+  "kind": "presence",
+  "description": "A sealed state that is not a P§5 token is unreadable.",
+  "spec_ref": [
+    "P§12.4"
+  ],
+  "context": {
+    "now": 1760000000
+  },
+  "input": {
+    "check": "open-record",
+    "record": {
+      "subject": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+      "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+      "kid": "main.0",
+      "seq": 1,
+      "expires_at": 1760000300,
+      "sealed_state": "52yrErcS0StIwRM0BPZqZzpConSYLEqA1OcsjXvzIrEJmdMiCjKUsVk6YO2dwQR-oHW7lbUrVSjGv82Ijoy7Ih7Hs8uRMktvf6iHCG_6nPh7I9MgWlInJJNwI9f1YfPdMKKFNSnGgjt-87s1p8AE3g7xCIAfqfSyjN6pb7np7SOOxorq8SonMIQ2hJrDR53uFUz26LZTYRL1C8IA"
+    },
+    "keys": {
+      "main.0": "c4e3a61b986a8b6046b27d4ca521e8c8036a088f59f62ef70597738823d8c02a"
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "presence-plaintext-invalid"
+  }
+}

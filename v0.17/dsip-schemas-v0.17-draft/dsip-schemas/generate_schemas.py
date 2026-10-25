@@ -15,7 +15,8 @@ resolution setup required.
 
 Usage: python3 generate_schemas.py <output_dir>
 v0.14 adds `alias-monitor` (Alias Transparency Profile T§8, spec-gap 124).
-v0.17 adds `presence` (core 9.4 with the Presence Profile P§3-P§5, spec-gaps 134-136).
+v0.17 adds `presence` (core 9.4 with the Presence Profile P§3-P§5, spec-gaps 134-136), and sealed presence records
+(`kid`, `sealed_state`) with a grant's `presence_keys` (P§12, spec-gaps 152-157).
 """
 import json
 import sys
@@ -453,7 +454,7 @@ schemas["alias-monitor"] = base(
 
 schemas["presence"] = base(
     "presence", session_scoped=False,
-    description="A device's signed presence record (spec 9.4), published to its authority and carried in notify bodies (Presence Profile P3, v0.17). device, when present, must equal from (semantic check); its age is bounded by expires_at, capped at 3600 s (spec 12.9). state is from the open registry dsip-presence-state: unknown tokens are accepted and shown as available (P5).",
+    description="A device's signed presence record (spec 9.4), published to its authority and carried in notify bodies (Presence Profile P3, v0.17). device, when present, must equal from (semantic check); its age is bounded by expires_at, capped at 3600 s (spec 12.9). state is from the open registry dsip-presence-state: unknown tokens are accepted and shown as available (P5). A sealed record (presence/0.2, P12) carries kid and sealed_state in place of state.",
     extra_props={
         "subject": {"$ref": "#/$defs/did", "description": "The identity whose presence this is."},
         "device": {"$ref": "#/$defs/did", "description": "The device the record describes; the signer (P4). Absent in a v0.16-form record."},
@@ -462,6 +463,10 @@ schemas["presence"] = base(
         "seq": {"type": "integer", "minimum": 0, "description": "Ordered per (subject, device) (P4)."},
         "audience": {"type": "string", "pattern": "^[a-z][a-z0-9-]*$", "maxLength": 64,
                      "description": "The audience this record is for, a token the subject chooses (P6, spec-gap 145); absent: every admitted subscriber."},
+        "kid": {"type": "string", "pattern": "^(main|[a-z][a-z0-9-]*)\\.(0|[1-9][0-9]*)$", "maxLength": 86,
+                "description": "A sealed record's key: scope (main, or the audience tag) . epoch (P12.1; spec-gaps 152, 157). Its scope matches audience (semantic check)."},
+        "sealed_state": {"type": "string", "pattern": "^[A-Za-z0-9_-]+$", "minLength": 1,
+                         "description": "base64url nonce || AES-256-GCM ciphertext || tag of {\"state\": S} padded to 128 bytes (P12.2)."},
         "profiles": {"type": "array", "items": {"type": "string", "minLength": 1}},
         "endpoints": {
             "type": "array",
@@ -473,8 +478,13 @@ schemas["presence"] = base(
             },
         },
     },
-    extra_required=["subject", "state", "seq"],
+    extra_required=["subject", "seq"],
 )
+# P12.2: a record carries state in clear, or kid and sealed_state, never both
+schemas["presence"]["oneOf"] = [
+    {"required": ["state"], "not": {"anyOf": [{"required": ["sealed_state"]}, {"required": ["kid"]}]}},
+    {"required": ["kid", "sealed_state"], "not": {"required": ["state"]}},
+]
 
 schemas["subscribe"] = base(
     "subscribe", session_scoped=False,
@@ -569,6 +579,17 @@ schemas["grant"] = base(
                         "description": "Grant lifetime, independent of the envelope delivery expiry."},
         "presence_audience": {"type": "string", "pattern": "^[a-z][a-z0-9-]*$", "maxLength": 64,
                               "description": "The presence audience a subscriber admitted by this grant sees (P6; v0.17, spec-gap 145)."},
+        "presence_keys": {
+            "type": "object",
+            "description": "The grantor's sealed-presence keys the grantee may read, HPKE-sealed to the grantee identity's key agreement key (P12.3; v0.17, spec-gaps 152, 157). The plaintext is {\"keys\": [{\"kid\", \"key\"}]} padded to a multiple of 256 bytes.",
+            "properties": {
+                "alg": {"type": "string", "minLength": 1, "description": "Sealing algorithm; hpke-base-x25519-sha256-aes128gcm."},
+                "enc": {"type": "string", "minLength": 1, "pattern": "^[A-Za-z0-9_-]+$", "description": "HPKE encapsulated key, base64url."},
+                "ct": {"type": "string", "minLength": 1, "pattern": "^[A-Za-z0-9_-]+$", "description": "HPKE ciphertext, base64url."},
+            },
+            "required": ["alg", "enc", "ct"],
+            "additionalProperties": False,
+        },
     },
     extra_required=["scope", "valid_until"],
 )

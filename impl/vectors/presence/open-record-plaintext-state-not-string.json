@@ -1,0 +1,30 @@
+{
+  "vector": "presence/open-record-plaintext-state-not-string",
+  "format": 1,
+  "kind": "presence",
+  "description": "A state that is not a string is unreadable.",
+  "spec_ref": [
+    "P§12.4"
+  ],
+  "context": {
+    "now": 1760000000
+  },
+  "input": {
+    "check": "open-record",
+    "record": {
+      "subject": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+      "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+      "kid": "main.0",
+      "seq": 1,
+      "expires_at": 1760000300,
+      "sealed_state": "HnvAuOqUQpXbMvbODRQ_xUS89b0Dtb8FYqLum-qvpeFZ1YQiMgThqGsQABGfB41foh5l5Ji6QOm3-tRSdcC4bFoixDtJ326EYK-fEWRKTyCExfC_hWR1AOYzAFs61XXchfwQ1XtavhYu2coDfK64CKYtAahm2CKfBgtZrNU-DtKaIiWCD11jiZZ15wE4vVksMnv550IKvxiEU0gN"
+    },
+    "keys": {
+      "main.0": "c4e3a61b986a8b6046b27d4ca521e8c8036a088f59f62ef70597738823d8c02a"
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "presence-plaintext-invalid"
+  }
+}

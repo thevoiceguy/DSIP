@@ -1,0 +1,52 @@
+{
+  "vector": "semantic/presence-sealed-kid-main-with-audience",
+  "format": 1,
+  "kind": "semantic",
+  "description": "A family record sealed under a main key: its kid is not for its audience.",
+  "spec_ref": [
+    "P§12.2"
+  ],
+  "context": {
+    "now": 1760000000,
+    "supported": {
+      "core": "1.0",
+      "profiles": [
+        "interactive-media/1.0",
+        "verified-broadcast/1.0",
+        "presence/0.1",
+        "presence/0.2"
+      ],
+      "extensions": []
+    }
+  },
+  "input": {
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "presence/0.2"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "presence",
+      "id": "01K742SG00N1H99FETBBRW01H0",
+      "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+      "to": "did:web:relay.example.com",
+      "subject": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+      "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+      "kid": "main.0",
+      "seq": 1,
+      "expires_at": 1760000300,
+      "audience": "k-tkxij7ahuhkuvpff",
+      "sealed_state": "SRh1RRSMtDLuDsr_GanF2O8460vX8yahWit5nGVJcHdejii7LpqDgwT48J38HwFcqM69yaM_h7EqsasRGDNXrqTT2HjbMsfFn6aEbWxhHFkd1c6WC9gjgsNvxgKvikjfrY4Slhoul0f0ukENmstknYUUzFpbyAMNuR7awobMzkEUIqL-Jj4pa2ZiBPWpbS36Pweq3YaUO_IF4QwU",
+      "issued_at": 1760000000
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "presence-sealed-invalid",
+    "reason": "presence.sealed-invalid"
+  }
+}

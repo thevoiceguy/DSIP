@@ -220,5 +220,7 @@ def vectors() -> list[dict]:
     out.append(sv("introduction-size-at-cap", "Encoded size exactly 4,096 is allowed.", ["§19.4"],
                   intro, accept(), ctx={"encoded_size": 4096}))
     from .presence_vectors import semantic_vectors
+    from . import presence_sealed
     out.extend(semantic_vectors())
+    out.extend(presence_sealed.semantic_vectors())
     return out

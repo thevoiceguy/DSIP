@@ -1,0 +1,52 @@
+{
+  "vector": "semantic/presence-sealed-without-profile",
+  "format": 1,
+  "kind": "semantic",
+  "description": "A sealed record that names only presence/0.1 is refused (P§12.2, P§12.6).",
+  "spec_ref": [
+    "P§12.2",
+    "P§12.6"
+  ],
+  "context": {
+    "now": 1760000000,
+    "supported": {
+      "core": "1.0",
+      "profiles": [
+        "interactive-media/1.0",
+        "verified-broadcast/1.0",
+        "presence/0.1",
+        "presence/0.2"
+      ],
+      "extensions": []
+    }
+  },
+  "input": {
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "presence/0.1"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "presence",
+      "id": "01K742SG003XVBRRW09TGTKD9Z",
+      "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+      "to": "did:web:relay.example.com",
+      "subject": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+      "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+      "kid": "main.0",
+      "seq": 1,
+      "expires_at": 1760000300,
+      "sealed_state": "leo1Q_yxle1y7wsBBJeJ088My4aH4euB8378-i4prIecps2Xm0Gw8BbnTNjHkYANDSWnddRRhIWuk2M9iblJGGNqGLvQ_n4ihtFDnHA2aaH_vLENrLrT3ZiZt7PyZpmRGAc0KHVXRLrKKm4Nv2I7Y59SZXRymxtMKGn70e70MO0QgK5n6ILgnQIZJhto0eBqpHeal5l7g-AzVxJC",
+      "issued_at": 1760000000
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "presence-sealed-invalid",
+    "reason": "presence.sealed-invalid"
+  }
+}

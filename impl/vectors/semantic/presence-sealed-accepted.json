@@ -1,0 +1,50 @@
+{
+  "vector": "semantic/presence-sealed-accepted",
+  "format": 1,
+  "kind": "semantic",
+  "description": "A sealed record naming presence/0.2 whose kid is for its audience passes; the pipeline reports no state, which it cannot read (P§12.2).",
+  "spec_ref": [
+    "P§12.2"
+  ],
+  "context": {
+    "now": 1760000000,
+    "supported": {
+      "core": "1.0",
+      "profiles": [
+        "interactive-media/1.0",
+        "verified-broadcast/1.0",
+        "presence/0.1",
+        "presence/0.2"
+      ],
+      "extensions": []
+    }
+  },
+  "input": {
+    "payload": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "presence/0.2"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "presence",
+      "id": "01K742SG00NH68KQPT85XJSEF7",
+      "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+      "to": "did:web:relay.example.com",
+      "subject": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+      "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+      "kid": "k-tkxij7ahuhkuvpff.3",
+      "seq": 1,
+      "expires_at": 1760000300,
+      "audience": "k-tkxij7ahuhkuvpff",
+      "sealed_state": "KQy09prFLMOpor5cLqwbaoYCsl2Jqt0Ajx-1d4pJI9K2-Ckb3z09GPbS3DVIbPeoQHsG5uYbwi9KbyauWglNqaYWNYNRjsn5g4ZZOe8pfBbwySGmczXnFT82J-Yi3yUB5T1pmYSRgwNn6JVqnqXWYy44A5ApIOaf9y1Po-4OYSLHpxfjsQvUjpesztTbkME5SXAoqdSXYdLHYFUo",
+      "issued_at": 1760000000
+    }
+  },
+  "expect": {
+    "verdict": "accept"
+  }
+}

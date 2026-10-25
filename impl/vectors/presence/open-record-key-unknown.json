@@ -1,0 +1,30 @@
+{
+  "vector": "presence/open-record-key-unknown",
+  "format": 1,
+  "kind": "presence",
+  "description": "A record under main.1 when the subscriber holds only main.0 is unreadable: presence-key-unknown.",
+  "spec_ref": [
+    "P§12.4"
+  ],
+  "context": {
+    "now": 1760000000
+  },
+  "input": {
+    "check": "open-record",
+    "record": {
+      "subject": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+      "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+      "kid": "main.1",
+      "seq": 1,
+      "expires_at": 1760000300,
+      "sealed_state": "R0Y-eWxf_5gv7cJhoUl1yuwYGwa_O7vUjOPGISESc_t8TQgR0xAbTklr_INw7uUe1P-cVOsAlIPcQBoveHI_iOdciBvt5IZBBzz2g3avE7hm9u1fmlwMirgF3YWJq0uqsrBmTEG1YgWp-HFaZBe3ws1JM1SDKz8UfGXTlGMpj91wmge_D97fSBNzKIfzgItFCeW3zctAscjJk3QS"
+    },
+    "keys": {
+      "main.0": "c4e3a61b986a8b6046b27d4ca521e8c8036a088f59f62ef70597738823d8c02a"
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "presence-key-unknown"
+  }
+}

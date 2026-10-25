@@ -1,0 +1,49 @@
+{
+  "vector": "presence/grant-keys-spliced-to-other-grantee",
+  "format": 1,
+  "kind": "presence",
+  "description": "Keys sealed to Alice under a grant naming Alice, carried by a grant naming Carol, sealed to Carol: the AAD names Alice, so Carol's open fails.",
+  "spec_ref": [
+    "P§12.3",
+    "§19.4"
+  ],
+  "context": {
+    "now": 1760000000
+  },
+  "input": {
+    "check": "grant-keys-open",
+    "grant": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "interactive-media/1.0"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "grant",
+      "id": "01K742SG001WMV0AGR3A09RG7G",
+      "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+      "to": "did:key:z6Mkt5yU6sK3v7gxFHncQbmZ7VQvnVuJBGrDAbqhZp2gDW7G",
+      "session": "01K742QND0JGMVB6FXNRW1ZFF9",
+      "scope": [
+        "dsip.subscribe"
+      ],
+      "valid_until": 1760086400,
+      "issued_at": 1760000000,
+      "expires_at": 1760000030,
+      "presence_audience": "k-tkxij7ahuhkuvpff",
+      "presence_keys": {
+        "alg": "hpke-base-x25519-sha256-aes128gcm",
+        "enc": "vmNCanhf8sPf0xAbngSwkjcTNosVbPeyeMbgiE-CtEY",
+        "ct": "RDJrDKrEot0HUaNAtrkYRZMpxfZF3FGURZeIwm-q0f6M81WsYiyJvmkhEJi3cf8KbBR5hMWL4fb_awqAVPIRMDLEFI6LGIIjKLd6LhXWZ3Cq_TB4WgbQOE7chiBH50iJZH-8xGhwZfOpsfRNd1H8_dlCX7P1oN0obD67fRPGCxJebmWWxVLjxjb_IR_oXru9OVx-WTm9gq_krLbD4UXP-8KYn-OFNN1bs4lzeDGUrBOB3xTsmAJm0DC6b27474ZW6PKZogQ2gIk8rPrFDYsZ3duy3tRfbrGmZclt8k-7d99DExaEJE24rXXmWaNciGMg354IpZPDyyvDljaG4Gb7bV9LF6PF9SKPT4NqIY52IJI"
+      }
+    },
+    "recipient_secret_hex": "7ee057a675737f6389765a10c5f84fbc225a9501d2058931eab84fd9ed36432c"
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "sealed-open-failed"
+  }
+}

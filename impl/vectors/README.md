@@ -38,6 +38,7 @@ vectors/
                identity-change warning (N§4–N§5), a node's store and the reader's choice (N§6–N§7), and the gateway's
                PASSporT verification, routing and assertion (N§4.1, N§6.1, G§5) (spec-gap 110)
   presence/    Presence Profile draft (P§4–P§5): the subscriber's rule combining several devices' records (spec-gaps 135, 136);
+               sealed records (P§12): keys, sealing, opening, keys in a grant, the subscriber's view (spec-gaps 152–157);
                the record's age (envelope/), shape (payload/), checks (semantic/) and the authority (state/) are beside
                their kinds
 ```
@@ -161,6 +162,7 @@ implementation under test MUST emit that token when it signals the failure.
 | `selection-not-subset` | `answer`/`reject` selection not ⊆ referenced offer (check 9) | |
 | `subscription-lifetime-exceeded` | `expires_in` above the per-event cap (presence 3,600) (§9.3) | `policy.subscription-lifetime` on `error` (v0.7) |
 | `presence-signer-mismatch` | a `presence` record whose `device` is present and is not `from` (P§3; v0.17, spec-gap 135) | `presence.signer-mismatch` on `error` |
+| `presence-sealed-invalid` | a `presence` record carrying `sealed_state` whose `dsip.profiles` (a list) does not contain `presence/0.2`, whose `audience` is `main`, or whose `kid`'s scope (the part before its last `.`) is not its `audience` (`main` when it has none) (P§12.2; v0.17, spec-gaps 152, 157); checked after `presence-signer-mismatch` | `presence.sealed-invalid` on `error` |
 | `rotation-subject-mismatch` | `key-rotation.from` ≠ `subject` (§7.5) | |
 | `rotation-next-same-as-previous` | `key-rotation.next` = `previous` (§7.5) | |
 | `rotation-signer-not-previous` | `key-rotation` signed by a method other than `previous` without `recovery: true` (§7.5; `context.signer_kid`) | |
@@ -228,7 +230,7 @@ Registry membership (check 5) never rejects a well-formed token. It yields an
 known category), `unknown-category` (→ `session.failed`). For `answered_by`,
 `effective.answered_by` is `service` for unknown values; for `progress`,
 `effective.status` is `trying` for unknown values; for `presence` (P§5, v0.17), `effective.state` is the record's
-`state` when registered (`available`, `busy`, `away`, `dnd`, `offline`) and otherwise `available`, with
+`state` when registered (a sealed record, P§12, has no `state`: no `effective` is reported for it) (`available`, `busy`, `away`, `dnd`, `offline`) and otherwise `available`, with
 `warnings: ["presence-state-unknown"]`. A registered token that the
 registry does not list as valid on the carrying message type is accepted with
 `warnings: ["reason-not-valid-on-type"]` (Impl decision; see spec-gap list). `effective.reason` is
@@ -487,7 +489,7 @@ A statement has no `integrity_mode` of its own (§22.3, spec-gap 77): the one in
 
 **Presence records** (Presence Profile P§3, P§4, P§8; v0.17, spec-gaps 134, 135). `context.identities` maps each device
 to its identity; `context.presence_grace` is T-Presence-Grace (default 60). A received `presence` (`from`, `subject`,
-`device?`, `state`, `seq`, `issued_at`, `expires_at`) is refused with `send error {to: from, in_reply_to: id, reason}`,
+`device?`, `state` or `kid` + `sealed_state`, `seq`, `issued_at`, `expires_at`) is refused with `send error {to: from, in_reply_to: id, reason}`,
 the first that applies: `presence.signer-mismatch` (no `device`, `device` ≠ `from`, or `subject` ≠ the identity of
 `from` in `context.identities`, the identity its delegation names) → `presence.lifetime` (`expires_at − issued_at` below 60 or above 3,600) → `presence.stale` (a record held for
 `(subject, device)` with `seq` ≥ this one) → `policy.rate-limited` with `retry_after` = 5 − elapsed (a record of this
@@ -548,6 +550,15 @@ each that lapsed (`session.expired`, which wins at the same instant) or whose ad
 are dropped as above, so a subscription ended in this pass gets no notify for the drops. In the `presence` snapshot a record with an
 audience is keyed `device/audience`. The `subscriptions` snapshot adds `own: true`, `grant` (the admitting grant's id)
 and `audience` when present.
+
+**Sealed records** (P§12.6; v0.17, spec-gaps 152–157). A record carrying `kid` and `sealed_state` in place of `state`
+is checked, kept, expired and routed exactly as a plain one (the checks above read only `from`, `subject`, `device`,
+`audience`, `seq`, `issued_at`, `expires_at`). Its summary in a body carries `kid` and `sealed_state` in place of
+`state` (`{id, device, seq, expires_at, state | kid + sealed_state, audience?}`), and its `presence` snapshot entry
+`kid` in place of `state` (`{seq, kid, expires_at, grace_until?}`). A `subscribe` MAY carry `profiles`, the
+`dsip.profiles` of the envelope: a subscription whose `subscribe` lists `presence/0.2` there reads sealed records
+(snapshot `sealed: true`); any other, `own` included, sees no sealed record at all — they are left out of its
+`records`, and in its assertion their devices count as holding no record it sees.
 
 `subscriber`: `{"local":"subscribe","id","to","target","events","expires_in"}`, `{"recv": notify|reject}`, `advance`.
 Emissions: `send subscribe`, `{"ui":"notify","event","state"}`, `{"ui":"subscription_terminated","reason"}`,
@@ -1776,6 +1787,12 @@ side. `input.check` selects:
 | check | input | expect |
 |---|---|---|
 | `aggregate` | `records` (each `{state, expires_at, device?}`), `asserted?` (`available` / `offline`, the body's `state`); `context.now` | `{state, token, source}` (P§4) |
+| `audience-tag` | `secret_hex` (the identity's X25519 key agreement secret, 32 bytes, as stored: clamp it first), `subject`, `label` | `{tag}` (P§12.1) |
+| `key` | `secret_hex`, `subject`, `kid` | `{key_hex}` (P§12.1) |
+| `seal-record` | `record` (`subject`, `device`, `audience?`, `kid`, `seq`, `expires_at`), `state`, `key_hex`, `nonce_hex` | `{sealed_state}` (P§12.2) |
+| `open-record` | `record` (as above with `sealed_state`), `keys` (`{kid: key_hex}`) | `accept {state}` (raw, no fallback), or in order `presence-key-unknown` → `sealed-too-short` → `aead-open-failed` → `presence-plaintext-invalid` (P§12.4) |
+| `grant-keys-open` | `grant` (a `grant` payload with `presence_keys`), `recipient_secret_hex` (the grantee identity's secret, as stored) | `accept {keys: {kid: key_hex}}`, or in order `sealed-alg-unsupported` → `sealed-open-failed` → `sealed-plaintext-invalid` (P§12.3) |
+| `view` | `records` (each a record's fields: `subject`, `device`, `seq`, `expires_at`, `audience?`, and `state` or `kid` + `sealed_state`), `keys`, `asserted?`; `context.now` | `{state, token, source, unreadable}` (P§12.4, P§4) |
 
 `aggregate`: a record is valid while `expires_at` > now. The candidates are each valid record's `state` (source
 `record`) and, when `asserted` is `available`, `available` (source `assertion`). With none the result is
@@ -1784,6 +1801,31 @@ side. `input.check` selects:
 record before the assertion, then a registered token (`available`, `busy`, `away`, `dnd`, `offline`) before an
 unknown one, then unknown tokens in code-point order. `token` is the winner's token, `state` the winner itself when registered and
 `available` otherwise (P§5), `source` the winner's source. A record's `device` plays no part.
+
+**Sealed records** (P§12; spec-gaps 152–157). HKDF is HKDF-SHA256 (RFC 5869) with an empty salt (32 zero bytes as
+the HMAC key) and IKM `s`, the secret with RFC 7748 clamping applied (`s[0] &= 248; s[31] &= 127; s[31] |= 64`);
+`0x00` separates the UTF-8 strings of every `info` and AAD.
+
+- `audience-tag`: `"k-"` + the RFC 4648 base32 of the first 10 bytes of HKDF with info `dsip presence audience v1 ‖
+  0x00 ‖ subject ‖ 0x00 ‖ label`, lower case, without padding (16 characters).
+- `key`: 32 bytes of HKDF with info `dsip presence key v1 ‖ 0x00 ‖ subject ‖ 0x00 ‖ kid`.
+- `seal-record`: the plaintext is `{"state":"S"}` (no whitespace) followed by spaces to 128 bytes; AES-256-GCM with
+  `nonce_hex`; AAD `dsip presence v1 ‖ 0x00 ‖ subject ‖ 0x00 ‖ device ‖ 0x00 ‖ audience (empty when absent) ‖ 0x00 ‖
+  kid ‖ 0x00 ‖ u64be(seq) ‖ u64be(expires_at)`; `sealed_state` is the unpadded base64url of nonce ‖ ciphertext ‖ tag.
+- `open-record`: `presence-key-unknown` when `keys` has no entry for `kid`; `sealed-too-short` when the decoded
+  `sealed_state` is not exactly 156 bytes; `aead-open-failed` when it does not open under that key and the AAD above;
+  `presence-plaintext-invalid` unless the plaintext is UTF-8 JSON (§10.3, trailing spaces allowed) that is an object
+  whose only key is `state`, a string matching `[a-z][a-z0-9-]*` of at most 64 characters.
+- `grant-keys-open`: `sealed-alg-unsupported` unless `presence_keys.alg` is `hpke-base-x25519-sha256-aes128gcm`;
+  `sealed-open-failed` when HPKE (as `hpke-open`) with the clamped recipient secret, info `dsip presence keys v1` and
+  AAD `id ‖ 0x00 ‖ from ‖ 0x00 ‖ to` of the grant does not open; `sealed-plaintext-invalid` unless the plaintext's
+  length is a positive multiple of 256 and it is UTF-8 JSON that is an object whose only key is `keys`, a list whose
+  every entry is an object of exactly `kid` and `key`, both strings, `kid` matching `(main|[a-z][a-z0-9-]*)\.(0|[1-9][0-9]*)`
+  with its scope (the part before the last `.`) `main` or the grant's `presence_audience`, and `key` the unpadded
+  base64url of exactly 32 bytes. The result maps each `kid` to its key in hex (a later entry for the same `kid` wins).
+- `view`: each record with `sealed_state` is opened as `open-record`; one that does not open is left out and its
+  `device` listed in `unreadable` (sorted, each once); the rest go to `aggregate` as `{state, expires_at}` with the
+  same `asserted`, whose result is returned with `unreadable` added.
 
 ## Kind: `tn-binding`
 
@@ -2237,6 +2279,18 @@ Each item has a matching `spec-gap` issue draft in `impl/docs/spec-gaps.md`.
 149. §9.3 / P§6: **decided** (v0.17, (a)) — a presence target is seen when it has bound here or the authority holds a
     policy or an issued capability for it, so a capability admits before its target ever binds; a publication target
     when it is published (`state/presence-capability-makes-target-seen`).
+152. P§12.3 / §19.4: **decided** (v0.17, D1 (b)) — a grant carries the subject's sealed-presence keys as
+    `presence_keys`, HPKE to the grantee identity (`presence/grant-keys-*`, `payload/grant-presence-keys-*`).
+153. P§12.1: **decided** (v0.17, (ii)) — a sealed audience is an opaque tag derived from the identity's key agreement
+    secret (`presence/audience-tag*`).
+154. P§12.4: **decided** (v0.17, (i)) — a record the subscriber cannot read takes no part in combining
+    (`presence/open-record-*`, `presence/view-*`).
+155. P§12.2: **decided** (v0.17, (ii)) — the sealed state is padded to 128 bytes (`presence/seal-record`).
+156. P§12.6 / P§12.2: **decided** (v0.17) — sealed records name `presence/0.2`, are given only to subscriptions that
+    listed it, and carry a `kid` for their audience (`state/presence-sealed-*`, `semantic/presence-sealed-*`,
+    `payload/presence-sealed-*`, `payload/presence-kid-*`, `envelope/presence-sealed-accepted`).
+157. P§12.1: **decided** (v0.17, (a)) — keys and tags are derived from the identity's key agreement secret, the epoch
+    in clear in `kid` (`presence/key-*`, `presence/open-record-spliced-*`).
 158. §13.2 / §15: **decided** (v0.17, (a)) — a relay that replaces a device's connection sends `error`
     `transport.replaced` on the old one before closing it, and the client does not reconnect; the token is registered
     for `error` (`semantic/reason-transport-replaced-registered`, `-on-reject`). Reconnection is outside the vector

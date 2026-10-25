@@ -1,0 +1,52 @@
+{
+  "vector": "presence/grant-keys-open",
+  "format": 1,
+  "kind": "presence",
+  "description": "A family grant carries main.0 and the family key of epoch 3, sealed to Alice's identity: any of her devices opens them (P§12.3).",
+  "spec_ref": [
+    "P§12.3",
+    "§19.4"
+  ],
+  "context": {
+    "now": 1760000000
+  },
+  "input": {
+    "check": "grant-keys-open",
+    "grant": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "interactive-media/1.0"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "grant",
+      "id": "01K742SG00CZ3PVTSJYJ4A52KT",
+      "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+      "to": "did:key:z6MkhzX9qTeXBWkucyMVric1E9JrqUD5LPAkD2BNavakAptf",
+      "session": "01K742QND0P7VC7RBYYZXTXNCJ",
+      "scope": [
+        "dsip.subscribe"
+      ],
+      "valid_until": 1760086400,
+      "issued_at": 1760000000,
+      "expires_at": 1760000030,
+      "presence_audience": "k-tkxij7ahuhkuvpff",
+      "presence_keys": {
+        "alg": "hpke-base-x25519-sha256-aes128gcm",
+        "enc": "svjxg5bqVVDNvWVAGSIDwmW4U4EbqYm5a_lLYB_nDWE",
+        "ct": "5_CFR8iQ9uEhpZrB4WAnNFVXa8N3hLe87WabzzojwPdljT3mvXzXJ4azHivtdlVEb-HB50FX5o01hYn-5ioInalAj6nx6cD_tmAzkKHo7rdurtGpeqSvoxf_Zn9_qNZ-1oKhPro5F9v0DAR_1AnVGE6kpshq05mX1QjDVgRCjlPibZaP32UnCD6oOslZOVJKMTyPGVZ-kBu4sGKH57P9DPpw05RwJFKOTRAkmaPt9GghQbz6Re97pRM7U3B31CSs1V95w8DuAb-ZSTVJBIcjVhDTqJK6B_EtDdEhLgtA8RE13Kecx04dG0QwL7nqHrMGkcW5Xssh3NBer2-VTNPZdPLoxfIxAP0M-wc8F-hVaJo"
+      }
+    },
+    "recipient_secret_hex": "b01caa6dc4487f5251b3c3d0ac3b8be4ba7459d7cc16d3a71c34831a6b1086d8"
+  },
+  "expect": {
+    "verdict": "accept",
+    "keys": {
+      "main.0": "c4e3a61b986a8b6046b27d4ca521e8c8036a088f59f62ef70597738823d8c02a",
+      "k-tkxij7ahuhkuvpff.3": "7ee562457b21e14f2e9ee584af321b09659cf8cb5fef670e1dd1c05f9136c041"
+    }
+  }
+}

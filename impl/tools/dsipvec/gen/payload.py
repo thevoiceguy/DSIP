@@ -286,5 +286,7 @@ def vectors() -> list[dict]:
     out.append(pv("envelope-shape-missing-signature", "envelope", "Envelope without signature.", ["§10.2"],
                   {k: v for k, v in env.items() if k != "signature"}, ok=False))
     from .presence_vectors import payload_vectors
+    from . import presence_sealed
     out.extend(payload_vectors())
+    out.extend(presence_sealed.payload_vectors())
     return out

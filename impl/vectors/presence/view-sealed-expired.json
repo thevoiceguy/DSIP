@@ -1,0 +1,36 @@
+{
+  "vector": "presence/view-sealed-expired",
+  "format": 1,
+  "kind": "presence",
+  "description": "A sealed record past its expires_at opens but is not valid: offline.",
+  "spec_ref": [
+    "P§12.4",
+    "P§4"
+  ],
+  "context": {
+    "now": 1760000000
+  },
+  "input": {
+    "check": "view",
+    "records": [
+      {
+        "subject": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+        "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+        "kid": "main.0",
+        "seq": 1,
+        "expires_at": 1759999960,
+        "sealed_state": "aJGb-0HmJUDyKjpQ2_K2UqBBnBk9WJo6mU2FsTrpd7TmoewNn0ZmBr0-BzNqYc40jNra57HK2q0O23b11XmUghgiqqMxrNI24DmQjd1WP1pVQ_RDnXT1Bkh5X89d9G02pDcma9GunKzrApsfSz1dBHgUMTw_0TExtKVkv87CdptVE8cwmN2gbV1YhOXWdxMrajsLJOoGXIC7lXML"
+      }
+    ],
+    "keys": {
+      "main.0": "c4e3a61b986a8b6046b27d4ca521e8c8036a088f59f62ef70597738823d8c02a"
+    },
+    "asserted": "offline"
+  },
+  "expect": {
+    "state": "offline",
+    "token": "offline",
+    "source": "none",
+    "unreadable": []
+  }
+}

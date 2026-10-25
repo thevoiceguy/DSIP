@@ -1,0 +1,295 @@
+{
+  "vector": "state/presence-sealed-audience-beside-plain",
+  "format": 1,
+  "kind": "state",
+  "description": "Bob's phone publishes a sealed record for his family audience and a plain one for work. Alice (family, presence/0.2) is given the sealed one, Carol (work, presence/0.1 only) the plain one. Bob's laptop watches its own identity without presence/0.2: it sees every audience, but no sealed record, so it is given only the plain work record (P§12.6).",
+  "spec_ref": [
+    "P§12.6",
+    "P§6"
+  ],
+  "context": {
+    "component": "authority",
+    "start": 1760000000,
+    "identities": {
+      "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu": "did:key:z6MkhzX9qTeXBWkucyMVric1E9JrqUD5LPAkD2BNavakAptf",
+      "did:key:z6MkfhenvjQ7awdpVWzPaeBuPkXCBLwzJKyosCrTL3huMb66": "did:key:z6MkhzX9qTeXBWkucyMVric1E9JrqUD5LPAkD2BNavakAptf",
+      "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+      "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+      "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL": "did:key:z6Mkt5yU6sK3v7gxFHncQbmZ7VQvnVuJBGrDAbqhZp2gDW7G"
+    }
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "relay": "bind",
+          "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+          "identity": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R"
+        },
+        "expect": {
+          "emit": []
+        }
+      },
+      {
+        "event": {
+          "recv": {
+            "type": "subscribe",
+            "id": "01K742SG004MCQ5PV32M62GXZQ",
+            "from": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+            "to": "did:key:z6MkAuthorityRelay11111111111111111111111111",
+            "target": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+            "events": [
+              "presence"
+            ],
+            "expires_in": 3600,
+            "profiles": [
+              "presence/0.1",
+              "presence/0.2"
+            ],
+            "claims": [
+              {
+                "type": "dsip-grant",
+                "grant": {
+                  "id": "01K741TZE0MC783YPM4H8C3H77",
+                  "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+                  "identity": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+                  "to": "did:key:z6MkhzX9qTeXBWkucyMVric1E9JrqUD5LPAkD2BNavakAptf",
+                  "scope": [
+                    "dsip.subscribe"
+                  ],
+                  "valid_until": 1760086400,
+                  "presence_audience": "k-tkxij7ahuhkuvpff"
+                }
+              }
+            ]
+          }
+        },
+        "expect": {
+          "emit": [
+            {
+              "send": {
+                "type": "notify",
+                "to": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+                "subscription": "01K742SG004MCQ5PV32M62GXZQ",
+                "seq": 1,
+                "state": "active",
+                "body": {
+                  "event": "presence",
+                  "state": "available"
+                }
+              }
+            }
+          ]
+        }
+      },
+      {
+        "event": {
+          "recv": {
+            "type": "subscribe",
+            "id": "01K742SG00MQ0MTH85K8XV5FAF",
+            "from": "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL",
+            "to": "did:key:z6MkAuthorityRelay11111111111111111111111111",
+            "target": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+            "events": [
+              "presence"
+            ],
+            "expires_in": 3600,
+            "claims": [
+              {
+                "type": "dsip-grant",
+                "grant": {
+                  "id": "01K741TZE0N5NYBFKXDB1P82RQ",
+                  "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+                  "identity": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+                  "to": "did:key:z6Mkt5yU6sK3v7gxFHncQbmZ7VQvnVuJBGrDAbqhZp2gDW7G",
+                  "scope": [
+                    "dsip.subscribe"
+                  ],
+                  "valid_until": 1760086400,
+                  "presence_audience": "work"
+                }
+              }
+            ]
+          }
+        },
+        "expect": {
+          "emit": [
+            {
+              "send": {
+                "type": "notify",
+                "to": "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL",
+                "subscription": "01K742SG00MQ0MTH85K8XV5FAF",
+                "seq": 1,
+                "state": "active",
+                "body": {
+                  "event": "presence",
+                  "state": "available"
+                }
+              }
+            }
+          ]
+        }
+      },
+      {
+        "event": {
+          "recv": {
+            "type": "subscribe",
+            "id": "01K742SG004DEHGFGGBQ2N8Y34",
+            "from": "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ",
+            "to": "did:key:z6MkAuthorityRelay11111111111111111111111111",
+            "target": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+            "events": [
+              "presence"
+            ],
+            "expires_in": 3600
+          }
+        },
+        "expect": {
+          "emit": [
+            {
+              "send": {
+                "type": "notify",
+                "to": "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ",
+                "subscription": "01K742SG004DEHGFGGBQ2N8Y34",
+                "seq": 1,
+                "state": "active",
+                "body": {
+                  "event": "presence",
+                  "state": "available"
+                }
+              }
+            }
+          ]
+        }
+      },
+      {
+        "event": {
+          "recv": {
+            "type": "presence",
+            "id": "01K742SG00FT1YBFCKG4JCD1H1",
+            "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "to": "did:key:z6MkAuthorityRelay11111111111111111111111111",
+            "subject": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+            "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "seq": 1,
+            "issued_at": 1760000000,
+            "expires_at": 1760000300,
+            "kid": "k-tkxij7ahuhkuvpff.0",
+            "audience": "k-tkxij7ahuhkuvpff",
+            "sealed_state": "HBGWPG1yNTDX-Q81wjjQgfkmNV9AOTw54SwDpxwxI2DXea27VupW5gnWiTu-ALtD3g7cAewHcz7YVo5RltlKIhqWXe1vC1cAL_fe5VmevX2hHMVem9PmRxmQdIrbpCaaT-xqjW99UKA3m3ugQfSknqj0dbLFutwk_AZw0XOEl1oG-QhUMa4so8WMJQ4jAROShukkk5VPpIKHSTeo"
+          }
+        },
+        "expect": {
+          "emit": [
+            {
+              "send": {
+                "type": "notify",
+                "to": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+                "subscription": "01K742SG004MCQ5PV32M62GXZQ",
+                "seq": 2,
+                "state": "active",
+                "body": {
+                  "event": "presence",
+                  "state": "offline",
+                  "records": [
+                    {
+                      "id": "01K742SG00FT1YBFCKG4JCD1H1",
+                      "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+                      "seq": 1,
+                      "expires_at": 1760000300,
+                      "kid": "k-tkxij7ahuhkuvpff.0",
+                      "sealed_state": "HBGWPG1yNTDX-Q81wjjQgfkmNV9AOTw54SwDpxwxI2DXea27VupW5gnWiTu-ALtD3g7cAewHcz7YVo5RltlKIhqWXe1vC1cAL_fe5VmevX2hHMVem9PmRxmQdIrbpCaaT-xqjW99UKA3m3ugQfSknqj0dbLFutwk_AZw0XOEl1oG-QhUMa4so8WMJQ4jAROShukkk5VPpIKHSTeo",
+                      "audience": "k-tkxij7ahuhkuvpff"
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      },
+      {
+        "event": {
+          "recv": {
+            "type": "presence",
+            "id": "01K742SG008HXRTB26BXZ79CP9",
+            "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "to": "did:key:z6MkAuthorityRelay11111111111111111111111111",
+            "subject": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+            "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "seq": 1,
+            "issued_at": 1760000000,
+            "expires_at": 1760000300,
+            "state": "away",
+            "audience": "work"
+          }
+        },
+        "expect": {
+          "emit": [
+            {
+              "send": {
+                "type": "notify",
+                "to": "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ",
+                "subscription": "01K742SG004DEHGFGGBQ2N8Y34",
+                "seq": 2,
+                "state": "active",
+                "body": {
+                  "event": "presence",
+                  "state": "offline",
+                  "records": [
+                    {
+                      "id": "01K742SG008HXRTB26BXZ79CP9",
+                      "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+                      "seq": 1,
+                      "expires_at": 1760000300,
+                      "state": "away",
+                      "audience": "work"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "send": {
+                "type": "notify",
+                "to": "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL",
+                "subscription": "01K742SG00MQ0MTH85K8XV5FAF",
+                "seq": 2,
+                "state": "active",
+                "body": {
+                  "event": "presence",
+                  "state": "offline",
+                  "records": [
+                    {
+                      "id": "01K742SG008HXRTB26BXZ79CP9",
+                      "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+                      "seq": 1,
+                      "expires_at": 1760000300,
+                      "state": "away",
+                      "audience": "work"
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "presence": {
+            "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R": {
+              "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn/k-tkxij7ahuhkuvpff": {
+                "seq": 1,
+                "kid": "k-tkxij7ahuhkuvpff.0",
+                "expires_at": 1760000300
+              },
+              "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn/work": {
+                "seq": 1,
+                "state": "away",
+                "expires_at": 1760000300
+              }
+            }
+          }
+        }
+      }
+    ]
+  },
+  "expect": {}
+}

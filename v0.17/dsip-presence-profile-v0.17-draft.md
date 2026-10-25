@@ -1,10 +1,11 @@
-# DSIP Presence Profile (`presence/0.1`)
+# DSIP Presence Profile (`presence/0.1`, `presence/0.2`)
 
 **Status:** DRAFT, companion profile to DSIP v0.17. Cite as `P§n`. It collects spec-gaps 134–137, decided 2026-10-19,
 and the choices made 2026-10-22 on the outline (`impl/docs/presence-profile-outline.md`): a device sends its signed
 `presence` record itself (no new message), under `dsip.signaling`, with the timers of P§8 and the reason category
 `presence` (P§9). Spec-gaps 142–148, decided 2026-10-22/23, add the record's profile token, how a subscriber reaches
-the authority, who may watch, audiences and shares (P§6, P§7). P§3–P§8 are pinned by vectors.
+the authority, who may watch, audiences and shares (P§6, P§7). Spec-gaps 152–157, decided 2026-10-23/24, add records sealed to subscribers, `presence/0.2` (P§12).
+P§3–P§8 and P§12 are pinned by vectors.
 
 The core stays as it is: presence is optional (§9.1), private by default (§9.2), carried by `subscribe`/`notify`
 (§9.3), and never published to the DHT (§8.5). This profile fills in what §9 leaves open: how a device's signed record
@@ -20,10 +21,10 @@ This profile defines:
 - the **`dsip-presence-state`** registry and its fallback (P§5);
 - **who may watch** and **audiences**: which subscribers are admitted, and which records each sees (P§6);
 - **time-boxed shares** of presence, and ending one early (P§7);
-- the profile's **timers** (P§8) and **reason tokens** (P§9).
+- the profile's **timers** (P§8) and **reason tokens** (P§9);
+- **sealed records** (`presence/0.2`): a record's state encrypted to the subscribers its audience admits (P§12).
 
-Out of scope: presence bridged to SIP SIMPLE, XMPP or carrier presence; calendar or meeting integration; presence
-encrypted to subscribers (P§11); enterprise policy distribution (a deployment pattern, P§11); detail levels beyond the
+Out of scope: presence bridged to SIP SIMPLE, XMPP or carrier presence; calendar or meeting integration; enterprise policy distribution (a deployment pattern, P§11); detail levels beyond the
 state (`activity`, `note`; P§6); presence carried in messaging groups (P§11, spec-gap 148).
 
 ## P§2 Principles
@@ -177,8 +178,8 @@ its own body.
 coarser view for an audience is a record with a coarser state (for example `available` for `work` while `family` sees
 `busy`).
 
-The authority sees every audience's records in plaintext. That is accepted (it already sees the bindings), and it is
-why encryption is P§11's.
+The authority sees every plain record's state, and the audiences' labels. A subject that does not want it to seals its
+records (P§12): the authority then routes by an opaque tag and never sees a state.
 
 ## P§7 Time-boxed shares (spec-gap 147)
 
@@ -205,9 +206,10 @@ why encryption is P§11's.
 | Record lifetime | 300 s | 60–3,600 s | A record's `expires_at` minus `issued_at`. Devices publish again before expiry. |
 | T-Presence-Grace | 60 s | 0–300 s | After a device unbinds, how long the authority keeps its record. |
 | Publish interval | — | ≥ 5 s per device | Between two accepted records of one device; sooner is refused `policy.rate-limited`. Keeps presence from being a traffic channel. |
+| T-Presence-Rotate | 60 s | 0–3,600 s | The least time between two rotations of one key scope by one device (P§12.5). Grants ending meanwhile are rotated together when it has passed. |
 
 The grace is the authority's choice within its bounds; the lifetime bounds and the publish interval are checked as P§3
-says.
+says. T-Presence-Rotate is the subject's devices' choice.
 
 ## P§9 Reason tokens
 
@@ -219,6 +221,7 @@ condition: the record is refused; the device does not send the same record again
 | `presence.signer-mismatch` | The record's `device` is missing or is not the signer, or its `subject` is not the signer's identity | `error` |
 | `presence.lifetime` | The record's lifetime is outside P§8's bounds | `error` |
 | `presence.stale` | The authority holds a record of the same device with an equal or greater `seq` | `error` |
+| `presence.sealed-invalid` | A sealed record does not name `presence/0.2`, or its `kid` is not for its audience (P§12.2) | `error` |
 
 `policy.rate-limited` (§15) covers the publish interval.
 
@@ -230,14 +233,115 @@ condition: the record is refused; the device does not send the same record again
 - A record names a device. Showing the per-device breakdown to subscribers reveals how many devices someone has and
   which one is active. Clients SHOULD show the combined state only.
 - Presence history is metadata. Authorities SHOULD keep no record past its expiry; P§3 has them forget it.
+- A sealed record (P§12) hides its state and its audience's name from the authority, not that the device is bound, when
+  it publishes, how many audiences it publishes for, or how many times each audience's key has rotated (the epoch is in
+  `kid`). P§12.2's padding and a steady refresh keep a state change from showing in a record's size or timing.
 
 ## P§11 Open questions
 
-1. **Encryption to subscribers.** One route: an MLS group per audience, with presence sealed under its exporter, as
-   Messaging Profile activity is (M§11). It reuses existing key distribution and removal; the cost is a group per
-   audience, and every share is a membership change. Deferred to a later version.
+1. **Encryption to subscribers** (spec-gaps 152–157, decided): P§12, keys carried in grants. An MLS group per
+   audience, as Messaging Profile activity is sealed (M§11), was considered and not taken: it would make presence
+   depend on the messaging infrastructure, and every share a membership change
+   (`impl/docs/presence-encryption-design.md`).
 2. **Enterprise policy.** A deployment pattern, not protocol: an organisation runs the `did:web` authority for its
    identities and applies policy there (§9.3 already makes authorization the authority's decision).
 3. **Messaging** (spec-gap 148, decided for 0.1): presence has one path, through the authority. A client MAY show
    messaging activity (M§11) beside presence; the two are not combined. Encrypted presence (question 1) is the
    occasion to revisit this.
+
+## P§12 Sealed records (`presence/0.2`; spec-gaps 152–157)
+
+A subject MAY seal its records, so that the authority carries a state it cannot read. The authority's checks (P§3) and
+routing (P§6) read only fields that stay in clear, so they do not change. Sealing is chosen per audience (P§12.6).
+
+### P§12.1 Keys
+
+Every device acting for the subject holds the identity's X25519 key agreement secret (§10.4: the 32-byte private key
+of its `keyAgreement` method, or for `did:key` the secret derived from the identity's Ed25519 key, M§6.9). `s` is that
+secret with RFC 7748's clamping applied (`decodeScalar25519`), so every encoding of the key gives the same `s`. A
+grantee never holds it. Every key and tag below is derived from `s`, so no key is ever sent between the subject's devices.
+HKDF is HKDF-SHA256 (RFC 5869) with an empty salt; strings are UTF-8; `‖` is concatenation.
+
+- **Audience tags.** An audience the subject names `L` (a label kept on its own devices, never sent) is written on the
+  wire as `k-` followed by the unpadded lower-case base32 (RFC 4648 §6) of the first 10 bytes of
+  `HKDF(s, "dsip presence audience v1" ‖ 0x00 ‖ subject ‖ 0x00 ‖ L)`: 18 characters, a P§6 token. Records and grants
+  for a sealed audience carry the tag as `audience` and `presence_audience`.
+- **Key ids.** A key belongs to a *scope*, `main` for records with no `audience` or the audience's tag, and an
+  *epoch*, an integer from 0. Its id is `kid` = scope ‖ `.` ‖ the epoch in decimal without leading zeros (`main.0`,
+  `k-mfrggzdfmztwq2lk.3`).
+- **Keys.** `key(kid) = HKDF(s, "dsip presence key v1" ‖ 0x00 ‖ subject ‖ 0x00 ‖ kid)`, 32 bytes.
+
+### P§12.2 The sealed record
+
+A sealed record carries `kid` and `sealed_state` in place of `state`, and names `presence/0.2` in `dsip.profiles`:
+
+```json
+{
+  "dsip": {"core": "1.0", "min_core": "1.0", "profiles": ["presence/0.2"], "extensions": [], "critical": []},
+  "type": "presence", "id": "01K742SG0000000000PRES0002",
+  "from": "did:key:z6MkAlicePhone", "to": "did:key:z6MkAliceRelay",
+  "subject": "did:web:alice.example", "device": "did:key:z6MkAlicePhone",
+  "audience": "k-mfrggzdfmztwq2lk", "kid": "k-mfrggzdfmztwq2lk.3",
+  "seq": 59, "issued_at": 1760000000, "expires_at": 1760000300,
+  "sealed_state": "<base64url, 208 characters>"
+}
+```
+
+- The plaintext is the UTF-8 JSON object `{"state": S}`, its only key, obeying §10.3, followed by ASCII spaces (0x20)
+  to exactly 128 bytes. Every record is the same size, whatever its state. A sealer writes the object without
+  whitespace (`{"state":"busy"}`); a subscriber reads any JSON text of that one key.
+- `sealed_state` is the unpadded base64url of `nonce ‖ ciphertext ‖ tag`: a random 12-byte nonce and AES-256-GCM
+  under `key(kid)`, as M§11.1, so 156 bytes. The AAD is `"dsip presence v1" ‖ 0x00 ‖ subject ‖ 0x00 ‖ device ‖ 0x00 ‖
+  audience ‖ 0x00 ‖ kid ‖ 0x00 ‖ u64be(seq) ‖ u64be(expires_at)`, with `audience` empty when absent: a ciphertext
+  cannot be moved to another record, device, audience or key.
+- The field is not `sealed`: a record is addressed to its authority, and `sealed` on a payload is the sealed-body
+  extension's (§10.4).
+- `state` and `sealed_state` MUST NOT both be present, and `kid` is present exactly when `sealed_state` is (schema).
+  A sealed record MUST name `presence/0.2`, its `audience` is never `main`, and its `kid`'s scope MUST be `main` when
+  it has no `audience` and its `audience` otherwise; any receiver refuses one that breaks either (`presence-sealed-invalid`, reason
+  `presence.sealed-invalid` on the authority's `error`).
+- The envelope signature covers `sealed_state` and `kid`; a subscriber verifies the record (P§2.4) before opening it.
+
+### P§12.3 Keys in a grant
+
+A grant (§19.4) that admits a presence subscriber to a sealed record MAY carry `presence_keys`: `{alg, enc, ct}`, HPKE
+as for a sealed purpose (§19.4, M§14.1), `alg` `hpke-base-x25519-sha256-aes128gcm`, to the key agreement key of the
+grant's `to` (the grantee identity, so every device of the grantee opens it), info `dsip presence keys v1`, AAD
+`id ‖ 0x00 ‖ from ‖ 0x00 ‖ to` of the grant. The plaintext is the JSON object `{"keys": [{"kid": K, "key": B}, …]}`,
+`B` the unpadded base64url of the 32-byte key, followed by spaces to a positive multiple of 256 bytes. It holds the
+`main` key and, when the grant has a `presence_audience`, that audience's key, each at the grantor's current epoch
+(P§12.5), and no other scope.
+
+### P§12.4 Subscribers
+
+A subscriber that supports `presence/0.2` lists it in its `subscribe`'s `dsip.profiles`. It opens a body's sealed
+records with the keys its grants carried, and keeps for each scope the keys of the two highest epochs it has received
+(a record under the previous key stays valid until its own `expires_at`). A record is **unreadable** when any of these
+fails, in order: the subscriber holds no key for its `kid` (`presence-key-unknown`); `sealed_state` is not 156 bytes
+(`sealed-too-short`); it does not open (`aead-open-failed`); the plaintext is not 128 bytes holding exactly
+`{"state": S}` with `S` a P§5 token (`presence-plaintext-invalid`). An unreadable record takes no part in combining
+(P§4): it is neither shown as `offline` nor guessed. The authority's assertion still counts only devices that hold no
+record the subscription sees (P§6), so a device whose only record is unreadable shows the assertion's word, if any.
+A client MAY say that it holds presence it cannot read.
+
+### P§12.5 Epochs and rotation
+
+- Each device of the subject keeps a current epoch per scope, from 0: the highest it has seen in its own identity's
+  records (it watches its own identity, P§6 rule 1, and sees every record) or reached by rotating. It seals at it.
+- **Rotation.** When a grant the device issued that admits presence ends (it revoked it, P§7, or its `valid_until`
+  passed), the device rotates `main` and the grant's audience, if any: the scope's epoch rises by one. It rotates a
+  scope at most once per T-Presence-Rotate (P§8); grants ending sooner are rotated together when that time has passed.
+- **Re-granting.** When a scope's epoch rises, by its own rotation or a sibling's record, the device issues, for each
+  live grant it issued that carries that scope's key, a grant that follows it (§19.4, spec-gap 150) with the same
+  `scope`, `valid_until` and `presence_audience` and the new keys. A rotation changes nothing the grantee may do, so the
+  followed grant is not revoked at the authority. A grant issued by an offline sibling is re-granted when that sibling
+  returns; until then its grantee cannot read the new epoch.
+
+### P§12.6 Profiles and migration
+
+- The authority stores and routes sealed records as any other: P§3's checks and P§6's routing read only `subject`,
+  `device`, `audience`, `seq`, `issued_at` and `expires_at`.
+- A subscription whose `subscribe` does not list `presence/0.2` in `dsip.profiles` is not given sealed records, and
+  in its assertion their devices count as holding no record it sees.
+- A subject chooses per audience: one audience sealed and another plain is allowed, the same audience both ways is not,
+  and no record is ever published in both forms.
