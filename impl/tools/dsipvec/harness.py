@@ -177,6 +177,8 @@ def snapshot_for(comp, key: str, expected) -> object:
         return comp.snapshot(expected.keys())
     if key == "contacts":
         return comp.contacts_snapshot()
+    if key == "presence_keys":
+        return comp.presence_keys_snapshot()
     if key == "inbox":
         return comp.inbox_snapshot()
     if key == "publications":

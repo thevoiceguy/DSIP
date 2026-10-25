@@ -36,17 +36,26 @@ export class Timers {
     return this.timers.some((t) => t.name === name && t.session === session);
   }
 
-  /** Advance the clock, firing every timer that expires on the way. */
-  advance(seconds: number, fire: (name: string, session: string) => void): void {
+  /**
+   * Advance the clock, firing every timer that expires on the way. `others` names further instants the owner has
+   * work at; at each instant reached, the timers due fire first, then `atInstant` runs.
+   */
+  advance(seconds: number, fire: (name: string, session: string) => void,
+    others: () => number[] = () => [], atInstant: () => void = () => {}): void {
     const target = this.now + seconds;
     for (;;) {
-      const due = this.timers
-        .filter((t) => t.deadline <= target)
-        .sort((a, b) => a.deadline - b.deadline || a.order - b.order)[0];
-      if (!due) break;
-      this.now = due.deadline;
-      this.timers = this.timers.filter((t) => t !== due);
-      fire(due.name, due.session);
+      const next = Math.min(...this.timers.map((t) => t.deadline), ...others());
+      if (!(next <= target)) break;
+      this.now = Math.max(this.now, next);
+      for (;;) {
+        const due = this.timers
+          .filter((t) => t.deadline <= this.now)
+          .sort((a, b) => a.deadline - b.deadline || a.order - b.order)[0];
+        if (!due) break;
+        this.timers = this.timers.filter((t) => t !== due);
+        fire(due.name, due.session);
+      }
+      atInstant();
     }
     this.now = target;
   }

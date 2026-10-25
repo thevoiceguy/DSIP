@@ -336,8 +336,8 @@ attempt — through a scripted event sequence with a mock clock.
 | `{"local":"introduce","id":ULID,"to":DID,"purpose":S,"contact_token":S?}` | send `introduction` (§19.4) |
 | `{"local":"grant","introduction":ID,"id":ULID,"scope":[…],"valid_until":T,"presence_audience"?:A}` | issue a contact grant for a pending request: `send grant {to: the introducing IDENTITY, session: introduction id, id, scope, valid_until, presence_audience?}`; unknown request → `refused unknown-introduction`; then a `presence_audience` that is not a P§6 token (`[a-z][a-z0-9-]*`, at most 64 characters) → `refused invalid-audience`, nothing sent and the request kept (spec-gap 145) |
 | `{"local":"reject_introduction","introduction":ID,"reason":TOKEN}` | decline a pending request (a policy choice): `send reject {to: the introducing IDENTITY, session, reason}` — the same addressee as a grant (§19.4, spec-gap 74) |
-| `{"local":"revoke","grant":ID}` | revoke an issued grant (local policy); unknown grant → `refused unknown-grant` |
-| `{"local":"regrant","grant":ID,"id":ULID,"scope":[…],"valid_until":T,"presence_audience"?:A}` | issue a grant that follows the live grant `grant` we issued, without an introduction (§19.4, spec-gap 150): `send grant {to: that grant's grantee identity, session: the followed grant's id, id, scope, valid_until, presence_audience?}`, and the followed grant is withdrawn (no longer in `grants_issued`); a grant we did not issue, already replaced or revoked, or whose `valid_until` has passed → `refused unknown-grant`; then an audience that is not a P§6 token → `refused invalid-audience`, nothing sent and the followed grant kept |
+| `{"local":"revoke","grant":ID}` | revoke an issued grant (local policy): emits `{"revoke": [ID, …]}`, the grants whose `grant-revocation` the host sends its authority (P§7): the grant, then its rotation chain newest first (spec-gap 159; below), and the grant is gone from `grants_issued`; a grant not in `grants_issued` (unknown, or already followed) → `refused unknown-grant`. Then the rotation it causes (below) |
+| `{"local":"regrant","grant":ID,"id":ULID,"scope":[…],"valid_until":T,"presence_audience"?:A}` | issue a grant that follows the live grant `grant` we issued, without an introduction (§19.4, spec-gap 150): first `{"revoke": [grant, …]}` as for `revoke` (P§7: the followed grant and its chain are revoked at the authority, spec-gap 159), then `send grant {to: that grant's grantee identity, session: the followed grant's id, id, scope, valid_until, presence_audience?, presence_keys?}`, and the followed grant is withdrawn (no longer in `grants_issued`); a grant we did not issue, already replaced or revoked, or whose `valid_until` has passed → `refused unknown-grant`; then an audience that is not a P§6 token → `refused invalid-audience`, nothing sent and the followed grant kept. Then the rotation it causes (below) |
 | `{"local":"issue_token","token":S,"grant_id":ULID}` | pre-authorize an out-of-band contact token: the first introduction carrying it surfaces `introduction_received {token: true}` and is auto-granted at once — id `grant_id`, scope `["dsip.invite"]`, `valid_until` = now + 31,536,000 (Impl) — and the token is consumed |
 
 `context.policy` = `{"first_contact_required": bool, "allow": [identity DIDs]}` (default: off).
@@ -351,6 +351,50 @@ the invite's `grant` reference or by grantee) and not in `allow` is auto-rejecte
 `invite`, whose `id` is the session), and the type-specific fields the
 transition depends on (`status`, `ring_timeout`, `queue_timeout`, `reason`,
 `answered_by`, `in_reply_to`, `about`, `expires_at` on `invite`, `to`).
+
+### Endpoint presence keys (P§12.3, P§12.5; spec-gaps 157, 159, 161)
+
+Opt-in: `context.presence_keys` = `{"sealed": [SCOPE, …], "t_rotate": N?, "grant_ids": [ULID, …]}`. Without it the
+endpoint keeps no key state, no grant carries `presence_keys`, nothing rotates, and a received `presence` is ignored
+(no emission); `revoke` and `regrant` still emit `{"revoke": […]}` (their chain is then always empty).
+
+- **Scopes and epochs.** A scope is `main` or an audience tag; `sealed` lists the scopes this device seals (P§12.6).
+  The device keeps a current epoch per scope: `main`, every sealed scope and any other scope a grant carries a key
+  for start at 0; a scope it only learns of from a record starts at that record's epoch. `t_rotate` is T-Presence-Rotate, default 60, clamped to 0–3,600 (P§8).
+  `grant_ids` are the ids the endpoint gives the grants it issues on its own (re-grants, below), taken in order;
+  running out is an error in the vector.
+- **Keys in a grant (P§12.3).** A grant the endpoint issues (`grant`, `regrant`, a re-grant; never a token's
+  auto-grant, whose scope is `["dsip.invite"]`) carries `presence_keys` when its `scope` contains `dsip.subscribe` and
+  `main` or its `presence_audience` is sealed. In a trace it is the list of key ids carried, abbreviating the HPKE
+  object: `main.<epoch>`, then `<presence_audience>.<epoch>` when the grant has one, at the current epochs. The grant
+  remembers which scopes it carried keys for.
+- **Rotation (P§12.5, spec-gap 161).** A grant *ends* when it is revoked (`revoke`), when a `regrant` follows it,
+  or when its `valid_until` is reached (`now ≥ valid_until`, spec-gap 141). An ending grant that carried keys makes
+  each of those scopes *due*, except, for a `regrant`, a scope the new grant carries keys for. A due scope never rotated
+  rotates at once; one last rotated at `r` rotates at once when `now ≥ r + t_rotate`, otherwise at `r + t_rotate`
+  (a scope already waiting keeps its time). A grant ends once: revoking a grant whose `valid_until` was already reached
+  makes nothing due.
+- **Rotating.** At an instant, every scope due then rotates together: its epoch rises by one, its last rotation is now,
+  and `{"keys": "rotated", "scope": S, "epoch": N}` is emitted per scope, `main` first, then tags in ascending order.
+  Then each live grant in `grants_issued` (`valid_until > now`), in id order, that carried keys for any scope whose
+  epoch just rose is **re-granted**, once: `send grant {to: its grantee, session: its id, id: the next of
+  grant_ids, scope, valid_until, presence_audience?, presence_keys}` with the same `scope`, `valid_until` and
+  `presence_audience` and the current key ids. The new grant takes the old one's place in `grants_issued`; the old one
+  heads the new grant's **chain**, before the old grant's own chain. A re-grant is not an ending: nothing is due and
+  nothing is revoked.
+- **A sibling's epoch.** `{"recv": {"type": "presence", "from": DEVICE, "subject": S, "kid": K}}` is a verified record
+  from a notify of our own watch (P§6 rule 1). When `S` is our identity and `K`'s epoch is above the current epoch of
+  its scope (or the scope is new), the epoch becomes `K`'s, `{"keys": "seen", "scope", "epoch"}` is emitted, and live
+  grants are re-granted as after a rotation. Anything else (another subject, no `kid`, an epoch not above ours) is
+  ignored with no emission. Seeing an epoch is not a rotation: a scope waiting for its time still rotates then.
+- **The grantee's side (P§12.4).** A received grant carrying `presence_keys` adds its key ids to those held from the
+  grantor's identity; for each scope only the two highest epochs are kept. This needs no `context.presence_keys`.
+- **`advance`.** Instants are taken in order up to the target: at each, the session timers due then fire (as above),
+  then the grants whose `valid_until` it is end, in id order, then the scopes due rotate.
+
+`expect.presence_keys` snapshots this state: `{"epochs": {SCOPE: N}, "due": {SCOPE: T}, "chains": {GRANT: [ID, …]},
+"held": {IDENTITY: [KID, …]}}`. `chains` lists only grants in `grants_issued` with a non-empty chain, newest first;
+`held` lists each grantor's key ids by scope (plain string order), then epoch.
 
 ### Relay events
 
@@ -2295,6 +2339,14 @@ Each item has a matching `spec-gap` issue draft in `impl/docs/spec-gaps.md`.
     `transport.replaced` on the old one before closing it, and the client does not reconnect; the token is registered
     for `error` (`semantic/reason-transport-replaced-registered`, `-on-reject`). Reconnection is outside the vector
     kinds: `demos/relay-rebind-demo.sh` and `web/test/relay-replaced.mjs` pin the client side on the wire.
+159. P§12.5 / P§7: **decided** (v0.17, (a)) — re-granted grants form a rotation chain; ending or changing a share
+    revokes the whole chain, newest first (`state/presence-keys-revocation-rotates`, `-sibling-epoch`,
+    `-changed-share-rotates-what-is-lost`; `revoke` and `regrant` emit `{"revoke": […]}` in every trace).
+160. P§8: **decided** (v0.17, (a)) — the publish interval is the authority's; a publisher leaves a margin. Editorial:
+    the authority's rule (`state/presence-rate-limited`) is unchanged.
+161. P§12.5: **drafted** (v0.17, (a)) — an ending grant rotates the scopes it carried keys for, except those the grant
+    changing the share carries too (`state/presence-keys-changed-share-rotates-what-is-lost`, `-only-for-sealed-scopes`,
+    `-valid-until-rotates`).
 141. §12.9: **decided** (v0.17) — `expires_at` is exclusive everywhere: expired when `now ≥ expires_at`, at receipt and
     wherever a held message, kept record, leg or activity is judged; `reachability-hint` and `presence` ids are not
     deduplicated (`envelope/*-at-expiry`, `envelope/presence-id-already-seen`, `dht/hint-*`, `state/invite-*-expiry*`,

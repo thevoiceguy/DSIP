@@ -189,14 +189,15 @@ records (P§12): the authority then routes by an opaque tag and never sees a sta
 - **Expiry.** A subscription admitted by a grant ends when the authority's clock reaches the grant's `valid_until`: a
   `terminated` notify with reason `policy.terminated`. A subscription that lapses at the same instant ends with
   `session.expired` instead (§9.3).
-- **Ending a share early.** A device of the subject sends its authority a `grant-revocation` (§19.4) for the grant.
+- **Ending a share early.** A device of the subject sends its authority a `grant-revocation` (§19.4) for the grant,
+  and for every grant of its rotation chain (P§12.5, spec-gap 159).
   The authority keeps it until the grant's `valid_until`. Every subscription that grant admitted, the grant issued by
   the revocation signer's identity, ends at once with a `terminated` notify, reason `policy.terminated`, in
   subscription order. A later `subscribe` presenting the grant is not admitted by it (rule 2); another rule may still
   admit. A revocation is not answered.
 - Revocation stops future notifies only. What was already shown cannot be recalled.
 - **Changing a share** (spec-gap 150). A share's audience or length changes by a grant that follows it (§19.4): the
-  grantor revokes the old grant at its authority as above, which ends what it admitted, and the grantee subscribes again
+  grantor revokes the old grant, with its rotation chain, at its authority as above, which ends what it admitted, and the grantee subscribes again
   presenting the new one. A following grant without `dsip.subscribe` ends the share and keeps the calls.
 
 ## P§8 Timers
@@ -210,6 +211,11 @@ records (P§12): the authority then routes by an opaque tag and never sees a sta
 
 The grace is the authority's choice within its bounds; the lifetime bounds and the publish interval are checked as P§3
 says. T-Presence-Rotate is the subject's devices' choice.
+
+The publish interval is the authority's: it is measured on the authority's clock, in whole seconds, between two records
+it accepted. A device measures only from when it sent, so one that waits exactly 5 s, or exactly a refusal's
+`retry_after`, can be refused when the earlier record took longer in transit. A device leaves a margin for transit and
+whole-second clocks (spec-gap 160).
 
 ## P§9 Reason tokens
 
@@ -328,14 +334,20 @@ A client MAY say that it holds presence it cannot read.
 
 - Each device of the subject keeps a current epoch per scope, from 0: the highest it has seen in its own identity's
   records (it watches its own identity, P§6 rule 1, and sees every record) or reached by rotating. It seals at it.
-- **Rotation.** When a grant the device issued that admits presence ends (it revoked it, P§7, or its `valid_until`
-  passed), the device rotates `main` and the grant's audience, if any: the scope's epoch rises by one. It rotates a
-  scope at most once per T-Presence-Rotate (P§8); grants ending sooner are rotated together when that time has passed.
+- **Rotation.** When a grant the device issued that carried keys ends (it revoked it, P§7, its `valid_until`
+  passed, or a grant changing the share followed it), the device rotates each scope whose key the grant carried, `main`
+  and the grant's audience, if any, except a scope the grant that changed the share carries too (spec-gap 161): the
+  scope's epoch rises by one. It rotates a scope at most once per T-Presence-Rotate (P§8): the first time at once,
+  then a scope whose grant ends sooner is rotated when that time has passed, with every scope due then.
 - **Re-granting.** When a scope's epoch rises, by its own rotation or a sibling's record, the device issues, for each
   live grant it issued that carries that scope's key, a grant that follows it (§19.4, spec-gap 150) with the same
   `scope`, `valid_until` and `presence_audience` and the new keys. A rotation changes nothing the grantee may do, so the
   followed grant is not revoked at the authority. A grant issued by an offline sibling is re-granted when that sibling
   returns; until then its grantee cannot read the new epoch.
+- **Rotation chains** (spec-gap 159). The grants that followed one another by re-granting form a chain, which all share
+  one `valid_until`; the device that issued them keeps it. Each still admits at the authority, so when the share ends
+  early or changes (P§7), the device revokes every grant of the chain, not only the newest. A chain whose `valid_until`
+  has passed needs no revocation.
 
 ### P§12.6 Profiles and migration
 

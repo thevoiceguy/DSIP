@@ -1,0 +1,286 @@
+{
+  "vector": "state/presence-keys-valid-until-rotates",
+  "format": 1,
+  "kind": "state",
+  "description": "P§12.5: a share that reaches its valid_until ends, and its scopes rotate then (spec-gap 141: at that instant, not a second later); revoking it afterwards revokes it again at the authority but rotates nothing more. With T-Presence-Rotate 0 every ending rotates at once.",
+  "spec_ref": [
+    "P§12.3",
+    "P§12.5",
+    "§19.4"
+  ],
+  "context": {
+    "component": "endpoint",
+    "start": 1760000000,
+    "self": {
+      "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+      "identity": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R"
+    },
+    "identities": {
+      "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu": "did:key:z6MkhzX9qTeXBWkucyMVric1E9JrqUD5LPAkD2BNavakAptf",
+      "did:key:z6MkfhenvjQ7awdpVWzPaeBuPkXCBLwzJKyosCrTL3huMb66": "did:key:z6MkhzX9qTeXBWkucyMVric1E9JrqUD5LPAkD2BNavakAptf",
+      "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+      "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+      "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL": "did:key:z6Mkt5yU6sK3v7gxFHncQbmZ7VQvnVuJBGrDAbqhZp2gDW7G",
+      "did:key:z6Mkr5zRdWGRkpCCHgLN6Ns4dBrFdcuzfbbuTrbX5NQhCTUG": "did:key:z6Mkh3q5XkqsXHbLaNNXzXBhxi3tPDf7bzkuSXskTUku5Ha4"
+    },
+    "presence_keys": {
+      "sealed": [
+        "main"
+      ],
+      "t_rotate": 0,
+      "grant_ids": [
+        "01K742V0TGKMHGY3CY84SANQ59"
+      ]
+    }
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "recv": {
+            "type": "introduction",
+            "id": "01K742SG00JXCCGN7MGQQXPTH4",
+            "from": "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL",
+            "to": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+            "purpose": "Met at the meetup."
+          }
+        },
+        "expect": {
+          "emit": [
+            {
+              "ui": "introduction_received",
+              "from": "did:key:z6Mkt5yU6sK3v7gxFHncQbmZ7VQvnVuJBGrDAbqhZp2gDW7G"
+            }
+          ],
+          "sessions": {}
+        }
+      },
+      {
+        "event": {
+          "local": "grant",
+          "introduction": "01K742SG00JXCCGN7MGQQXPTH4",
+          "id": "01K742SGZ8HQH80FQFSXM8P2QA",
+          "scope": [
+            "dsip.subscribe"
+          ],
+          "valid_until": 1760000100
+        },
+        "expect": {
+          "emit": [
+            {
+              "send": {
+                "type": "grant",
+                "to": "did:key:z6Mkt5yU6sK3v7gxFHncQbmZ7VQvnVuJBGrDAbqhZp2gDW7G",
+                "session": "01K742SG00JXCCGN7MGQQXPTH4",
+                "id": "01K742SGZ8HQH80FQFSXM8P2QA",
+                "scope": [
+                  "dsip.subscribe"
+                ],
+                "valid_until": 1760000100,
+                "presence_keys": [
+                  "main.0"
+                ]
+              }
+            }
+          ],
+          "sessions": {}
+        }
+      },
+      {
+        "event": {
+          "recv": {
+            "type": "introduction",
+            "id": "01K742SG002ZTN0QJ52KNC2C9H",
+            "from": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+            "to": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+            "purpose": "Met at the meetup."
+          }
+        },
+        "expect": {
+          "emit": [
+            {
+              "ui": "introduction_received",
+              "from": "did:key:z6MkhzX9qTeXBWkucyMVric1E9JrqUD5LPAkD2BNavakAptf"
+            }
+          ],
+          "sessions": {}
+        }
+      },
+      {
+        "event": {
+          "local": "grant",
+          "introduction": "01K742SG002ZTN0QJ52KNC2C9H",
+          "id": "01K742SHYGCFJHVVTF5MX4K61A",
+          "scope": [
+            "dsip.subscribe"
+          ],
+          "valid_until": 1791536000
+        },
+        "expect": {
+          "emit": [
+            {
+              "send": {
+                "type": "grant",
+                "to": "did:key:z6MkhzX9qTeXBWkucyMVric1E9JrqUD5LPAkD2BNavakAptf",
+                "session": "01K742SG002ZTN0QJ52KNC2C9H",
+                "id": "01K742SHYGCFJHVVTF5MX4K61A",
+                "scope": [
+                  "dsip.subscribe"
+                ],
+                "valid_until": 1791536000,
+                "presence_keys": [
+                  "main.0"
+                ]
+              }
+            }
+          ],
+          "sessions": {}
+        }
+      },
+      {
+        "event": {
+          "advance": 99
+        },
+        "expect": {
+          "emit": [],
+          "sessions": {},
+          "presence_keys": {
+            "epochs": {
+              "main": 0
+            },
+            "due": {},
+            "chains": {},
+            "held": {}
+          }
+        }
+      },
+      {
+        "event": {
+          "advance": 1
+        },
+        "expect": {
+          "emit": [
+            {
+              "keys": "rotated",
+              "scope": "main",
+              "epoch": 1
+            },
+            {
+              "send": {
+                "type": "grant",
+                "to": "did:key:z6MkhzX9qTeXBWkucyMVric1E9JrqUD5LPAkD2BNavakAptf",
+                "session": "01K742SHYGCFJHVVTF5MX4K61A",
+                "id": "01K742V0TGKMHGY3CY84SANQ59",
+                "scope": [
+                  "dsip.subscribe"
+                ],
+                "valid_until": 1791536000,
+                "presence_keys": [
+                  "main.1"
+                ]
+              }
+            }
+          ],
+          "sessions": {},
+          "presence_keys": {
+            "epochs": {
+              "main": 1
+            },
+            "due": {},
+            "chains": {
+              "01K742V0TGKMHGY3CY84SANQ59": [
+                "01K742SHYGCFJHVVTF5MX4K61A"
+              ]
+            },
+            "held": {}
+          },
+          "contacts": {
+            "allow": [],
+            "grants_issued": [
+              "01K742SGZ8HQH80FQFSXM8P2QA",
+              "01K742V0TGKMHGY3CY84SANQ59"
+            ],
+            "grants_held": [],
+            "requests": [],
+            "pending_sent": []
+          }
+        }
+      },
+      {
+        "event": {
+          "local": "revoke",
+          "grant": "01K742SGZ8HQH80FQFSXM8P2QA"
+        },
+        "expect": {
+          "emit": [
+            {
+              "revoke": [
+                "01K742SGZ8HQH80FQFSXM8P2QA"
+              ]
+            }
+          ],
+          "sessions": {},
+          "presence_keys": {
+            "epochs": {
+              "main": 1
+            },
+            "due": {},
+            "chains": {
+              "01K742V0TGKMHGY3CY84SANQ59": [
+                "01K742SHYGCFJHVVTF5MX4K61A"
+              ]
+            },
+            "held": {}
+          },
+          "contacts": {
+            "allow": [],
+            "grants_issued": [
+              "01K742V0TGKMHGY3CY84SANQ59"
+            ],
+            "grants_held": [],
+            "requests": [],
+            "pending_sent": []
+          }
+        }
+      },
+      {
+        "event": {
+          "local": "revoke",
+          "grant": "01K742V0TGKMHGY3CY84SANQ59"
+        },
+        "expect": {
+          "emit": [
+            {
+              "revoke": [
+                "01K742V0TGKMHGY3CY84SANQ59",
+                "01K742SHYGCFJHVVTF5MX4K61A"
+              ]
+            },
+            {
+              "keys": "rotated",
+              "scope": "main",
+              "epoch": 2
+            }
+          ],
+          "sessions": {},
+          "presence_keys": {
+            "epochs": {
+              "main": 2
+            },
+            "due": {},
+            "chains": {},
+            "held": {}
+          },
+          "contacts": {
+            "allow": [],
+            "grants_issued": [],
+            "grants_held": [],
+            "requests": [],
+            "pending_sent": []
+          }
+        }
+      }
+    ]
+  },
+  "expect": {}
+}

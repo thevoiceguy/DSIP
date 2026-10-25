@@ -9,7 +9,7 @@ from . import envelope as env
 NOW = 1760000000  # receiver clock used by default
 
 NAMES = ["alice", "alice-phone", "alice-laptop", "bob", "bob-phone", "bob-laptop",
-         "relay", "carol", "carol-phone", "mallory", "bob-next"]
+         "relay", "carol", "carol-phone", "mallory", "bob-next", "dave", "dave-phone"]
 
 KEYS: dict[str, KeyPair] = {n: keypair_from_seed_name(n) for n in NAMES}
 

@@ -4,7 +4,7 @@
  *
  * Spec: §12.4 (state machine), §12.5 (cancel/answer race), §12.6 (glare), §12.7 (forking, as the
  * initiator sees it), §12.8 (renegotiation), §12.9 (timers), §12.10 (progress), §12.12 (info),
- * §19.4 (first contact).
+ * §19.4 (first contact), P§12.3–P§12.5 (presence keys in the grants issued and held, rotation, re-granting).
  *
  * Every message reaching this engine has already passed signature, replay and shape checks
  * (`envelope.ts`); the engine never verifies anything.
@@ -52,6 +52,24 @@ interface Grant {
   grantee: string;
   scope: string[];
   valid_until: number;
+  presence_audience?: string;
+  /** P§12.3: the scopes it carried keys for. */
+  keyScopes: string[];
+  /** P§12.5 (spec-gap 159): the grants it follows by re-granting, newest first. */
+  chain: string[];
+  /** P§12.5: it has ended; a grant ends once. */
+  ended: boolean;
+}
+
+/** Spec: P§8 — T-Presence-Rotate default and bounds, seconds. */
+const T_PRESENCE_ROTATE = 60;
+const T_PRESENCE_ROTATE_BOUNDS: [number, number] = [0, 3600];
+
+/** P§12.1: a key id's scope and epoch, or undefined when it is not `scope.digits`. */
+function parseKid(kid: unknown): [string, number] | undefined {
+  if (typeof kid !== "string") return undefined;
+  const m = /^(.*)\.([0-9]+)$/.exec(kid);
+  return m ? [m[1]!, Number(m[2])] : undefined;
 }
 
 /** Trace context for an endpoint (vectors README, kind `state`). */
@@ -62,6 +80,8 @@ export interface EndpointContext {
   start: number;
   timers?: { t_establish?: number; t_ring?: number; t_ring_local?: number };
   policy?: { first_contact_required?: boolean; allow?: string[] };
+  /** P§12.3, P§12.5: presence keys (vectors README "Endpoint presence keys"). */
+  presence_keys?: { sealed?: string[]; t_rotate?: number; grant_ids?: string[] };
 }
 
 function clamp(v: number, [lo, hi]: [number, number]): number {
@@ -78,16 +98,41 @@ export class Endpoint {
   private readonly grantsIssued = new Map<string, Grant>();
   private readonly grantsHeld = new Map<string, { by: string; valid_until: number }>(); // grant id → granting identity, life
   private readonly tokens = new Map<string, string>(); // contact token → grant id to issue
+  // P§12.4, P§12.5: presence keys
+  private readonly sealed: Set<string>;
+  private readonly tRotate: number;
+  private readonly grantIds: string[];
+  private readonly epochs = new Map<string, number>();
+  private readonly lastRotated = new Map<string, number>();
+  private readonly due = new Map<string, number>();
+  private readonly heldKeys = new Map<string, Map<string, Set<number>>>(); // grantor → scope → epochs
 
   constructor(private readonly ctx: EndpointContext) {
     this.timers = new Timers(ctx.start);
+    const pk = ctx.presence_keys;
+    this.sealed = new Set(pk?.sealed ?? []);
+    this.tRotate = clamp(pk?.t_rotate ?? T_PRESENCE_ROTATE, T_PRESENCE_ROTATE_BOUNDS);
+    this.grantIds = [...(pk?.grant_ids ?? [])];
+    if (pk) for (const scope of ["main", ...this.sealed]) this.epochs.set(scope, 0);
   }
 
   /** Apply one trace event; returns the ordered emissions. */
   step(event: JsonObject): Json[] {
     this.emit = [];
     if ("advance" in event) {
-      this.timers.advance(event["advance"] as number, (name, session) => this.fire(name, session));
+      this.timers.advance(event["advance"] as number, (name, session) => this.fire(name, session),
+        () => [
+          ...[...this.grantsIssued.values()].filter((g) => g.keyScopes.length > 0 && !g.ended).map((g) => g.valid_until),
+          ...this.due.values(),
+        ],
+        () => {
+          // P§12.5: shares reaching their valid_until end at that instant (spec-gap 141), in id order; then rotation
+          for (const id of [...this.grantsIssued.keys()].sort()) {
+            const g = this.grantsIssued.get(id)!;
+            if (g.keyScopes.length > 0 && !g.ended && g.valid_until <= this.now) this.endGrant(g, []);
+          }
+          this.rotateDue();
+        });
     } else if ("recv" in event) {
       this.recv(event["recv"] as JsonObject);
     } else {
@@ -116,6 +161,24 @@ export class Endpoint {
         grants_held: [...this.grantsHeld.keys()].sort(),
         requests: [...this.requests.keys()].sort(),
         pending_sent: [...this.pendingSent].sort(),
+      };
+    }
+    if ("presence_keys" in expect) {
+      const chains: JsonObject = {};
+      for (const id of [...this.grantsIssued.keys()].sort()) {
+        const g = this.grantsIssued.get(id)!;
+        if (g.chain.length > 0) chains[id] = [...g.chain];
+      }
+      const held: JsonObject = {};
+      for (const by of [...this.heldKeys.keys()].sort()) {
+        const scopes = this.heldKeys.get(by)!;
+        held[by] = [...scopes.keys()].sort().flatMap((sc) => [...scopes.get(sc)!].sort((a, b) => a - b).map((e) => `${sc}.${e}`));
+      }
+      out["presence_keys"] = {
+        epochs: Object.fromEntries(this.epochs),
+        due: Object.fromEntries(this.due),
+        chains,
+        held,
       };
     }
     return out;
@@ -308,9 +371,15 @@ export class Endpoint {
         if (audience !== undefined && !(typeof audience === "string" && /^[a-z][a-z0-9-]{0,63}$/.test(audience))) {
           return void this.emit.push({ refused: "invalid-audience" }); // P§6; nothing sent, the followed grant kept
         }
+        // P§7 (spec-gap 159): the followed grant and its rotation chain are revoked at the authority
+        this.emit.push({ revoke: [followed, ...old.chain] });
         this.grantsIssued.delete(followed); // the new grant withdraws the one it follows
-        return this.issueGrant(followed, old.grantee, e["id"] as string, e["scope"] as string[], e["valid_until"] as number,
+        const id = e["id"] as string;
+        this.issueGrant(followed, old.grantee, id, e["scope"] as string[], e["valid_until"] as number,
           audience as string | undefined);
+        // P§12.5 (spec-gap 161): a scope the new grant still carries is not lost, so not rotated
+        this.endGrant(old, this.grantsIssued.get(id)!.keyScopes);
+        return this.rotateDue();
       }
       case "reject_introduction": {
         const intro = e["introduction"] as string;
@@ -320,9 +389,15 @@ export class Endpoint {
         // §19.4 (spec-gap 74): an introduction's outcome — grant or reject — is addressed to the introducing identity
         return this.send("reject", from.identity, { session: intro, reason: e["reason"]! });
       }
-      case "revoke":
-        if (!this.grantsIssued.delete(e["grant"] as string)) this.emit.push({ refused: "unknown-grant" });
-        return;
+      case "revoke": {
+        const id = e["grant"] as string;
+        const g = this.grantsIssued.get(id);
+        if (g === undefined) return void this.emit.push({ refused: "unknown-grant" });
+        this.grantsIssued.delete(id);
+        this.emit.push({ revoke: [id, ...g.chain] }); // P§7 (spec-gap 159): the grant and its rotation chain
+        this.endGrant(g, []);
+        return this.rotateDue();
+      }
       case "issue_token":
         this.tokens.set(e["token"] as string, e["grant_id"] as string);
         return;
@@ -331,11 +406,75 @@ export class Endpoint {
     }
   }
 
-  /** `session` is the introduction answered, or the grant followed (spec-gap 150). */
+  /**
+   * `session` is the introduction answered, or the grant followed (spec-gap 150). P§12.3: a grant admitting presence
+   * carries the keys of `main` and its audience at their current epochs, when either is sealed.
+   */
   private issueGrant(intro: string, grantee: string, id: string, scope: string[], valid_until: number,
-    presence_audience?: string): void {
-    this.grantsIssued.set(id, { id, grantee, scope, valid_until });
-    this.send("grant", grantee, { session: intro, id, scope, valid_until, ...(presence_audience !== undefined ? { presence_audience } : {}) });
+    presence_audience?: string, chain: string[] = []): void {
+    const keyed = this.ctx.presence_keys !== undefined && scope.includes("dsip.subscribe")
+      && (this.sealed.has("main") || (presence_audience !== undefined && this.sealed.has(presence_audience)));
+    const keyScopes = keyed ? ["main", ...(presence_audience !== undefined ? [presence_audience] : [])] : [];
+    for (const sc of keyScopes) if (!this.epochs.has(sc)) this.epochs.set(sc, 0);
+    this.grantsIssued.set(id, { id, grantee, scope, valid_until, presence_audience, keyScopes, chain, ended: false });
+    this.send("grant", grantee, {
+      session: intro, id, scope, valid_until,
+      ...(presence_audience !== undefined ? { presence_audience } : {}),
+      ...(keyScopes.length > 0 ? { presence_keys: keyScopes.map((sc) => `${sc}.${this.epochs.get(sc)}`) } : {}),
+    });
+  }
+
+  /** P§12.5: an ending grant makes the scopes it carried keys for due, but those in `keep`; a grant ends once. */
+  private endGrant(g: Grant, keep: string[]): void {
+    if (g.ended) return;
+    g.ended = true;
+    for (const sc of g.keyScopes) {
+      if (keep.includes(sc) || this.due.has(sc)) continue;
+      const last = this.lastRotated.get(sc);
+      this.due.set(sc, last === undefined || this.now >= last + this.tRotate ? this.now : last + this.tRotate);
+    }
+  }
+
+  /** P§12.5: the scopes due now rotate together, `main` first; then the live grants carrying them are re-granted. */
+  private rotateDue(): void {
+    const scopes = [...this.due].filter(([, t]) => t <= this.now).map(([sc]) => sc)
+      .sort((a, b) => (a === "main" ? -1 : b === "main" ? 1 : a < b ? -1 : a > b ? 1 : 0));
+    for (const sc of scopes) {
+      this.due.delete(sc);
+      this.epochs.set(sc, (this.epochs.get(sc) ?? 0) + 1);
+      this.lastRotated.set(sc, this.now);
+      this.emit.push({ keys: "rotated", scope: sc, epoch: this.epochs.get(sc)! });
+    }
+    this.regrant(new Set(scopes));
+  }
+
+  /** P§12.5: each live grant carrying a key of `scopes` is followed by one with the current keys; the old heads its chain. */
+  private regrant(scopes: Set<string>): void {
+    if (scopes.size === 0) return;
+    for (const id of [...this.grantsIssued.keys()].sort()) {
+      const g = this.grantsIssued.get(id)!;
+      if (g.valid_until <= this.now || !g.keyScopes.some((sc) => scopes.has(sc))) continue;
+      const next = this.grantIds.shift();
+      if (next === undefined) throw new Error("context.presence_keys.grant_ids exhausted");
+      this.grantsIssued.delete(id);
+      this.issueGrant(id, g.grantee, next, g.scope, g.valid_until, g.presence_audience, [id, ...g.chain]);
+    }
+  }
+
+  /**
+   * P§12.5: a record of our own identity from a sibling, seen through our own watch: an epoch above ours is adopted and
+   * the live grants carrying its scope re-granted. Anything else is ignored.
+   */
+  private recvOwnRecord(m: JsonObject): void {
+    if (this.ctx.presence_keys === undefined || m["subject"] !== this.ctx.self.identity) return;
+    const kid = parseKid(m["kid"]);
+    if (kid === undefined) return;
+    const [scope, epoch] = kid;
+    const ours = this.epochs.get(scope);
+    if (ours !== undefined && epoch <= ours) return;
+    this.epochs.set(scope, epoch);
+    this.emit.push({ keys: "seen", scope, epoch });
+    this.regrant(new Set([scope]));
   }
 
   // ---- received messages
@@ -345,6 +484,7 @@ export class Endpoint {
     if (type === "invite") return this.recvInvite(m);
     if (type === "introduction") return this.recvIntroduction(m);
     if (type === "error") return this.recvError(m);
+    if (type === "presence") return this.recvOwnRecord(m);
     const id = m["session"] as string;
     if (type === "grant" || (type === "reject" && this.pendingSent.has(id))) return this.recvIntroductionOutcome(m);
 
@@ -612,6 +752,17 @@ export class Endpoint {
     }
     if (m["type"] === "grant") {
       this.grantsHeld.set(m["id"] as string, { by, valid_until: m["valid_until"] as number });
+      // P§12.4: the keys it carried; per scope, those of the two highest epochs are kept
+      for (const k of (m["presence_keys"] as Json[] | undefined) ?? []) {
+        const kid = parseKid(k);
+        if (kid === undefined) continue;
+        const scopes = this.heldKeys.get(by) ?? new Map<string, Set<number>>();
+        this.heldKeys.set(by, scopes);
+        const epochs = scopes.get(kid[0]) ?? new Set<number>();
+        scopes.set(kid[0], epochs);
+        epochs.add(kid[1]);
+        while (epochs.size > 2) epochs.delete(Math.min(...epochs));
+      }
       this.emit.push({ ui: "granted", by: this.identityOf(m["from"] as string) });
     } else {
       this.emit.push({ ui: "introduction_rejected", reason: this.reasonOf(m) });

@@ -1,0 +1,208 @@
+{
+  "vector": "state/presence-keys-held-two-epochs",
+  "format": 1,
+  "kind": "state",
+  "description": "P§12.4: a grantee keeps, per scope, the keys of the two highest epochs its grants from that identity carried; a grant it cannot place (an unknown introduction) adds none. It needs no presence key context of its own.",
+  "spec_ref": [
+    "P§12.3",
+    "P§12.5",
+    "§19.4"
+  ],
+  "context": {
+    "component": "endpoint",
+    "start": 1760000000,
+    "self": {
+      "device": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+      "identity": "did:key:z6MkhzX9qTeXBWkucyMVric1E9JrqUD5LPAkD2BNavakAptf"
+    },
+    "identities": {
+      "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu": "did:key:z6MkhzX9qTeXBWkucyMVric1E9JrqUD5LPAkD2BNavakAptf",
+      "did:key:z6MkfhenvjQ7awdpVWzPaeBuPkXCBLwzJKyosCrTL3huMb66": "did:key:z6MkhzX9qTeXBWkucyMVric1E9JrqUD5LPAkD2BNavakAptf",
+      "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+      "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+      "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL": "did:key:z6Mkt5yU6sK3v7gxFHncQbmZ7VQvnVuJBGrDAbqhZp2gDW7G",
+      "did:key:z6Mkr5zRdWGRkpCCHgLN6Ns4dBrFdcuzfbbuTrbX5NQhCTUG": "did:key:z6Mkh3q5XkqsXHbLaNNXzXBhxi3tPDf7bzkuSXskTUku5Ha4"
+    }
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "local": "introduce",
+          "id": "01K742SG00VZP8XY7X8K41416S",
+          "to": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+          "purpose": "Met at the meetup."
+        },
+        "expect": {
+          "emit": [
+            {
+              "send": {
+                "type": "introduction",
+                "to": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+                "id": "01K742SG00VZP8XY7X8K41416S",
+                "purpose": "Met at the meetup."
+              }
+            }
+          ],
+          "sessions": {}
+        }
+      },
+      {
+        "event": {
+          "recv": {
+            "type": "grant",
+            "id": "01K742SGZ8PNYGA1CB2X68M2K9",
+            "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "session": "01K742SG00VZP8XY7X8K41416S",
+            "scope": [
+              "dsip.subscribe"
+            ],
+            "valid_until": 1791536000,
+            "presence_keys": [
+              "main.0",
+              "k-tkxij7ahuhkuvpff.0"
+            ]
+          }
+        },
+        "expect": {
+          "emit": [
+            {
+              "ui": "granted",
+              "by": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R"
+            }
+          ],
+          "sessions": {},
+          "presence_keys": {
+            "epochs": {},
+            "due": {},
+            "chains": {},
+            "held": {
+              "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R": [
+                "k-tkxij7ahuhkuvpff.0",
+                "main.0"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "event": {
+          "recv": {
+            "type": "grant",
+            "id": "01K742SHYG3TF45TR7XWMA2Q3X",
+            "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "session": "01K742SGZ8PNYGA1CB2X68M2K9",
+            "scope": [
+              "dsip.subscribe"
+            ],
+            "valid_until": 1791536000,
+            "presence_keys": [
+              "main.1",
+              "k-tkxij7ahuhkuvpff.0"
+            ]
+          }
+        },
+        "expect": {
+          "emit": [
+            {
+              "ui": "granted",
+              "by": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R"
+            }
+          ],
+          "sessions": {},
+          "presence_keys": {
+            "epochs": {},
+            "due": {},
+            "chains": {},
+            "held": {
+              "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R": [
+                "k-tkxij7ahuhkuvpff.0",
+                "main.0",
+                "main.1"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "event": {
+          "recv": {
+            "type": "grant",
+            "id": "01K742SJXRQJAWW95BKQDNMXAN",
+            "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "session": "01K742SHYG3TF45TR7XWMA2Q3X",
+            "scope": [
+              "dsip.subscribe"
+            ],
+            "valid_until": 1791536000,
+            "presence_keys": [
+              "main.2",
+              "k-tkxij7ahuhkuvpff.1"
+            ]
+          }
+        },
+        "expect": {
+          "emit": [
+            {
+              "ui": "granted",
+              "by": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R"
+            }
+          ],
+          "sessions": {},
+          "presence_keys": {
+            "epochs": {},
+            "due": {},
+            "chains": {},
+            "held": {
+              "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R": [
+                "k-tkxij7ahuhkuvpff.0",
+                "k-tkxij7ahuhkuvpff.1",
+                "main.1",
+                "main.2"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "event": {
+          "recv": {
+            "type": "grant",
+            "id": "01K742SKX01PVDY41PN2ZJXRS5",
+            "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "session": "01K742SG00YGRPW2G0GWCDVK6A",
+            "scope": [
+              "dsip.subscribe"
+            ],
+            "valid_until": 1791536000,
+            "presence_keys": [
+              "main.9"
+            ]
+          }
+        },
+        "expect": {
+          "emit": [
+            {
+              "drop": "unknown-introduction"
+            }
+          ],
+          "sessions": {},
+          "presence_keys": {
+            "epochs": {},
+            "due": {},
+            "chains": {},
+            "held": {
+              "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R": [
+                "k-tkxij7ahuhkuvpff.0",
+                "k-tkxij7ahuhkuvpff.1",
+                "main.1",
+                "main.2"
+              ]
+            }
+          }
+        }
+      }
+    ]
+  },
+  "expect": {}
+}

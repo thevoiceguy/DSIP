@@ -1,0 +1,577 @@
+{
+  "vector": "state/presence-keys-revocation-rotates",
+  "format": 1,
+  "kind": "state",
+  "description": "P§12.5: revoking a grant that carried keys rotates its scopes, the first time at once, then at most once per T-Presence-Rotate (60 s); every live grant carrying a rotated key is re-granted, once, and the grant it follows heads its chain without being revoked (spec-gap 159). Ending a share revokes the grant and its whole chain, newest first.",
+  "spec_ref": [
+    "P§12.3",
+    "P§12.5",
+    "§19.4"
+  ],
+  "context": {
+    "component": "endpoint",
+    "start": 1760000000,
+    "self": {
+      "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+      "identity": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R"
+    },
+    "identities": {
+      "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu": "did:key:z6MkhzX9qTeXBWkucyMVric1E9JrqUD5LPAkD2BNavakAptf",
+      "did:key:z6MkfhenvjQ7awdpVWzPaeBuPkXCBLwzJKyosCrTL3huMb66": "did:key:z6MkhzX9qTeXBWkucyMVric1E9JrqUD5LPAkD2BNavakAptf",
+      "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+      "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+      "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL": "did:key:z6Mkt5yU6sK3v7gxFHncQbmZ7VQvnVuJBGrDAbqhZp2gDW7G",
+      "did:key:z6Mkr5zRdWGRkpCCHgLN6Ns4dBrFdcuzfbbuTrbX5NQhCTUG": "did:key:z6Mkh3q5XkqsXHbLaNNXzXBhxi3tPDf7bzkuSXskTUku5Ha4"
+    },
+    "presence_keys": {
+      "sealed": [
+        "main",
+        "k-tkxij7ahuhkuvpff"
+      ],
+      "grant_ids": [
+        "01K742V0TGKMHGY3CY84SANQ59",
+        "01K742V1SRF4JQGX8WPDERGPN0",
+        "01K742V2S0118S5Z82A61T9CFV"
+      ]
+    }
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "recv": {
+            "type": "introduction",
+            "id": "01K742SG00JXCCGN7MGQQXPTH4",
+            "from": "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL",
+            "to": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+            "purpose": "Met at the meetup."
+          }
+        },
+        "expect": {
+          "emit": [
+            {
+              "ui": "introduction_received",
+              "from": "did:key:z6Mkt5yU6sK3v7gxFHncQbmZ7VQvnVuJBGrDAbqhZp2gDW7G"
+            }
+          ],
+          "sessions": {}
+        }
+      },
+      {
+        "event": {
+          "local": "grant",
+          "introduction": "01K742SG00JXCCGN7MGQQXPTH4",
+          "id": "01K742SGZ8HQH80FQFSXM8P2QA",
+          "scope": [
+            "dsip.subscribe"
+          ],
+          "valid_until": 1791536000
+        },
+        "expect": {
+          "emit": [
+            {
+              "send": {
+                "type": "grant",
+                "to": "did:key:z6Mkt5yU6sK3v7gxFHncQbmZ7VQvnVuJBGrDAbqhZp2gDW7G",
+                "session": "01K742SG00JXCCGN7MGQQXPTH4",
+                "id": "01K742SGZ8HQH80FQFSXM8P2QA",
+                "scope": [
+                  "dsip.subscribe"
+                ],
+                "valid_until": 1791536000,
+                "presence_keys": [
+                  "main.0"
+                ]
+              }
+            }
+          ],
+          "sessions": {}
+        }
+      },
+      {
+        "event": {
+          "recv": {
+            "type": "introduction",
+            "id": "01K742SG002ZTN0QJ52KNC2C9H",
+            "from": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+            "to": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+            "purpose": "Met at the meetup."
+          }
+        },
+        "expect": {
+          "emit": [
+            {
+              "ui": "introduction_received",
+              "from": "did:key:z6MkhzX9qTeXBWkucyMVric1E9JrqUD5LPAkD2BNavakAptf"
+            }
+          ],
+          "sessions": {}
+        }
+      },
+      {
+        "event": {
+          "local": "grant",
+          "introduction": "01K742SG002ZTN0QJ52KNC2C9H",
+          "id": "01K742SHYGCFJHVVTF5MX4K61A",
+          "scope": [
+            "dsip.subscribe"
+          ],
+          "valid_until": 1791536000,
+          "presence_audience": "k-tkxij7ahuhkuvpff"
+        },
+        "expect": {
+          "emit": [
+            {
+              "send": {
+                "type": "grant",
+                "to": "did:key:z6MkhzX9qTeXBWkucyMVric1E9JrqUD5LPAkD2BNavakAptf",
+                "session": "01K742SG002ZTN0QJ52KNC2C9H",
+                "id": "01K742SHYGCFJHVVTF5MX4K61A",
+                "scope": [
+                  "dsip.subscribe"
+                ],
+                "valid_until": 1791536000,
+                "presence_audience": "k-tkxij7ahuhkuvpff",
+                "presence_keys": [
+                  "main.0",
+                  "k-tkxij7ahuhkuvpff.0"
+                ]
+              }
+            }
+          ],
+          "sessions": {}
+        }
+      },
+      {
+        "event": {
+          "recv": {
+            "type": "introduction",
+            "id": "01K742SG00EWKDW5JMYQKPGN2X",
+            "from": "did:key:z6Mkr5zRdWGRkpCCHgLN6Ns4dBrFdcuzfbbuTrbX5NQhCTUG",
+            "to": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+            "purpose": "Met at the meetup."
+          }
+        },
+        "expect": {
+          "emit": [
+            {
+              "ui": "introduction_received",
+              "from": "did:key:z6Mkh3q5XkqsXHbLaNNXzXBhxi3tPDf7bzkuSXskTUku5Ha4"
+            }
+          ],
+          "sessions": {}
+        }
+      },
+      {
+        "event": {
+          "local": "grant",
+          "introduction": "01K742SG00EWKDW5JMYQKPGN2X",
+          "id": "01K742SJXR1C8FKNDCSPKGYNRR",
+          "scope": [
+            "dsip.subscribe"
+          ],
+          "valid_until": 1791536000
+        },
+        "expect": {
+          "emit": [
+            {
+              "send": {
+                "type": "grant",
+                "to": "did:key:z6Mkh3q5XkqsXHbLaNNXzXBhxi3tPDf7bzkuSXskTUku5Ha4",
+                "session": "01K742SG00EWKDW5JMYQKPGN2X",
+                "id": "01K742SJXR1C8FKNDCSPKGYNRR",
+                "scope": [
+                  "dsip.subscribe"
+                ],
+                "valid_until": 1791536000,
+                "presence_keys": [
+                  "main.0"
+                ]
+              }
+            }
+          ],
+          "sessions": {}
+        }
+      },
+      {
+        "event": {
+          "local": "revoke",
+          "grant": "01K742SGZ8HQH80FQFSXM8P2QA"
+        },
+        "expect": {
+          "emit": [
+            {
+              "revoke": [
+                "01K742SGZ8HQH80FQFSXM8P2QA"
+              ]
+            },
+            {
+              "keys": "rotated",
+              "scope": "main",
+              "epoch": 1
+            },
+            {
+              "send": {
+                "type": "grant",
+                "to": "did:key:z6MkhzX9qTeXBWkucyMVric1E9JrqUD5LPAkD2BNavakAptf",
+                "session": "01K742SHYGCFJHVVTF5MX4K61A",
+                "id": "01K742V0TGKMHGY3CY84SANQ59",
+                "scope": [
+                  "dsip.subscribe"
+                ],
+                "valid_until": 1791536000,
+                "presence_audience": "k-tkxij7ahuhkuvpff",
+                "presence_keys": [
+                  "main.1",
+                  "k-tkxij7ahuhkuvpff.0"
+                ]
+              }
+            },
+            {
+              "send": {
+                "type": "grant",
+                "to": "did:key:z6Mkh3q5XkqsXHbLaNNXzXBhxi3tPDf7bzkuSXskTUku5Ha4",
+                "session": "01K742SJXR1C8FKNDCSPKGYNRR",
+                "id": "01K742V1SRF4JQGX8WPDERGPN0",
+                "scope": [
+                  "dsip.subscribe"
+                ],
+                "valid_until": 1791536000,
+                "presence_keys": [
+                  "main.1"
+                ]
+              }
+            }
+          ],
+          "sessions": {},
+          "presence_keys": {
+            "epochs": {
+              "main": 1,
+              "k-tkxij7ahuhkuvpff": 0
+            },
+            "due": {},
+            "chains": {
+              "01K742V0TGKMHGY3CY84SANQ59": [
+                "01K742SHYGCFJHVVTF5MX4K61A"
+              ],
+              "01K742V1SRF4JQGX8WPDERGPN0": [
+                "01K742SJXR1C8FKNDCSPKGYNRR"
+              ]
+            },
+            "held": {}
+          },
+          "contacts": {
+            "allow": [],
+            "grants_issued": [
+              "01K742V0TGKMHGY3CY84SANQ59",
+              "01K742V1SRF4JQGX8WPDERGPN0"
+            ],
+            "grants_held": [],
+            "requests": [],
+            "pending_sent": []
+          }
+        }
+      },
+      {
+        "event": {
+          "advance": 10
+        },
+        "expect": {
+          "emit": [],
+          "sessions": {}
+        }
+      },
+      {
+        "event": {
+          "local": "revoke",
+          "grant": "01K742V0TGKMHGY3CY84SANQ59"
+        },
+        "expect": {
+          "emit": [
+            {
+              "revoke": [
+                "01K742V0TGKMHGY3CY84SANQ59",
+                "01K742SHYGCFJHVVTF5MX4K61A"
+              ]
+            },
+            {
+              "keys": "rotated",
+              "scope": "k-tkxij7ahuhkuvpff",
+              "epoch": 1
+            }
+          ],
+          "sessions": {},
+          "presence_keys": {
+            "epochs": {
+              "main": 1,
+              "k-tkxij7ahuhkuvpff": 1
+            },
+            "due": {
+              "main": 1760000060
+            },
+            "chains": {
+              "01K742V1SRF4JQGX8WPDERGPN0": [
+                "01K742SJXR1C8FKNDCSPKGYNRR"
+              ]
+            },
+            "held": {}
+          },
+          "contacts": {
+            "allow": [],
+            "grants_issued": [
+              "01K742V1SRF4JQGX8WPDERGPN0"
+            ],
+            "grants_held": [],
+            "requests": [],
+            "pending_sent": []
+          }
+        }
+      },
+      {
+        "event": {
+          "recv": {
+            "type": "introduction",
+            "id": "01K742SYMRWDTK7FDFEH0HFY09",
+            "from": "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL",
+            "to": "did:key:z6MkrgXgMcSfqUQ6bhMEL1dhqvPYU4YaueY56Mw8aee9YN4R",
+            "purpose": "Met at the meetup."
+          }
+        },
+        "expect": {
+          "emit": [
+            {
+              "ui": "introduction_received",
+              "from": "did:key:z6Mkt5yU6sK3v7gxFHncQbmZ7VQvnVuJBGrDAbqhZp2gDW7G"
+            }
+          ],
+          "sessions": {}
+        }
+      },
+      {
+        "event": {
+          "local": "grant",
+          "introduction": "01K742SYMRWDTK7FDFEH0HFY09",
+          "id": "01K742SYMRCMRDEAR1YMAJG6RN",
+          "scope": [
+            "dsip.subscribe"
+          ],
+          "valid_until": 1791536000
+        },
+        "expect": {
+          "emit": [
+            {
+              "send": {
+                "type": "grant",
+                "to": "did:key:z6Mkt5yU6sK3v7gxFHncQbmZ7VQvnVuJBGrDAbqhZp2gDW7G",
+                "session": "01K742SYMRWDTK7FDFEH0HFY09",
+                "id": "01K742SYMRCMRDEAR1YMAJG6RN",
+                "scope": [
+                  "dsip.subscribe"
+                ],
+                "valid_until": 1791536000,
+                "presence_keys": [
+                  "main.1"
+                ]
+              }
+            }
+          ],
+          "sessions": {}
+        }
+      },
+      {
+        "event": {
+          "advance": 10
+        },
+        "expect": {
+          "emit": [],
+          "sessions": {}
+        }
+      },
+      {
+        "event": {
+          "local": "revoke",
+          "grant": "01K742SYMRCMRDEAR1YMAJG6RN"
+        },
+        "expect": {
+          "emit": [
+            {
+              "revoke": [
+                "01K742SYMRCMRDEAR1YMAJG6RN"
+              ]
+            }
+          ],
+          "sessions": {},
+          "presence_keys": {
+            "epochs": {
+              "main": 1,
+              "k-tkxij7ahuhkuvpff": 1
+            },
+            "due": {
+              "main": 1760000060
+            },
+            "chains": {
+              "01K742V1SRF4JQGX8WPDERGPN0": [
+                "01K742SJXR1C8FKNDCSPKGYNRR"
+              ]
+            },
+            "held": {}
+          },
+          "contacts": {
+            "allow": [],
+            "grants_issued": [
+              "01K742V1SRF4JQGX8WPDERGPN0"
+            ],
+            "grants_held": [],
+            "requests": [],
+            "pending_sent": []
+          }
+        }
+      },
+      {
+        "event": {
+          "advance": 39
+        },
+        "expect": {
+          "emit": [],
+          "sessions": {},
+          "presence_keys": {
+            "epochs": {
+              "main": 1,
+              "k-tkxij7ahuhkuvpff": 1
+            },
+            "due": {
+              "main": 1760000060
+            },
+            "chains": {
+              "01K742V1SRF4JQGX8WPDERGPN0": [
+                "01K742SJXR1C8FKNDCSPKGYNRR"
+              ]
+            },
+            "held": {}
+          }
+        }
+      },
+      {
+        "event": {
+          "advance": 1
+        },
+        "expect": {
+          "emit": [
+            {
+              "keys": "rotated",
+              "scope": "main",
+              "epoch": 2
+            },
+            {
+              "send": {
+                "type": "grant",
+                "to": "did:key:z6Mkh3q5XkqsXHbLaNNXzXBhxi3tPDf7bzkuSXskTUku5Ha4",
+                "session": "01K742V1SRF4JQGX8WPDERGPN0",
+                "id": "01K742V2S0118S5Z82A61T9CFV",
+                "scope": [
+                  "dsip.subscribe"
+                ],
+                "valid_until": 1791536000,
+                "presence_keys": [
+                  "main.2"
+                ]
+              }
+            }
+          ],
+          "sessions": {},
+          "presence_keys": {
+            "epochs": {
+              "main": 2,
+              "k-tkxij7ahuhkuvpff": 1
+            },
+            "due": {},
+            "chains": {
+              "01K742V2S0118S5Z82A61T9CFV": [
+                "01K742V1SRF4JQGX8WPDERGPN0",
+                "01K742SJXR1C8FKNDCSPKGYNRR"
+              ]
+            },
+            "held": {}
+          },
+          "contacts": {
+            "allow": [],
+            "grants_issued": [
+              "01K742V2S0118S5Z82A61T9CFV"
+            ],
+            "grants_held": [],
+            "requests": [],
+            "pending_sent": []
+          }
+        }
+      },
+      {
+        "event": {
+          "local": "revoke",
+          "grant": "01K742V2S0118S5Z82A61T9CFV"
+        },
+        "expect": {
+          "emit": [
+            {
+              "revoke": [
+                "01K742V2S0118S5Z82A61T9CFV",
+                "01K742V1SRF4JQGX8WPDERGPN0",
+                "01K742SJXR1C8FKNDCSPKGYNRR"
+              ]
+            }
+          ],
+          "sessions": {},
+          "presence_keys": {
+            "epochs": {
+              "main": 2,
+              "k-tkxij7ahuhkuvpff": 1
+            },
+            "due": {
+              "main": 1760000120
+            },
+            "chains": {},
+            "held": {}
+          },
+          "contacts": {
+            "allow": [],
+            "grants_issued": [],
+            "grants_held": [],
+            "requests": [],
+            "pending_sent": []
+          }
+        }
+      },
+      {
+        "event": {
+          "advance": 60
+        },
+        "expect": {
+          "emit": [
+            {
+              "keys": "rotated",
+              "scope": "main",
+              "epoch": 3
+            }
+          ],
+          "sessions": {},
+          "presence_keys": {
+            "epochs": {
+              "main": 3,
+              "k-tkxij7ahuhkuvpff": 1
+            },
+            "due": {},
+            "chains": {},
+            "held": {}
+          },
+          "contacts": {
+            "allow": [],
+            "grants_issued": [],
+            "grants_held": [],
+            "requests": [],
+            "pending_sent": []
+          }
+        }
+      }
+    ]
+  },
+  "expect": {}
+}
