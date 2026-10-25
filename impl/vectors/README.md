@@ -2344,9 +2344,12 @@ Each item has a matching `spec-gap` issue draft in `impl/docs/spec-gaps.md`.
     `-changed-share-rotates-what-is-lost`; `revoke` and `regrant` emit `{"revoke": […]}` in every trace).
 160. P§8: **decided** (v0.17, (a)) — the publish interval is the authority's; a publisher leaves a margin. Editorial:
     the authority's rule (`state/presence-rate-limited`) is unchanged.
-161. P§12.5: **drafted** (v0.17, (a)) — an ending grant rotates the scopes it carried keys for, except those the grant
+161. P§12.5: **decided** (v0.17, (a)) — an ending grant rotates the scopes it carried keys for, except those the grant
     changing the share carries too (`state/presence-keys-changed-share-rotates-what-is-lost`, `-only-for-sealed-scopes`,
     `-valid-until-rotates`).
+162. P§12.3: **drafted** (v0.17, (a)) — a grant whose `presence_keys` cannot be sealed or opened stands without
+    keys; the subject's sealed records stay unreadable to its grantee. Core behaviour, outside the vector kinds
+    (`dsip-endpoint` `tests/presence_keys.rs`).
 141. §12.9: **decided** (v0.17) — `expires_at` is exclusive everywhere: expired when `now ≥ expires_at`, at receipt and
     wherever a held message, kept record, leg or activity is judged; `reachability-hint` and `presence` ids are not
     deduplicated (`envelope/*-at-expiry`, `envelope/presence-id-already-seen`, `dht/hint-*`, `state/invite-*-expiry*`,
