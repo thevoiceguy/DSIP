@@ -217,7 +217,13 @@
           "grant": "01K742SMW89Y0PJMQ89X1MZA2G"
         },
         "expect": {
-          "emit": [],
+          "emit": [
+            {
+              "revoke": [
+                "01K742SMW89Y0PJMQ89X1MZA2G"
+              ]
+            }
+          ],
           "sessions": {},
           "contacts": {
             "allow": [],

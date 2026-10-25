@@ -513,6 +513,61 @@ def gen_endpoint(r: random.Random):
     return "state", None, ctx, [(e, snapshot) for e in ev]
 
 
+def gen_presence_keys(r: random.Random):
+    """Alice's phone issuing presence grants with keys, ending them by revocation, by a following grant and at their
+    valid_until, rotating within T-Presence-Rotate, re-granting on a sibling's epoch; and holding keys from Bob's grants
+    (P§12.3–P§12.5, spec-gaps 159, 161)."""
+    tags = ["k-family", "k-work"]
+    intro_ids, grant_ids = [ulid(50 + k) for k in range(4)], [ulid(60 + k) for k in range(5)]
+    held_ids, sent_intro = [ulid(80 + k) for k in range(3)], ulid(90)
+    pool = [ulid(200 + k) for k in range(60)]
+    ev, counter = [{"local": "introduce", "id": sent_intro, "to": BOB, "purpose": "hi"}], [1000]
+
+    def mid() -> str:
+        counter[0] += 1
+        return ulid(counter[0])
+
+    def kid() -> str:
+        return f"{r.choice(['main'] + tags)}.{r.choice([0, 1, 2, 3, 7])}"
+
+    for _ in range(r.randint(6, 24)):
+        x = r.random()
+        scope = r.choice([["dsip.subscribe"], ["dsip.invite", "dsip.subscribe"], ["dsip.invite"]])
+        audience = r.choice([None, None] + tags + ["k-other"])
+        extra = {"presence_audience": audience} if audience else {}
+        if x < 0.14:
+            ev.append({"recv": {"type": "introduction", "id": r.choice(intro_ids), "from": r.choice([B1, C1, M1]), "to": ALICE,
+                                "purpose": "hi"}})
+        elif x < 0.34:
+            # an introduction granted at once, so most grants find their request
+            i = mid() if r.random() < 0.8 else r.choice(intro_ids)
+            ev.append({"recv": {"type": "introduction", "id": i, "from": r.choice([B1, C1, M1]), "to": ALICE, "purpose": "hi"}})
+            ev.append({"local": "grant", "introduction": i, "id": r.choice(grant_ids), "scope": scope,
+                       "valid_until": NOW + r.choice([20, 60, 100, 100000, 100000]), **extra})
+        elif x < 0.44:
+            ev.append({"local": "revoke", "grant": r.choice(grant_ids + pool[:8])})
+        elif x < 0.54:
+            ev.append({"local": "regrant", "grant": r.choice(grant_ids + pool[:8]), "id": r.choice(grant_ids), "scope": scope,
+                       "valid_until": NOW + r.choice([30, 100000]), **extra})
+        elif x < 0.62:
+            m = {"type": "presence", "id": mid(), "from": r.choice([A2, A2, B1]), "subject": r.choice([ALICE, ALICE, BOB])}
+            if r.random() < 0.85:
+                m["kid"] = kid()
+            ev.append({"recv": m})
+        elif x < 0.74:
+            ev.append({"recv": {"type": "grant", "id": r.choice(held_ids), "from": B1, "session": r.choice([sent_intro] + held_ids),
+                                "scope": ["dsip.subscribe"], "valid_until": NOW + 100000,
+                                "presence_keys": [kid() for _ in range(r.randint(1, 2))]}})
+        else:
+            ev.append({"advance": r.choice([1, 5, 19, 20, 40, 59, 60, 61, 300])})
+    ctx = {"component": "endpoint", "self": {"device": A1, "identity": ALICE}, "identities": dict(IDENTITY), "start": NOW}
+    if r.random() < 0.9:
+        ctx["presence_keys"] = {"sealed": r.sample(["main"] + tags, r.randint(0, 3)), "grant_ids": pool,
+                                **({"t_rotate": r.choice([0, 1, 30, 60, 5000, -5])} if r.random() < 0.6 else {})}
+    snapshot = {"contacts": {}, "presence_keys": {}}
+    return "state", None, ctx, [(e, snapshot) for e in ev]
+
+
 def gen_relay(r: random.Random):
     """Every message carries `to`, as every real envelope does (the schemas require it)."""
     sids = [ulid(10), ulid(11)]
@@ -1283,6 +1338,7 @@ TARGETS = {
     "alias-lookup": gen_alias_lookup, "leave-proposals": gen_leave, "roster-change": gen_roster_change,
     "presence-aggregate": gen_presence_aggregate, "presence-authority": gen_presence_authority,
     "presence-admission": gen_presence_admission, "presence-sealed": gen_presence_sealed,
+    "presence-keys": gen_presence_keys,
 }
 
 # Targets where the implementations are known to differ and the difference is a protocol decision, not a bug

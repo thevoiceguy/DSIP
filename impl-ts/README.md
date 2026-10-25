@@ -32,13 +32,13 @@ python3 ../impl/tools/parity_ts.py       # Python harness vs this implementation
 
 ## Coverage
 
-**Every vector: 2312 of 2312**, no kind skipped. Python/TypeScript parity compares actual with actual on all of them.
+**Every vector: 2321 of 2321**, no kind skipped. Python/TypeScript parity compares actual with actual on all of them.
 
 | Kind | Vectors | Modules |
 |---|---|---|
 | `envelope`, `transport`, `dht` | 78, 13, 22 | `envelope.ts`, `did.ts`, `encoding.ts`, `dht.ts` |
 | `payload`, `semantic` | 142, 106 | `schema.ts`, `semantic.ts`, `registry.ts` |
-| `state` | 157 | `endpoint.ts`, `relay.ts`, `broadcast-state.ts` (v0.17: the authority's presence records, P§3; who may watch, audiences and the body per subscription, P§6; shares and `grant-revocation`, P§7; sealed records, P§12.6), `timers.ts` |
+| `state` | 166 | `endpoint.ts` (v0.17: presence keys in the grants it issues and holds, rotation, re-granting and rotation chains, P§12.3–P§12.5), `relay.ts`, `broadcast-state.ts` (v0.17: the authority's presence records, P§3; who may watch, audiences and the body per subscription, P§6; shares and `grant-revocation`, P§7; sealed records, P§12.6), `timers.ts` |
 | `presence` | 61 | `presence/presence.ts` (Presence Profile draft P§4–P§5: the subscriber's combining rule), `presence/sealed.ts` (P§12: keys, sealing and opening a record, a grant's keys, the subscriber's view); the authority's side is `broadcast-state.ts` |
 | `broadcast`, `trust`, `media-binding` | 21, 17, 42 | `broadcast.ts`, `trust.ts`, `binding.ts` |
 | `gateway` | 69 | `gateway.ts` |

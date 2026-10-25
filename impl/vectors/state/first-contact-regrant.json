@@ -155,6 +155,11 @@
         "expect": {
           "emit": [
             {
+              "revoke": [
+                "01K742SMW89Y0PJMQ89X1MZA2G"
+              ]
+            },
+            {
               "send": {
                 "type": "grant",
                 "to": "did:key:z6Mkt5yU6sK3v7gxFHncQbmZ7VQvnVuJBGrDAbqhZp2gDW7G",
@@ -247,6 +252,11 @@
         },
         "expect": {
           "emit": [
+            {
+              "revoke": [
+                "01K742T3H09D6W3VE6QEZEPMTV"
+              ]
+            },
             {
               "send": {
                 "type": "grant",

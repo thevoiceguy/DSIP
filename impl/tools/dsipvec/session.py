@@ -21,6 +21,7 @@ T_ESTABLISH_DEFAULT, T_ESTABLISH_BOUNDS = 15, (5, 60)
 T_RING_DEFAULT, T_RING_BOUNDS = 120, (30, 300)
 T_QUEUE_CAP = 1800
 T_RING_LOCAL_DEFAULT, T_RING_LOCAL_BOUNDS = 120, (30, 300)
+T_PRESENCE_ROTATE_DEFAULT, T_PRESENCE_ROTATE_BOUNDS = 60, (0, 3600)  # P§8
 MAX_CONSECUTIVE_REQUEUES = 3   # §12.10 RECOMMENDED
 KNOWN_INFO_ABOUT = {"transport:webrtc", "media:dtmf"}  # registry dsip-info-about (§12.12, spec-gap 70)
 
@@ -88,11 +89,28 @@ class Endpoint:
         self.pending_sent: dict[str, str] = {}     # introduction id → to identity
         self.tokens: dict[str, str] = {}           # contact token → grant id to issue on match
         self.seen_introductions: set[str] = set()
+        # P§12.3, P§12.5: presence keys, only when the context turns them on
+        pk = ctx.get("presence_keys")
+        self.keys_on = pk is not None
+        pk = pk or {}
+        self.sealed: set[str] = set(pk.get("sealed", []))
+        self.t_rotate = clamp(pk.get("t_rotate", T_PRESENCE_ROTATE_DEFAULT), T_PRESENCE_ROTATE_BOUNDS)
+        self.grant_ids: list[str] = list(pk.get("grant_ids", []))
+        self.epochs: dict[str, int] = ({"main": 0} | {sc: 0 for sc in self.sealed}) if self.keys_on else {}
+        self.last_rotated: dict[str, int] = {}
+        self.due: dict[str, int] = {}               # scope → when it rotates
+        self.held_keys: dict[str, dict[str, set[int]]] = {}  # grantor identity → scope → epochs (P§12.4)
 
     def contacts_snapshot(self) -> dict:
         return {"allow": sorted(self.allow), "grants_issued": sorted(self.grants_issued),
                 "grants_held": sorted(self.grants_held), "requests": sorted(self.requests),
                 "pending_sent": sorted(self.pending_sent)}
+
+    def presence_keys_snapshot(self) -> dict:
+        return {"epochs": dict(self.epochs), "due": dict(self.due),
+                "chains": {gid: list(g["chain"]) for gid, g in sorted(self.grants_issued.items()) if g["chain"]},
+                "held": {by: [f"{sc}.{e}" for sc in sorted(scopes) for e in sorted(scopes[sc])]
+                         for by, scopes in sorted(self.held_keys.items())}}
 
     def has_grant(self, identity: str, grant_ref: str | None) -> bool:
         """§19.4: a live grant (scope dsip.invite) held for this identity, matched by reference or by grantee."""
@@ -167,13 +185,25 @@ class Endpoint:
     def advance(self, seconds: int) -> None:
         target = self.now + seconds
         while True:
-            due = [t for t in self.timers if t.deadline <= target]
-            if not due:
+            instants = [t.deadline for t in self.timers]
+            instants += [g["valid_until"] for g in self.grants_issued.values() if g["keys"] and not g["ended"]]
+            instants += list(self.due.values())
+            instants = [t for t in instants if t <= target]
+            if not instants:
                 break
-            t = min(due, key=lambda t: (t.deadline, t.seq))
-            self.now = t.deadline
-            self.timers.remove(t)
-            self.fire(t)
+            self.now = max(self.now, min(instants))
+            while True:  # the session timers due now, in deadline order, ties by start order
+                due = [t for t in self.timers if t.deadline <= self.now]
+                if not due:
+                    break
+                t = min(due, key=lambda t: (t.deadline, t.seq))
+                self.timers.remove(t)
+                self.fire(t)
+            for gid in sorted(self.grants_issued):  # P§12.5: grants reaching their valid_until end, in id order
+                g = self.grants_issued[gid]
+                if g["keys"] and not g["ended"] and g["valid_until"] <= self.now:
+                    self.end_grant(g)
+            self.rotate_due()
         self.now = target
 
     def fire(self, t: Timer) -> None:
@@ -190,13 +220,64 @@ class Endpoint:
             self.send(type="reject", to=s.peer, session=s.id, reason="user.no-answer")
             self.end(s, "user.no-answer")
 
+    def key_scopes(self, scope: list, audience: str | None) -> list[str]:
+        """P§12.3: the scopes a grant carries keys for: `main` and its audience, when it admits presence and either is
+        sealed."""
+        if not self.keys_on or "dsip.subscribe" not in scope:
+            return []
+        if "main" not in self.sealed and audience not in self.sealed:
+            return []
+        return ["main"] + ([audience] if audience is not None else [])
+
     def issue_grant(self, gid: str, grantee: str, scope: list, valid_until: int, introduction: str,
-                    presence_audience: str | None = None) -> None:
+                    presence_audience: str | None = None, chain: list | None = None) -> None:
         """§19.4 outcome 1: a signed contact grant; the consent receipt (§19.3) in message form. P§6: it may name the
-        presence audience it admits to."""
-        self.grants_issued[gid] = {"grantee": grantee, "scope": list(scope), "valid_until": valid_until}
+        presence audience it admits to; P§12.3: it carries the keys of its scopes at their current epochs."""
+        keys = self.key_scopes(scope, presence_audience)
+        for sc in keys:
+            self.epochs.setdefault(sc, 0)
+        self.grants_issued[gid] = {"grantee": grantee, "scope": list(scope), "valid_until": valid_until,
+                                   "audience": presence_audience, "keys": keys, "chain": list(chain or []),
+                                   "ended": False}
         self.send(type="grant", to=grantee, session=introduction, id=gid, scope=list(scope), valid_until=valid_until,
-                  presence_audience=presence_audience)
+                  presence_audience=presence_audience,
+                  presence_keys=[f"{sc}.{self.epochs[sc]}" for sc in keys] or None)
+
+    def end_grant(self, g: dict, keep: list | tuple = ()) -> None:
+        """P§12.5 (spec-gap 161): an ending grant makes the scopes it carried keys for due, except those in `keep`."""
+        if g["ended"]:  # a grant ends once (advance ends it at its valid_until)
+            return
+        g["ended"] = True
+        for sc in g["keys"]:
+            if sc in keep or sc in self.due:
+                continue
+            last = self.last_rotated.get(sc)
+            self.due[sc] = self.now if last is None or self.now >= last + self.t_rotate else last + self.t_rotate
+
+    def rotate_due(self) -> None:
+        """P§12.5: every scope due now rotates together, then the live grants carrying any of them are re-granted."""
+        scopes = sorted((sc for sc, t in self.due.items() if t <= self.now), key=lambda sc: (sc != "main", sc))
+        for sc in scopes:
+            del self.due[sc]
+            self.epochs[sc] += 1
+            self.last_rotated[sc] = self.now
+            self.emit({"keys": "rotated", "scope": sc, "epoch": self.epochs[sc]})
+        self.regrant_carrying(set(scopes))
+
+    def regrant_carrying(self, scopes: set) -> None:
+        """P§12.5: a grant that follows each live grant carrying a key of `scopes`; the followed one heads its chain
+        (spec-gap 159) and is not revoked."""
+        if not scopes:
+            return
+        for gid in sorted(self.grants_issued):
+            g = self.grants_issued[gid]
+            if g["valid_until"] <= self.now or not scopes & set(g["keys"]):
+                continue
+            if not self.grant_ids:
+                raise ValueError("context.presence_keys.grant_ids exhausted")
+            del self.grants_issued[gid]
+            self.issue_grant(self.grant_ids.pop(0), g["grantee"], g["scope"], g["valid_until"], gid, g["audience"],
+                             [gid] + g["chain"])
 
     def held_grant_for(self, identity: str) -> str | None:
         for gid, g in sorted(self.grants_held.items()):
@@ -249,9 +330,14 @@ class Endpoint:
             if audience is not None and not re.fullmatch(r"[a-z][a-z0-9-]{0,63}", audience):
                 self.emit({"refused": "invalid-audience"})  # P§6, as for a grant; the old grant is kept
                 return
+            # P§7 (spec-gap 159): the followed grant and its rotation chain are revoked at the authority
+            self.emit({"revoke": [ev["grant"]] + old["chain"]})
             del self.grants_issued[ev["grant"]]  # issuing the new grant withdraws the one it follows
             self.issue_grant(ev["id"], old["grantee"], ev.get("scope", ["dsip.invite"]), ev["valid_until"], ev["grant"],
                              audience)
+            # P§12.5 (spec-gap 161): what the grantee keeps through the new grant is not rotated
+            self.end_grant(old, keep=self.grants_issued[ev["id"]]["keys"])
+            self.rotate_due()
             return
         if kind == "reject_introduction":
             req = self.requests.pop(ev["introduction"], None)
@@ -263,8 +349,13 @@ class Endpoint:
             self.send(type="reject", to=req["from"], session=ev["introduction"], reason=ev.get("reason", "user.declined"))
             return
         if kind == "revoke":
-            if self.grants_issued.pop(ev["grant"], None) is None:
+            g = self.grants_issued.pop(ev["grant"], None)
+            if g is None:
                 self.emit({"refused": "unknown-grant"})
+                return
+            self.emit({"revoke": [ev["grant"]] + g["chain"]})  # P§7 (spec-gap 159): with its rotation chain
+            self.end_grant(g)
+            self.rotate_due()
             return
         if kind == "issue_token":
             self.tokens[ev["token"]] = ev["grant_id"]
@@ -376,6 +467,8 @@ class Endpoint:
             return self.recv_introduction(m)
         if t == "grant":
             return self.recv_grant(m)
+        if t == "presence":
+            return self.recv_own_record(m)
         if t == "reject" and m.get("session") in self.pending_sent:
             # §19.4 outcome 2: rejection addressed to the introduction id
             self.pending_sent.pop(m["session"])
@@ -433,7 +526,28 @@ class Endpoint:
             self.emit({"drop": "unknown-introduction"})
             return
         self.grants_held[m["id"]] = {"by": by, "scope": list(m.get("scope", [])), "valid_until": m.get("valid_until", 0)}
+        for kid in m.get("presence_keys", []):  # P§12.4: per scope, the keys of the two highest epochs
+            sc, _, e = kid.rpartition(".")
+            if not re.fullmatch(r"[0-9]+", e):
+                continue
+            epochs = self.held_keys.setdefault(by, {}).setdefault(sc, set())
+            epochs.add(int(e))
+            while len(epochs) > 2:
+                epochs.remove(min(epochs))
         self.emit({"ui": "granted", "by": by})
+
+    def recv_own_record(self, m: dict) -> None:
+        """P§12.5: a record of our own identity from a sibling, seen through our own watch; a higher epoch is adopted and
+        our live grants carrying that scope are re-granted. Anything else is ignored."""
+        kid = m.get("kid")
+        if not self.keys_on or m.get("subject") != self.identity or kid is None:
+            return
+        sc, _, e = kid.rpartition(".")
+        if not re.fullmatch(r"[0-9]+", e) or int(e) <= self.epochs.get(sc, -1):
+            return
+        self.epochs[sc] = int(e)
+        self.emit({"keys": "seen", "scope": sc, "epoch": int(e)})
+        self.regrant_carrying({sc})
 
     def recv_invite(self, m: dict) -> None:
         sid = m["id"]

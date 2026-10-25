@@ -744,7 +744,7 @@ def vectors() -> list[dict]:
                [UI("offered")], {uid("inv-b", NOW + 10): sess("responder", "OFFERED")}),
         fcstep({"recv": msg("invite", "inv-c", CAR, None, NOW + 11, to=BOB, expires_at=NOW + 41)},
                [UI("offered")], {uid("inv-c", NOW + 11): sess("responder", "OFFERED")}),
-        fcstep({"local": "revoke", "grant": G1}, [], {}, contacts()),
+        fcstep({"local": "revoke", "grant": G1}, [{"revoke": [G1]}], {}, contacts()),
         fcstep({"recv": msg("invite", "inv-d", CAR, None, NOW + 12, to=BOB, expires_at=NOW + 42, grant=G1)},
                [S(type="reject", to=CAR, session=uid("inv-d", NOW + 12), reason="policy.first-contact-required")],
                {uid("inv-d", NOW + 12): sess("responder", "ENDED")}),
@@ -808,15 +808,16 @@ def vectors() -> list[dict]:
         fcstep({"local": "regrant", "grant": G1, "id": G2, "scope": ["dsip.subscribe"], "valid_until": year, "presence_audience": "Family"},
                [{"refused": "invalid-audience"}], {}, contacts(grants_issued=[G1])),
         fcstep({"local": "regrant", "grant": G1, "id": G2, "scope": ["dsip.invite"], "valid_until": year},
-               [S(type="grant", to=CAROL, session=G1, id=G2, scope=["dsip.invite"], valid_until=year)], {}, contacts(grants_issued=[G2])),
+               [{"revoke": [G1]}, S(type="grant", to=CAROL, session=G1, id=G2, scope=["dsip.invite"], valid_until=year)], {},
+               contacts(grants_issued=[G2])),
         fcstep({"recv": msg("invite", "inv-b", CAR, None, NOW + 10, to=BOB, expires_at=NOW + 40)},
                [UI("offered")], {uid("inv-b", NOW + 10): sess("responder", "OFFERED")}),
         fcstep({"local": "regrant", "grant": G1, "id": G3, "scope": ["dsip.invite"], "valid_until": year},
                [{"refused": "unknown-grant"}], {}, contacts(grants_issued=[G2])),
         fcstep({"local": "regrant", "grant": G2, "id": G3, "scope": ["dsip.invite", "dsip.subscribe"], "valid_until": NOW + 3600,
                 "presence_audience": "family"},
-               [S(type="grant", to=CAROL, session=G2, id=G3, scope=["dsip.invite", "dsip.subscribe"], valid_until=NOW + 3600,
-                  presence_audience="family")], {}, contacts(grants_issued=[G3])),
+               [{"revoke": [G2]}, S(type="grant", to=CAROL, session=G2, id=G3, scope=["dsip.invite", "dsip.subscribe"],
+                                    valid_until=NOW + 3600, presence_audience="family")], {}, contacts(grants_issued=[G3])),
     ]))
     out.append(fctrace("first-contact-regrant-expired",
                        "Only a live grant can be followed: once its valid_until has passed, a regrant is refused unknown-grant "
@@ -826,7 +827,8 @@ def vectors() -> list[dict]:
                [S(type="grant", to=CAROL, session=I1, id=G1, scope=["dsip.invite"], valid_until=NOW + 100)]),
         fcstep({"advance": 99}, []),
         fcstep({"local": "regrant", "grant": G1, "id": G2, "scope": ["dsip.invite"], "valid_until": NOW + 200},
-               [S(type="grant", to=CAROL, session=G1, id=G2, scope=["dsip.invite"], valid_until=NOW + 200)], {}, contacts(grants_issued=[G2])),
+               [{"revoke": [G1]}, S(type="grant", to=CAROL, session=G1, id=G2, scope=["dsip.invite"], valid_until=NOW + 200)], {},
+               contacts(grants_issued=[G2])),
         fcstep({"advance": 101}, []),
         fcstep({"local": "regrant", "grant": G2, "id": G3, "scope": ["dsip.invite"], "valid_until": NOW + 300},
                [{"refused": "unknown-grant"}]),
@@ -1585,4 +1587,6 @@ def vectors() -> list[dict]:
     from . import presence_sealed
     out.extend(state_vectors())
     out.extend(presence_sealed.state_vectors())
+    from . import presence_keys
+    out.extend(presence_keys.vectors())
     return out

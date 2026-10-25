@@ -4745,48 +4745,6 @@ the highest it has seen in its own identity's records or reached by rotating; ev
 sibling's grantees cannot read the new epoch until it returns). **Pinned:** `presence/key-*`, `presence/seal-record`,
 `presence/open-record-spliced-*`; the epoch rules are E2.
 
-## 160. P§8 — a publisher that waits exactly the publish interval is refused
-
-**Found (2026-10-25, CI on PR #248: web test `presence`, "no record of Bob's was refused").** P§8 measures the publish
-interval between two records the authority *accepted*, on its own clock in whole seconds. A publisher can only measure
-from when it *sent*. A record that crosses a second boundary in transit, followed by one that does not, arrives 4 s
-after the first by the authority's clock although the publisher waited 5 s, and is refused `policy.rate-limited`
-(it is sent again after `retry_after`, so presence recovers, but a conforming publisher was refused). The same holds
-for a retry at exactly `retry_after`.
-
-Choices:
-
-- **(a) Editorial note in P§8:** the interval is the authority's, so a publisher leaves a margin for transit and
-  whole-second clocks (the reference publisher waits interval + 1 s, and `retry_after` + 1 s). No wire change.
-- **(b) Measure at the record:** the authority compares the records' `issued_at`, which the publisher controls. A
-  publisher could then backdate within the replay window to send a burst, which the interval exists to prevent.
-- **(c) Tolerance at the authority:** the authority accepts at interval − 1 s. It moves the margin, but a publisher
-  still cannot know what the authority will allow.
-
-**Draft choice: (a).** **Implemented** on the reference publisher (`dsip_broadcast::presence::HOLD_BACK_S`); the
-authority rule and its vectors are unchanged.
-
-## 159. P§12.5 / P§7 — a rotation grant leaves its predecessor admitting
-
-**Found (2026-10-24, writing P§12.5).** A rotation re-grants every remaining grantee with a grant that follows theirs
-(spec-gap 150) and does not revoke the old one, so nobody watching is cut off. The authority then holds two grants that
-admit the same grantee, and the subscription it already has was admitted by the old one. When the share later ends,
-the grantor revokes the grant it holds now, the newest: the subscription the old grant admitted keeps running, and the
-old grant still admits a renewal, until its `valid_until`.
-
-Choices:
-
-- **(a) Ending a share revokes its whole chain.** The grantor revokes every grant of the chain still before its
-  `valid_until` (rotation keeps `valid_until`, so the chain is the grants that followed one another by rotation, and the
-  grantor's devices know them because each issued its own). Nothing changes at the authority.
-- **(b) A rotation grant revokes its predecessor**, and the grantee re-subscribes with the new grant at once: one short
-  gap in its notifies per rotation, and a rotation burst becomes a burst of re-subscriptions.
-- **(c) The authority links them:** a grant whose `session` names a grant stands in for it, so revoking either ends
-  what both admitted. The authority must keep the chain, from grants it was shown in `claims`.
-
-**Draft choice: (a).** It keeps the authority as it is and costs one revocation per link, at a moment that is already
-rare (a share ending).
-
 ## 158. §13.2 — a replaced connection cannot tell it was replaced, so it reconnects
 
 **Found (2026-10-24, the presence-audiences demo failing on main; PR #246).** §13.2 makes simultaneous connections from
@@ -4831,3 +4789,66 @@ says it was replaced and binds once, the second stays bound). Implementations: t
 old connection cleanly; `dsip-transport`'s agent returns `Error::Replaced` instead of reconnecting (the CLI stops with
 it); the browser's `Relay.replaced()` stops reconnection, for its relay (status line and a notice) and for peer relays.
 The mailbox does not replace a connection (its second connection is a standby) and is unchanged.
+
+## 159. P§12.5 / P§7 — a rotation grant leaves its predecessor admitting
+
+**Found (2026-10-24, writing P§12.5).** A rotation re-grants every remaining grantee with a grant that follows theirs
+(spec-gap 150) and does not revoke the old one, so nobody watching is cut off. The authority then holds two grants that
+admit the same grantee, and the subscription it already has was admitted by the old one. When the share later ends,
+the grantor revokes the grant it holds now, the newest: the subscription the old grant admitted keeps running, and the
+old grant still admits a renewal, until its `valid_until`.
+
+Choices:
+
+- **(a) Ending a share revokes its whole chain.** The grantor revokes every grant of the chain still before its
+  `valid_until` (rotation keeps `valid_until`, so the chain is the grants that followed one another by rotation, and the
+  grantor's devices know them because each issued its own). Nothing changes at the authority.
+- **(b) A rotation grant revokes its predecessor**, and the grantee re-subscribes with the new grant at once: one short
+  gap in its notifies per rotation, and a rotation burst becomes a burst of re-subscriptions.
+- **(c) The authority links them:** a grant whose `session` names a grant stands in for it, so revoking either ends
+  what both admitted. The authority must keep the chain, from grants it was shown in `claims`.
+
+**Decided (2026-10-25, user: "159 (a)"): (a).** It keeps the authority as it is and costs one revocation per link, at a
+moment that is already rare (a share ending). P§12.5 gains "Rotation chains"; P§7's ending and changing a share revoke
+the chain. In the endpoint traces (`impl/vectors/README.md`), `revoke` and `regrant` emit `{"revoke": [ids]}`: the grant,
+then its chain newest first.
+
+## 160. P§8 — a publisher that waits exactly the publish interval is refused
+
+**Found (2026-10-25, CI on PR #248: web test `presence`, "no record of Bob's was refused").** P§8 measures the publish
+interval between two records the authority *accepted*, on its own clock in whole seconds. A publisher can only measure
+from when it *sent*. A record that crosses a second boundary in transit, followed by one that does not, arrives 4 s
+after the first by the authority's clock although the publisher waited 5 s, and is refused `policy.rate-limited`
+(it is sent again after `retry_after`, so presence recovers, but a conforming publisher was refused). The same holds
+for a retry at exactly `retry_after`.
+
+Choices:
+
+- **(a) Editorial note in P§8:** the interval is the authority's, so a publisher leaves a margin for transit and
+  whole-second clocks (the reference publisher waits interval + 1 s, and `retry_after` + 1 s). No wire change.
+- **(b) Measure at the record:** the authority compares the records' `issued_at`, which the publisher controls. A
+  publisher could then backdate within the replay window to send a burst, which the interval exists to prevent.
+- **(c) Tolerance at the authority:** the authority accepts at interval − 1 s. It moves the margin, but a publisher
+  still cannot know what the authority will allow.
+
+**Decided (2026-10-25, user: "160 (a)"): (a).** P§8 gains the note after its table. The reference publisher
+(`dsip_broadcast::presence::HOLD_BACK_S`) waits the interval + 1 s, and `retry_after` + 1 s; the authority rule and its
+vectors are unchanged.
+
+## 161. P§12.5 — which scopes an ending grant rotates
+
+**Found (2026-10-25, writing the E2 endpoint traces).** P§12.5 rotated `main` and the audience whenever "a grant that
+admits presence ends". Two cases read badly. A grant issued before its scopes were sealed carried no keys: its grantee
+holds nothing to lose, yet every grant would be re-granted. A share changed by a following grant (P§7, spec-gap 150)
+ends the old grant, so `main` rotates and every grantee is re-granted, although the following grant gives the same
+grantee `main` again at once.
+
+Choices:
+
+- **(a) Rotate what the grantee loses:** the scopes whose keys the ended grant carried, except a scope the grant that
+  changed the share carries too. Moving a grantee from `family` to no audience rotates `family` only; a change of
+  length rotates nothing.
+- **(b) As written:** `main` and the audience of every ended grant that admits presence, keys or not.
+- **(c) Never on a change:** a changed share rotates nothing. A grantee moved out of an audience then keeps reading it.
+
+**Draft choice: (a).** Written into P§12.5 as drafted, and pinned by the E2 endpoint traces.

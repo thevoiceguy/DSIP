@@ -245,12 +245,18 @@ at the authority.
 
 ## 10. Stages
 
-- **E1 — wire, keys, authority** (this PR): spec-gaps 152–157 in `spec-gaps.md`; P§12 and core §19.4 text; schemas
+- **E1 — wire, keys, authority** (#248, merged): spec-gaps 152–157 in `spec-gaps.md`; P§12 and core §19.4 text; schemas
   (`kid`, `sealed_state`, `presence_keys`); vectors for derivation, sealing and opening a record, opening a grant's
   keys, the subscriber's view with unreadable records (D4), the payload rules, and the authority's routing by profile
   (D6); Python, Rust and impl-ts.
-- **E2 — the endpoint**: key state per scope and epoch, the sealed records a device publishes, keys put in a grant,
-  rotation on revocation and on `valid_until` with T-Presence-Rotate, re-granting on a sibling's higher epoch, the
-  subscriber keeping two epochs; state vectors first; spec-gap 159.
+- **E2 — the endpoint**, in two parts:
+  - **E2a — the trace machine** (this PR): key state per scope and epoch, keys put in a grant, rotation on revocation,
+    on a following grant and on `valid_until` with T-Presence-Rotate, re-granting on a sibling's higher epoch with
+    rotation chains, the grantee keeping two epochs; spec-gaps 159 and 160 decided, 161 drafted; state vectors
+    (`state/presence-keys-*`) and a fuzz target (`presence-keys`) on Python, Rust (`dsip-session`) and impl-ts.
+  - **E2b — Core**: the wire behind the traces in `dsip-endpoint`: `presence_keys` sealed with HPKE in the grants Core
+    signs and opened from the ones it receives, key bytes kept per grantor, records sealed at the current epoch
+    (`Publisher`) and opened in the watch (`Watch` with the held keys), the own watch fed back as sibling records, the
+    `revoke` emission sent as `grant-revocation`s, and the key state persisted with the contacts.
 - **E3 — clients and the testbed**: `dsip presence publish|watch`, the browser (Settings audiences sealed, badges, a
   "presence not readable" note), demos, web tests, then the relay and web redeployed and a sealed WAN presence check.

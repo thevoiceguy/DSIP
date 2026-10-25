@@ -54,6 +54,16 @@
       "did": "did:key:z6MkvpYhpe9AJ3vBFWyeVfKF6P6egBxVyHZQkCoeuKsEzeS1",
       "kid": "did:key:z6MkvpYhpe9AJ3vBFWyeVfKF6P6egBxVyHZQkCoeuKsEzeS1#z6MkvpYhpe9AJ3vBFWyeVfKF6P6egBxVyHZQkCoeuKsEzeS1",
       "public_key_multibase": "z6MkvpYhpe9AJ3vBFWyeVfKF6P6egBxVyHZQkCoeuKsEzeS1"
+    },
+    "dave": {
+      "did": "did:key:z6Mkh3q5XkqsXHbLaNNXzXBhxi3tPDf7bzkuSXskTUku5Ha4",
+      "kid": "did:key:z6Mkh3q5XkqsXHbLaNNXzXBhxi3tPDf7bzkuSXskTUku5Ha4#z6Mkh3q5XkqsXHbLaNNXzXBhxi3tPDf7bzkuSXskTUku5Ha4",
+      "public_key_multibase": "z6Mkh3q5XkqsXHbLaNNXzXBhxi3tPDf7bzkuSXskTUku5Ha4"
+    },
+    "dave-phone": {
+      "did": "did:key:z6Mkr5zRdWGRkpCCHgLN6Ns4dBrFdcuzfbbuTrbX5NQhCTUG",
+      "kid": "did:key:z6Mkr5zRdWGRkpCCHgLN6Ns4dBrFdcuzfbbuTrbX5NQhCTUG#z6Mkr5zRdWGRkpCCHgLN6Ns4dBrFdcuzfbbuTrbX5NQhCTUG",
+      "public_key_multibase": "z6Mkr5zRdWGRkpCCHgLN6Ns4dBrFdcuzfbbuTrbX5NQhCTUG"
     }
   },
   "web_identities": {
