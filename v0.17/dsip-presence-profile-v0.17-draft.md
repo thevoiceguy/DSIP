@@ -318,6 +318,10 @@ grant's `to` (the grantee identity, so every device of the grantee opens it), in
 `main` key and, when the grant has a `presence_audience`, that audience's key, each at the grantor's current epoch
 (P§12.5), and no other scope.
 
+A grantor that cannot seal the keys (it cannot resolve the grantee's key agreement key) sends the grant without them,
+and a grantee that cannot open them holds the grant as if it carried none (spec-gap 162): the grant still admits, and
+the records it would open stay unreadable (P§12.4) until a following grant carries keys the grantee opens.
+
 ### P§12.4 Subscribers
 
 A subscriber that supports `presence/0.2` lists it in its `subscribe`'s `dsip.profiles`. It opens a body's sealed

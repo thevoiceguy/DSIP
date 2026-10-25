@@ -4851,4 +4851,25 @@ Choices:
 - **(b) As written:** `main` and the audience of every ended grant that admits presence, keys or not.
 - **(c) Never on a change:** a changed share rotates nothing. A grantee moved out of an audience then keeps reading it.
 
-**Draft choice: (a).** Written into P§12.5 as drafted, and pinned by the E2 endpoint traces.
+**Decided (2026-10-25, user: "161 (a)"): (a).** P§12.5 keeps the text as drafted; the E2 endpoint traces pin it.
+
+## 162. P§12.3 — a grant whose `presence_keys` cannot be sealed or opened
+
+**Found (2026-10-25, writing the E2b core).** P§12.3 says a grant that admits a presence subscriber to a sealed record
+MAY carry `presence_keys`, and P§12.4 says how a record fails to open, but neither says what becomes of the grant when
+its keys cannot be sealed (the grantor cannot resolve the grantee identity's key agreement key) or cannot be opened (an
+unknown `alg`, a failed HPKE open, a plaintext naming a foreign scope).
+
+Choices:
+
+- **(a) The grant stands without keys:** a grantor that cannot seal sends the grant without `presence_keys`; a grantee
+  that cannot open them holds the grant as if it carried none. The grant still admits at the authority (P§6), and the
+  subject's sealed records stay unreadable to the grantee (P§12.4, `presence-key-unknown`) until a following grant
+  (P§12.5) carries keys it opens.
+- **(b) The grantee refuses the grant:** it drops the whole grant, so it holds no admission it cannot use. The grantor
+  is not told, and the grant still admits at the authority.
+- **(c) The grantor does not issue it:** a grant for a sealed scope is refused locally when its keys cannot be sealed.
+
+**Draft choice: (a).** Every reason a grant exists other than presence (`dsip.invite`) is unaffected by its keys, and
+the failure shows where P§12.4 already shows it. Written into P§12.3 as drafted; `dsip-endpoint` `Core` implements it
+(`Impl:` notes in `core.rs`, `tests/presence_keys.rs`).
