@@ -4745,6 +4745,27 @@ the highest it has seen in its own identity's records or reached by rotating; ev
 sibling's grantees cannot read the new epoch until it returns). **Pinned:** `presence/key-*`, `presence/seal-record`,
 `presence/open-record-spliced-*`; the epoch rules are E2.
 
+## 160. P§8 — a publisher that waits exactly the publish interval is refused
+
+**Found (2026-10-25, CI on PR #248: web test `presence`, "no record of Bob's was refused").** P§8 measures the publish
+interval between two records the authority *accepted*, on its own clock in whole seconds. A publisher can only measure
+from when it *sent*. A record that crosses a second boundary in transit, followed by one that does not, arrives 4 s
+after the first by the authority's clock although the publisher waited 5 s, and is refused `policy.rate-limited`
+(it is sent again after `retry_after`, so presence recovers, but a conforming publisher was refused). The same holds
+for a retry at exactly `retry_after`.
+
+Choices:
+
+- **(a) Editorial note in P§8:** the interval is the authority's, so a publisher leaves a margin for transit and
+  whole-second clocks (the reference publisher waits interval + 1 s, and `retry_after` + 1 s). No wire change.
+- **(b) Measure at the record:** the authority compares the records' `issued_at`, which the publisher controls. A
+  publisher could then backdate within the replay window to send a burst, which the interval exists to prevent.
+- **(c) Tolerance at the authority:** the authority accepts at interval − 1 s. It moves the margin, but a publisher
+  still cannot know what the authority will allow.
+
+**Draft choice: (a).** **Implemented** on the reference publisher (`dsip_broadcast::presence::HOLD_BACK_S`); the
+authority rule and its vectors are unchanged.
+
 ## 159. P§12.5 / P§7 — a rotation grant leaves its predecessor admitting
 
 **Found (2026-10-24, writing P§12.5).** A rotation re-grants every remaining grantee with a grant that follows theirs
