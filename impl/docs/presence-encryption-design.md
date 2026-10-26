@@ -259,10 +259,17 @@ at the authority.
     (`Publisher`) and opened in the watch (`Watch` with the held keys), the own watch fed back as sibling records, the
     `revoke` emission sent as `grant-revocation`s, and the key state persisted with the contacts.
 - **E3 — clients and the testbed**, in three parts:
-  - **E3a — the agent and the CLI** (this PR): `AgentConfig.presence`; the agent gives Core its relay as the authority,
+  - **E3a — the agent and the CLI** (#251, merged): `AgentConfig.presence`; the agent gives Core its relay as the authority,
     so revocations of a share and its chain go from Core; `dsip answer --seal-presence` (keys in grants, audience labels
     sent as tags), `dsip presence publish --sealed` (records sealed, the device's own watch adopting a sibling's epoch),
     `dsip presence watch` listing `presence/0.2` and opening records with the keys held; `demos/presence-sealed-demo.sh`.
-  - **E3b — the browser**: Settings audiences sealed, badges, a "presence not readable" note; the wasm host on
-    `set_authority`, `sign_presence`, `own_record` and `Watch::view`; a web test.
+  - **E3b — the browser** (this PR): Settings "seal my presence" seals `main` and every audience (a label sent as
+    its tag; sealing is fixed when the engine starts, so turning it on, or adding an audience while on, loads the page
+    again); grants carry the keys; the wasm host gives Core its relay (`set_authority`), so Core sends the
+    revocations of a share and its chain and the page no longer does; records signed with `sign_presence` and sent
+    again at a new epoch at once; the subscribe lists `presence/0.2`, notifies are opened with `Watch::view` and a
+    badge says "presence not readable" (P§12.4); the device's own watch is fed to `own_record`. A device without the
+    identity's key (enrolled without its seed) does not seal, and Settings says why. `web/test/presence-sealed.mjs`.
+    Found on the way: a refused subscription's watch stayed in the wasm and was shown as offline; it is dropped now,
+    and a watch is listed only once answered.
   - **E3c — the testbed**: the relay and web redeployed and a sealed WAN presence check.
