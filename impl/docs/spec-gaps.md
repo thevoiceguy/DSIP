@@ -4650,6 +4650,14 @@ Choices:
 **Draft choice: (a).** It is what "an optimisation, never a requirement" means; (b) makes the optimisation a way to be
 refused (exactly the regrant race), and (c) lets anyone who learns a grant id call as its grantee.
 
+**Decided (2026-10-26, user: "151 (a)"): (a).** Written into v0.17 §19.4. Vectors
+`state/first-contact-grant-reference-is-a-hint` (an invite naming a replaced or unknown grant from the grantee is
+offered; one naming another's live grant from an ungranted identity is refused) and
+`state/first-contact-initiator-references-only-a-live-invite-grant` (an expired or presence-only grant is not named).
+Python and Rust dropped the reference match, impl-ts the "or" and the sender's unfiltered reference; the endpoint fuzz
+now also delivers presence-only grants. The vectors README said "matched by the invite's `grant` reference or by
+grantee", which is what impl-ts followed; it now says grantee only.
+
 ## 152. P§11 question 1 / P§6 — presence encrypted to subscribers: how the key reaches them, and rotation
 
 **Found (2026-10-23, the authority reads every record).** P§6's last paragraph accepts that the authority sees every

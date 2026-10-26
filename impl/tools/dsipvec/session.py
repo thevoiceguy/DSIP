@@ -112,13 +112,11 @@ class Endpoint:
                 "held": {by: [f"{sc}.{e}" for sc in sorted(scopes) for e in sorted(scopes[sc])]
                          for by, scopes in sorted(self.held_keys.items())}}
 
-    def has_grant(self, identity: str, grant_ref: str | None) -> bool:
-        """§19.4: a live grant (scope dsip.invite) held for this identity, matched by reference or by grantee."""
-        for gid, g in self.grants_issued.items():
-            if g["grantee"] == identity and g["valid_until"] > self.now and "dsip.invite" in g["scope"]:
-                if grant_ref is None or grant_ref == gid:
-                    return True
-        return False
+    def has_grant(self, identity: str) -> bool:
+        """§19.4: a live grant (scope dsip.invite) issued to this identity. The invite's `grant` reference is a hint for
+        finding it and never admits or refuses on its own (spec-gap 151)."""
+        return any(g["grantee"] == identity and g["valid_until"] > self.now and "dsip.invite" in g["scope"]
+                   for g in self.grants_issued.values())
 
     # ------------------------------------------------------------ helpers
 
@@ -552,7 +550,7 @@ class Endpoint:
     def recv_invite(self, m: dict) -> None:
         sid = m["id"]
         from_identity = self.identity_of(m["from"])
-        if self.first_contact_required and from_identity not in self.allow and not self.has_grant(from_identity, m.get("grant")):
+        if self.first_contact_required and from_identity not in self.allow and not self.has_grant(from_identity):
             # §19.4: an invite from an identity holding no grant (and matching no allow policy) is rejected
             # with policy.first-contact-required — the rejection that points the sender at the mechanism.
             # §12.4 responder: "Policy: auto-reject → send reject → ENDED" (no alerting, no missed call).

@@ -496,7 +496,9 @@ def gen_endpoint(r: random.Random):
             elif y < 0.92:
                 # spec-gap 150: a grant that follows a grant; its session may name an introduction or a held grant
                 ev.append({"recv": {"type": "grant", "id": r.choice(grant_ids), "from": r.choice([B1, B1, B2, C1]),
-                                    "session": r.choice(intro_ids + grant_ids), "scope": ["dsip.invite"],
+                                    "session": r.choice(intro_ids + grant_ids),
+                                    # spec-gap 151: an invite names only a live dsip.invite grant held from the callee
+                                    "scope": r.choice([["dsip.invite"], ["dsip.invite"], ["dsip.subscribe"]]),
                                     "valid_until": NOW + r.choice([60, 100000])}})
             else:
                 ev.append({"local": "regrant", "grant": r.choice(grant_ids), "id": r.choice(grant_ids),
