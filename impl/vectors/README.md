@@ -1,6 +1,6 @@
 # DSIP Conformance Test Vectors
 
-**Tracks:** DSIP v0.17, in progress (v0.16 final at `poc-v0.16`) + JSON Schema set v0.17 (draft 2020-12); the Messaging Profile schema set for `messaging/`
+**Tracks:** DSIP v0.17, final at `poc-v0.17` (v0.16 final at `poc-v0.16`) + JSON Schema set v0.17 (draft 2020-12); the Messaging Profile schema set for `messaging/`
 **Format version:** 1
 
 These vectors are the language-neutral conformance contract for DSIP Core v1.0.

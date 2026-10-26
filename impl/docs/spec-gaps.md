@@ -4236,7 +4236,7 @@ as processed, so it is acknowledged and later copies are duplicates.
 (dsip-msg on; the browser keeps its old behaviour until the option is turned on with a web test), and
 `tests/inbound.rs` covers both settings.
 
-**Suggested fix, for the next spec version (v0.16 is final).** M§5.4 gains, after the `ack_through` rule: "An item
+**Fix, transcribed into v0.17 (M§5.4, Appendix M-B; 2026-10-26).** M§5.4 gains, after the `ack_through` rule: "An item
 whose processing fails leaves no change to the device's MLS state. Since that failure recurs on redelivery, the device
 SHOULD then treat the item as processed: it advances its cursor and seq positions past it, and later copies are
 duplicates (M§8.5)."
@@ -4271,7 +4271,7 @@ checker would refuse.
 is its local state. `dsip-messaging-device`'s `commits::roster` (over `dsip_mls::leaf_subject`) implements (c) for both
 clients, the recorded roster and the successor's re-adds alike; `tests/commits.rs` covers a lapsed leaf.
 
-**Suggested fix, for the next spec version (v0.16 is final).** M§7.5 spec-gap 61 "The check", after "the roster the
+**Fix, transcribed into v0.17 (M§7.5, Appendix M-B; 2026-10-26).** M§7.5 spec-gap 61 "The check", after "the roster the
 checking device last processed", adds: "by identity: the `subject` of every leaf's delegation, whether or not that
 delegation is still live (M§6.2). A lapsed leaf stays in the roster until a commit removes it."
 
@@ -4299,7 +4299,7 @@ what tells the person.
 implements (a) for both clients, and the `Messenger` reports the conflict as `{ui: dropped}`; `tests/history.rs` covers
 it.
 
-**Suggested fix, for the next spec version (v0.16 is final).** M§12.1 gains, after "Devices keep all prior keys": "An
+**Fix, transcribed into v0.17 (M§12.1, Appendix M-B; 2026-10-26).** M§12.1 gains, after "Devices keep all prior keys": "An
 `archive-key` naming an `akid` the device already holds with a different `key` is ignored: the first key under an
 `akid` stays, so archive already sealed under it stays readable. The device SHOULD surface the conflict."
 

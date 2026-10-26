@@ -1,7 +1,7 @@
 # DSIP Messaging Profile 1.0 — Unified Messaging, Mailboxes, and Voicemail
 
 **Status:** Companion profile to DSIP v0.17 — normative 1.0. This document was written *before* the
-reference implementation and then corrected by it: the `messaging/` vector category (457 vectors)
+reference implementation and then corrected by it: the `messaging/` vector category (556 vectors)
 pins it, and the Python harness, the Rust reference implementation and an independent TypeScript
 implementation agree on every one; the reference implementation runs it over the wire on real MLS and HPKE
 (`impl/crates/dsip-messaging`, `dsip-mls`, `dsip-mailbox`), and every disagreement found on the way
@@ -460,7 +460,9 @@ An owner's device reads its mailbox with `sync`:
   (M§8.5) are committed together: a device MUST NOT acknowledge an item whose MLS state change could
   still be lost, and SHOULD commit each item's MLS state and delivery state atomically, so that a
   crash rolls both back and the item is simply redelivered. A duplicate item advances the ack
-  position like any other.
+  position like any other. An item whose processing fails leaves no change to the device's MLS state.
+  Since that failure recurs on redelivery, the device SHOULD then treat the item as processed: it
+  advances its cursor and seq positions past it, and later copies are duplicates (M§8.5; spec-gap 138).
 - `live: true` — while this connection stays bound, push new items as unsolicited `items`.
 
 The mailbox answers with one or more `items`:
@@ -1096,7 +1098,9 @@ own primary mailbox as hub, the dead group's last known roster (by identity) add
   same footing as the successor's `welcome`. A hub fanning out a successor's `welcome` carries the group's
   `successor_of` on it.
 - **The check.** The creator is the identity of leaf 0 of the successor group, the leaf that created it.
-  "The predecessor's last roster" is the roster the checking device last processed. A device that was
+  "The predecessor's last roster" is the roster the checking device last processed, by identity: the
+  `subject` of every leaf's delegation, whether or not that delegation is still live (M§6.2; spec-gap 139).
+  A lapsed leaf stays in the roster until a commit removes it. A device that was
   never a member of the named predecessor cannot check it and treats the group as first contact.
 - **Converging.** A device keeps every valid successor of a predecessor as a candidate and stays in only
   the lowest: it does not stay in a higher one it is welcomed to, and it leaves one it had joined — or
@@ -1439,7 +1443,9 @@ mode, history survives through an identity-level **archive key**:
   `archive-key` object to the personal group: `{"object": "archive-key", "akid": …, "key": …,
   "created_at": …}`.
 - The newest `akid` is current: the greatest `created_at`, ties broken by `akid` (spec-gap 51). Devices
-  keep all prior keys, which are needed to read older archive.
+  keep all prior keys, which are needed to read older archive. An `archive-key` naming an `akid` the
+  device already holds with a different `key` is ignored: the first key under an `akid` stays, so
+  archive already sealed under it stays readable. The device SHOULD surface the conflict (spec-gap 140).
 
 ### M§12.2 Archiving
 
@@ -1995,3 +2001,11 @@ Within v0.16:
 | spec-gap | where | what |
 |---|---|---|
 | 130 | M§4.1, M§5.7, M§15.5, M§16 | an enrolment ends by `mailbox-config` `release: true` or, at the operator's choice, once the identity has no registered device; a full or closed mailbox refuses owner operations `mailbox.not-served`; `enrolment-trace` |
+
+Within v0.17:
+
+| spec-gap | where | what |
+|---|---|---|
+| 138 | M§5.4 | an item whose processing fails leaves no MLS change and SHOULD be treated as processed: acknowledged, later copies duplicates |
+| 139 | M§7.5 | the predecessor roster for the successor check is by identity, every leaf's delegation `subject`, lapsed or not |
+| 140 | M§12.1 | an `archive-key` under an `akid` already held with another key is ignored; the first key stays and the conflict SHOULD be surfaced |

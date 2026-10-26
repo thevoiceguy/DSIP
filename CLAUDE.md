@@ -19,7 +19,7 @@ Full plan: `impl/docs/dsip_poc_dev_plan.md`. Read it before large changes.
 ## Repository map
 
 ```
-v0.5/ … v0.17/      Spec snapshots. v0.17 is current, in progress (v0.16 final at poc-v0.16, v0.15 at poc-v0.15). NEVER edit v0.5 … v0.16.
+v0.5/ … v0.17/      Spec snapshots. v0.17 is current and final at poc-v0.17 (v0.16 at poc-v0.16, v0.15 at poc-v0.15). NEVER edit v0.5 … v0.16.
 v0.17/dsip-schemas…  Canonical JSON Schemas (draft 2020-12) + generate_schemas.py
 v0.17/dsip-messaging-schemas-draft/  Messaging Profile schema set (own generator)
 impl/               PoC Cargo workspace (living code; tracks spec versions via

@@ -7,7 +7,7 @@
 **Editor:** James Ferris
 **Date:** October 2026
 **Supersedes:** v0.16
-**Companion documents:** WebRTC Media Binding 1.0 (`dsip-webrtc-media-binding-v0.17.md`); Gateway Profile 1.0 (`dsip-gateway-profile-v0.17.md`); Messaging Profile 1.0 (`dsip-messaging-profile-v0.17.md`, with its schema set `dsip-messaging-schemas-draft/`); RTP/SRTP Media Binding (draft, `dsip-rtp-srtp-media-binding-v0.17-draft.md`); DHT Hints Profile (draft, `dsip-dht-hints-profile-v0.17-draft.md`); Alias Transparency Profile (draft, `dsip-alias-transparency-profile-v0.17-draft.md`); Device Events Profile (draft, `dsip-device-events-profile-v0.17-draft.md`); Recording Profile (draft, `dsip-recording-profile-v0.17-draft.md`); Number Attestation Profile (draft, `dsip-number-attestation-profile-v0.17-draft.md`); Presence Profile (draft, `dsip-presence-profile-v0.17-draft.md`); JSON Schema set v0.17 (`dsip-schemas-v0.17-draft/`); conformance vectors (`impl/vectors/`, 2,209 vectors on which the Python harness, the Rust reference implementation and the independent TypeScript implementation agree)
+**Companion documents:** WebRTC Media Binding 1.0 (`dsip-webrtc-media-binding-v0.17.md`); Gateway Profile 1.0 (`dsip-gateway-profile-v0.17.md`); Messaging Profile 1.0 (`dsip-messaging-profile-v0.17.md`, with its schema set `dsip-messaging-schemas-draft/`); RTP/SRTP Media Binding (draft, `dsip-rtp-srtp-media-binding-v0.17-draft.md`); DHT Hints Profile (draft, `dsip-dht-hints-profile-v0.17-draft.md`); Alias Transparency Profile (draft, `dsip-alias-transparency-profile-v0.17-draft.md`); Device Events Profile (draft, `dsip-device-events-profile-v0.17-draft.md`); Recording Profile (draft, `dsip-recording-profile-v0.17-draft.md`); Number Attestation Profile (draft, `dsip-number-attestation-profile-v0.17-draft.md`); Presence Profile (draft, `dsip-presence-profile-v0.17-draft.md`); JSON Schema set v0.17 (`dsip-schemas-v0.17-draft/`); conformance vectors (`impl/vectors/`, 2,323 vectors on which the Python harness, the Rust reference implementation and the independent TypeScript implementation agree)
 
 ---
 
@@ -2632,7 +2632,9 @@ listed with its spec-gap number.
 
 ### A.14 From v0.16 to v0.17
 
-v0.16 is final at tag `poc-v0.16`. v0.17 is in progress. Each item is listed with its spec-gap number.
+v0.16 is final at tag `poc-v0.16`; v0.17 is final at tag `poc-v0.17`. v0.17 adds the Presence Profile (draft), the
+core messages and fields it needs, and three Messaging Profile clarifications. Each item is listed with its spec-gap
+number.
 
 - The Presence Profile (`presence/0.1`, draft, cited `P§n`; spec-gaps 134–137): a device publishes its signed §9.4
   `presence` record to its authority (P§3); records are per device and a subscriber combines them by a fixed rule
@@ -2666,6 +2668,15 @@ v0.16 is final at tag `poc-v0.16`. v0.17 is in progress. Each item is listed wit
 - Presence records MAY be sealed to subscribers (`presence/0.2`, P§12; spec-gaps 152–157, §9.4): the record carries
   `kid` and `sealed_state` in place of `state`, keys are derived from the identity's key agreement secret, and a grant
   MAY carry them as `presence_keys` (§19.4). The reason `presence.sealed-invalid` joins the `presence` category.
+- Within the Presence Profile only: a device with no record this subscriber may see counts in the authority's
+  assertion for that subscriber, so the body differs per subscription (spec-gap 146, P§4, P§6); presence has one
+  path, through the authority, and none through messaging groups (spec-gap 148, P§11); grants that rotate
+  keys form a chain revoked whole, newest first (spec-gap 159, P§12.5, P§7); a publisher leaves a margin over the
+  authority's publish interval (spec-gap 160, P§8); an ending grant rotates the scopes it carried keys for (spec-gap
+  161, P§12.5); a grant whose keys cannot be sealed or opened stands without them (spec-gap 162, P§12.3).
+- In the Messaging Profile, three clarifications (Appendix M-B): an item whose processing fails is treated as
+  processed (spec-gap 138, M§5.4); the successor check's roster counts every leaf's identity, lapsed or not (spec-gap
+  139, M§7.5); a second key under an `akid` already held is ignored (spec-gap 140, M§12.1).
 
 ---
 
