@@ -322,7 +322,7 @@ attempt — through a scripted event sequence with a mock clock.
 
 | event | meaning |
 |---|---|
-| `{"local":"place_call","session":ID,"to":DID}` | send `invite` (id = session), start T-Establish; when the endpoint holds a grant issued by `to`'s identity, the `send` carries `grant` (its id, §19.4); a session this endpoint already holds, live or ended, is `refused invalid-state` — an id is used once (§12.9; spec-gap 90) |
+| `{"local":"place_call","session":ID,"to":DID}` | send `invite` (id = session), start T-Establish; when the endpoint holds a live grant with `dsip.invite` issued by `to`'s identity, the `send` carries `grant` (its id, §19.4); a grant past its `valid_until`, or one without `dsip.invite`, is not named (spec-gap 151); a session this endpoint already holds, live or ended, is `refused invalid-state` — an id is used once (§12.9; spec-gap 90) |
 | `{"local":"cancel","session":ID}` | user abandons → `cancel user.cancelled` |
 | `{"local":"hangup","session":ID,"reason":TOKEN?}` | `bye` with `reason` (default `user.hangup`; the media layer uses `media.failed`, B§8) |
 | `{"local":"alert","session":ID,"ring_timeout":N?}` | policy admits invite → `progress ringing`, start T-Ring-Local |
@@ -341,9 +341,9 @@ attempt — through a scripted event sequence with a mock clock.
 | `{"local":"issue_token","token":S,"grant_id":ULID}` | pre-authorize an out-of-band contact token: the first introduction carrying it surfaces `introduction_received {token: true}` and is auto-granted at once — id `grant_id`, scope `["dsip.invite"]`, `valid_until` = now + 31,536,000 (Impl) — and the token is consumed |
 
 `context.policy` = `{"first_contact_required": bool, "allow": [identity DIDs]}` (default: off).
-With the policy on, an invite from an identity holding no live `dsip.invite` grant (matched by
-the invite's `grant` reference or by grantee) and not in `allow` is auto-rejected
-`policy.first-contact-required` without alerting. Introductions never create a session.
+With the policy on, an invite from an identity that is the grantee of no live `dsip.invite` grant and not in `allow`
+is auto-rejected `policy.first-contact-required` without alerting. The invite's `grant` reference plays no part: it
+neither admits an identity that is not the grantee nor refuses one that is (spec-gap 151). Introductions never create a session.
 | `{"recv": MSG}` | a **verified** message arrives (signature, replay, schema already passed) |
 | `{"advance": SECONDS}` | advance the mock clock; expired timers fire in deadline order, ties by start order |
 
@@ -2323,6 +2323,9 @@ Each item has a matching `spec-gap` issue draft in `impl/docs/spec-gaps.md`.
 149. §9.3 / P§6: **decided** (v0.17, (a)) — a presence target is seen when it has bound here or the authority holds a
     policy or an issued capability for it, so a capability admits before its target ever binds; a publication target
     when it is published (`state/presence-capability-makes-target-seen`).
+151. §19.4: **decided** (v0.17, (a)) — an invite is admitted by grantee only; its `grant` field never admits and never
+    refuses, and a sender names only a live `dsip.invite` grant it holds from the callee
+    (`state/first-contact-grant-reference-is-a-hint`, `state/first-contact-initiator-references-only-a-live-invite-grant`).
 152. P§12.3 / §19.4: **decided** (v0.17, D1 (b)) — a grant carries the subject's sealed-presence keys as
     `presence_keys`, HPKE to the grantee identity (`presence/grant-keys-*`, `payload/grant-presence-keys-*`).
 153. P§12.1: **decided** (v0.17, (ii)) — a sealed audience is an opaque tag derived from the identity's key agreement

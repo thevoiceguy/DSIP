@@ -2,7 +2,7 @@
   "vector": "state/first-contact-responder-grant",
   "format": 1,
   "kind": "state",
-  "description": "Ungranted invite → policy.first-contact-required (no alerting); introduction lands in the requests surface; grant admits invites by grant id or by grantee; revocation closes the door again.",
+  "description": "Ungranted invite → policy.first-contact-required (no alerting); introduction lands in the requests surface; the grant admits its grantee's invites, naming it or not; revocation closes the door again.",
   "spec_ref": [
     "§19.4"
   ],

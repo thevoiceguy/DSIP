@@ -732,7 +732,7 @@ def vectors() -> list[dict]:
     intro1 = {"type": "introduction", "id": I1, "from": CAR, "to": BOB, "purpose": "Met at the meetup."}
     out.append(fctrace("first-contact-responder-grant",
                        "Ungranted invite → policy.first-contact-required (no alerting); introduction lands in the requests surface; "
-                       "grant admits invites by grant id or by grantee; revocation closes the door again.", BOBPH_SELF, [
+                       "the grant admits its grantee's invites, naming it or not; revocation closes the door again.", BOBPH_SELF, [
         fcstep({"recv": msg("invite", "inv-a", CAR, None, NOW, to=BOB, expires_at=NOW + 30)},
                [S(type="reject", to=CAR, session=uid("inv-a"), reason="policy.first-contact-required")],
                {uid("inv-a"): sess("responder", "ENDED")}, contacts()),
@@ -833,6 +833,28 @@ def vectors() -> list[dict]:
         fcstep({"local": "regrant", "grant": G2, "id": G3, "scope": ["dsip.invite"], "valid_until": NOW + 300},
                [{"refused": "unknown-grant"}]),
     ]))
+    out.append(fctrace("first-contact-grant-reference-is-a-hint",
+                       "An invite is admitted when its identity is the grantee of a live dsip.invite grant; the invite's grant "
+                       "field never admits and never refuses (spec-gap 151). Carol's invites naming the grant her live one "
+                       "replaced, or a grant that does not exist, are offered; Alice, granted nothing, is refused though her "
+                       "invite names Carol's live grant.", BOBPH_SELF, [
+        fcstep({"recv": intro1}, [UI("introduction_received", **{"from": CAROL})]),
+        fcstep({"local": "grant", "introduction": I1, "id": G1, "scope": ["dsip.invite"], "valid_until": year},
+               [S(type="grant", to=CAROL, session=I1, id=G1, scope=["dsip.invite"], valid_until=year)], {}, contacts(grants_issued=[G1])),
+        fcstep({"local": "regrant", "grant": G1, "id": G2, "scope": ["dsip.invite"], "valid_until": year},
+               [{"revoke": [G1]}, S(type="grant", to=CAROL, session=G1, id=G2, scope=["dsip.invite"], valid_until=year)], {},
+               contacts(grants_issued=[G2])),
+        fcstep({"recv": msg("invite", "inv-b", CAR, None, NOW + 10, to=BOB, expires_at=NOW + 40, grant=G1)},
+               [UI("offered")], {uid("inv-b", NOW + 10): sess("responder", "OFFERED")}),
+        fcstep({"recv": msg("invite", "inv-c", CAR, None, NOW + 11, to=BOB, expires_at=NOW + 41, grant=G9)},
+               [UI("offered")], {uid("inv-c", NOW + 11): sess("responder", "OFFERED")}),
+        fcstep({"recv": msg("invite", "inv-d", APH, None, NOW + 12, to=BOB, expires_at=NOW + 42, grant=G2)},
+               [S(type="reject", to=APH, session=uid("inv-d", NOW + 12), reason="policy.first-contact-required")],
+               {uid("inv-d", NOW + 12): sess("responder", "ENDED")}),
+        fcstep({"recv": msg("invite", "inv-e", APH, None, NOW + 13, to=BOB, expires_at=NOW + 43, grant=G9)},
+               [S(type="reject", to=APH, session=uid("inv-e", NOW + 13), reason="policy.first-contact-required")],
+               {uid("inv-e", NOW + 13): sess("responder", "ENDED")}, contacts(grants_issued=[G2])),
+    ]))
     out.append(fctrace("first-contact-reject-and-silence",
                        "Rejecting an introduction is a policy choice naming the introduction id and addressed, like a grant, to the "
                        "introducing identity (spec-gap 74); ignoring it is the default; granting an unknown introduction is refused.",
@@ -901,6 +923,25 @@ def vectors() -> list[dict]:
         fcstep({"advance": 100}, []),
         fcstep({"recv": msg("grant", "grant-2", BPH, G1, NOW + 100, scope=["dsip.invite"], valid_until=year)},
                [{"drop": "unknown-introduction"}], {}, contacts(grants_held=[G1])),
+    ], policy={}))
+    SID2 = uid("sess-2", NOW + 100)
+    out.append(fctrace("first-contact-initiator-references-only-a-live-invite-grant",
+                       "Sender side: an invite names only a live grant with dsip.invite held from the callee (spec-gap 151). "
+                       "A calls grant past its valid_until is not named, and neither is a live grant for presence only.",
+                       ALICE_SELF, [
+        fcstep({"local": "introduce", "id": I1, "to": BOB, "purpose": "Met at the meetup."},
+               [S(type="introduction", to=BOB, id=I1, purpose="Met at the meetup.")], {}, contacts(pending_sent=[I1])),
+        fcstep({"recv": msg("grant", "grant-1", BPH, I1, NOW + 5, scope=["dsip.invite"], valid_until=NOW + 100)},
+               [UI("granted", by=BOB)], {}, contacts(grants_held=[G1])),
+        fcstep({"advance": 100}, []),
+        fcstep({"local": "place_call", "session": sid, "to": BOB},
+               [S(type="invite", to=BOB, session=sid), TS("T-Establish", 15)], {sid: sess("initiator", "INVITING")}),
+        fcstep({"local": "introduce", "id": I2, "to": BOB, "purpose": "Met at the meetup."},
+               [S(type="introduction", to=BOB, id=I2, purpose="Met at the meetup.")]),
+        fcstep({"recv": msg("grant", "grant-p", BPH, I2, NOW + 100, scope=["dsip.subscribe"], valid_until=year)},
+               [UI("granted", by=BOB)]),
+        fcstep({"local": "place_call", "session": SID2, "to": BOB},
+               [S(type="invite", to=BOB, session=SID2), TS("T-Establish", 15)], {SID2: sess("initiator", "INVITING")}),
     ], policy={}))
     out.append(fctrace("first-contact-initiator-rejected", "Sender side: the introduction is declined.", ALICE_SELF, [
         fcstep({"local": "introduce", "id": I1, "to": BOB, "purpose": "Met at the meetup.", "contact_token": "tok-1"},

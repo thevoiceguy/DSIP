@@ -96,7 +96,7 @@ export class Endpoint {
   private readonly requests = new Map<string, { device: string; identity: string }>(); // by introduction id
   private readonly pendingSent = new Set<string>();
   private readonly grantsIssued = new Map<string, Grant>();
-  private readonly grantsHeld = new Map<string, { by: string; valid_until: number }>(); // grant id → granting identity, life
+  private readonly grantsHeld = new Map<string, { by: string; valid_until: number; scope: string[] }>(); // grant id → granting identity, life, scope
   private readonly tokens = new Map<string, string>(); // contact token → grant id to issue
   // P§12.4, P§12.5: presence keys
   private readonly sealed: Set<string>;
@@ -266,8 +266,11 @@ export class Endpoint {
         if (s) return void this.emit.push({ refused: "invalid-state" });
         const to = e["to"] as string;
         this.sessions.set(id, { role: "initiator", state: "INVITING", to, outstanding: null, media: false, requeues: 0, initiatorSpoke: false });
-        // §19.4: the grantee MAY reference a held grant in the invite's `grant` field
-        const held = [...this.grantsHeld.entries()].find(([, g]) => g.by === this.identityOf(to))?.[0];
+        // §19.4: the grantee MAY reference a held grant in the invite's `grant` field: only one that admits the
+        // invite, i.e. live and carrying `dsip.invite` (spec-gap 151)
+        const held = [...this.grantsHeld.entries()].find(
+          ([, g]) => g.by === this.identityOf(to) && g.valid_until > this.now && g.scope.includes("dsip.invite"),
+        )?.[0];
         this.send("invite", to, { session: id, ...(held !== undefined ? { grant: held } : {}) });
         this.start("T-Establish", id, this.ctx.timers?.t_establish ?? T_ESTABLISH);
         return;
@@ -708,12 +711,13 @@ export class Endpoint {
     this.emit.push({ ui: "offered" });
   }
 
-  /** §19.4: a live grant admits an invite by `grant` reference or by grantee, and only with `dsip.invite`. */
+  /** §19.4: a live grant with `dsip.invite` issued to the inviting identity admits the invite. The invite's `grant`
+   *  reference only helps find it: it never admits and never refuses on its own (spec-gap 151). */
   private admitted(invite: JsonObject): boolean {
     const identity = this.identityOf(invite["from"] as string);
     if ((this.ctx.policy?.allow ?? []).includes(identity)) return true;
     return [...this.grantsIssued.values()].some(
-      (g) => (g.id === invite["grant"] || g.grantee === identity) && g.valid_until > this.now && g.scope.includes("dsip.invite"),
+      (g) => g.grantee === identity && g.valid_until > this.now && g.scope.includes("dsip.invite"),
     );
   }
 
@@ -751,7 +755,7 @@ export class Endpoint {
       return void this.emit.push({ drop: "unknown-introduction" });
     }
     if (m["type"] === "grant") {
-      this.grantsHeld.set(m["id"] as string, { by, valid_until: m["valid_until"] as number });
+      this.grantsHeld.set(m["id"] as string, { by, valid_until: m["valid_until"] as number, scope: (m["scope"] as string[] | undefined) ?? [] });
       // P§12.4: the keys it carried; per scope, those of the two highest epochs are kept
       for (const k of (m["presence_keys"] as Json[] | undefined) ?? []) {
         const kid = parseKid(k);

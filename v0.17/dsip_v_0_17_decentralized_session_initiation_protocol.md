@@ -1900,7 +1900,7 @@ Three outcomes, deliberately including silence:
 }
 ```
 
-   The grant is the consent receipt (§19.3) in message form: `scope` names what it permits (registry `dsip-grant-scope`; initial values `dsip.invite`, `dsip.subscribe`, and `dsip.message` for the Messaging Profile since v0.8), and `valid_until` bounds its life independently of the envelope's delivery expiry. The recipient's endpoint and relay record the grant; the grantee also holds the signed grant and MAY reference it in a future invite via the optional `grant` field (the grant's `id`) to aid stateless or migrated relays. A live grant admits an invite when the invite's `grant` names it **or** the inviting identity is the grantee — the `grant` field is an optimisation, never a requirement — and a grant admits only the operations in its `scope`: an invite requires `dsip.invite`. Grants are revocable: revocation is local policy at the granting side, optionally propagated as a signed `grant-revocation` (below).
+   The grant is the consent receipt (§19.3) in message form: `scope` names what it permits (registry `dsip-grant-scope`; initial values `dsip.invite`, `dsip.subscribe`, and `dsip.message` for the Messaging Profile since v0.8), and `valid_until` bounds its life independently of the envelope's delivery expiry. The recipient's endpoint and relay record the grant; the grantee also holds the signed grant and MAY reference it in a future invite via the optional `grant` field (the grant's `id`) to aid stateless or migrated relays. A live grant admits an invite when the inviting identity is its grantee, and a grant admits only the operations in its `scope`: an invite requires `dsip.invite`. The invite's `grant` field is an optimisation, never a requirement (v0.17, spec-gap 151): it helps a relay find the grant, but it never admits an identity that is not the grantee, and it never refuses one that is, even when it names a grant since replaced or one the recipient does not know. A grantee references only a live grant with `dsip.invite` that it holds from the callee. Grants are revocable: revocation is local policy at the granting side, optionally propagated as a signed `grant-revocation` (below).
 
    A grant MAY carry `presence_audience` (v0.17, spec-gap 145): the audience, a token `[a-z][a-z0-9-]*` of at most 64 characters chosen by the grantor, whose presence records a subscriber admitted by this grant sees (Presence Profile P§6). It MAY carry `presence_keys`
    (spec-gaps 152, 157): the keys of the grantor's sealed presence records that the grantee may read, HPKE-sealed to the
@@ -2654,6 +2654,9 @@ v0.16 is final at tag `poc-v0.16`. v0.17 is in progress. Each item is listed wit
 - A presence target is *seen*, for the uniform reject, when it has bound within the authority's retention or the
   authority holds a policy or an issued capability for it (spec-gap 149, §9.3): a capability admits before its target
   first binds.
+- An invite is admitted when its identity is the grantee of a live `dsip.invite` grant (spec-gap 151, §19.4); its
+  `grant` field is a hint that never admits or refuses on its own, so an invite in flight that names a grant since
+  replaced still gets through, and naming someone else's grant gets nobody in.
 - A grant MAY follow a live grant without a new introduction (spec-gap 150, §19.4): its `session` names the grant it
   replaces, and the grantee holds it in place of the old one. A share's audience or length changes this way, and a
   share ends while calls stay.
