@@ -410,6 +410,9 @@ jobs:
       - run: node impl/web/test/engine.mjs
       - run: npm ci
         working-directory: impl/web
+      - name: the page's types against the wasm declarations, and the Emission declaration against the state vectors
+        run: node test/types/emissions.mjs && npx tsc -p .
+        working-directory: impl/web
       - run: npx playwright install --with-deps firefox chromium
         working-directory: impl/web
       - name: the client's headless tests through a local relay and the gateway fixture (Firefox, then Chromium)
