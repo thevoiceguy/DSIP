@@ -187,6 +187,12 @@ jobs:
         # only the record with no audience, and the share ends the watch at its valid_until (policy.terminated).
         run: timeout 300 bash demos/presence-audiences-demo.sh | tail -16
         working-directory: impl
+      - name: sealed presence (Presence Profile draft, P§12)
+        # Self-verifying: Bob seals his presence; the grants carry the keys and Alice and Carol open his records, Dave's
+        # keyless grant sees them unreadable; ending Alice's share revokes her grant, rotates main and re-grants Carol;
+        # Bob's laptop adopts the phone's epoch from its own watch.
+        run: timeout 300 bash demos/presence-sealed-demo.sh | tail -16
+        working-directory: impl
       - name: reachability hints on Pkarr (v0.9 draft)
         # Self-verifying: Bob publishes _dsip records signed by his did:key to two Pkarr relays (local stand-ins of the
         # HTTP API); Alice, knowing only his did:key, rejects a hostile relay's forged newer packet and calls him through

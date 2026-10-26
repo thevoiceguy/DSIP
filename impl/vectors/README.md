@@ -2347,7 +2347,7 @@ Each item has a matching `spec-gap` issue draft in `impl/docs/spec-gaps.md`.
 161. P§12.5: **decided** (v0.17, (a)) — an ending grant rotates the scopes it carried keys for, except those the grant
     changing the share carries too (`state/presence-keys-changed-share-rotates-what-is-lost`, `-only-for-sealed-scopes`,
     `-valid-until-rotates`).
-162. P§12.3: **drafted** (v0.17, (a)) — a grant whose `presence_keys` cannot be sealed or opened stands without
+162. P§12.3: **decided** (v0.17, (a)) — a grant whose `presence_keys` cannot be sealed or opened stands without
     keys; the subject's sealed records stay unreadable to its grantee. Core behaviour, outside the vector kinds
     (`dsip-endpoint` `tests/presence_keys.rs`).
 141. §12.9: **decided** (v0.17) — `expires_at` is exclusive everywhere: expired when `now ≥ expires_at`, at receipt and
