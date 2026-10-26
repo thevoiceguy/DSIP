@@ -263,7 +263,7 @@ at the authority.
     so revocations of a share and its chain go from Core; `dsip answer --seal-presence` (keys in grants, audience labels
     sent as tags), `dsip presence publish --sealed` (records sealed, the device's own watch adopting a sibling's epoch),
     `dsip presence watch` listing `presence/0.2` and opening records with the keys held; `demos/presence-sealed-demo.sh`.
-  - **E3b — the browser** (this PR): Settings "seal my presence" seals `main` and every audience (a label sent as
+  - **E3b — the browser** (#252, merged): Settings "seal my presence" seals `main` and every audience (a label sent as
     its tag; sealing is fixed when the engine starts, so turning it on, or adding an audience while on, loads the page
     again); grants carry the keys; the wasm host gives Core its relay (`set_authority`), so Core sends the
     revocations of a share and its chain and the page no longer does; records signed with `sign_presence` and sent
@@ -272,4 +272,6 @@ at the authority.
     identity's key (enrolled without its seed) does not seal, and Settings says why. `web/test/presence-sealed.mjs`.
     Found on the way: a refused subscription's watch stayed in the wasm and was shown as offline; it is dropped now,
     and a watch is listed only once answered.
-  - **E3c — the testbed**: the relay and web redeployed and a sealed WAN presence check.
+  - **E3c — the testbed** (done 2026-10-26): the L1/L2 relays and web client redeployed from #252's merge, and a
+    sealed WAN presence check, `tools/wan/browser-presence-sealed.mjs` (Bob on L2, Alice on L1, Firefox): Alice read
+    Bob's sealed records, and his revocation ended her watch and moved both keys to epoch 1; nothing went out unsealed.

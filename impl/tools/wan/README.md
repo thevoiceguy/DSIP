@@ -447,6 +447,25 @@ both ways with delivered receipts; Alice reloads and keeps the thread. Each side
 mailbox bound, personal group, grant, mailbox lookup, conversation, accepted, delivered, reply, in ms). Recorded as
 `client-6` in `impl/docs/dht-wan-results.jsonl`.
 
+### Run 6c — presence across operators (P§3–P§7, P§12)
+Three more browser pairs, run like Run 6b, with `tools/wan/browser-pair.sh` (Bob on relay B, Alice on relay A; it
+prints each side's JSON record and exits non-zero unless both are `ok`):
+- `presence` (`browser-presence.mjs`): Alice watches Bob at his relay, found through his hint. Presence is private
+  (P§6): his relay refuses her and she answers with nothing (§9.3). Bob grants her introduction; she presents the
+  grant and shows busy, then do-not-disturb, from his signed records (P§3, P§4).
+- `presence-audiences` (`browser-presence-audiences.mjs`): Bob grants Alice his `family` audience; she sees both
+  records combined, busy and then dnd (P§6).
+- `presence-sealed` (`browser-presence-sealed.mjs`): Bob turns sealing on. His records go sealed, `family` as its
+  tag (P§12.1, P§12.2), and his grant carries the keys (P§12.3). Alice reads busy, then dnd (P§12.4). Bob revokes:
+  his relay ends her watch (P§7), both keys rotate to epoch 1 and his records go again under it (P§12.5). It fails
+  if any record goes out unsealed.
+
+```bash
+cd tools/wan && URL_A=https://<relay-a>:8443/ URL_B=https://<relay-b>:8443/ ./browser-pair.sh presence-sealed
+```
+Each message run enrols two devices at the mailboxes, which release them only after 30 days idle: watch `free` in
+`dsipctl mailbox-status` across many runs.
+
 ---
 
 ## 4. Teardown / reset between runs
