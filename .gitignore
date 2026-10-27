@@ -15,4 +15,4 @@ impl/crates/dsip-node/dist/
 impl/web/pkg/
 impl/web/node_modules/
 impl/demos/browser/
-impl/web/test/types/emissions.gen.ts
+impl/web/test/types/vectors.gen.ts
