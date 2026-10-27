@@ -411,7 +411,7 @@ jobs:
       - run: npm ci
         working-directory: impl/web
       - name: the page's types against the wasm declarations, and the hand-declared shapes against the vectors
-        run: node test/types/vectors.mjs && npx tsc -p .
+        run: npm run types
         working-directory: impl/web
       - run: npx playwright install --with-deps firefox chromium
         working-directory: impl/web
