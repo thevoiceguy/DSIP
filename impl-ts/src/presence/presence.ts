@@ -3,7 +3,7 @@
  * devices, and the authority's assertion, into one identity's presence.
  *
  * Spec: P§4 (the combining rule), P§5 (`dsip-presence-state`, open, unknown → `available`)
- * (`v0.17/dsip-presence-profile-v0.17-draft.md`). Contract: `impl/vectors/README.md`, "Kind: `presence`".
+ * (`v1.0/dsip-presence-profile-v1.0-draft.md`). Contract: `impl/vectors/README.md`, "Kind: `presence`".
  * The authority's side (publishing, the body, expiry, grace) is `../broadcast-state.ts`.
  */
 import type { Json, JsonObject } from "../did.js";

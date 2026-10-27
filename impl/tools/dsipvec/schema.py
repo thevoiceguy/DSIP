@@ -17,7 +17,7 @@ from jsonschema.exceptions import ValidationError
 from .registry import MESSAGE_TYPES
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-SCHEMA_DIR = REPO_ROOT / "v0.17" / "dsip-schemas-v0.17-draft" / "dsip-schemas" / "schemas"
+SCHEMA_DIR = REPO_ROOT / "v1.0" / "dsip-schemas-v1.0" / "dsip-schemas" / "schemas"
 
 # `info.data` shapes by `about` (§12.12): validated for bindings this harness implements, ignored otherwise.
 BINDING_DATA_SCHEMAS = {"transport:webrtc": "webrtc-info-data", "media:dtmf": "dtmf-info-data"}

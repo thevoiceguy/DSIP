@@ -12,7 +12,7 @@ In the phone network, and in most SIP deployments, the carrier is the authority:
 - **Servers carry traffic but vouch for nothing.** Relays, mailboxes and DHT nodes move and store messages. None of them can impersonate a user, and none of them is an authority on who a user is.
 - **The receiver decides before media flows.** A call arrives with a verified identity, its trust tier, and its policies on recording, transcription and AI processing. Media starts only after a signed answer.
 
-**Status.** The current revision is v0.17, in progress (v0.16 is final, October 2026). Its core wire protocol is version `1.0`, and that wire protocol has not changed since v0.12. The core, the WebRTC Media Binding, the Gateway Profile and the Messaging Profile are normative 1.0 text. Seven further profiles are drafts. A suite of 2,209 language-neutral test vectors pins the behaviour, and three implementations (Python, Rust and TypeScript) agree on every vector.
+**Status.** The current revision is DSIP Core 1.0, in progress (v0.17 is final, October 2026): the v0.17 text declared normative 1.0, with a stated rule for what a later 1.x may change (§11.4). Its wire protocol has been version `1.0` throughout, and its state machine and envelope rules have not changed since v0.12. The core, the WebRTC Media Binding, the Gateway Profile and the Messaging Profile are normative 1.0 text. Seven further profiles are drafts. A suite of 2,323 language-neutral test vectors pins the behaviour, and three implementations (Python, Rust and TypeScript) agree on every vector.
 
 ## How it works
 
@@ -116,17 +116,17 @@ The specification is a small core plus companion profiles, each cited by its own
 
 | Document | Prefix | Status | What it covers |
 | --- | --- | --- | --- |
-| [DSIP core](../v0.17/dsip_v_0_17_decentralized_session_initiation_protocol.md) | §n | 1.0 wire, v0.17 text | Identity, discovery, envelopes, the call state machine, the `ws/1.0` relay binding, reason codes, first contact, Verified Broadcast |
-| [WebRTC Media Binding](../v0.17/dsip-webrtc-media-binding-v0.17.md) | B§n | 1.0 | How WebRTC media (ICE, DTLS-SRTP, SDP) rides DSIP, and how media is tied to the signed identity |
-| [Gateway Profile](../v0.17/dsip-gateway-profile-v0.17.md) | G§n | 1.0 | Interworking with SIP and the PSTN |
-| [Messaging Profile and Mailbox](../v0.17/dsip-messaging-profile-v0.17.md) | M§n | 1.0 | Mailboxes, hubs, MLS groups, content, voicemail, history |
-| [RTP/SRTP Media Binding](../v0.17/dsip-rtp-srtp-media-binding-v0.17-draft.md) | R§n | Draft | Non-WebRTC RTP media, as SIP trunks use |
-| [DHT Reachability Hints](../v0.17/dsip-dht-hints-profile-v0.17-draft.md) | (core §8.5) | Draft | Hint records, the DSIP overlay DHT and Pkarr |
-| [Alias Transparency](../v0.17/dsip-alias-transparency-profile-v0.17-draft.md) | T§n | Draft | Auditable alias lookups on KEYTRANS; proof checking waits for KEYTRANS -06 |
-| [Number Attestation](../v0.17/dsip-number-attestation-profile-v0.17-draft.md) | N§n | Draft | Binding phone numbers to DIDs; a live trial needs a pilot partner |
-| [Recording](../v0.17/dsip-recording-profile-v0.17-draft.md) | C§n | Draft | Recording with consent, and metadata-only call records |
-| [Device Events](../v0.17/dsip-device-events-profile-v0.17-draft.md) | E§n | Draft | Network alarms (SNMP, syslog) delivered as encrypted messages |
-| [Presence](../v0.17/dsip-presence-profile-v0.17-draft.md) | P§n | Draft | A device's signed presence published to its authority, several devices combined into one presence |
+| [DSIP core](../v1.0/dsip_v_1_0_decentralized_session_initiation_protocol.md) | §n | 1.0 | Identity, discovery, envelopes, the call state machine, the `ws/1.0` relay binding, reason codes, first contact, Verified Broadcast |
+| [WebRTC Media Binding](../v1.0/dsip-webrtc-media-binding-v1.0.md) | B§n | 1.0 | How WebRTC media (ICE, DTLS-SRTP, SDP) rides DSIP, and how media is tied to the signed identity |
+| [Gateway Profile](../v1.0/dsip-gateway-profile-v1.0.md) | G§n | 1.0 | Interworking with SIP and the PSTN |
+| [Messaging Profile and Mailbox](../v1.0/dsip-messaging-profile-v1.0.md) | M§n | 1.0 | Mailboxes, hubs, MLS groups, content, voicemail, history |
+| [RTP/SRTP Media Binding](../v1.0/dsip-rtp-srtp-media-binding-v1.0-draft.md) | R§n | Draft | Non-WebRTC RTP media, as SIP trunks use |
+| [DHT Reachability Hints](../v1.0/dsip-dht-hints-profile-v1.0-draft.md) | (core §8.5) | Draft | Hint records, the DSIP overlay DHT and Pkarr |
+| [Alias Transparency](../v1.0/dsip-alias-transparency-profile-v1.0-draft.md) | T§n | Draft | Auditable alias lookups on KEYTRANS; proof checking waits for KEYTRANS -06 |
+| [Number Attestation](../v1.0/dsip-number-attestation-profile-v1.0-draft.md) | N§n | Draft | Binding phone numbers to DIDs; a live trial needs a pilot partner |
+| [Recording](../v1.0/dsip-recording-profile-v1.0-draft.md) | C§n | Draft | Recording with consent, and metadata-only call records |
+| [Device Events](../v1.0/dsip-device-events-profile-v1.0-draft.md) | E§n | Draft | Network alarms (SNMP, syslog) delivered as encrypted messages |
+| [Presence](../v1.0/dsip-presence-profile-v1.0-draft.md) | P§n | Draft | A device's signed presence published to its authority, several devices combined into one presence |
 
 JSON Schemas for every message ship beside the core and the Messaging Profile.
 
@@ -163,6 +163,6 @@ A differential fuzzer also drives random message sequences through all three and
 - **Security review** of envelope signing, delegation and revocation, relay anti-splicing, and the first-contact anti-enumeration rules. The underlying standards (MLS, JOSE, DIDs) are established; DSIP's use of them is not yet reviewed.
 - **Use cases for the next profiles:** call transfer, conferencing, and identity recovery.
 
-**Where to start.** The current documents are in [`v0.17/`](../v0.17/), starting with its [README](../v0.17/README.md); the vectors and their [README](../impl/vectors/README.md), which defines the order checks run in, are in [`impl/vectors/`](../impl/vectors/).
+**Where to start.** The current documents are in [`v1.0/`](../v1.0/), starting with its [README](../v1.0/README.md); the vectors and their [README](../impl/vectors/README.md), which defines the order checks run in, are in [`impl/vectors/`](../impl/vectors/).
 
 **Licences.** The specification documents are under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/): anyone may copy, adapt and build on them with attribution. The code, JSON Schemas and test vectors are under MIT or Apache-2.0, at the user's option, so any implementation, open or closed, can embed the schemas and run the vector suite.

@@ -6,7 +6,7 @@
  * Spec: P§12.1 (HKDF-SHA256 from the clamped X25519 secret: tags, key ids, keys), P§12.2 (the record:
  * `{"state":"S"}` padded to 128 bytes, AES-256-GCM, the AAD), P§12.3 (`presence_keys`: HPKE to the grantee),
  * P§12.4 (unreadable records, in order, take no part in combining)
- * (`v0.17/dsip-presence-profile-v0.17-draft.md`). Contract: `impl/vectors/README.md`, "Kind: `presence`".
+ * (`v1.0/dsip-presence-profile-v1.0-draft.md`). Contract: `impl/vectors/README.md`, "Kind: `presence`".
  */
 import { createCipheriv, createDecipheriv, createHmac } from "node:crypto";
 import type { Json, JsonObject } from "../did.js";

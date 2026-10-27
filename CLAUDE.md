@@ -19,9 +19,9 @@ Full plan: `impl/docs/dsip_poc_dev_plan.md`. Read it before large changes.
 ## Repository map
 
 ```
-v0.5/ … v0.17/      Spec snapshots. v0.17 is current and final at poc-v0.17 (v0.16 at poc-v0.16, v0.15 at poc-v0.15). NEVER edit v0.5 … v0.16.
-v0.17/dsip-schemas…  Canonical JSON Schemas (draft 2020-12) + generate_schemas.py
-v0.17/dsip-messaging-schemas-draft/  Messaging Profile schema set (own generator)
+v0.5/ … v0.17/, v1.0/  Spec snapshots. v1.0 (DSIP Core 1.0) is current, in progress (v0.17 final at poc-v0.17, v0.16 at poc-v0.16). NEVER edit v0.5 … v0.17.
+v1.0/dsip-schemas…  Canonical JSON Schemas (draft 2020-12) + generate_schemas.py
+v1.0/dsip-messaging-schemas-draft/  Messaging Profile schema set (own generator)
 impl/               PoC Cargo workspace (living code; tracks spec versions via
                     git tags poc-v0.6, poc-v0.7, poc-v0.8, poc-v0.8.1, …, never via folder placement)
 impl/vectors/       Language-neutral JSON test vectors (envelope/ payload/
@@ -82,7 +82,7 @@ shape checks. Never invert this.
    treat a DHT record, cache entry, or relay claim as authoritative.
 
 5. **Schemas are canonical in the spec folder.** Edit
-   `v0.17/…/generate_schemas.py`, never the generated schema files.
+   `v1.0/…/generate_schemas.py`, never the generated schema files.
    `dsip-schema` embeds schemas from the current spec folder at build time;
    the freshness check fails the build on drift. Regenerate after edits.
 
@@ -97,7 +97,7 @@ shape checks. Never invert this.
 
 - Every module, public type, and public function implementing normative
   behavior carries a doc comment (rustdoc; TSDoc in `impl-ts`) with a `Spec:`
-  line citing the current (v0.17) section (e.g. `Spec: §12.6`, `Spec: M§6.5`). Grep-able,
+  line citing the current (1.0) section (e.g. `Spec: §12.6`, `Spec: M§6.5`). Grep-able,
   consistent format; `spec_lint.py --check` enforces the Rust module headers.
 - Where code resolves a choice the spec leaves open, add an `Impl:` line
   explaining the decision. `Spec:` = citation, `Impl:` = decision. Never mix.
@@ -116,9 +116,9 @@ shape checks. Never invert this.
 
 ```bash
 # Schemas: regenerate after editing the generator, then sanity-check
-python3 v0.17/dsip-schemas-v0.17-draft/dsip-schemas/generate_schemas.py v0.17/dsip-schemas-v0.17-draft/dsip-schemas/schemas
-python3 v0.17/dsip-schemas-v0.17-draft/dsip-schemas/validate_samples.py
-python3 v0.17/dsip-messaging-schemas-draft/generate_schemas.py v0.17/dsip-messaging-schemas-draft/schemas
+python3 v1.0/dsip-schemas-v1.0/dsip-schemas/generate_schemas.py v1.0/dsip-schemas-v1.0/dsip-schemas/schemas
+python3 v1.0/dsip-schemas-v1.0/dsip-schemas/validate_samples.py
+python3 v1.0/dsip-messaging-schemas-draft/generate_schemas.py v1.0/dsip-messaging-schemas-draft/schemas
 
 # Vectors: regenerate + Python verdicts
 python3 impl/tools/generate_vectors.py
@@ -148,7 +148,7 @@ python3 impl/tools/dht_testnet.py --nodes 5
 pip installs in this environment need `--break-system-packages`.
 `impl/target/debug` grows without bound (it has filled the disk): `cargo clean --profile dev` when short of space.
 
-## Key spec sections (v0.17; numbering unchanged from v0.6) you will cite constantly
+## Key spec sections (1.0; numbering unchanged from v0.6) you will cite constantly
 
 | Section | Topic |
 |---|---|
@@ -162,16 +162,16 @@ pip installs in this environment need `--break-system-packages`.
 | §15 | Reason codes: `category.condition`, category fallback |
 | §19.4 | First contact: introduction/grant |
 | §22 | Verified Broadcast profile |
-| B§2–B§8 | WebRTC Media Binding 1.0 (`v0.17/dsip-webrtc-media-binding-v0.17.md`) — cite as `B§n` |
-| G§n | Gateway Profile 1.0 (`v0.17/dsip-gateway-profile-v0.17.md`) — cite as `G§n` |
-| M§n | Messaging Profile 1.0 (`v0.17/dsip-messaging-profile-v0.17.md`) — cite as `M§n` |
-| R§n | RTP/SRTP Media Binding, draft (`v0.17/dsip-rtp-srtp-media-binding-v0.17-draft.md`) — cite as `R§n` |
-| T§n | Alias Transparency Profile, draft (`v0.17/dsip-alias-transparency-profile-v0.17-draft.md`) — cite as `T§n` |
-| E§n | Device Events Profile, draft (`v0.17/dsip-device-events-profile-v0.17-draft.md`) — cite as `E§n` |
-| C§n | Recording Profile, draft (`v0.17/dsip-recording-profile-v0.17-draft.md`) — cite as `C§n` |
-| N§n | Number Attestation Profile, draft (`v0.17/dsip-number-attestation-profile-v0.17-draft.md`) — cite as `N§n` |
-| P§n | Presence Profile, draft (`v0.17/dsip-presence-profile-v0.17-draft.md`) — cite as `P§n` |
-| — | DHT Reachability Hints Profile, draft (`v0.17/dsip-dht-hints-profile-v0.17-draft.md`) — no prefix of its own; cite core §8.3 / §8.5 |
+| B§2–B§8 | WebRTC Media Binding 1.0 (`v1.0/dsip-webrtc-media-binding-v1.0.md`) — cite as `B§n` |
+| G§n | Gateway Profile 1.0 (`v1.0/dsip-gateway-profile-v1.0.md`) — cite as `G§n` |
+| M§n | Messaging Profile 1.0 (`v1.0/dsip-messaging-profile-v1.0.md`) — cite as `M§n` |
+| R§n | RTP/SRTP Media Binding, draft (`v1.0/dsip-rtp-srtp-media-binding-v1.0-draft.md`) — cite as `R§n` |
+| T§n | Alias Transparency Profile, draft (`v1.0/dsip-alias-transparency-profile-v1.0-draft.md`) — cite as `T§n` |
+| E§n | Device Events Profile, draft (`v1.0/dsip-device-events-profile-v1.0-draft.md`) — cite as `E§n` |
+| C§n | Recording Profile, draft (`v1.0/dsip-recording-profile-v1.0-draft.md`) — cite as `C§n` |
+| N§n | Number Attestation Profile, draft (`v1.0/dsip-number-attestation-profile-v1.0-draft.md`) — cite as `N§n` |
+| P§n | Presence Profile, draft (`v1.0/dsip-presence-profile-v1.0-draft.md`) — cite as `P§n` |
+| — | DHT Reachability Hints Profile, draft (`v1.0/dsip-dht-hints-profile-v1.0-draft.md`) — no prefix of its own; cite core §8.3 / §8.5 |
 
 ## Semantic checks (post-schema, must-implement)
 
@@ -187,7 +187,7 @@ failure is reported is normative in `impl/vectors/README.md`.
 
 ## Things Claude should NOT do
 
-- Do not edit generated schema files, anything in `v0.5/` … `v0.15/`,
+- Do not edit generated schema files, anything in `v0.5/` … `v0.17/`,
   or renumber spec sections without an explicit request.
 - Do not resolve a spec ambiguity silently — implement a choice only alongside
   an `Impl:` comment and a `spec-gap` issue.
