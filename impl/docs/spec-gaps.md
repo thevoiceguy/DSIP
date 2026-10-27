@@ -4881,3 +4881,26 @@ Choices:
 **Decided (2026-10-25, user: "162 (a)"): (a).** Every reason a grant exists other than presence (`dsip.invite`) is unaffected by its keys, and
 the failure shows where P§12.4 already shows it. Written into P§12.3 as drafted; `dsip-endpoint` `Core` implements it
 (`Impl:` notes in `core.rs`, `tests/presence_keys.rs`).
+
+## 163. §11.2 / §11.4 — what a 1.x revision may add, when the schemas are closed
+
+**Found (2026-10-27, assembling 1.0).** §11.2 says minor versions are backward-compatible, and 1.0 promises that a
+later 1.x keeps every conformant 1.0 implementation conformant. But every core payload schema is closed
+(`additionalProperties: false`), and the vectors pin it (`payload/invite-unknown-top-level-field` and seven more
+`*-extra-field*` vectors expect `schema-invalid`): a 1.0 receiver rejects a field it does not know. A 1.x that adds
+an optional field to an existing core message would therefore break 1.0 peers — as v0.17's `grant`
+`presence_audience` and `presence_keys` would have broken a v0.16 receiver.
+
+Choices:
+
+- **(a) Closed schemas; new fields negotiated.** No wire change. A 1.x may add message types (a 1.0 receiver refuses
+  them as unknown types, §12.1), registry entries (category fallback, §15), profiles and extensions. A field added to
+  an existing core message is defined by an extension or profile, and a sender includes it only for a receiver known
+  to support it: its `dsip.profiles` or `dsip.extensions` in a message it sent, its `hello` capabilities, or its DID
+  document. Anything else — a field every receiver must accept, a changed rule, a removal — is 2.0.
+- **(b) Must-ignore unknown fields.** 1.0 opens the schemas' top level; 1.x adds optional fields freely. A wire
+  change at 1.0: the extra-field vectors flip to accept, all three implementations change, and an unknown field no
+  longer fails loudly.
+- **(c) Closed schemas; any new field is 2.0.** 1.x adds only message types, tokens, profiles and extensions.
+
+**Decided (2026-10-27, user): (a).** Written into 1.0 as §11.4 "Stability of Core 1.0"; no schema or vector changes.

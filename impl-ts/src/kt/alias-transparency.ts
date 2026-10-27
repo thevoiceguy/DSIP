@@ -4,7 +4,7 @@
  * Configuration and tree head, the implicit binary search tree and the binary ladder. Stage 2's DSIP side (v0.14):
  * the query endpoint's answer, who may monitor, tree heads between peers, what a lookup result counts as.
  *
- * Spec: T§2, T§3, T§4, T§5, T§7, T§8, T§9, T§10 (`v0.17/dsip-alias-transparency-profile-v0.17-draft.md`); draft-ietf-keytrans-protocol
+ * Spec: T§2, T§3, T§4, T§5, T§7, T§8, T§9, T§10 (`v1.0/dsip-alias-transparency-profile-v1.0-draft.md`); draft-ietf-keytrans-protocol
  * for the structures. The exact byte layouts and output shapes are the vectors README's, "Kind: `alias-transparency`".
  */
 import { createHash, createHmac, createPublicKey, verify as cryptoVerify } from "node:crypto";

@@ -19,22 +19,22 @@ from pathlib import Path
 IMPL = Path(__file__).resolve().parents[1]
 CRATES = IMPL / "crates"
 VECTORS = IMPL / "vectors"
-SPEC = IMPL.parent / "v0.17"
+SPEC = IMPL.parent / "v1.0"
 # `§n` = Core section; a letter prefix names a v0.17 companion document: `B§n` WebRTC Media Binding,
 # `G§n` Gateway Profile, `M§n` Messaging Profile, `R§n` RTP/SRTP Media Binding, `E§n` Device Events Profile, `T§n` Alias Transparency,
 # `C§n` Recording Profile, `N§n` Number Attestation Profile, `P§n` Presence Profile.
 SECTION_RE = None  # built from DOCS below, so every companion prefix is recognised
 DOCS = {
-    "": ("Core", "dsip_v_0_17_decentralized_session_initiation_protocol.md", re.compile(r"^#{2,4} (\d+(?:\.\d+)*)[. ]")),
-    "B": ("WebRTC Media Binding", "dsip-webrtc-media-binding-v0.17.md", re.compile(r"^#{2,4} (\d+(?:\.\d+)*)[. ]")),
-    "G": ("Gateway Profile", "dsip-gateway-profile-v0.17.md", re.compile(r"^#{2,4} G§(\d+(?:\.\d+)*)")),
-    "M": ("Messaging Profile", "dsip-messaging-profile-v0.17.md", re.compile(r"^#{2,4} M§(\d+(?:\.\d+)*)")),
-    "R": ("RTP/SRTP Media Binding", "dsip-rtp-srtp-media-binding-v0.17-draft.md", re.compile(r"^#{2,4} R§(\d+(?:\.\d+)*)")),
-    "E": ("Device Events Profile", "dsip-device-events-profile-v0.17-draft.md", re.compile(r"^#{2,4} E§(\d+(?:\.\d+)*)")),
-    "T": ("Alias Transparency Profile", "dsip-alias-transparency-profile-v0.17-draft.md", re.compile(r"^#{2,4} T§(\d+(?:\.\d+)*)")),
-    "C": ("Recording Profile", "dsip-recording-profile-v0.17-draft.md", re.compile(r"^#{2,4} C§(\d+(?:\.\d+)*)")),
-    "N": ("Number Attestation Profile", "dsip-number-attestation-profile-v0.17-draft.md", re.compile(r"^#{2,4} N§(\d+(?:\.\d+)*)")),
-    "P": ("Presence Profile", "dsip-presence-profile-v0.17-draft.md", re.compile(r"^#{2,4} P§(\d+(?:\.\d+)*)")),
+    "": ("Core", "dsip_v_1_0_decentralized_session_initiation_protocol.md", re.compile(r"^#{2,4} (\d+(?:\.\d+)*)[. ]")),
+    "B": ("WebRTC Media Binding", "dsip-webrtc-media-binding-v1.0.md", re.compile(r"^#{2,4} (\d+(?:\.\d+)*)[. ]")),
+    "G": ("Gateway Profile", "dsip-gateway-profile-v1.0.md", re.compile(r"^#{2,4} G§(\d+(?:\.\d+)*)")),
+    "M": ("Messaging Profile", "dsip-messaging-profile-v1.0.md", re.compile(r"^#{2,4} M§(\d+(?:\.\d+)*)")),
+    "R": ("RTP/SRTP Media Binding", "dsip-rtp-srtp-media-binding-v1.0-draft.md", re.compile(r"^#{2,4} R§(\d+(?:\.\d+)*)")),
+    "E": ("Device Events Profile", "dsip-device-events-profile-v1.0-draft.md", re.compile(r"^#{2,4} E§(\d+(?:\.\d+)*)")),
+    "T": ("Alias Transparency Profile", "dsip-alias-transparency-profile-v1.0-draft.md", re.compile(r"^#{2,4} T§(\d+(?:\.\d+)*)")),
+    "C": ("Recording Profile", "dsip-recording-profile-v1.0-draft.md", re.compile(r"^#{2,4} C§(\d+(?:\.\d+)*)")),
+    "N": ("Number Attestation Profile", "dsip-number-attestation-profile-v1.0-draft.md", re.compile(r"^#{2,4} N§(\d+(?:\.\d+)*)")),
+    "P": ("Presence Profile", "dsip-presence-profile-v1.0-draft.md", re.compile(r"^#{2,4} P§(\d+(?:\.\d+)*)")),
 }
 DOC_ORDER = {p: i for i, p in enumerate(DOCS)}
 PREFIXES = "".join(p for p in DOCS if p)
