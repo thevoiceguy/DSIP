@@ -1,13 +1,15 @@
-# DSIP 1.0 — in progress
+# DSIP 1.0 — final
 
-1.0 is DSIP Core 1.0: the v0.17 text, final at tag `poc-v0.17`, declared normative 1.0. `../v0.17/` is frozen.
+DSIP Core 1.0 is final at tag `poc-v1.0`. It is the v0.17 text, final at tag `poc-v0.17`, declared normative 1.0,
+and `../v0.17/` is frozen. Errata to 1.0 are fixed in place here and listed in Appendix A; anything §11.4 does not
+allow a 1.x revision waits for 2.0.
 Appendix A.15 of `dsip_v_1_0_decentralized_session_initiation_protocol.md` lists what 1.0 changes: no message, field,
 rule, schema or vector, and the stability rule for later 1.x revisions (§11.4, spec-gap 163). The companion documents
 are carried unchanged, each with its own version; the drafts stay drafts.
 
 | document | what | status |
 |---|---|---|
-| `dsip_v_1_0_decentralized_session_initiation_protocol.md` | DSIP Core 1.0 | normative 1.0, in progress (v0.17 text + A.15): the stability rule for 1.x (§11.4, spec-gap 163); carried from v0.17: the `presence` message and its record's `device` and sealed form (§9.4), exclusive expiry (§12.9), private presence and its subscriber's binding (§9.3), grants with audiences, keys and successors, `grant-revocation`, admission by grantee (§19.4), `transport.replaced` (§13.2), the `presence` reason category (§15) |
+| `dsip_v_1_0_decentralized_session_initiation_protocol.md` | DSIP Core 1.0 | normative 1.0, final at `poc-v1.0` (v0.17 text + A.15): the stability rule for 1.x (§11.4, spec-gap 163); carried from v0.17: the `presence` message and its record's `device` and sealed form (§9.4), exclusive expiry (§12.9), private presence and its subscriber's binding (§9.3), grants with audiences, keys and successors, `grant-revocation`, admission by grantee (§19.4), `transport.replaced` (§13.2), the `presence` reason category (§15) |
 | `dsip-schemas-v1.0/` | Core JSON Schema set 1.0 | generated; unchanged from v0.17 (closed schemas, §11.4) |
 | `dsip-webrtc-media-binding-v1.0.md` | WebRTC Media Binding 1.0 | normative, unchanged |
 | `dsip-gateway-profile-v1.0.md` | Gateway Profile 1.0 | normative, unchanged |
