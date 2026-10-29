@@ -346,6 +346,11 @@ jobs:
         # in order, each re-deposit's answer handled as it arrives; every member receives each message once.
         run: timeout 300 bash demos/hub-return-demo.sh | tail -20
         working-directory: impl
+      - name: the echo bot (dsip-messenger example)
+        # Self-verifying: the guide's echo_bot example grants Alice first contact, joins the conversation she creates
+        # and answers each of her texts; dsip-msg receives both answers.
+        run: timeout 300 bash demos/echo-bot-demo.sh | tail -8
+        working-directory: impl
       - name: Rust/Python parity
         run: python3 impl/tools/parity.py
       - uses: actions/setup-node@v4
