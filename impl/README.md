@@ -18,7 +18,7 @@ vectors/        Language-neutral conformance vectors (generated; committed)
 tools/          Python: vector generator, reference harness (dsipvec/), parity (Rust, TypeScript), differential
                 fuzzing, spec lint, DHT testnet, wan/ testbed; dsip-rs.sh checks out the pinned dsip-rs
 docs/           Plans, spec gaps, coverage cross-index (generated from dsip-rs), DHT and STIR findings
-dsip-rs.rev     The dsip-rs commit DSIP's CI measures
+dsip-rs.rev     The dsip-rs commit DSIP's CI measures (now the v2026.10.29 release)
 ```
 
 ## Quick start
