@@ -22,9 +22,10 @@ from pathlib import Path
 IMPL = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(IMPL / "tools"))
 
+import dsip_rs  # noqa: E402
 from dsipvec import fixtures as F, envelope as E, ulid as U  # noqa: E402
 
-BIN = IMPL / "target" / "debug" / "dsip-dht-node"
+BIN = dsip_rs.RS / "target" / "debug" / "dsip-dht-node"
 
 
 class Node:
@@ -87,7 +88,7 @@ def main() -> int:
     ap.add_argument("--keep", action="store_true", help="leave nodes running (prints control ports)")
     args = ap.parse_args()
     if not BIN.exists():
-        print("build first: cargo build -p dsip-dht", file=sys.stderr)
+        print("build first: impl/tools/dsip-rs.sh, then cargo build -p dsip-dht in dsip-rs/", file=sys.stderr)
         return 2
 
     # Live-dated delegations (the vector fixtures are anchored at the fixed fixture clock and have expired).

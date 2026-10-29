@@ -1,163 +1,46 @@
-# DSIP reference implementation (PoC)
+# DSIP conformance: vectors, the reference harness, and the tools
 
-**Tracks:** DSIP Core 1.0 + JSON Schema set 1.0 (`../v1.0/`, in progress). v0.17 final at `poc-v0.17`, v0.16 final at `poc-v0.16`, v0.15 final at `poc-v0.15`, v0.14 final at `poc-v0.14`, v0.13 final at `poc-v0.13`, v0.12 final at `poc-v0.12`, v0.11 final at `poc-v0.11`, v0.10 final at `poc-v0.10`, v0.9 final at `poc-v0.9`, v0.8 final at `poc-v0.8.1` (first v0.8 suite `poc-v0.8`), v0.7 at `poc-v0.7`, v0.6 at `poc-v0.6`. Companion profiles: Gateway 1.0, Messaging 1.0. Plan: `docs/dsip_poc_dev_plan.md`.
-**Conformance contract:** `vectors/` (see `vectors/README.md`). Spec-gap issue drafts: `docs/spec-gaps.md`.
+**Tracks:** DSIP Core 1.0 + JSON Schema set 1.0 (`../v1.0/`), final at `poc-v1.0`. Earlier versions are final at
+their tags (`poc-v0.6` … `poc-v0.17`). Companion profiles: Gateway 1.0, Messaging 1.0, and the drafts in `../v1.0/`.
+**Conformance contract:** `vectors/` (see `vectors/README.md`). Spec-gap issues and their dispositions:
+`docs/spec-gaps.md`.
+
+The Rust implementation grew here as `impl/crates` and moved, with its history, to
+**[dsip-rs](https://github.com/thevoiceguy/dsip-rs)** (2026-10-29, first release `v2026.10.29`): the crates, the
+workspace, the demos and the browser client. dsip-rs takes this repository as its `spec/` submodule. DSIP measures it
+at the commit pinned in `dsip-rs.rev`, against the vectors here, in three-way parity with the Python harness and
+`../impl-ts`.
 
 ## Layout
 
 ```
 vectors/        Language-neutral conformance vectors (generated; committed)
-tools/          Python: vector generator, reference harness, parity, spec lint
-schemas/        Implementation-local schemas (DHT reachability hint)
-crates/
-  dsip-core     ULIDs, did:key, DID documents, Ed25519, DSIP-JOSE envelope pipeline
-  dsip-schema   v0.8 schemas embedded at build time + stateless semantic checks
-  dsip-webrtc-binding  WebRTC Media Binding 1.0 rules (descriptor/SDP authority, roles, candidates, renegotiation), pure
-  dsip-session  §12 endpoint state engine, timers, races, renegotiation; §12.7 relay leg tracker
-  dsip-endpoint IO-free endpoint core: verify → §12 engine → build/sign (shared by native agent and WASM)
-  dsip-transport ws/1.0 client binding (wss, hello, caps, reconnect), identity dirs, did:web fetch, the Agent
-  dsip-wasm     the same verifier/engine/builder for the browser (wasm-bindgen); built into web/pkg for the client
-  dsip-media    native WebRTC media leg (webrtc-rs): offer/answer, trickle ICE, Opus tone/file source, Ogg recording
-  dsip-broadcast Verified Broadcast (§22) + subscriptions (§9.3): authority registry, subscriber state, receiver verification with provenance
-  dsip-dht      reachability hints over libp2p Kademlia (experimental §8.5); `dsip-dht-node` binary
-  dsip-relay    `dsip-relay` binary: wss listener, hello binding, per-leg forking, store-and-forward (§13.3), static page serving
-  dsip-cli      `dsip` binary: keygen, sign, verify, vectors run, identity, resolve, call, answer
-  dsip-messaging Messaging Profile 1.0 rules (v0.8 draft): message/object checks, hub and mailbox state machines, client rules, MLS wire layer — pure
-  dsip-mls      the same profile on real MLS (OpenMLS): device keys as leaf signers, dsip_delegation/dsip_conversation, the hub's public view; `sqlite` feature: persistent device state
-  dsip-mailbox  `dsip-mailbox` (mailbox + hub service) and `dsip-msg` (device) binaries: the profile over the wire, with federation between mailboxes
-demos/          phase1, dht, first-contact, browser (+ browser/), media, store-and-forward, broadcast, messaging demos
-docs/           Plan, spec gaps, coverage cross-index, DHT findings + draft hints profile
+tools/          Python: vector generator, reference harness (dsipvec/), parity (Rust, TypeScript), differential
+                fuzzing, spec lint, DHT testnet, wan/ testbed; dsip-rs.sh checks out the pinned dsip-rs
+docs/           Plans, spec gaps, coverage cross-index (generated from dsip-rs), DHT and STIR findings
+dsip-rs.rev     The dsip-rs commit DSIP's CI measures
 ```
-
-Verification order is crate order: a payload reaching `dsip-session` has
-already passed `dsip-core` (signature, binding, replay, wire format) and
-`dsip-schema` (shape, version, stateless semantics).
 
 ## Quick start
 
 ```bash
-# Python side (needs: jsonschema, pynacl)
+# Python side (needs: jsonschema, pynacl, cryptography)
 python3 tools/generate_vectors.py          # regenerate vectors (deterministic)
 python3 tools/run_vectors.py               # Python verdicts vs expect
 
-# Rust side (run from impl/)
-cargo build --workspace
-cargo test --workspace
-cargo run -q -p dsip-cli -- vectors run    # Rust verdicts vs expect
-python3 tools/parity.py                    # diff Rust vs Python verdict by verdict
+# The Rust side: dsip-rs at the pinned commit, in ../dsip-rs (or $DSIP_RS), built on this checkout's spec
+tools/dsip-rs.sh
+(cd ../dsip-rs && DSIP_SPEC=$PWD/.. DSIP_VECTORS=$PWD/../impl/vectors cargo build -p dsip-cli -p dsip-dht)
+python3 tools/parity.py                    # Rust vs Python, verdict by verdict
+python3 tools/spec_lint.py                 # Spec: lint of the crates + docs/coverage.md
 
-# Traceability
-python3 tools/spec_lint.py                 # Spec: lint + docs/coverage.md
-cargo doc --workspace --no-deps --open
+# The TypeScript side, and the three-way checks
+(cd ../impl-ts && npm ci && npm run build && npm run vectors)
+python3 tools/parity_ts.py --require-all
+python3 tools/fuzz.py                      # Python, Rust and TypeScript on generated traces
+python3 tools/dht_testnet.py --nodes 5     # dsip-rs's dsip-dht-node, integration
 ```
 
-## CLI
-
-```bash
-dsip keygen --out alice.key                # new did:key device key
-dsip keygen --fixture alice-phone          # vector fixture key (deterministic)
-dsip sign --key alice.key payload.json > env.json
-dsip verify env.json [--now T] [--delegation d.json]... [--did-documents docs.json]
-dsip vectors run [--only state/] [--json out.json] [-v]
-
-# Phase 1 demo (relay + two identities + scripted call; or run the pieces by hand)
-demos/phase1-demo.sh
-dsip-relay --listen 127.0.0.1:8443 --state .relay          # prints the self-signed cert path
-dsip identity init --dir ./alice --name Alice
-dsip identity init --dir ./bob --name Bob
-dsip identity init --dir ./bob-laptop --controller-from ./bob   # second device, same identity
-dsip answer --identity ./bob --ca .relay/cert.pem              # interactive: accept | screen | decline | escalate …
-dsip call   --identity ./alice --ca .relay/cert.pem --to <bob identity did>   # interactive: update | info | hangup …
-dsip resolve did:web:example.com
-
-# Workstream D: hints tier (never authoritative)
-demos/dht-demo.sh                                          # 3 DHT nodes + relay; call discovered via hint only
-dsip-dht-node --listen /ip4/127.0.0.1/tcp/4001 --control 127.0.0.1:4101       # prints listening: /ip4/…/p2p/<PeerId>
-dsip answer --identity ./bob --ca .relay/cert.pem --dht <bootstrap> --publish-hint
-dsip resolve <bob did:key> --dht <bootstrap>
-dsip call --identity ./alice --ca .relay/cert.pem --dht <bootstrap> --to <bob did:key>   # no --relay: taken from the hint
-python3 tools/dht_testnet.py --nodes 12                    # integration harness → docs/dht-testnet-report*.json
-
-# Phase 2: first contact (§19.4)
-demos/first-contact-demo.sh
-dsip answer --identity ./bob --ca .relay/cert.pem --first-contact [--token T]   # ungranted invites → policy.first-contact-required
-#   commands: requests | grant [intro-id] | reject-intro [intro-id] | revoke <grant-id> | token <t>
-dsip introduce --identity ./carol --ca .relay/cert.pem --to <bob did> --purpose "…" [--token T] [--wait 30]
-dsip call --identity ./carol --ca .relay/cert.pem --to <bob did>     # a held grant is attached automatically (contacts.json)
-dsip-relay --intro-limit 5 --intro-window 3600 --inbox-cap 100       # §19.4 rate limits; introductions to unknown/offline identities are queued, never errored
-dsip-relay --offline-retention 86400                                 # §13.3: hold envelopes for known-but-offline recipients until min(expires_at, retention)
-demos/store-and-forward-demo.sh                                      # offline callee rings when it binds; a device binding mid-attempt becomes a leg
-
-# Messaging Profile 1.0 (v0.8 draft) over the wire: two identities, two mailboxes, real MLS
-demos/messaging-demo.sh                                              # Alice's mailbox hubs the group and federates fan-out to Bob's; text arrives live, after a disconnect, after a device restart, and after a crash before commit; then an Opus voicemail as a sealed blob over HTTPS (needs espeak-ng, ffmpeg)
-dsip-mailbox --state .mbx-a --listen 127.0.0.1:9451 --owner did:web:alice.example --resolver-file docs/alice.json --resolver-file docs/bob.json --ca ca.pem [--handover-wait 300] [--drop-fanout-to <mailbox did> (fault injection, demos)]
-demos/mailbox-restart-demo.sh                                        # kill -9 a mailbox with a message waiting and the hub with fan-out queued: state reloaded, queue heads re-sent, nothing lost or replayed, next commit validated
-demos/auto-rejoin-demo.sh                                            # a device whose mailbox lost an item holds what it cannot read and re-joins by external commit when the gap will not fill
-demos/welcome-retry-demo.sh                                          # a member added while her mailbox is down: the hub retries the welcome, holds her items behind it, and she joins when it returns
-demos/hub-outage-demo.sh                                             # the hub dies: a device keeps its message pending, retries with the §13.2 backoff, creates the successor itself after hub_timeout, and re-sends there
-demos/hub-return-demo.sh                                             # the hub comes back: the pending message's retry is accepted and the queued one follows in order, once each
-demos/handover-wait-demo.sh                                          # a hub move whose old hub dies before delivering it to the committer's own mailbox: the mailbox holds the new hub off for handover_wait, then admits it and catches up
-demos/blob-replication-demo.sh                                       # Bob's mailbox replicates a voice blob; plays from it while Alice's mailbox is down; damaged copy → falls back; over-limit → origin (needs ffmpeg)
-demos/call-history-demo.sh                                           # missed/declined calls reported by every ringing device and shown once; receipts and calls archived and restored on a new laptop
-demos/external-join-demo.sh                                          # a new tablet with no sibling online, and a phone that lost its MLS state, join by external commit from the latest GroupInfo
-demos/successor-demo.sh                                              # the hub service dies for good: Bob and Carol create successor groups at once, every device converges on the lowest group_id
-demos/hub-change-demo.sh                                             # a group moves from Alice's hub to Bob's by commit: numbering continues, mailboxes follow their owners, a member who missed it is redirected
-demos/commit-conflict-demo.sh                                        # two members commit at one epoch: the hub refuses the stale commit, the loser syncs and re-proposes (conflict, stale epoch)
-demos/revocation-demo.sh                                             # a lost device's delegation revoked: disconnected, refused by its own and a foreign mailbox, removable by any member, removed + key rotated
-demos/messaging-first-contact-demo.sh                                # sealed introduction via the recipient's mailbox (rate limits, anti-enumeration), grant returned, conversation created with it
-demos/multidevice-demo.sh                                            # personal group + archive key, second device added with history from archive, private read synced, device removed + key rotated
-demos/receipts-demo.sh                                               # delivered / read / played under M§10.5 disclosure, typing sealed + refresh-bounded + expiring, never stored offline
-demos/group-demo.sh                                                  # three identities, three mailboxes: deposits forwarded to the hub, welcomes proven by origin, add while a member is dead, remove while the removed member is away
-dsip-msg --state .dev-a --identity did:web:alice.example --resolver-file … --ca ca.pem [--controller <identity key file> for a second device] [--disclose read,played,activity] [--no-delivered]   # stdin: kp / grant <did> / create <direct|group> <did> <grant-file> / add <did> <grant-file> / remove <did> / send <text> / voice <file.ogg> / voicemail <session> <call-outcome-reason> <file.ogg> / read / play [id] / typing [stop] / status / personal / add-device <device did> / remove-device <device did> / history / introduce[-plain] <did> <purpose> / requests / accept-request <id> / revoke-device <device did> / remove-leaf <device did> / rekey / sync / live / offline / online / crash-next; MLS + delivery state in .dev-a/device.sqlite
-
-# Phase 3: Verified Broadcast (§22) and subscriptions (§9.3) — the relay is the authority for identities bound to it
-demos/broadcast-demo.sh
-dsip broadcast publish --identity ./bob --ca .relay/cert.pem --stream radio:main --variant "main-opus,codec:audio/opus,transport:webrtc,wss://…" --policy transcoding=allowed
-dsip broadcast subscribe --identity ./alice --ca .relay/cert.pem --target <bob did>:radio:main [--codec …] [--transport …]   # verifies the record itself, selects a variant, shows provenance
-dsip broadcast provenance --identity ./carol --ca .relay/cert.pem --stream <stream> --publication <id> --operation transcode --input main-opus --output main-aac-hls
-dsip broadcast subscribe --identity ./alice --ca .relay/cert.pem --target <bob did> --events presence --expires-in 3600
-dsip broadcast unpublish --identity ./bob --ca .relay/cert.pem --stream radio:main
-
-# Phase 2: browser endpoint (needs `rustup target add wasm32-unknown-unknown` + `cargo install wasm-pack`)
-web/build.sh                    # wasm-pack → web/pkg
-node web/test/engine.mjs        # two WASM endpoints run a full call + first contact in memory
-demos/browser-demo.sh           # the relay serves the client: https://127.0.0.1:8443/?as=alice and ?as=bob (accept the self-signed cert once)
-web/test/run.sh [firefox|chromium|all]   # headless: two browsers call each other through a local relay (web/README.md)
-
-# Phase 2: native media (webrtc-rs; needs cmake for the Opus encoder)
-demos/media-demo.sh             # native↔native DTLS-SRTP call: tones exchanged, both sides recorded to Ogg/Opus
-dsip answer --identity ./bob --ca .relay/cert.pem --auto accept --media tone:660 --record bob-heard.ogg
-dsip call --identity ./alice --ca .relay/cert.pem --to <bob did> --media tone --record alice-heard.ogg   # or --media file:clip.ogg
-#   screening: --auto screen gives a recvonly leg; `escalate` adds the source and re-offers sendrecv (§14.4)
-```
-
-## Status
-
-| Milestone | Status |
-|---|---|
-| M0 vector suite + Rust/Python parity | ✅ 232 vectors, both runners green |
-| WS-1 `dsip-core` | ✅ |
-| WS-2 `dsip-schema` | ✅ (build-time freshness check vs `generate_schemas.py`) |
-| WS-3 `dsip-session` | ✅ every §12.4–§12.10 transition row covered by a trace |
-| WS-4 `dsip-transport` + `dsip-relay` | ✅ wss-only `ws/1.0`, `hello` binding, size cap, reconnection; relay forks per-leg with attempt outcomes |
-| WS-5 CLI `call`/`answer` demo | ✅ `demos/phase1-demo.sh` — screened + escalated call, forked call with no missed call |
-| M1 Phase 1 | ✅ |
-| WS-D `dsip-dht` + testnet harness + no-DNS call demo | ✅ `docs/dht-findings.md`, `docs/dht-hints-profile.md` |
-| Phase 2 — first contact (introduction/grant, allowlist, tokens, relay rate limit + anti-enumeration inbox) | ✅ 9 new traces, `demos/first-contact-demo.sh` |
-| Phase 2 — `dsip-endpoint` + `dsip-wasm` + browser demo (WebRTC audio/video, screening, update, first contact, identity display) | ✅ WASM engine tested under Node; media path needs a real browser (`demos/browser-demo.sh`) |
-| Phase 2 — `dsip-media` native endpoint (webrtc-rs): DTLS-SRTP Opus, trickle ICE via signed `info`, screening/escalation, recording | ✅ `demos/media-demo.sh`; browser↔native shares the same SDP/candidate shapes |
-| Phase 2 — relay store-and-forward within the §13.3 boundary (known-offline queueing, flush on hello, legs added mid-attempt, cancel drops queued, retention cap) | ✅ 6 new relay traces, `demos/store-and-forward-demo.sh` |
-| **M2 Phase 2** | ✅ (browser WebRTC path manually verifiable only) |
-| **M3 Phase 3** — Verified Broadcast: signed records, §9.3 subscribe/notify with caps/renewal/anti-enumeration, presence, variant selection, `derivative-bound` provenance through a transcoder | ✅ 17 receiver vectors + 9 authority/subscriber traces, `demos/broadcast-demo.sh` |
-| v0.7 prep — §7.5 key-rotation vectors (279 total), citation audit (§15.2/§15.6), spec-gap dispositions 14–22, **WebRTC Media Binding draft** (`../v0.7/`) | ✅ 2026-08-21 |
-| **WebRTC Media Binding conformance** — `vectors/media-binding/` (42 vectors: B§2 descriptor/SDP authority rule, B§3 roles, B§4 candidate sequencing, B§5 renegotiation, B§6.1 one answer per offer) + `dsip-webrtc-binding` crate (pure; enforced live by `dsip-endpoint` on inbound SDP); dual-backend media demos in CI (forge↔webrtc-rs both ways) | ✅ 2026-08-21 — binding document no longer draft |
-| **v0.7 assembly** — canonical schema set `v0.7/dsip-schemas-v0.7-draft` (`provenance`, `key-rotation`, `reachability-hint` as message types; `publish.integrity`; `webrtc-info-data` binding schema), 298 vectors (23 new: gaps 16/19/20/21/22), Python + Rust at parity, `impl/schemas/` retired | ◐ 2026-08-21 — spec text transcription next, then `poc-v0.7` |
-| **M4** gateway plan — `docs/dsip_gateway_plan.md` (B2BUA on siphon-rs + forge-media, reframed from siphon-ai; workstreams G0–G5, vectors-first) | ✅ plan 2026-08-21 |
-| **G0** gateway vectors — `vectors/gateway/` (53: §15.5 reason mapping both ways with `Reason: DSIP`, SDP ⇄ descriptors, PSTN caller claims + §18.1 basis, §6.3 downgrade rule, 13 B2BUA controller traces) + Python reference + pure Rust crate `dsip-gateway` at parity | ✅ 2026-08-21 |
-| **G1/G2** gateway host + round trip — `dsip-gateway` `host` feature (opt-in): real SIP leg (siphon-rs, `Reason: DSIP`, DTMF both ways per G§9: INFO dtmf-relay, or RFC 4733 events when the trunk negotiated telephone-event), forge-webrtc DSIP leg (§12.12 candidates), Opus⇄G.711 bridge, host loop around the G0 controller; `tests/sip_leg_live.rs` + `tests/round_trip.rs` (both in CI) prove the SIP leg on the wire and a full DSIP↔gateway↔SIP transcoded round trip; `demos/gateway-demo.sh` for real siphond | ✅ 2026-08-21 |
-| **G3** gateway trust rendering — `dsip-core::trust` (§18.1 verification basis, tel-caller headline, `gateway.downgraded` summary) pinned by `vectors/trust/` (13); CLI console + browser demo (via `dsip-wasm`) render the `tel` claim, basis line and downgrade on inbound invites/introductions/errors | ✅ 2026-08-21 |
-| **G4** gateway STIR findings — `docs/gateway-stir-findings.md` (inbound verification ready; outbound gated on operator status; RFC 9060 delegate-cert-in-DID-document as the DSIP-shaped path); PASSporT **signing** prototype in siphon-rs `sip-identity` (feature `sign`, PR #123) round-tripped through the verifier | ✅ 2026-08-22 |
-| **G5** gateway spec artifacts — **Gateway Profile 1.0** + **RTP/SRTP Media Binding 1.0** drafts (`../v0.8/`), transcribed from the vector-pinned `dsip-gateway` tables/controller; gateway spec-gaps 23–30 filed | ✅ 2026-08-21 (v0.8 staging; v0.7 frozen) |
-| **v0.8 core revision** — `../v0.8/dsip_v_0_8_…md` (Appendix A.5): spec-gaps 23–57 dispositioned into the core (delegation capabilities and revocation §7.4, held introductions §12.9, sealed introductions and other holders §19.4, reason category `mailbox`, `tel` claims, companion conformance pieces) or the companion profiles; Gateway Profile and Messaging Profile promoted to 1.0; schema set v0.8 (`introduction.sealed`, `delegation-revocation`, hint `service`); 737 vectors at parity | ✅ 2026-09-17 — `poc-v0.8` after merge |
-| **real end-to-end proof** — `demos/real-call-dht.sh`: two fresh DIDs discover each other through the DHT (no DNS/directory), then hold a real conversation (signed signaling, DTLS-SRTP Opus, actual espeak speech both ways, self-verified rhythm match 0.97+). Includes the Ogg file-source fix (reassemble Opus packets across the RFC 3533 segment table, skip OpusHead/OpusTags — was one-page-per-frame, garbling multi-frame files) | ✅ 2026-08-22 |
-| forge-media as the media backend — **default** (`Backend::default()`, CLI `--media-backend forge`); webrtc-rs compiled in as reference peer/fallback; cross-backend interop test (forge ↔ webrtc-rs both directions) in the normal workspace test run; `demos/media-demo.sh [forge|webrtc-rs] [forge|webrtc-rs]` | ✅ 2026-08-21 (`docs/forge-media-plan.md`); browser ↔ native on forge verified by hand only |
+A vector change lands here first, with the Python harness and `impl-ts` agreeing on it. dsip-rs then implements it
+(its `spec/` submodule at the DSIP commit with the change), and `dsip-rs.rev` moves to that dsip-rs commit, so the
+parity job sees all three agree.

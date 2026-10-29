@@ -18,7 +18,8 @@ hand-authored vector in `dsipvec/gen/`, with the expectation taken from the spec
 when the spec does not say. Probes live in a temporary directory; nothing is written to
 `impl/vectors`. Exit status 1 on any divergence or runner failure.
 
-Build first: `cargo build -p dsip-cli` in `impl/`, `npm ci && npm run build` in `impl-ts/`.
+Build first: `impl/tools/dsip-rs.sh`, then `cargo build -p dsip-cli` in `dsip-rs/` (its environment from
+`impl/tools/dsip_rs.py`: `DSIP_SPEC` and `DSIP_VECTORS` naming this checkout), `npm ci && npm run build` in `impl-ts/`.
 """
 from __future__ import annotations
 
@@ -32,6 +33,9 @@ import tempfile
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(REPO / "impl" / "tools"))
+
+import dsip_rs  # noqa: E402
 NOW = 1760000000
 
 # ---------------------------------------------------------------- the cast
@@ -1407,7 +1411,8 @@ def run_all(vectors: list[dict], which: list[str]) -> dict[str, dict]:
         results = {}
         for name in which:
             out = Path(td) / f"{name}.json"
-            p = subprocess.run(RUNNERS[name](root, out), cwd=REPO / "impl", capture_output=True, text=True)
+            p = subprocess.run(RUNNERS[name](root, out), cwd=dsip_rs.RS if name == "rust" else REPO / "impl", env=dsip_rs.env(),
+                               capture_output=True, text=True)
             if not out.exists():
                 raise SystemExit(f"{name} runner produced no results:\n{p.stdout[-2000:]}\n{p.stderr[-2000:]}")
             raw = json.loads(out.read_text())
@@ -1536,4 +1541,5 @@ if __name__ == "__main__":
     if shutil.which("node") is None or shutil.which("cargo") is None:
         print("fuzz.py needs node and cargo on PATH", file=sys.stderr)
         sys.exit(2)
+    dsip_rs.require()
     sys.exit(main())

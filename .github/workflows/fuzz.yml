@@ -29,22 +29,26 @@ jobs:
   fuzz:
     name: random-seed differential fuzz
     runs-on: ubuntu-latest
+    # the pinned dsip-rs, built against this checkout's spec and vectors (impl/tools/dsip_rs.py)
+    env:
+      DSIP_SPEC: ${{ github.workspace }}
+      DSIP_VECTORS: ${{ github.workspace }}/impl/vectors
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
       - run: pip install jsonschema pynacl cryptography
-      - name: Rust, as pinned in impl/rust-toolchain.toml
-        # installs the channel, components and targets the file names, and makes it the default for steps that
-        # run cargo from outside impl/
+      - name: dsip-rs, at the commit pinned in impl/dsip-rs.rev
+        run: impl/tools/dsip-rs.sh
+      - name: Rust, as pinned in dsip-rs's rust-toolchain.toml
         run: rustup toolchain install && rustup default "$(rustup show active-toolchain | cut -d' ' -f1)" && rustc --version
-        working-directory: impl
+        working-directory: dsip-rs
       - uses: Swatinem/rust-cache@v2
-        with: { workspaces: impl }
+        with: { workspaces: dsip-rs }
       - uses: actions/setup-node@v4
         with: { node-version: "20" }
       - run: cargo build -p dsip-cli
-        working-directory: impl
+        working-directory: dsip-rs
       - run: npm ci && npm run build
         working-directory: impl-ts
       - run: python3 impl/tools/fuzz.py --seed "${{ inputs.seed || 'random' }}" --count "${{ inputs.count || '2000' }}" --out found

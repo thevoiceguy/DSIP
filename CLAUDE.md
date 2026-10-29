@@ -4,10 +4,18 @@
 
 DSIP (Decentralized Session Initiation Protocol) is an identity-first signaling
 and media negotiation protocol for trusted real-time sessions. This repo holds
-both the **specification** (versioned document snapshots), the **reference
-implementation PoC** (a living Rust codebase that tracks spec versions), and a
-**second implementation** (`impl-ts/`, TypeScript) written from the spec and the
-vectors alone, which passes the whole suite.
+the **specification** (versioned document snapshots), the **conformance suite**
+(language-neutral vectors and the Python reference harness), and a **second
+implementation** (`impl-ts/`, TypeScript) written from the spec and the vectors
+alone, which passes the whole suite.
+
+The **Rust reference implementation** grew here as `impl/crates` and moved, with
+its history, to **dsip-rs** (github.com/thevoiceguy/dsip-rs, 2026-10-29): the
+crates, the workspace, the demos and the browser client. dsip-rs takes DSIP as
+its `spec/` submodule. DSIP's CI measures dsip-rs at the commit pinned in
+`impl/dsip-rs.rev`, checked out into `dsip-rs/` by `impl/tools/dsip-rs.sh` and
+built against this checkout's spec and vectors (`impl/tools/dsip_rs.py`). Code
+changes to the Rust go to dsip-rs, never here.
 
 The PoC's purpose, in priority order:
 1. **Prove the spec is implementable.** Every MUST is implemented or generates a filed spec issue.
@@ -22,43 +30,37 @@ Full plan: `impl/docs/dsip_poc_dev_plan.md`. Read it before large changes.
 v0.5/ … v0.17/, v1.0/  Spec snapshots. v1.0 (DSIP Core 1.0) is current, final at poc-v1.0; 1.x errata and drafts change in place within §11.4 (v0.17 final at poc-v0.17). NEVER edit v0.5 … v0.17.
 v1.0/dsip-schemas…  Canonical JSON Schemas (draft 2020-12) + generate_schemas.py
 v1.0/dsip-messaging-schemas-draft/  Messaging Profile schema set (own generator)
-impl/               PoC Cargo workspace (living code; tracks spec versions via
-                    git tags poc-v0.6, poc-v0.7, poc-v0.8, poc-v0.8.1, …, never via folder placement)
+impl/               Conformance: vectors, tools, docs (spec versions tracked via git tags
+                    poc-v0.6, …, poc-v1.0, never via folder placement); dsip-rs.rev pins dsip-rs
 impl/vectors/       Language-neutral JSON test vectors (envelope/ payload/
                     semantic/ state/ transport/ dht/ broadcast/ media-binding/
                     gateway/ trust/ messaging/ device-events/ recording/ tn-binding/ …)
 impl/tools/         Python: vector generator + reference harness (dsipvec/), parity.py
                     (Rust/Python), parity_ts.py (Python/TypeScript), fuzz.py (differential
-                    fuzzing of all three), spec_lint.py
-                    (Spec: headers + docs/coverage.md), dht_testnet.py, wan/ testbed
+                    fuzzing of all three), spec_lint.py (Spec: headers of dsip-rs's crates +
+                    docs/coverage.md), dht_testnet.py, wan/ testbed (builds from dsip-rs),
+                    dsip-rs.sh + dsip_rs.py (the pinned dsip-rs checkout and its environment)
 impl/docs/          Plans, spec-gaps.md (every gap and its disposition), coverage.md
                     (generated), DHT / STIR findings
-impl/crates/        dsip-core, dsip-schema, dsip-session, dsip-endpoint, dsip-transport,
-                    dsip-media, dsip-webrtc-binding, dsip-broadcast, dsip-dht, dsip-relay,
-                    dsip-cli, dsip-wasm, dsip-gateway, dsip-messaging, dsip-mls,
-                    dsip-mailbox, dsip-number
-impl/demos/         Self-verifying wire demos run in CI: calls, media, broadcast, DHT,
-                    gateway, and the messaging profile (one *-demo.sh per behaviour).
-                    Check names before adding one —
-                    first-contact-demo.sh (core) ≠ messaging-first-contact-demo.sh
-impl/web/           The browser client (reference client, plan in impl/docs/dsip-client-plan.md):
-                    a host of dsip-wasm; Playwright tests in web/test run in CI (web/README.md)
+dsip-rs/            (not committed) dsip-rs at impl/dsip-rs.rev, from impl/tools/dsip-rs.sh
 impl-ts/            Second implementation (TypeScript), measured against impl/vectors.
                     Written from the spec, schemas and vectors README ONLY — never by
-                    reading impl/crates or impl/tools/dsipvec verdict logic (impl-ts/README.md)
+                    reading dsip-rs or impl/tools/dsipvec verdict logic (impl-ts/README.md)
 ```
 
-Crate dependency order mirrors verification order: core → schema → session.
-A message reaching `dsip-session` has already passed signature, replay, and
-shape checks. Never invert this.
+In dsip-rs, crate dependency order mirrors verification order: core → schema →
+session. A message reaching `dsip-session` has already passed signature, replay,
+and shape checks. Never invert this (dsip-rs's CLAUDE.md carries the rules for
+its code).
 
 ## Non-negotiable engineering rules
 
 1. **Vectors before code.** No stateful behavior (state machine transition,
    timer, race resolution) ships without a vector or trace exercising it.
    When implementing new behavior: write/generate the vector first in
-   `impl/tools/`, confirm the Python harness verdict, then implement in Rust
-   and in `impl-ts` until all three runners agree. Expected outcomes are
+   `impl/tools/`, confirm the Python harness verdict, implement it in `impl-ts`,
+   then in dsip-rs (its `spec/` submodule at the DSIP commit with the vector),
+   and move `impl/dsip-rs.rev` to that dsip-rs commit, until all three agree. Expected outcomes are
    authored by hand from the spec, never recorded from an implementation.
 
 2. **Three-way parity is CI-enforced.** Every vector must produce the same
@@ -83,17 +85,20 @@ shape checks. Never invert this.
 
 5. **Schemas are canonical in the spec folder.** Edit
    `v1.0/…/generate_schemas.py`, never the generated schema files.
-   `dsip-schema` embeds schemas from the current spec folder at build time;
-   the freshness check fails the build on drift. Regenerate after edits.
+   dsip-rs's `dsip-schema` embeds schemas from the spec folder at build time
+   (here, this checkout's, via `DSIP_SPEC`); the freshness check fails the build
+   on drift. Regenerate after edits.
 
 6. **Wire format rules at parse (spec §10.3):** UTF-8 only, integer
-   timestamps, reject floats. Enforced in `dsip-core` parsing, tested by
-   vectors.
+   timestamps, reject floats. Enforced in dsip-rs's `dsip-core` parsing and in
+   `impl-ts`, tested by vectors.
 
 7. **Spec version drift lands in vectors first.** When a new spec version
    arrives, express the diff as vector changes, then change code until green.
 
 ## Documentation standard (enforced)
+
+This applies to `impl-ts` here and to dsip-rs's crates, which DSIP's CI lints.
 
 - Every module, public type, and public function implementing normative
   behavior carries a doc comment (rustdoc; TSDoc in `impl-ts`) with a `Spec:`
@@ -124,13 +129,10 @@ python3 v1.0/dsip-messaging-schemas-draft/generate_schemas.py v1.0/dsip-messagin
 python3 impl/tools/generate_vectors.py
 python3 impl/tools/run_vectors.py            # Python side of parity
 
-# Rust: build, test, vector runner (Rust side of parity), docs
-cargo build --workspace                       # run from impl/
-cargo test --workspace
-cargo clippy --workspace --all-targets --all-features -- -D warnings   # CI-enforced; impl/rust-toolchain.toml pins the Rust for local builds and CI alike
-cargo run -p dsip-cli -- vectors run
-cargo doc --workspace --no-deps
-python3 impl/tools/parity.py                  # Rust/Python, actual against actual
+# Rust: dsip-rs at impl/dsip-rs.rev in dsip-rs/ (or $DSIP_RS), built against this checkout
+impl/tools/dsip-rs.sh                         # [commit] to try another; dsip-rs's own CI runs its tests and demos
+(cd dsip-rs && DSIP_SPEC=$PWD/.. DSIP_VECTORS=$PWD/../impl/vectors cargo build -p dsip-cli -p dsip-dht)
+python3 impl/tools/parity.py                  # Rust/Python, actual against actual (sets DSIP_SPEC/DSIP_VECTORS itself)
 python3 impl/tools/spec_lint.py --check       # Spec: headers; regenerates docs/coverage.md without --check
 
 # Second implementation (TypeScript): build, vectors, Python/TypeScript parity
@@ -146,7 +148,7 @@ python3 impl/tools/dht_testnet.py --nodes 5
 ```
 
 pip installs in this environment need `--break-system-packages`.
-`impl/target/debug` grows without bound (it has filled the disk): `cargo clean --profile dev` when short of space.
+`dsip-rs/target/debug` grows without bound (impl/target filled the disk before): `cargo clean --profile dev` there when short of space.
 
 ## Key spec sections (1.0; numbering unchanged from v0.6) you will cite constantly
 
@@ -200,7 +202,8 @@ failure is reported is normative in `impl/vectors/README.md`.
   instrumented, not solved (§3.2, plan §10.5).
 - Do not treat prose example ids like `01HZINVITEABC` as valid ULIDs; they
   fail validation by design.
-- Do not write `impl-ts` by reading `impl/crates` or the verdict logic in
+- Do not change Rust code here: it lives in dsip-rs. DSIP moves `impl/dsip-rs.rev`.
+- Do not write `impl-ts` by reading dsip-rs or the verdict logic in
   `impl/tools/dsipvec`; when the spec and the vectors README are not enough,
   that is a finding to fix there. Observing the other implementations through
   probe vectors is fine; reading them is not.

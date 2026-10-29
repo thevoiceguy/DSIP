@@ -3,7 +3,8 @@
 #
 #   ROLE=hints|bootstrap|dht|relay|mailbox|turn|stun|endpoint   (comma-separate to combine, e.g. ROLE=hints,relay)
 #   PUBLIC_IP=<this host's public v4>       (auto-detected if unset)
-#   DSIP_REF=<branch|tag|commit>            (default main; pin one commit for a whole campaign — every host the same)
+#   DSIP_RS_REF=<branch|tag|commit>         (of dsip-rs, where the binaries come from; default main; pin one commit
+#                                            for a whole campaign — every host the same)
 #   PREBUILT=<dir>                          (optional: install binaries from here instead of building; see README §1)
 #   DHT_SEED=<32-byte hex>                  (optional: fixed PeerId so bootstrap addrs survive restarts)
 #   BOOTSTRAP=<multiaddr>[,<multiaddr>]     (required for ROLE=dht; omit for the bootstrap node itself)
@@ -12,7 +13,7 @@
 #   RELAY_CERT=<fullchain.pem> RELAY_KEY=<privkey.pem>  (optional: a real certificate for the relay, e.g. Let's Encrypt's
 #                                            /etc/letsencrypt/live/<name>/; a deploy hook restarts the relay on renewal)
 #   RELAY_WWW=<dir>                          (optional: the browser client to serve at https://<name>:8443/, see
-#                                            impl/web/README.md "Runbook"; with it the relay proxies the local dsip-node
+#                                            dsip-rs web/README.md "Runbook"; with it the relay proxies the local dsip-node
 #                                            at /dsip/v1/ and serves $STATE/client.json as /config.json if present)
 #   TURN_URI=turn:<L4>:3478                  (optional, with RELAY_WWW: the relay mints TURN credentials at /turn from
 #                                            $STATE/turn.secret, the secret L4's coturn holds)
@@ -48,14 +49,14 @@
 set -euo pipefail
 ROLE=${ROLE:?set ROLE}
 PUBLIC_IP=${PUBLIC_IP:-$(curl -4 -s https://ifconfig.me || hostname -I | awk '{print $1}')}
-DSIP_REF=${DSIP_REF:-main}
-SRC=/opt/dsip-src; BIN=/usr/local/bin; STATE=/var/lib/dsip; LOG=/var/log/dsip
+DSIP_RS_REF=${DSIP_RS_REF:-main}
+SRC=/opt/dsip-rs-src; BIN=/usr/local/bin; STATE=/var/lib/dsip; LOG=/var/log/dsip
 DHT_PORT=4001; RELAY_PORT=8443; MAILBOX_PORT=9443
 BINS="dsip dsip-relay dsip-dht-node dsip-mailbox dsip-msg dsip-node"
 HINTS_HTTP=${HINTS_HTTP:-0.0.0.0:8090}
 has(){ [[ ",$ROLE," == *",$1,"* ]]; }
 
-echo "== $(hostname) role=$ROLE public=$PUBLIC_IP ref=$DSIP_REF"
+echo "== $(hostname) role=$ROLE public=$PUBLIC_IP ref=$DSIP_RS_REF"
 
 # ---- packages ----------------------------------------------------------------
 export DEBIAN_FRONTEND=noninteractive
@@ -73,27 +74,29 @@ if [ -n "${PREBUILT:-}" ]; then
   [ -f "$PREBUILT/dsip-node.service" ] && cp "$PREBUILT/dsip-node.service" $STATE/dsip-node.service
   [ -f "$PREBUILT/COMMIT" ] && cp "$PREBUILT/COMMIT" $STATE/commit
 else
-  # perl + make: forge-media vendors OpenSSL. The toolchain itself comes from impl/rust-toolchain.toml
-  # (rustup installs the pinned channel on the first cargo run in impl/).
+  # perl + make: forge-media vendors OpenSSL. The toolchain itself comes from dsip-rs's rust-toolchain.toml
+  # (rustup installs the pinned channel on the first cargo run there).
   apt-get install -y -q build-essential pkg-config libssl-dev cmake clang perl make
   if ! command -v cargo >/dev/null && [ ! -x "$HOME/.cargo/bin/cargo" ]; then
     curl -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain none
   fi
   source "$HOME/.cargo/env"
-  if [ -d $SRC/.git ]; then git -C $SRC fetch -q --tags origin; else git clone -q https://github.com/thevoiceguy/DSIP.git $SRC; fi
-  git -C $SRC checkout -q "$DSIP_REF"
+  # the Rust implementation lives in dsip-rs; its spec/ submodule (DSIP at a tag) holds the schemas it embeds
+  if [ -d $SRC/.git ]; then git -C $SRC fetch -q --tags origin; else git clone -q https://github.com/thevoiceguy/dsip-rs.git $SRC; fi
+  git -C $SRC checkout -q "$DSIP_RS_REF"
   # a branch follows its remote; a tag or a commit stays where it is
-  if git -C $SRC symbolic-ref -q HEAD >/dev/null; then git -C $SRC merge -q --ff-only "origin/$DSIP_REF"; fi
+  if git -C $SRC symbolic-ref -q HEAD >/dev/null; then git -C $SRC merge -q --ff-only "origin/$DSIP_RS_REF"; fi
+  git -C $SRC submodule update -q --init
   git -C $SRC rev-parse HEAD > $STATE/commit
   # A release build of the whole set wants ~3 GB of RAM and ~6 GB of disk: build on a 4 GB host (or the
   # endpoint box) and hand the result to the small ones with PREBUILT.
-  ( cd $SRC/impl && cargo build -q --release -p dsip-cli -p dsip-relay -p dsip-dht -p dsip-mailbox -p dsip-node )
+  ( cd $SRC && cargo build -q --release -p dsip-cli -p dsip-relay -p dsip-dht -p dsip-mailbox -p dsip-node )
   mkdir -p $STATE/prebuilt
   for b in $BINS; do
-    install -m755 $SRC/impl/target/release/$b $BIN/$b
-    install -m755 $SRC/impl/target/release/$b $STATE/prebuilt/$b
+    install -m755 $SRC/target/release/$b $BIN/$b
+    install -m755 $SRC/target/release/$b $STATE/prebuilt/$b
   done
-  cp $SRC/impl/crates/dsip-node/packaging/debian/dsip-node.service $STATE/dsip-node.service
+  cp $SRC/crates/dsip-node/packaging/debian/dsip-node.service $STATE/dsip-node.service
   cp $STATE/dsip-node.service $STATE/prebuilt/
   cp $STATE/commit $STATE/prebuilt/COMMIT
   echo "Prebuilt set for the other hosts: $STATE/prebuilt  (scp -r it, then PREBUILT=<dir> ./node-setup.sh)"
@@ -137,7 +140,7 @@ if has hints; then
   mkdir -p /etc/dsip-node
   cat > /etc/dsip-node/config.toml.new <<CONF
 # dsip-node, written by node-setup.sh (ROLE=hints). Every key: /usr/share/doc/dsip-node/config.example.toml, or
-# impl/crates/dsip-node/config.example.toml. A hints node is never authoritative (DSIP core §8.1).
+# dsip-rs crates/dsip-node/config.example.toml. A hints node is never authoritative (DSIP core §8.1).
 [node]
 state_dir = "/var/lib/dsip-node"
 
@@ -215,7 +218,7 @@ fi
 # the first --host is the one the mailbox advertises as its blob endpoint (M§4.3): the name a browser's TLS accepts
 HOSTARG="--host $PUBLIC_IP"; [ -n "${RELAY_HOST:-}" ] && HOSTARG="--host $RELAY_HOST --host $PUBLIC_IP"
 # Stage 5 of the client plan: a real certificate, the client served, the operator's defaults, TURN credentials, the
-# local dsip-node reached through the relay's origin (impl/web/README.md "Runbook").
+# local dsip-node reached through the relay's origin (dsip-rs web/README.md "Runbook").
 RELAYARG=""
 if [ -n "${RELAY_CERT:-}" ]; then
   RELAYARG="$RELAYARG --cert $RELAY_CERT --key ${RELAY_KEY:?RELAY_CERT needs RELAY_KEY}"
