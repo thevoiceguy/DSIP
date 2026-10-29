@@ -1,5 +1,5 @@
 // A browser conversation on the WAN (client stage 6): one headless browser as one person, driven like
-// impl/web/test/messaging.mjs does, against a deployed relay and its mailbox (real certificates, hints on the nodes).
+// dsip-rs web/test/messaging.mjs does, against a deployed relay and its mailbox (real certificates, hints on the nodes).
 // Run one as Bob on one operator and one as Alice on another: Alice introduces herself through the relay Bob's hint
 // names, Bob grants, Alice finds Bob's mailbox through his hint, fetches a KeyPackage there, creates the conversation
 // at her mailbox; the hub finds Bob's mailbox through his hint; text both ways, delivered receipts.

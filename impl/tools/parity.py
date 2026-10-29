@@ -14,6 +14,9 @@ import tempfile
 from pathlib import Path
 
 IMPL = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(IMPL / "tools"))
+
+import dsip_rs  # noqa: E402
 
 
 def main() -> int:
@@ -22,7 +25,7 @@ def main() -> int:
         py = subprocess.run([sys.executable, str(IMPL / "tools" / "run_vectors.py"), "--json", str(py_out)],
                             capture_output=True, text=True)
         rs = subprocess.run(["cargo", "run", "-q", "-p", "dsip-cli", "--", "vectors", "run", "--json", str(rs_out)],
-                            cwd=IMPL, capture_output=True, text=True)
+                            cwd=dsip_rs.require(), env=dsip_rs.env(), capture_output=True, text=True)
         print(py.stdout.strip().splitlines()[-1] if py.stdout.strip() else py.stderr)
         print(rs.stdout.strip().splitlines()[-1] if rs.stdout.strip() else rs.stderr)
         if not py_out.exists() or not rs_out.exists():

@@ -1,4 +1,4 @@
-// A browser call on the WAN (client stage 5): one headless Chromium as one person, driven like impl/web/test does,
+// A browser call on the WAN (client stage 5): one headless Chromium as one person, driven like dsip-rs web/test does,
 // against a deployed relay (a real certificate, TURN from /turn, hints on the nodes). Run one as Bob on a NAT'd host
 // and one as Alice on another, through two relays: Alice finds Bob's relay from his hint.
 //

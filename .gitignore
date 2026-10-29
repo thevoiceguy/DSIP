@@ -1,18 +1,10 @@
-# Rust
-impl/target/
-**/*.rs.bk
+# The Rust implementation, checked out by impl/tools/dsip-rs.sh (pinned in impl/dsip-rs.rev)
+/dsip-rs/
+# Rust (scratch from IDE tooling, and impl/target from before the code moved to dsip-rs)
+target/
 # Python
 __pycache__/
 *.pyc
 .venv/
 # Local state
-impl/.dsip/
 *.key
-# Rust (root-level scratch from IDE tooling too)
-target/
-impl/crates/dsip-node/dist/
-# Browser client
-impl/web/pkg/
-impl/web/node_modules/
-impl/demos/browser/
-impl/web/test/types/vectors.gen.ts

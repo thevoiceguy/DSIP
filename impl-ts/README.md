@@ -14,7 +14,7 @@ This code is written from three sources only:
 2. the JSON Schemas in `../v1.0/` (loaded in place at start-up, never copied),
 3. `../impl/vectors/README.md` and the vectors themselves.
 
-It is **never** written by reading `../impl/crates/` or the verdict logic in `../impl/tools/dsipvec/`.
+It is **never** written by reading dsip-rs (the Rust implementation, formerly `../impl/crates/`) or the verdict logic in `../impl/tools/dsipvec/`.
 When a vector cannot be passed from those three sources, that is a finding: the README or the spec is
 fixed (a `spec-gap` entry when the spec is at fault), not the ignorance. The generator modules
 (`dsipvec/gen/`) may be edited to add vectors, since they author expectations by hand from the spec.
@@ -51,7 +51,7 @@ python3 ../impl/tools/parity_ts.py       # Python harness vs this implementation
 | `tn-binding` | 334 | `tn/binding.ts`, `tn/x509.ts`, `tn/der.ts` (Number Attestation N§3: compact-JWS ES256 binding, I-JSON, PEM chain, X.509 path to the STI-CA list with the pinned parse rules, strict-DER TNAuthList (RFC 8226, EXPLICIT tags) and coverage, time, DID back-reference, status policy, `attested_by`), `tn/claim.ts` (N§4: a caller's `tel` claim carrying a binding, verified against the envelope's signing identity, the number matched, the attested or `(unverified)` line; N§5: the identity-change warning against the address book, with a UTC date; N§6 route 1: a node's verify-before-store, steps 1–5 then the held set of at most 4, one per DID, with eviction; N§6–N§7: the reader's number → DID choice, newest `iat` winning, and the `others` that signal a port or hijack; v0.12 N§6 route 2: the authorities' `.well-known` answers pooled — a 200 with a `bindings` array, strings once each — then the same choice, and `served_by`, the authorities that served the winner), `tn/gateway.ts` (the gateway as a relying party: G§5 verification of an inbound `Identity` header, RFC 8224 §8.3 canonical numbers, the SHAKEN PASSporT's shape, `orig` against `From`, `dest`, freshness, `x5u` against `info`, then N§3.4 steps 2–4 with coverage for `A` only; G§3.2/N§6.1 routing of a dialled number, the operator's table before any binding; N§4.1 assertion toward the PSTN: the first attested claim, the gateway's own chain and coverage, the key against the leaf, and an ES256-signed PASSporT at level `A` with RFC 8225 §9 serialization) |
 
 What this is not: a product. It has no transport, no MLS library and no storage — it is the protocol's *decisions*,
-which is what the vectors measure. The wire demos in `../impl/demos` remain the Rust implementation's.
+which is what the vectors measure. The wire demos remain the Rust implementation's (dsip-rs `demos/`).
 
 ## Findings so far
 

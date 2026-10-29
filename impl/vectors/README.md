@@ -7,7 +7,7 @@ These vectors are the language-neutral conformance contract for DSIP Core v1.0.
 They are *generated* by `impl/tools/generate_vectors.py` (deterministic keys,
 deterministic ULIDs, byte-reproducible signatures) and *verified* independently
 by the Python harness (`impl/tools/run_vectors.py`), the Rust runner
-(`cargo run -p dsip-cli -- vectors run`), and a second implementation written from this
+(dsip-rs: `cargo run -p dsip-cli -- vectors run`), and a second implementation written from this
 document and the spec alone (`impl-ts/`, TypeScript; `impl/tools/parity_ts.py`). A vector is
 only trusted when the runners agree with its `expect` block.
 
@@ -2341,7 +2341,7 @@ Each item has a matching `spec-gap` issue draft in `impl/docs/spec-gaps.md`.
 158. §13.2 / §15: **decided** (v0.17, (a)) — a relay that replaces a device's connection sends `error`
     `transport.replaced` on the old one before closing it, and the client does not reconnect; the token is registered
     for `error` (`semantic/reason-transport-replaced-registered`, `-on-reject`). Reconnection is outside the vector
-    kinds: `demos/relay-rebind-demo.sh` and `web/test/relay-replaced.mjs` pin the client side on the wire.
+    kinds: dsip-rs's `demos/relay-rebind-demo.sh` and `web/test/relay-replaced.mjs` pin the client side on the wire.
 159. P§12.5 / P§7: **decided** (v0.17, (a)) — re-granted grants form a rotation chain; ending or changing a share
     revokes the whole chain, newest first (`state/presence-keys-revocation-rotates`, `-sibling-epoch`,
     `-changed-share-rotates-what-is-lost`; `revoke` and `regrant` emit `{"revoke": […]}` in every trace).

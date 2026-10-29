@@ -1,7 +1,7 @@
 # DSIP WAN test plan — `real-call-dht` across real hosts
 
 These are the provisioning + validation scripts for reproducing the localhost proof in
-`impl/demos/real-call-dht.sh` on separate internet hosts. Two files, copied to each host:
+dsip-rs `demos/real-call-dht.sh` on separate internet hosts. Two files, copied to each host:
 
 - **`node-setup.sh`** — idempotent per-host provisioning, keyed by `ROLE`.
 - **`dsipctl`** — validation helpers (DHT counters, addresses, GETs, captures) used by every run.
@@ -26,7 +26,7 @@ checked against the binaries. What changed since the plan was written (2026-08-2
   `error transport.no-response` (spec-gap 76); session traffic is routed by `to` with or without an
   attempt (82); an answer from a cancelled leg is forwarded so the initiator can `bye` it (86). Run 2b
   observes the first on a real network.
-- **One commit for a campaign.** `DSIP_REF` pins it, `dsipctl commit` reports it, the results record
+- **One commit for a campaign.** `DSIP_RS_REF` pins it, `dsipctl commit` reports it, the results record
   carries it. The toolchain is pinned by `impl/rust-toolchain.toml` (rustup installs it on first build).
 - **Build once.** A release build of the set is too big for a Nanode; build on one host and install
   the rest with `PREBUILT`.
@@ -69,7 +69,7 @@ clock is the most likely "nothing works and every log looks fine" failure.
 Copy `node-setup.sh` and `dsipctl` to each host, then run in this order — L1 first because everyone
 else bootstraps from it, and because it builds the binaries the others install.
 
-Pick the commit first and use it everywhere: `export DSIP_REF=<commit or tag>` (a moving `main` on
+Pick the commit first and use it everywhere: `export DSIP_RS_REF=<dsip-rs commit or tag>` (a moving `main` on
 four hosts provisioned an hour apart is four different programs). `dsipctl commit` must print the
 same hash on every host before any run.
 
@@ -99,7 +99,7 @@ ROLE=relay,mailbox PREBUILT=/root/pb RELAY_HOST=<name> RELAY_CERT=/etc/letsencry
   MAILBOX_OWNER=did:web:alice.example MAILBOX_SERVE_ANY=32 ./node-setup.sh
 ```
 with `/var/lib/dsip/client.json` naming the nodes and `"mailbox": {"uri": "wss://<name>:9443/dsip", "did":
-"<service.did>"}` (`impl/web/README.md`, runbook). The mailbox reaches a member on the other operator through the
+"<service.did>"}` (dsip-rs `web/README.md`, runbook). The mailbox reaches a member on the other operator through the
 hint on its co-located node (`--hints-node http://127.0.0.1:8090`).
 
 ### Hints nodes (dsip-node) — every host that runs a relay, and any others
@@ -138,7 +138,7 @@ mkdir -p ~/dsip-wan
 for h in L1 L2; do ssh root@$h 'cat /var/lib/dsip/relay/cert.pem /var/lib/dsip/mailbox/cert.pem'; done > ~/dsip-wan/ca-all.pem
 for h in L1 L2; do scp ~/dsip-wan/ca-all.pem root@$h:/var/lib/dsip/ca-all.pem; done   # the mailboxes dial each other
 ```
-(An endpoint that is not x86-64 Debian 13 builds for itself: drop `PREBUILT`, keep `DSIP_REF`.)
+(An endpoint that is not x86-64 Debian 13 builds for itself: drop `PREBUILT`, keep `DSIP_RS_REF`.)
 `--ca` takes a PEM bundle, so one file covers both relays and both mailboxes: Alice discovers Bob's
 relay from the hint and must already trust whichever one that turns out to be.
 
@@ -388,7 +388,7 @@ ICE still prefers a direct pair; the relay candidate is there for when none work
 3. From E-A, stage 4 during the flood: resolve must still return Bob's real hint. Record `resolve_ms`
    under load vs Run 1.
 4. Implement per-peer inbound PUT rate limiting in `dsip-dht` (still not there as of this review),
-   redeploy with a new `DSIP_REF` on every host, rerun, record the delta. That before/after pair is
+   redeploy with a new `DSIP_RS_REF` on every host, rerun, record the delta. That before/after pair is
    the headline for the findings update.
 
 ### Run 6 — the Messaging Profile across hosts
