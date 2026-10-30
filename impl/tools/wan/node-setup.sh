@@ -226,7 +226,9 @@ fi
 # dsip-rs's .debs, set up by its packaging/one-host/configure (dsip-rs docs/one-host.md): the relay serving the client,
 # its defaults, TURN credentials and the local hints node at /dsip/v1/; the mailbox under the same certificate.
 if has relay || has mailbox; then
-  { has relay && has mailbox && has hints; } || { echo "ROLE: relay and mailbox come together, with hints (one host)" >&2; exit 1; }
+  # one host: the relay, the mailbox and the hints node in front of which the relay sits (ROLE=hints now, or before)
+  { has relay && has mailbox; } || { echo "ROLE: relay and mailbox come together (one host)" >&2; exit 1; }
+  { has hints || dpkg -s dsip-node >/dev/null 2>&1; } || { echo "ROLE=relay,mailbox needs the hints node: add hints" >&2; exit 1; }
   [ -n "${DEBS:-}" ] || { echo "ROLE=relay,mailbox needs DEBS=<dir> (README §1: the packages, the client, configure)" >&2; exit 1; }
   NAME=${RELAY_HOST:?ROLE=relay,mailbox needs RELAY_HOST=<dns name>}
   ARCH=$(dpkg --print-architecture)
