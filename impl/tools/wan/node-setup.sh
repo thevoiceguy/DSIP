@@ -8,20 +8,23 @@
 #   PREBUILT=<dir>                          (optional: install binaries from here instead of building; see README §1)
 #   DHT_SEED=<32-byte hex>                  (optional: fixed PeerId so bootstrap addrs survive restarts)
 #   BOOTSTRAP=<multiaddr>[,<multiaddr>]     (required for ROLE=dht; omit for the bootstrap node itself)
-#   RELAY_HOST=<dns name>                   (optional: extra SAN on the relay's and the mailbox's self-signed cert; with
-#                                            RELAY_CERT the name the certificate is for)
-#   RELAY_CERT=<fullchain.pem> RELAY_KEY=<privkey.pem>  (optional: a real certificate for the relay, e.g. Let's Encrypt's
-#                                            /etc/letsencrypt/live/<name>/; a deploy hook restarts the relay on renewal)
-#   RELAY_WWW=<dir>                          (optional: the browser client to serve at https://<name>:8443/, see
-#                                            dsip-rs web/README.md "Runbook"; with it the relay proxies the local dsip-node
-#                                            at /dsip/v1/ and serves $STATE/client.json as /config.json if present)
-#   TURN_URI=turn:<L4>:3478                  (optional, with RELAY_WWW: the relay mints TURN credentials at /turn from
-#                                            $STATE/turn.secret, the secret L4's coturn holds)
+#   DEBS=<dir>                              (ROLE=relay,mailbox: dsip-rs's packages and the client: dsip-relay_*.deb,
+#                                            dsip-mailbox_*.deb, dsip-node_*.deb, dsip-web-*.tar.gz, and its
+#                                            packaging/one-host/configure, which sets them up (README §1); with
+#                                            ROLE=hints, the dsip-node .deb from here is installed too)
+#   RELAY_HOST=<dns name>                   (ROLE=relay,mailbox: the one name of the relay, the client and the mailbox)
+#   RELAY_CERT=<dir>/fullchain.pem          (optional: its certificate, e.g. Let's Encrypt's /etc/letsencrypt/live/<name>/,
+#                                            privkey.pem beside it; renewals reach both services by configure's deploy
+#                                            hook. Without it: a self-signed certificate in $STATE/tls)
+#   RELAY_WWW=<dir>                          (optional: the browser client already unpacked there; by default the
+#                                            dsip-web tarball in DEBS, unpacked to /usr/local/share/dsip-web)
+#   CLIENT_NODES=<https url>[,<url>]         (optional: hints nodes for the client's defaults after this origin's own)
+#   TURN_URI=turn:<L4>:3478                  (optional: the relay mints TURN credentials at /turn from $STATE/turn.secret,
+#                                            the secret L4's coturn holds)
 #   MAILBOX_OWNER=<did>[,<did>]             (ROLE=mailbox: identities this mailbox serves; and/or MAILBOX_SERVE_ANY)
 #   MAILBOX_SERVE_ANY=<n>                   (ROLE=mailbox: serve up to n identities that enrol by binding, spec-gap 115:
-#                                            the browser client's did:key identities; the mailbox is advertised to
-#                                            them in $STATE/client.json as "mailbox": {"uri", "did"}; with RELAY_CERT the
-#                                            mailbox serves under the same certificate, which browsers require)
+#                                            the browser client's did:key identities; /config.json advertises the
+#                                            mailbox to them as "mailbox": {"uri", "did"})
 #   MAILBOX_RELEASE_IDLE=0                  (ROLE=mailbox with MAILBOX_SERVE_ANY: keep enrolments forever; by default the
 #                                            mailbox runs --release-idle and ends the enrolment of an identity none of
 #                                            whose devices has connected within --mls-retention, freeing its place in
@@ -41,8 +44,10 @@
 # Example:
 #   ROLE=hints,relay ./node-setup.sh                                            # the first hints node
 #   ROLE=hints,relay HINTS_PEERS=45.33.102.196 ./node-setup.sh                  # each later one: any running node
-#   ROLE=bootstrap,relay,mailbox MAILBOX_OWNER=did:web:alice.example DHT_SEED=$(openssl rand -hex 32) ./node-setup.sh  # L1
-#   ROLE=dht,relay,mailbox MAILBOX_OWNER=did:web:bob.example BOOTSTRAP=/ip4/1.2.3.4/tcp/4001/p2p/12D3... ./node-setup.sh # L2
+#   DEBS=/root/debs ROLE=bootstrap,hints,relay,mailbox RELAY_HOST=<L1 name> MAILBOX_OWNER=did:web:alice.example \
+#     DHT_SEED=$(openssl rand -hex 32) ./node-setup.sh                                                          # L1
+#   DEBS=/root/debs ROLE=dht,hints,relay,mailbox RELAY_HOST=<L2 name> MAILBOX_OWNER=did:web:bob.example \
+#     HINTS_PEERS=<L1> BOOTSTRAP=/ip4/1.2.3.4/tcp/4001/p2p/12D3... ./node-setup.sh                              # L2
 #   ROLE=dht        BOOTSTRAP=... ./node-setup.sh                               # L3
 #   ROLE=dht,turn   BOOTSTRAP=... ./node-setup.sh                               # L4 (coturn: STUN and TURN)
 #   ROLE=endpoint ./node-setup.sh                                               # NAT'd box (no daemons)
@@ -52,7 +57,7 @@ PUBLIC_IP=${PUBLIC_IP:-$(curl -4 -s https://ifconfig.me || hostname -I | awk '{p
 DSIP_RS_REF=${DSIP_RS_REF:-main}
 SRC=/opt/dsip-rs-src; BIN=/usr/local/bin; STATE=/var/lib/dsip; LOG=/var/log/dsip
 DHT_PORT=4001; RELAY_PORT=8443; MAILBOX_PORT=9443
-BINS="dsip dsip-relay dsip-dht-node dsip-mailbox dsip-msg dsip-node"
+BINS="dsip dsip-dht-node dsip-msg dsip-node"   # the relay and the mailbox: the packages (DEBS)
 HINTS_HTTP=${HINTS_HTTP:-0.0.0.0:8090}
 has(){ [[ ",$ROLE," == *",$1,"* ]]; }
 
@@ -90,7 +95,7 @@ else
   git -C $SRC rev-parse HEAD > $STATE/commit
   # A release build of the whole set wants ~3 GB of RAM and ~6 GB of disk: build on a 4 GB host (or the
   # endpoint box) and hand the result to the small ones with PREBUILT.
-  ( cd $SRC && cargo build -q --release -p dsip-cli -p dsip-relay -p dsip-dht -p dsip-mailbox -p dsip-node )
+  ( cd $SRC && cargo build -q --release -p dsip-cli -p dsip-dht -p dsip-mailbox -p dsip-node )   # dsip-msg: dsip-mailbox's
   mkdir -p $STATE/prebuilt
   for b in $BINS; do
     install -m755 $SRC/target/release/$b $BIN/$b
@@ -108,6 +113,9 @@ echo "commit: $(cat $STATE/commit 2>/dev/null || echo unknown)"
 # The relay's /dsip/v1/ proxy and the mailbox's --hints-node reach it at 127.0.0.1:8090. Open 4610/tcp and 6881/udp
 # (and 8090/tcp when HINTS_HTTP is public).
 if has hints; then
+  if [ -n "${DEBS:-}" ] && ls "$DEBS"/dsip-node_*_"$(dpkg --print-architecture)".deb >/dev/null 2>&1; then
+    apt-get install -y -q "$DEBS"/dsip-node_*_"$(dpkg --print-architecture)".deb
+  fi
   # the .deb's binary and unit when it is installed; otherwise ours, with the packaged unit's sandbox
   if [ -x /usr/bin/dsip-node ] && [ -f /usr/lib/systemd/system/dsip-node.service ]; then
     rm -f /etc/systemd/system/dsip-node.service
@@ -120,7 +128,7 @@ if has hints; then
   # list REPLACES the library's public nodes, so a public node that answers goes after ours (2026-10-16: L3, with
   # one stale saved node and router.bittorrent.com silent, could not rejoin until its peers were listed).
   OVERLAY=""; MAINLINE=""
-  for p in ${HINTS_PEERS//,/ }; do
+  for p in ${HINTS_PEERS:+${HINTS_PEERS//,/ }}; do
     if [[ $p == /* ]]; then
       addr=$p; host=$(echo "$p" | cut -d/ -f3)
     else
@@ -214,74 +222,78 @@ UNIT
   echo "DHT multiaddr (give this to other nodes as --bootstrap):"; echo "   $ADDR"
 fi
 
-# ---- relay -------------------------------------------------------------------
-# the first --host is the one the mailbox advertises as its blob endpoint (M§4.3): the name a browser's TLS accepts
-HOSTARG="--host $PUBLIC_IP"; [ -n "${RELAY_HOST:-}" ] && HOSTARG="--host $RELAY_HOST --host $PUBLIC_IP"
-# Stage 5 of the client plan: a real certificate, the client served, the operator's defaults, TURN credentials, the
-# local dsip-node reached through the relay's origin (dsip-rs web/README.md "Runbook").
-RELAYARG=""
-if [ -n "${RELAY_CERT:-}" ]; then
-  RELAYARG="$RELAYARG --cert $RELAY_CERT --key ${RELAY_KEY:?RELAY_CERT needs RELAY_KEY}"
-  mkdir -p /etc/letsencrypt/renewal-hooks/deploy
-  printf '#!/bin/sh\nsystemctl restart dsip-relay\nsystemctl try-restart dsip-mailbox\n' > /etc/letsencrypt/renewal-hooks/deploy/dsip-relay.sh
-  chmod +x /etc/letsencrypt/renewal-hooks/deploy/dsip-relay.sh
-fi
-if [ -n "${RELAY_WWW:-}" ]; then
-  RELAYARG="$RELAYARG --www $RELAY_WWW --node-proxy 127.0.0.1:8090"
-  [ -f $STATE/client.json ] && RELAYARG="$RELAYARG --client-config $STATE/client.json"
+# ---- relay + mailbox: the packages, one host, one name ------------------------------------------------------------
+# dsip-rs's .debs, set up by its packaging/one-host/configure (dsip-rs docs/one-host.md): the relay serving the client,
+# its defaults, TURN credentials and the local hints node at /dsip/v1/; the mailbox under the same certificate.
+if has relay || has mailbox; then
+  { has relay && has mailbox && has hints; } || { echo "ROLE: relay and mailbox come together, with hints (one host)" >&2; exit 1; }
+  [ -n "${DEBS:-}" ] || { echo "ROLE=relay,mailbox needs DEBS=<dir> (README §1: the packages, the client, configure)" >&2; exit 1; }
+  NAME=${RELAY_HOST:?ROLE=relay,mailbox needs RELAY_HOST=<dns name>}
+  ARCH=$(dpkg --print-architecture)
+  [ -x "$DEBS/configure" ] || { echo "no $DEBS/configure (dsip-rs packaging/one-host/configure)" >&2; exit 1; }
+  [ -n "${MAILBOX_OWNER:-}${MAILBOX_SERVE_ANY:-}" ] || { echo "ROLE=mailbox needs MAILBOX_OWNER=<did> and/or MAILBOX_SERVE_ANY=<n>"; exit 1; }
+  # The services as node-setup.sh ran them before the packages: units in /etc/systemd/system (which would override
+  # the packages'), binaries in /usr/local/bin (ahead of /usr/bin on PATH), state in $STATE/<svc>. Their state moves
+  # into the packages' state directories, once, after a backup in /root/pb.
+  MIGRATE=""
+  for svc in relay mailbox; do
+    unit=/etc/systemd/system/dsip-$svc.service
+    if [ -f $unit ] && grep -q "^ExecStart=$BIN/dsip-$svc" $unit; then
+      systemctl stop dsip-$svc
+      mkdir -p /root/pb; stamp=$(date +%Y%m%d%H%M%S)
+      tar -czf /root/pb/dsip-$svc-before-packages-$stamp.tar.gz -C / "${STATE#/}/$svc" "${unit#/}" "${BIN#/}/dsip-$svc"
+      echo "backed up $STATE/$svc, $unit and $BIN/dsip-$svc in /root/pb/dsip-$svc-before-packages-$stamp.tar.gz"
+      rm -f $unit $BIN/dsip-$svc; MIGRATE="$MIGRATE $svc"
+    fi
+  done
+  systemctl daemon-reload
+  apt-get install -y -q "$DEBS"/dsip-relay_*_"$ARCH".deb "$DEBS"/dsip-mailbox_*_"$ARCH".deb
+  for svc in $MIGRATE; do
+    # the package started its service on a new, empty state: the old state takes its place (systemd hands the tree to
+    # the service's DynamicUser when it starts; a mailbox's JSON state is imported into mailbox.sqlite once)
+    systemctl stop dsip-$svc
+    rm -rf /var/lib/private/dsip-$svc; install -d -m 0700 /var/lib/private
+    cp -a $STATE/$svc /var/lib/private/dsip-$svc; chmod 0700 /var/lib/private/dsip-$svc
+    mv $STATE/$svc $STATE/$svc.moved-to-packages
+    echo "moved $STATE/$svc to /var/lib/private/dsip-$svc (the old copy: $STATE/$svc.moved-to-packages)"
+  done
+  # the restarting hook of before; configure's own hook reloads both services instead
+  rm -f /etc/letsencrypt/renewal-hooks/deploy/dsip-relay.sh
+  WWW=${RELAY_WWW:-}
+  if [ -z "$WWW" ]; then
+    WWW=/usr/local/share/dsip-web
+    rm -rf $WWW.new; mkdir -p $WWW.new
+    tar -xzf "$(ls "$DEBS"/dsip-web-*.tar.gz | tail -1)" --strip-components 1 -C $WWW.new
+    if [ -d $WWW ] && ! diff -rq $WWW $WWW.new >/dev/null; then rm -rf $WWW.old; mv $WWW $WWW.old; fi
+    rm -rf $WWW; mv $WWW.new $WWW
+  fi
+  if [ -n "${RELAY_CERT:-}" ]; then
+    CERT_DIR=$(dirname "$RELAY_CERT")
+  else
+    # no certificate: one self-signed for the name, which endpoints then need in their CA bundle
+    CERT_DIR=$STATE/tls
+    if [ ! -f $CERT_DIR/fullchain.pem ]; then
+      mkdir -p $CERT_DIR
+      openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:P-256 -nodes -days 3650 -subj "/CN=$NAME" \
+        -addext "subjectAltName = DNS:$NAME,IP:$PUBLIC_IP" -keyout $CERT_DIR/privkey.pem -out $CERT_DIR/fullchain.pem 2>/dev/null
+    fi
+  fi
+  ARGS=(--name "$NAME" --cert-dir "$CERT_DIR" --www "$WWW" --port "$RELAY_PORT" --mailbox-port "$MAILBOX_PORT" --host "$PUBLIC_IP")
+  for o in ${MAILBOX_OWNER:+${MAILBOX_OWNER//,/ }}; do ARGS+=(--owner "$o"); done
+  if [ -n "${MAILBOX_SERVE_ANY:-}" ]; then
+    ARGS+=(--serve-any "$MAILBOX_SERVE_ANY")
+    # an idle enrolment ends and frees its --serve-any place (M§4.1 idle expiry, spec-gap 130)
+    [ "${MAILBOX_RELEASE_IDLE:-1}" = 0 ] || ARGS+=(--release-idle)
+  fi
+  for n in ${MAILBOX_DOCS:-alice bob}; do [ -f $STATE/docs/$n.json ] && ARGS+=(--resolver-file $STATE/docs/$n.json); done
+  [ ! -f $STATE/ca-all.pem ] || ARGS+=(--peers-ca $STATE/ca-all.pem)
+  for u in ${CLIENT_NODES:+${CLIENT_NODES//,/ }}; do ARGS+=(--client-node "$u"); done
   if [ -n "${TURN_URI:-}" ]; then
     [ -f $STATE/turn.secret ] || { echo "TURN_URI needs $STATE/turn.secret (the secret coturn holds)"; exit 1; }
-    RELAYARG="$RELAYARG --turn-uri $TURN_URI --turn-secret-file $STATE/turn.secret"
+    ARGS+=(--turn-uri "$TURN_URI" --turn-secret-file $STATE/turn.secret)
   fi
-fi
-if has relay; then
-  cat > /etc/systemd/system/dsip-relay.service <<UNIT
-[Unit]
-Description=DSIP relay (wss)
-After=network-online.target chrony.service
-[Service]
-ExecStart=$BIN/dsip-relay --listen 0.0.0.0:$RELAY_PORT --state $STATE/relay --status-listen 127.0.0.1:9101 $HOSTARG$RELAYARG
-Restart=always
-StandardOutput=append:$LOG/relay.log
-StandardError=append:$LOG/relay.log
-[Install]
-WantedBy=multi-user.target
-UNIT
-  systemctl daemon-reload; systemctl enable dsip-relay; systemctl restart dsip-relay
-  sleep 1.5
-  if [ -n "${RELAY_CERT:-}" ]; then echo "Relay certificate: $RELAY_CERT (public CA; endpoints need no --ca)"; else echo "Relay cert (goes into every endpoint's CA bundle): $STATE/relay/cert.pem"; fi
-  echo "Relay URL: wss://${RELAY_HOST:-$PUBLIC_IP}:$RELAY_PORT/dsip"
-  [ -n "${RELAY_WWW:-}" ] && echo "Client: https://${RELAY_HOST:-$PUBLIC_IP}:$RELAY_PORT/"
-fi
-
-# ---- mailbox + hub (Messaging Profile 1.0) ------------------------------------
-if has mailbox; then
-  [ -n "${MAILBOX_OWNER:-}${MAILBOX_SERVE_ANY:-}" ] || { echo "ROLE=mailbox needs MAILBOX_OWNER=<did> and/or MAILBOX_SERVE_ANY=<n>"; exit 1; }
-  OWNERARG=""; for o in $(echo "${MAILBOX_OWNER:-}" | tr ',' ' '); do OWNERARG="$OWNERARG --owner $o"; done
-  [ -n "${MAILBOX_SERVE_ANY:-}" ] && OWNERARG="$OWNERARG --serve-any $MAILBOX_SERVE_ANY"
-  # an idle enrolment ends and frees its --serve-any place (M§4.1 idle expiry, spec-gap 130)
-  [ -n "${MAILBOX_SERVE_ANY:-}" ] && [ "${MAILBOX_RELEASE_IDLE:-1}" != 0 ] && OWNERARG="$OWNERARG --release-idle"
-  # a member with no document (a browser's did:key) is reached through its hint on the co-located node (M§4.2)
-  OWNERARG="$OWNERARG --hints-node http://127.0.0.1:8090"
-  [ -n "${RELAY_CERT:-}" ] && OWNERARG="$OWNERARG --cert $RELAY_CERT --key ${RELAY_KEY:?RELAY_CERT needs RELAY_KEY}"
-  DOCARG=""; for n in ${MAILBOX_DOCS:-alice bob}; do DOCARG="$DOCARG --resolver-file $STATE/docs/$n.json"; done
-  # The DID documents and the CA bundle are read when used, so both may arrive after the service starts.
-  cat > /etc/systemd/system/dsip-mailbox.service <<UNIT
-[Unit]
-Description=DSIP mailbox and hub service (wss + blob endpoint, one TLS port)
-After=network-online.target chrony.service
-[Service]
-ExecStart=$BIN/dsip-mailbox --listen 0.0.0.0:$MAILBOX_PORT --state $STATE/mailbox --status-listen 127.0.0.1:9102$OWNERARG $HOSTARG --ca $STATE/ca-all.pem $DOCARG
-Restart=always
-StandardOutput=append:$LOG/mailbox.log
-StandardError=append:$LOG/mailbox.log
-[Install]
-WantedBy=multi-user.target
-UNIT
-  systemctl daemon-reload; systemctl enable dsip-mailbox; systemctl restart dsip-mailbox
-  sleep 1.5
-  echo "Mailbox DID:  $(cat $STATE/mailbox/service.did)"
-  echo "Mailbox URI:  wss://${RELAY_HOST:-$PUBLIC_IP}:$MAILBOX_PORT/dsip   cert: ${RELAY_CERT:-$STATE/mailbox/cert.pem}"
+  "$DEBS/configure" "${ARGS[@]}"
+  [ -n "${RELAY_CERT:-}" ] || echo "Relay and mailbox certificate (self-signed: into every endpoint's CA bundle): $CERT_DIR/fullchain.pem"
 fi
 
 # ---- STUN / TURN (coturn) ------------------------------------------------------
