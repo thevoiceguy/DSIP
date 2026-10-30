@@ -1367,9 +1367,9 @@ class Enrolment:
     Configured identities are always served and never count against the bound. Any other identity enrols with its
     first owner operation while fewer than `serve_any` are enrolled; past the bound its owner operations are refused
     `mailbox.not-served`. An enrolment ends by `mailbox-config` `release: true` (a configured identity is refused
-    `mailbox.not-enrolled`) or, when the operator chose idle expiry, once no device of the identity has completed a
-    verified `hello` within `mls_retention_s` (M§4.4: it has no registered device). `released` tells the host to delete
-    everything it holds for the identity and close its bindings.
+    `mailbox.not-enrolled`), by its operator (spec-gap 164) or, when the operator chose idle expiry, once no device of
+    the identity has completed a verified `hello` within `mls_retention_s` (M§4.4: it has no registered device).
+    `released` tells the host to delete everything it holds for the identity and close its bindings.
     """
 
     def __init__(self, ctx: dict):
@@ -1406,6 +1406,14 @@ class Enrolment:
         del self.enrolled[who]
         return [{"accepted": {"to": e["device"], "in_reply_to": e["id"]}},
                 {"released": {"identity": who, "cause": "owner"}}]
+
+    def _operator_release(self, e: dict) -> list:
+        # spec-gap 164: as a release, with nothing sent; a configured identity leaves by the configuration
+        who = e["identity"]
+        if who not in self.enrolled:
+            return []
+        del self.enrolled[who]
+        return [{"released": {"identity": who, "cause": "operator"}}]
 
     def _hello(self, e: dict) -> list:
         if e["identity"] in self.enrolled:

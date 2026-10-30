@@ -12,7 +12,7 @@ In the phone network, and in most SIP deployments, the carrier is the authority:
 - **Servers carry traffic but vouch for nothing.** Relays, mailboxes and DHT nodes move and store messages. None of them can impersonate a user, and none of them is an authority on who a user is.
 - **The receiver decides before media flows.** A call arrives with a verified identity, its trust tier, and its policies on recording, transcription and AI processing. Media starts only after a signed answer.
 
-**Status.** The current revision is DSIP Core 1.0, final in October 2026: the v0.17 text declared normative 1.0, with a stated rule for what a later 1.x may change (§11.4). Its wire protocol has been version `1.0` throughout, and its state machine and envelope rules have not changed since v0.12. The core, the WebRTC Media Binding, the Gateway Profile and the Messaging Profile are normative 1.0 text. Seven further profiles are drafts. A suite of 2,323 language-neutral test vectors pins the behaviour, and three implementations (Python, Rust and TypeScript) agree on every vector.
+**Status.** The current revision is DSIP Core 1.0, final in October 2026: the v0.17 text declared normative 1.0, with a stated rule for what a later 1.x may change (§11.4). Its wire protocol has been version `1.0` throughout, and its state machine and envelope rules have not changed since v0.12. The core, the WebRTC Media Binding, the Gateway Profile and the Messaging Profile are normative 1.0 text. Seven further profiles are drafts. A suite of 2,325 language-neutral test vectors pins the behaviour, and three implementations (Python, Rust and TypeScript) agree on every vector.
 
 ## How it works
 

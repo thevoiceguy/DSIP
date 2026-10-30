@@ -23,5 +23,6 @@ are carried unchanged, each with its own version; the drafts stay drafts.
 | `dsip-number-attestation-profile-v1.0-draft.md` | Number Attestation Profile (`tn-binding/0.1`), cited `N§n` | draft, stages 1–4; stage 5 needs a pilot partner |
 | `dsip-presence-profile-v1.0-draft.md` | Presence Profile (`presence/0.1`), cited `P§n` | draft; records (P§3–P§5, P§8), audiences (P§6), shares (P§7) and sealed records (P§12, `presence/0.2`) pinned by vectors (spec-gaps 134–162) and run by the CLI and the browser client |
 
-`dsip.core` is `1.0`, as it has been since it was introduced. The suite has 2,323 vectors, unchanged from v0.17,
-on which the Python harness, the Rust reference implementation and the independent TypeScript implementation agree.
+`dsip.core` is `1.0`, as it has been since it was introduced. The suite has 2,325 vectors, v0.17's 2,323 and two
+for spec-gap 164 (A.16), on which the Python harness, the Rust reference implementation and the independent
+TypeScript implementation agree.
