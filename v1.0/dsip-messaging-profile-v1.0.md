@@ -1,7 +1,7 @@
 # DSIP Messaging Profile 1.0 — Unified Messaging, Mailboxes, and Voicemail
 
 **Status:** Companion profile to DSIP 1.0 — normative 1.0. This document was written *before* the
-reference implementation and then corrected by it: the `messaging/` vector category (556 vectors)
+reference implementation and then corrected by it: the `messaging/` vector category (558 vectors)
 pins it, and the Python harness, the Rust reference implementation and an independent TypeScript
 implementation agree on every one; the reference implementation runs it over the wire on real MLS and HPKE
 (`impl/crates/dsip-messaging`, `dsip-mls`, `dsip-mailbox`), and every disagreement found on the way
@@ -140,7 +140,7 @@ deposit welcomes. An enrolled identity is served exactly as a configured one (it
 Which mailbox an identity uses is what it advertises (M§4.2), never where it enrolled.
 
 **When an enrolment ends** (v0.16, spec-gap 130). Configured identities do not count against the operator's bound;
-enrolled ones do, each from its enrolment until it ends. It ends in one of two ways, and either way the mailbox deletes
+enrolled ones do, each from its enrolment until it ends. It ends in one of three ways, and each way the mailbox deletes
 everything it holds for the identity (retained items, KeyPackages, blobs, group registrations, held introductions and
 grants, M§5.7 state), closes the identity's bindings, and frees its place. A later owner operation enrols afresh, with
 nothing kept.
@@ -156,6 +156,10 @@ nothing kept.
   counts; the enrolment itself counts as one, other owner operations do not). Past that bound every device of the identity
   rejoins its groups by external commit (M§6.8) anyway, so nothing a device could still use is dropped. A configured
   identity never expires.
+- **By its operator** (1.0, spec-gap 164). The operator MAY end an enrolment at any time, with the same effects as a
+  release. No message is sent for it: the identity's devices see their bindings close, and a later owner operation
+  enrols afresh only while enrolment is open and the bound has room. A configured identity is not ended this way; the
+  operator removes it from the configuration.
 
 An owner operation (`sync`, `key-packages`, `mailbox-config`) from an identity the mailbox does not serve and cannot
 enrol, because enrolment is closed or the bound is reached, is refused `mailbox.not-served`, as is a `release` from an
@@ -2009,3 +2013,9 @@ Within v0.17:
 | 138 | M§5.4 | an item whose processing fails leaves no MLS change and SHOULD be treated as processed: acknowledged, later copies duplicates |
 | 139 | M§7.5 | the predecessor roster for the successor check is by identity, every leaf's delegation `subject`, lapsed or not |
 | 140 | M§12.1 | an `archive-key` under an `akid` already held with another key is ignored; the first key stays and the conflict SHOULD be surfaced |
+
+Within 1.0:
+
+| spec-gap | where | what |
+|---|---|---|
+| 164 | M§4.1 | the operator MAY end an enrolment, with the same effects as a release and no message sent; `enrolment-trace` `operator_release` |

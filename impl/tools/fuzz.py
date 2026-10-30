@@ -151,16 +151,18 @@ def gen_move_arrival(r: random.Random):
     return "messaging", "move-arrival-trace", ctx, ev
 
 def gen_enrolment(r: random.Random):
-    # spec-gap 130: owner operations, releases and hellos from configured, enrolled and unknown identities, and time
-    # across the idle bound, with the bound and expiry varied
+    # spec-gap 130: owner operations, releases, operator releases (spec-gap 164) and hellos from configured, enrolled
+    # and unknown identities, and time across the idle bound, with the bound and expiry varied
     ids = ["did:web:alice.example", "did:key:z6MkBob", "did:key:z6MkCarol", "did:key:z6MkDave", "did:key:z6MkErin"]
     ev = []
     for i in range(r.randint(2, 16)):
         x, who = r.random(), r.choice(ids)
         if x < 0.45:
             ev.append({"owner_op": {"identity": who, "device": who + "#d", "id": f"op{i}"}})
-        elif x < 0.6:
+        elif x < 0.55:
             ev.append({"release": {"identity": who, "device": who + "#d", "id": f"rel{i}"}})
+        elif x < 0.63:
+            ev.append({"operator_release": {"identity": who}})
         elif x < 0.75:
             ev.append({"hello": {"identity": who}})
         else:

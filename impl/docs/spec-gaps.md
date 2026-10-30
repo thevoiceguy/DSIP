@@ -4904,3 +4904,23 @@ Choices:
 - **(c) Closed schemas; any new field is 2.0.** 1.x adds only message types, tokens, profiles and extensions.
 
 **Decided (2026-10-27, user): (a).** Written into 1.0 as §11.4 "Stability of Core 1.0"; no schema or vector changes.
+
+## 164. M§4.1 — whether a mailbox's operator may end an enrolment
+
+**Found (2026-10-29, service nodes S5 in dsip-rs: `dsip-mailbox admin release`).** M§4.1 names two ways an enrolment
+ends: the identity's `release` and, at the operator's choice, idle expiry. An operator who wants a place back now (a
+full mailbox, an abusive identity, a test account) has neither: a release comes only from a device of the identity, and
+idle expiry waits `mls_retention_s` after the last `hello`.
+
+Choices:
+
+- **(a) The operator MAY end an enrolment**, with the same effects as a release: everything held for the identity is
+  deleted, its bindings closed, its place freed. No message is sent. A configured identity is not ended this way; the
+  operator removes it from the configuration.
+- **(b) Only the two ways.** An operator who wants a place back closes the mailbox's bindings and waits for idle
+  expiry, or enlarges the bound.
+
+**Decided (2026-10-30, user: "164 (a)"): (a).** It is a local action of the mailbox and changes nothing on the wire,
+so §11.4 allows it in 1.0 (A.16). M§4.1 gains "By its operator". The `enrolment-trace` gains the event
+`{operator_release: {identity}}`, which emits `released {cause: "operator"}` for an enrolled identity and nothing for
+any other (`enrolment-operator-ends-an-enrolment`, `enrolment-operator-end-spares-configured-and-unserved`).

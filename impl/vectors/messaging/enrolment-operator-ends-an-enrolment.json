@@ -1,0 +1,147 @@
+{
+  "vector": "messaging/enrolment-operator-ends-an-enrolment",
+  "format": 1,
+  "kind": "messaging",
+  "description": "The operator MAY end an enrolment (1.0, spec-gap 164), with the same effects as a release: everything held for the identity is deleted and its place freed (released, cause operator). No message is sent: its devices see their bindings close. A later owner operation enrols afresh while the bound has room.",
+  "spec_ref": [
+    "M§4.1"
+  ],
+  "context": {
+    "component": "enrolment",
+    "now": 1760000000,
+    "configured": [
+      "did:web:alice.example"
+    ],
+    "serve_any": 1
+  },
+  "input": {
+    "check": "enrolment-trace",
+    "steps": [
+      {
+        "event": {
+          "owner_op": {
+            "identity": "did:web:example.com:users:bob",
+            "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "id": "01K742SG00WVJ504BQ7KHHH3G8"
+          }
+        }
+      },
+      {
+        "event": {
+          "owner_op": {
+            "identity": "did:web:carol.example",
+            "device": "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL",
+            "id": "01K742SG004JM15MNKTA24FRXQ"
+          }
+        }
+      },
+      {
+        "event": {
+          "operator_release": {
+            "identity": "did:web:example.com:users:bob"
+          }
+        }
+      },
+      {
+        "event": {
+          "owner_op": {
+            "identity": "did:web:carol.example",
+            "device": "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL",
+            "id": "01K742SG005TTX5W1JKZ8XQ507"
+          }
+        }
+      },
+      {
+        "event": {
+          "owner_op": {
+            "identity": "did:web:example.com:users:bob",
+            "device": "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ",
+            "id": "01K742SG0005TVM9VQQ6BKQP8J"
+          }
+        }
+      }
+    ]
+  },
+  "expect": {
+    "steps": [
+      {
+        "emit": [
+          {
+            "enrolled": {
+              "identity": "did:web:example.com:users:bob"
+            }
+          }
+        ],
+        "state": {
+          "enrolled": [
+            "did:web:example.com:users:bob"
+          ],
+          "free": 0
+        }
+      },
+      {
+        "emit": [
+          {
+            "error": {
+              "to": "did:key:z6Mks5FEYf8Z7WygGqzyejjnf3VHupKMYBv4bKgEfW52wqmL",
+              "in_reply_to": "01K742SG004JM15MNKTA24FRXQ",
+              "reason": "mailbox.not-served"
+            }
+          }
+        ],
+        "state": {
+          "enrolled": [
+            "did:web:example.com:users:bob"
+          ],
+          "free": 0
+        }
+      },
+      {
+        "emit": [
+          {
+            "released": {
+              "identity": "did:web:example.com:users:bob",
+              "cause": "operator"
+            }
+          }
+        ],
+        "state": {
+          "enrolled": [],
+          "free": 1
+        }
+      },
+      {
+        "emit": [
+          {
+            "enrolled": {
+              "identity": "did:web:carol.example"
+            }
+          }
+        ],
+        "state": {
+          "enrolled": [
+            "did:web:carol.example"
+          ],
+          "free": 0
+        }
+      },
+      {
+        "emit": [
+          {
+            "error": {
+              "to": "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ",
+              "in_reply_to": "01K742SG0005TVM9VQQ6BKQP8J",
+              "reason": "mailbox.not-served"
+            }
+          }
+        ],
+        "state": {
+          "enrolled": [
+            "did:web:carol.example"
+          ],
+          "free": 0
+        }
+      }
+    ]
+  }
+}

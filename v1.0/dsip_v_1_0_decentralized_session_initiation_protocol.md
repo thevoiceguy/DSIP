@@ -7,7 +7,7 @@
 **Editor:** James Ferris
 **Date:** October 2026
 **Supersedes:** v0.17
-**Companion documents:** WebRTC Media Binding 1.0 (`dsip-webrtc-media-binding-v1.0.md`); Gateway Profile 1.0 (`dsip-gateway-profile-v1.0.md`); Messaging Profile 1.0 (`dsip-messaging-profile-v1.0.md`, with its schema set `dsip-messaging-schemas-draft/`); RTP/SRTP Media Binding (draft, `dsip-rtp-srtp-media-binding-v1.0-draft.md`); DHT Hints Profile (draft, `dsip-dht-hints-profile-v1.0-draft.md`); Alias Transparency Profile (draft, `dsip-alias-transparency-profile-v1.0-draft.md`); Device Events Profile (draft, `dsip-device-events-profile-v1.0-draft.md`); Recording Profile (draft, `dsip-recording-profile-v1.0-draft.md`); Number Attestation Profile (draft, `dsip-number-attestation-profile-v1.0-draft.md`); Presence Profile (draft, `dsip-presence-profile-v1.0-draft.md`); JSON Schema set v0.17 (`dsip-schemas-v1.0/`); conformance vectors (`impl/vectors/`, 2,323 vectors on which the Python harness, the Rust reference implementation and the independent TypeScript implementation agree)
+**Companion documents:** WebRTC Media Binding 1.0 (`dsip-webrtc-media-binding-v1.0.md`); Gateway Profile 1.0 (`dsip-gateway-profile-v1.0.md`); Messaging Profile 1.0 (`dsip-messaging-profile-v1.0.md`, with its schema set `dsip-messaging-schemas-draft/`); RTP/SRTP Media Binding (draft, `dsip-rtp-srtp-media-binding-v1.0-draft.md`); DHT Hints Profile (draft, `dsip-dht-hints-profile-v1.0-draft.md`); Alias Transparency Profile (draft, `dsip-alias-transparency-profile-v1.0-draft.md`); Device Events Profile (draft, `dsip-device-events-profile-v1.0-draft.md`); Recording Profile (draft, `dsip-recording-profile-v1.0-draft.md`); Number Attestation Profile (draft, `dsip-number-attestation-profile-v1.0-draft.md`); Presence Profile (draft, `dsip-presence-profile-v1.0-draft.md`); JSON Schema set v0.17 (`dsip-schemas-v1.0/`); conformance vectors (`impl/vectors/`, 2,325 vectors on which the Python harness, the Rust reference implementation and the independent TypeScript implementation agree)
 
 ---
 
@@ -2713,6 +2713,14 @@ since v0.12, and every payload has carried `dsip.core` `1.0` and every schema th
 - The companion documents are carried unchanged: WebRTC Media Binding 1.0, Gateway Profile 1.0 and Messaging Profile
   1.0 stay normative, and the drafts (RTP/SRTP, DHT Hints, Alias Transparency, Device Events, Recording, Number
   Attestation, Presence) stay drafts. Each carries its own version.
+
+### A.16 Within 1.0
+
+Clarifications made in place after `poc-v1.0`, each allowed by §11.4: none changes what a 1.0 implementation accepts
+or rejects.
+
+- Messaging Profile 1.0: a mailbox's operator MAY end an enrolment, with the same effects as a release (spec-gap 164,
+  M§4.1). It is a local action of the mailbox; nothing on the wire changes.
 
 ---
 

@@ -1,10 +1,11 @@
 /**
  * The mailbox's view of whom it serves: configured identities, identities that enrol within the
- * operator's bound, and how an enrolment ends (release, or idle expiry at the operator's choice).
+ * operator's bound, and how an enrolment ends (release, by the operator, or idle expiry at the
+ * operator's choice).
  *
  * Spec: M§4.1 ("Whom a mailbox serves", "When an enrolment ends"), M§4.4 (registered device,
  * `mls_retention_s`), M§5.7 (`release`), M§15.5, M§16 (`mailbox.not-served`,
- * `mailbox.not-enrolled`) — spec-gaps 115, 130.
+ * `mailbox.not-enrolled`) — spec-gaps 115, 130, 164.
  */
 import type { Json, JsonObject } from "../did.js";
 import type { Machine, Step } from "./device.js";
@@ -88,6 +89,13 @@ export class Enrolment implements Machine {
       } else {
         // Spec: M§4.1 — a release never enrols
         emit.push(this.error(op, "mailbox.not-served"));
+      }
+    } else if ("operator_release" in e) {
+      const identity = (e["operator_release"] as JsonObject)["identity"] as string;
+      // Spec: M§4.1 — the operator MAY end an enrolment, as a release with nothing sent
+      // (spec-gap 164); a configured identity leaves by the configuration
+      if (this.enrolled.delete(identity)) {
+        emit.push({ released: { identity, cause: "operator" } });
       }
     } else if ("hello" in e) {
       const identity = (e["hello"] as JsonObject)["identity"] as string;

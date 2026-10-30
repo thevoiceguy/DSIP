@@ -3305,6 +3305,34 @@ def enrolment_vectors():
                          (op(BOB, BPH, "u2"), enrolled(BOB), snap(BOB, free=1)),
                      ]))
 
+    # --- by its operator (spec-gap 164)
+    def ended(identity):
+        return {"operator_release": {"identity": identity}}
+
+    out.append(trace("enrolment-operator-ends-an-enrolment",
+                     "The operator MAY end an enrolment (1.0, spec-gap 164), with the same effects as a release: everything "
+                     "held for the identity is deleted and its place freed (released, cause operator). No message is sent: "
+                     "its devices see their bindings close. A later owner operation enrols afresh while the bound has room.",
+                     refs, T, {**ctx, "serve_any": 1}, [
+                         (op(BOB, BPH, "x1"), enrolled(BOB), snap(BOB, free=0)),
+                         (op(CAROL, CPH, "x2"), refused(CPH, "x2", "mailbox.not-served"), snap(BOB, free=0)),
+                         (ended(BOB), [released(BOB, "operator")], snap(free=1)),
+                         (op(CAROL, CPH, "x3"), enrolled(CAROL), snap(CAROL, free=0)),
+                         (op(BOB, BLA, "x4"), refused(BLA, "x4", "mailbox.not-served"), snap(CAROL, free=0)),
+                     ]))
+    out.append(trace("enrolment-operator-end-spares-configured-and-unserved",
+                     "Only an enrolment is ended by the operator (spec-gap 164): for a configured identity (the operator "
+                     "removes it from the configuration instead) or one the mailbox does not serve, nothing is emitted and "
+                     "nothing changes. Ending an enrolment twice ends it once.",
+                     refs, T, ctx, [
+                         (op(BOB, BPH, "y1"), enrolled(BOB), snap(BOB, free=1)),
+                         (ended(ALICE), [], snap(BOB, free=1)),
+                         (op(ALICE, APH, "y2"), [], snap(BOB, free=1)),
+                         (ended(CAROL), [], snap(BOB, free=1)),
+                         (ended(BOB), [released(BOB, "operator")], snap(free=2)),
+                         (ended(BOB), [], snap(free=2)),
+                     ]))
+
     # --- idle expiry (MAY: context.expire_idle)
     idle = {**ctx, "expire_idle": True, "mls_retention_s": 100}
     out.append(trace("enrolment-idle-expiry-at-the-bound",
