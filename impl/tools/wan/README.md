@@ -73,11 +73,30 @@ Pick the commit first and use it everywhere: `export DSIP_RS_REF=<dsip-rs commit
 four hosts provisioned an hour apart is four different programs). `dsipctl commit` must print the
 same hash on every host before any run.
 
+### The packages (L1, L2)
+The relay, the mailbox and the hints node come from dsip-rs's packages, set up for one host and one name by its
+`packaging/one-host/configure` (dsip-rs `docs/one-host.md`): the relay serves the browser client, its defaults
+(`/config.json`), TURN credentials and the local hints node at `/dsip/v1/`; the mailbox runs under the same
+certificate. Build them once, at the campaign's commit, on a machine with dsip-rs's packaging tools (its
+`packaging/build.sh` says which), and copy the set to each relay host:
+```bash
+cd dsip-rs && git checkout $DSIP_RS_REF
+packaging/build.sh dsip-relay dsip-mailbox dsip-web && crates/dsip-node/packaging/build.sh
+mkdir -p debs && cp crates/{dsip-relay,dsip-mailbox,dsip-node}/dist/*_amd64.deb web/dist/dsip-web-*.tar.gz \
+  packaging/one-host/configure debs/
+for h in L1 L2; do scp -r debs root@$h:/root/debs; done
+```
+A host set up by `node-setup.sh` before the packages is moved onto them by the same command: the old units and
+`/usr/local/bin` binaries go, and `/var/lib/dsip/{relay,mailbox}` become `/var/lib/dsip-relay` and
+`/var/lib/dsip-mailbox` (the same relay key and mailbox service DID; backups in `/root/pb`). The services log to the
+journal (`dsipctl relay-tail`, `mailbox-tail`).
+
 ### L1 — bootstrap + relay A + Alice's mailbox (builds)
 ```bash
-ROLE=bootstrap,relay,mailbox MAILBOX_OWNER=did:web:alice.example DHT_SEED=$(openssl rand -hex 32) ./node-setup.sh
+DEBS=/root/debs ROLE=bootstrap,hints,relay,mailbox RELAY_HOST=<L1 name> MAILBOX_OWNER=did:web:alice.example \
+  DHT_SEED=$(openssl rand -hex 32) ./node-setup.sh
 cat /var/lib/dsip/my-multiaddr      # → /ip4/<L1>/tcp/4001/p2p/12D3Koo…   ← BOOT1
-ls /var/lib/dsip/prebuilt           # dsip dsip-relay dsip-dht-node dsip-mailbox dsip-msg dsip-node dsip-node.service COMMIT
+ls /var/lib/dsip/prebuilt           # dsip dsip-dht-node dsip-msg dsip-node dsip-node.service COMMIT
 ```
 The seed pins the PeerId so `BOOT1` survives restarts (Run 2 restarts it cold). Every DHT node keeps the
 peers it learned in `/var/lib/dsip/dht.peers` (rewritten each minute) and dials them on restart, so a
@@ -88,19 +107,23 @@ others (all Debian 13 x86-64): `scp -r root@L1:/var/lib/dsip/prebuilt /root/preb
 
 ### L2 — dht + relay B + Bob's mailbox
 ```bash
-PREBUILT=/root/prebuilt ROLE=dht,relay,mailbox MAILBOX_OWNER=did:web:bob.example BOOTSTRAP=<BOOT1> ./node-setup.sh
+DEBS=/root/debs PREBUILT=/root/prebuilt ROLE=dht,hints,relay,mailbox RELAY_HOST=<L2 name> \
+  MAILBOX_OWNER=did:web:bob.example HINTS_PEERS=<L1> BOOTSTRAP=<BOOT1> ./node-setup.sh
 ```
+Without `RELAY_CERT` both services serve a self-signed certificate for the name, `$STATE/tls/fullchain.pem`, which
+endpoints need in their CA bundle (below).
 
-**For the browser client (client stages 5–6)** both relays run under a real certificate and serve the client, and
-both mailboxes enrol the browsers' `did:key` identities (spec-gap 115) under the same certificate:
+**For the browser client (client stages 5–6)** both relays run under a real certificate, and both mailboxes enrol the
+browsers' `did:key` identities (spec-gap 115):
 ```bash
-ROLE=relay,mailbox PREBUILT=/root/pb RELAY_HOST=<name> RELAY_CERT=/etc/letsencrypt/live/<name>/fullchain.pem \
-  RELAY_KEY=/etc/letsencrypt/live/<name>/privkey.pem RELAY_WWW=/var/lib/dsip/www TURN_URI=turn:<L4>:3478 \
+DEBS=/root/debs ROLE=hints,relay,mailbox RELAY_HOST=<name> RELAY_CERT=/etc/letsencrypt/live/<name>/fullchain.pem \
+  TURN_URI=turn:<L4>:3478 CLIENT_NODES=https://<other relay's name>:8443 \
   MAILBOX_OWNER=did:web:alice.example MAILBOX_SERVE_ANY=32 ./node-setup.sh
 ```
-with `/var/lib/dsip/client.json` naming the nodes and `"mailbox": {"uri": "wss://<name>:9443/dsip", "did":
-"<service.did>"}` (dsip-rs `web/README.md`, runbook). The mailbox reaches a member on the other operator through the
-hint on its co-located node (`--hints-node http://127.0.0.1:8090`).
+`/config.json` names this origin's hints node, then `CLIENT_NODES`, and the mailbox as `{"uri":
+"wss://<name>:9443/dsip", "did": "<its service DID>"}`. The mailbox reaches a member on the other operator through
+the hint on its co-located node. The testbed keeps the relay on 8443, which its identities' documents and hints name;
+a new host would take 443 (`docs/one-host.md` §2).
 
 ### Hints nodes (dsip-node) — every host that runs a relay, and any others
 The browser client publishes and looks up hints through its relay's `/dsip/v1/` proxy, and the mailbox reaches
@@ -135,7 +158,7 @@ dsipctl turn-cred                   # ← `--turn-user <expiry>:dsip --turn-pass
 ```bash
 PREBUILT=$HOME/prebuilt ROLE=endpoint ./node-setup.sh   # Alice + Bob identity dirs, prints their DIDs
 mkdir -p ~/dsip-wan
-for h in L1 L2; do ssh root@$h 'cat /var/lib/dsip/relay/cert.pem /var/lib/dsip/mailbox/cert.pem'; done > ~/dsip-wan/ca-all.pem
+for h in L1 L2; do ssh root@$h 'cat /var/lib/dsip/tls/fullchain.pem'; done > ~/dsip-wan/ca-all.pem   # self-signed only
 for h in L1 L2; do scp ~/dsip-wan/ca-all.pem root@$h:/var/lib/dsip/ca-all.pem; done   # the mailboxes dial each other
 ```
 (An endpoint that is not x86-64 Debian 13 builds for itself: drop `PREBUILT`, keep `DSIP_RS_REF`.)
@@ -400,7 +423,7 @@ federation between them over the WAN, devices on E-A and E-B behind NAT. Identit
    ```bash
    source ~/dsip-wan/HOSTS.env; mkdir -p ~/dsip-wan/docs
    dsip-msg --state ~/dsip-wan/dev-a --identity did:web:alice.example --write-doc ~/dsip-wan/docs/alice.json \
-     --mailbox-did "$(ssh root@L1 cat /var/lib/dsip/mailbox/service.did)" --mailbox-uri $MBX_A
+     --mailbox-did "$(ssh root@L1 cat /var/lib/dsip-mailbox/service.did)" --mailbox-uri $MBX_A
    ```
    Copy **both** documents to `/var/lib/dsip/docs/` on L1 and L2 and to `~/dsip-wan/docs/` on both
    endpoints. The mailboxes read them when resolving; no restart.
@@ -429,7 +452,7 @@ federation between them over the WAN, devices on E-A and E-B behind NAT. Identit
    (86,400 s) unless you mean to exercise the successor group.
 7. **Voicemail blob over HTTPS.** Alice, with a real Opus file:
    `voicemail 01M2N6A0B1C2D3E4F5G6H7J8K9 user.no-answer /tmp/alice.ogg` → `OK sent audio purpose=voicemail`;
-   Bob: `RECV-AUDIO … file=<path>`; `cmp` it against Alice's file. On L1: `ls /var/lib/dsip/mailbox/blobs/`
+   Bob: `RECV-AUDIO … file=<path>`; `cmp` it against Alice's file. On L1: `ls /var/lib/dsip-mailbox/blobs/`
    holds one sealed blob and `grep -l OpusHead` finds nothing (the mailbox never sees plaintext). Repeat
    with Bob `offline` first: his mailbox fetches the blob itself on receipt — `replicated blob <sha256>
    (<n> bytes) from https://<L1>:9443/blobs/…` in L2's log (M§8.4 rule 6) — and Bob, back online, gets
