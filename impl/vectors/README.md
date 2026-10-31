@@ -1408,6 +1408,49 @@ The checks run in this order, and the first failure is the reason:
 
 `report` is false for every reason not named above. **`advance: n`** sets `now += n` and emits nothing.
 
+**`check: "snmp-answer"`** (E§3, spec-gap 168) builds the gateway's answer to a received SNMPv3 message, byte for
+byte. The input is `answer`, `message` (hex: the message as received, which earlier checks have already decided), and
+`local: {engine_id, boots, time}` (the gateway's engine and its clock now). It outputs `{"answer": hex}`, or
+`{"error": "malformed"}` when `message` is not an SNMPv3 message by the SNMPv3 traces' step 1 (or, encrypted, its
+plaintext is not a ScopedPDU).
+
+- **Encoding.** Every length is definite and as short as it can be (short form below 128, otherwise long form with
+  the fewest length bytes); every INTEGER has the fewest content bytes in two's complement; an unsigned value (Counter32)
+  the fewest bytes, with a leading `00` when its top bit would be set. The message is
+  `SEQUENCE {INTEGER 3, SEQUENCE {msgID, msgMaxSize, msgFlags, msgSecurityModel}, OCTET STRING securityParameters,
+  msgData}`. `msgID` is the received message's; `msgMaxSize` is 65507; `msgFlags` is one byte.
+- **`answer: "unknown-engine-id"` and `"not-in-time-window"`** (USM, RFC 3414 §3.2 steps 3 and 7a; RFC 3412 §7.1
+  step 3), with `counter`, the counter's value after it was incremented:
+  - `msgFlags` is `00` for `unknown-engine-id` and `01` (authNoPriv, never encrypted) for `not-in-time-window`;
+    `msgSecurityModel` is 3.
+  - `securityParameters` holds `SEQUENCE {OCTET STRING local.engine_id, INTEGER local.boots, INTEGER local.time,
+    OCTET STRING userName, OCTET STRING authParams, OCTET STRING ""}`, where `userName` is the received message's.
+  - `msgData` is the ScopedPDU `SEQUENCE {OCTET STRING local.engine_id, OCTET STRING "", Report-PDU}`, the Report-PDU
+    being tag `0xA8` holding `INTEGER 0` (request-id: the PDU was not read), `INTEGER 0`, `INTEGER 0` and
+    `SEQUENCE {SEQUENCE {OID, Counter32 (0x41) counter}}`. The OID is `1.3.6.1.6.3.15.1.1.4.0`
+    (usmStatsUnknownEngineIDs) or `1.3.6.1.6.3.15.1.1.2.0` (usmStatsNotInTimeWindows).
+  - `authParams` is empty for `unknown-engine-id`. For `not-in-time-window` it is the MAC with `user: {auth,
+    auth_key}`, the key localized for `local.engine_id`: the message is encoded with `authParams` as that many zero
+    bytes (the MAC lengths of the SNMPv3 traces' step 6), the HMAC of the whole message with the protocol's hash and
+    the key is taken, truncated to the MAC length, and written over the zeros.
+- **`answer: "response"`** (RFC 3416 §4.2.7) answers an inform, with `user: {auth, auth_key, priv, priv_key?}` for
+  USM, and `salt` (8 bytes, hex) when it is encrypted. The received ScopedPDU (for USM `authPriv`, first decrypted with
+  `priv_key` and the received boots, time and privParams, as the SNMPv3 traces' step 8) gives the contextEngineID, the
+  contextName, the request-id and the VarBindList, the last copied as its received bytes, tag and length included. The
+  answer's ScopedPDU is `SEQUENCE {OCTET STRING contextEngineID, OCTET STRING contextName, Response-PDU}`, the
+  Response-PDU being tag `0xA2` holding `INTEGER request-id`, `INTEGER 0`, `INTEGER 0` and the VarBindList.
+  `msgFlags` is the received one's auth and priv bits (`& 0x03`), so never reportable.
+  - **USM** (`msgSecurityModel` 3): `securityParameters` as for a Report, with the received `userName`, and
+    `privParams` the `salt` when `priv` bit is set (else empty). When it is set, `msgData` is
+    `OCTET STRING (AES-128-CFB of the ScopedPDU)` with the first 16 bytes of `priv_key` and the IV `local.boots`
+    (4 bytes, big-endian), `local.time` (4 bytes), `salt`. The MAC is then computed as for a Report, over the whole
+    message.
+  - **TSM** (`msgSecurityModel` 4, E§3): `securityParameters` is an empty OCTET STRING and `msgData` the plaintext
+    ScopedPDU.
+- **`answer: "discovery"`** (TSM, RFC 5343) answers the discovery request (`check: "tsm"`'s `discovery`): as a TSM
+  `response`, except that its VarBindList is `SEQUENCE {SEQUENCE {OID 1.3.6.1.6.3.10.2.1.1.0, OCTET STRING
+  local.engine_id}}`.
+
 **Hold-down traces** (`context.component: "holddown"`, E§4) have context `{component, now, hold_s}`. Each step's
 expect is `{"emit": [...], "held": [...]}`. `held` lists the held clears, sorted by key, each as `{key, due}`.
 - **`report: {resource, type, qualifier?, severity, cleared, inform?}`** (a missing `qualifier` is `""`):

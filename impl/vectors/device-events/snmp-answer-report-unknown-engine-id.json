@@ -1,0 +1,24 @@
+{
+  "vector": "device-events/snmp-answer-report-unknown-engine-id",
+  "format": 1,
+  "kind": "device-events",
+  "description": "Discovery (an empty engine ID): an unauthenticated Report with the gateway's engine ID, boots and time, the request's msgID, request-id 0 and usmStatsUnknownEngineIDs after the increment (RFC 3414 §4).",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "snmp-answer",
+    "answer": "unknown-engine-id",
+    "message": "3038020103300e020163020300ffe30401040201030410300e0400020100020100040004000400301104000400a00b0201630201000201003000",
+    "local": {
+      "engine_id": "80001f8880aaaaaaaaaaaaaaaa",
+      "boots": 1,
+      "time": 500
+    },
+    "counter": 1
+  },
+  "expect": {
+    "answer": "3064020103300e020163020300ffe3040100020103041e301c040d80001f8880aaaaaaaaaaaaaaaa020101020201f4040004000400302f040d80001f8880aaaaaaaaaaaaaaaa0400a81c0201000201000201003011300f060a2b060106030f01010400410101"
+  }
+}

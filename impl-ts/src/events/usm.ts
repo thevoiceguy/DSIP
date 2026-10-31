@@ -11,7 +11,7 @@ import { createDecipheriv, createHash, createHmac } from "node:crypto";
 import type { Json, JsonObject } from "../did.js";
 
 /** Authentication protocol: hash name and MAC length. Spec: E§3; RFC 3414, RFC 7860 */
-const AUTH: Record<string, { hash: string; mac: number }> = {
+export const AUTH: Record<string, { hash: string; mac: number }> = {
   md5: { hash: "md5", mac: 12 },
   sha: { hash: "sha1", mac: 12 },
   sha224: { hash: "sha224", mac: 16 },
@@ -62,7 +62,7 @@ export function usmKey(input: JsonObject): JsonObject {
 /** Any BER or structure failure; the step decides the reason it reports. */
 export class Bad extends Error {}
 
-interface Tlv {
+export interface Tlv {
   tag: number;
   /** Offset of the content in the buffer. */
   start: number;
@@ -75,7 +75,7 @@ interface Tlv {
  * one-byte tags, definite lengths (short form, or long form with 1–4 length bytes), content
  * within its parent.
  */
-function tlv(b: Uint8Array, pos: number, limit: number): Tlv {
+export function tlv(b: Uint8Array, pos: number, limit: number): Tlv {
   if (pos >= limit) throw new Bad();
   const tag = b[pos]!;
   if ((tag & 0x1f) === 0x1f) throw new Bad(); // high-tag-number form
@@ -100,7 +100,7 @@ function tlv(b: Uint8Array, pos: number, limit: number): Tlv {
  * The children of a TLV, which must exactly fill it. README step 1: a PDU's constructed bit is
  * not checked, so a primitive tag is read the same way (and is `not-a-notification` at step 9).
  */
-function children(b: Uint8Array, t: Tlv): Tlv[] {
+export function children(b: Uint8Array, t: Tlv): Tlv[] {
   const out: Tlv[] = [];
   let p = t.start;
   while (p < t.end) {

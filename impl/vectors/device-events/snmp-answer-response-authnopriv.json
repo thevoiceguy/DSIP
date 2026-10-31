@@ -1,0 +1,28 @@
+{
+  "vector": "device-events/snmp-answer-response-authnopriv",
+  "format": 1,
+  "kind": "device-events",
+  "description": "The Response to an inform: its msgID, request-id and varbinds, error status and index 0, at the inform's level, under the gateway's engine ID, boots and time (RFC 3416 §4.2.7).",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "snmp-answer",
+    "answer": "response",
+    "message": "30818e020103300e020109020300ffe3040101020103042c302a040d80001f8880aaaaaaaaaaaaaaaa02010102016404036f7073040cc07127fcb45f28b7778c599d0400304b04000400a64502012a020100020100303a300e06082b06010201010300430204d23017060a2b06010603010104010006092b0601060301010503300f060a2b060102010202010103020103",
+    "local": {
+      "engine_id": "80001f8880aaaaaaaaaaaaaaaa",
+      "boots": 1,
+      "time": 500
+    },
+    "user": {
+      "auth": "md5",
+      "auth_key": "bf75f528cad6e4d605a3169cbb7a6995",
+      "priv": null
+    }
+  },
+  "expect": {
+    "answer": "30818f020103300e020109020300ffe3040101020103042d302b040d80001f8880aaaaaaaaaaaaaaaa020101020201f404036f7073040c0ac9f74c39272e0b9df150460400304b04000400a24502012a020100020100303a300e06082b06010201010300430204d23017060a2b06010603010104010006092b0601060301010503300f060a2b060102010202010103020103"
+  }
+}

@@ -117,6 +117,8 @@ def run_check(i: dict) -> dict:
         return events_v3.usm_key(i)
     if c == "tsm":
         return events_v3.tsm_receive(bytes.fromhex(i["message"]))
+    if c == "snmp-answer":
+        return events_v3.snmp_answer(i)
     if c == "tsm-name":
         return events_v3.tsm_name(i["certificate"], i["table"])
     if c == "tls-frames":

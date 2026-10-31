@@ -4979,3 +4979,33 @@ Choices:
 **Decided (2026-10-31, editor's proposal, to be confirmed): (a).** It matches the raise rule and deposits one clear
 for one state. The hold-down traces' `report` gains `inform: true` (`holddown-inform-clear-not-held`,
 `holddown-inform-clear-drops-held-clear`).
+
+## 168. E§3 — the bytes of the gateway's SNMPv3 Reports and Responses
+
+**Found (2026-10-31, auditing the Device Events Profile for 1.0).** E§3 named what the gateway answers (a Report for
+discovery and for an inform outside the time window, a Response once an inform's event is stored) but not its bytes,
+and the vectors only said whether a Report was sent. A device that cannot read the Response retries the inform
+forever. RFC 3412, 3414 and 3416 settle most fields: `msgID` copied (RFC 3412 §6.2, §7.1 step 2b); a Report at
+noAuthNoPriv for discovery and authNoPriv for the time window (RFC 3414 §3.2 steps 3b, 7a; RFC 3412 §7.1 step 3d),
+never reportable (§6.4); its contextEngineID the local engine's and contextName "" (§7.1 step 3d); the local
+engine's boots and time (RFC 3414 §3.1 step 6); the counter after it was incremented; a Response with the inform's
+request-id and variable bindings, error status and index 0 (RFC 3416 §4.2.7), at the inform's security level; the
+AES salt the sender's own (RFC 3826 §3.1.2.1). They leave open:
+
+1. a Report's request-id when, as always for a USM error, the PDU was not read: RFC 3412 §7.1 step 3c4 gives 0, but
+   step 3a says "if possible";
+2. `msgMaxSize` ("implementation-dependent", §7.1 step 7c);
+3. a Response's contextEngineID and contextName (supplied by the application, RFC 3413);
+4. the encoding, which BER lets vary;
+5. which `msgFlags` bits besides auth and priv a Response carries.
+
+**Decided (2026-10-31, user: pin the bytes before 1.0; values chosen by the editor, to be confirmed):**
+
+1. request-id 0, the literal reading; a Report is matched by its `msgID` (RFC 3412 §6.2);
+2. 65507, the largest UDP payload;
+3. the inform's, as E§3 already says for TSM;
+4. the shortest lengths and integers, and the inform's VarBindList copied as received, never re-encoded;
+5. only the auth and priv bits (`& 0x03`).
+
+`check: "snmp-answer"` (README, kind `device-events`) pins them for USM Reports and Responses and for TSM Responses
+and discovery answers (`snmp-answer-*`).

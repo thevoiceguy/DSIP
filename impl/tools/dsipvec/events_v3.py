@@ -726,3 +726,153 @@ def map_syslog(raw: dict, rules: list, source: str, table: dict | None, severity
         return {"notify": True}
     return {"alarm": {"resource": source, "type": "syslog", "qualifier": sl["app_name"] or "", "severity": sev,
                       "cleared": False}}
+
+
+
+
+# --- the gateway's answers (E§3, spec-gap 168): README `check: "snmp-answer"` ------------------------------------
+
+ANSWER_MAX_SIZE = 65507  # spec-gap 168: the largest UDP payload
+REPORT_OIDS = {"unknown-engine-id": "1.3.6.1.6.3.15.1.1.4.0", "not-in-time-window": "1.3.6.1.6.3.15.1.1.2.0"}
+
+
+def _len(n: int) -> bytes:
+    if n < 0x80:
+        return bytes([n])
+    k = n.to_bytes((n.bit_length() + 7) // 8, "big")
+    return bytes([0x80 | len(k)]) + k
+
+
+def _tlv(tag: int, body: bytes) -> bytes:
+    return bytes([tag]) + _len(len(body)) + body
+
+
+def _int(v: int) -> bytes:
+    n = 1
+    while not -(1 << (8 * n - 1)) <= v < (1 << (8 * n - 1)):
+        n += 1
+    return _tlv(0x02, v.to_bytes(n, "big", signed=True))
+
+
+def _uint(tag: int, v: int) -> bytes:
+    k = v.to_bytes(max(1, (v.bit_length() + 7) // 8), "big")
+    return _tlv(tag, b"\x00" + k if k[0] & 0x80 else k)
+
+
+def _oid(oid: str) -> bytes:
+    p = [int(x) for x in oid.split(".")]
+    out = bytearray()
+    for sub in [p[0] * 40 + p[1]] + p[2:]:
+        chunk = [sub & 0x7F]
+        sub >>= 7
+        while sub:
+            chunk.append(0x80 | (sub & 0x7F))
+            sub >>= 7
+        out += bytes(reversed(chunk))
+    return _tlv(0x06, bytes(out))
+
+
+def _received(b: bytes):
+    """A received message's msgID, msgFlags, msgSecurityModel and msgData's whole TLV bytes; its parser checks the rest."""
+    top = R(b)
+    ms, me = top.expect(0x30)
+    m = R(b, ms, me)
+    m.expect(0x02)
+    gs, ge = m.expect(0x30)
+    g = R(b, gs, ge)
+    a, z = g.expect(0x02)
+    msg_id = ber_int(b[a:z])
+    g.expect(0x02)
+    a, z = g.expect(0x04)
+    flags = b[a]
+    a, z = g.expect(0x02)
+    model = ber_int(b[a:z])
+    m.expect(0x04)
+    at = m.pos
+    m.next()
+    return msg_id, flags, model, b[at:m.pos]
+
+
+def _scoped_raw(b: bytes):
+    """Bytes that are one ScopedPDU → (contextEngineID, contextName, request-id, the VarBindList as received)."""
+    top = R(b)
+    ss, se = top.expect(0x30)
+    if not top.done():
+        raise Malformed
+    q = R(b, ss, se)
+    a, z = q.expect(0x04)
+    engine = b[a:z]
+    a, z = q.expect(0x04)
+    name = b[a:z]
+    _, ps, pe = q.next()
+    p = R(b, ps, pe)
+    a, z = p.expect(0x02)
+    rid = ber_int(b[a:z])
+    p.expect(0x02)
+    p.expect(0x02)
+    at = p.pos
+    p.expect(0x30)
+    return engine, name, rid, b[at:p.pos]
+
+
+def _scoped(engine: bytes, name: bytes, tag: int, rid: int, vbl: bytes) -> bytes:
+    return _tlv(0x30, _tlv(0x04, engine) + _tlv(0x04, name) + _tlv(tag, _int(rid) + _int(0) + _int(0) + vbl))
+
+
+def _message(msg_id: int, flags: int, model: int, sec: bytes, data: bytes) -> tuple[bytes, int]:
+    """The whole message, and the offset of `sec` (securityParameters' content) in it."""
+    head = _int(3) + _tlv(0x30, _int(msg_id) + _int(ANSWER_MAX_SIZE) + _tlv(0x04, bytes([flags])) + _int(model))
+    body = head + _tlv(0x04, sec) + data
+    return _tlv(0x30, body), 1 + len(_len(len(body))) + len(head) + 1 + len(_len(len(sec)))
+
+
+def _usm(msg_id: int, flags: int, local: dict, user: bytes, scoped: bytes, u: dict | None, salt: bytes = b"") -> bytes:
+    """A USM message from the gateway's engine: encrypted when `flags` say priv, then authenticated when they say auth."""
+    if flags & 2:
+        iv = local["boots"].to_bytes(4, "big") + local["time"].to_bytes(4, "big") + salt
+        data = _tlv(0x04, aes_cfb(bytes.fromhex(u["priv_key"])[:16], iv, scoped, False))
+    else:
+        data = scoped
+    mac_len = MAC_LEN[u["auth"]] if flags & 1 else 0
+    head = _tlv(0x04, bytes.fromhex(local["engine_id"])) + _int(local["boots"]) + _int(local["time"]) + _tlv(0x04, user)
+    content = head + _tlv(0x04, bytes(mac_len)) + _tlv(0x04, salt if flags & 2 else b"")
+    msg, at = _message(msg_id, flags, 3, _tlv(0x30, content), data)
+    if not mac_len:
+        return msg
+    at += 1 + len(_len(len(content))) + len(head) + 2  # the SEQUENCE's header, the fields before, authParams' header
+    mac = hmac.new(bytes.fromhex(u["auth_key"]), msg, HASHES[u["auth"]]).digest()[:mac_len]
+    return msg[:at] + mac + msg[at + mac_len:]
+
+
+def snmp_answer(i: dict) -> dict:
+    """README `check: "snmp-answer"` (E§3, spec-gap 168): the gateway's answer to a received SNMPv3 message."""
+    b, local, kind = bytes.fromhex(i["message"]), i["local"], i["answer"]
+    lb = bytes.fromhex(local["engine_id"])
+    try:
+        if kind in REPORT_OIDS:  # RFC 3414 §3.2 steps 3b, 7a; RFC 3412 §7.1 step 3: request-id 0, never encrypted
+            m = parse_v3(b)
+            vbl = _tlv(0x30, _tlv(0x30, _oid(REPORT_OIDS[kind]) + _uint(0x41, i["counter"])))
+            flags = 0x01 if kind == "not-in-time-window" else 0x00
+            return {"answer": _usm(m["msg_id"], flags, local, m["user"], _scoped(lb, b"", 0xA8, 0, vbl), i.get("user")).hex()}
+        msg_id, flags, model, data = _received(b)
+        flags &= 0x03  # spec-gap 168: the auth and priv bits only
+        if model == 4:  # TSM (E§3): a plaintext ScopedPDU, no securityParameters
+            parse_tsm(b)
+            engine, name, rid, vbl = _scoped_raw(data)
+            if kind == "discovery":
+                vbl = _tlv(0x30, _tlv(0x30, _oid(SNMP_ENGINE_ID_OID) + _tlv(0x04, lb)))
+            msg, _ = _message(msg_id, flags, 4, b"", _scoped(engine, name, 0xA2, rid, vbl))
+            return {"answer": msg.hex()}
+        m = parse_v3(b)
+        u = i["user"]
+        if m["priv"]:
+            iv = m["boots"].to_bytes(4, "big") + m["time"].to_bytes(4, "big") + m["priv_params"]
+            plain = aes_cfb(bytes.fromhex(u["priv_key"])[:16], iv, m["encrypted"], True)
+        else:
+            plain = data
+        engine, name, rid, vbl = _scoped_raw(plain)
+        salt = bytes.fromhex(i["salt"]) if flags & 2 else b""
+        return {"answer": _usm(msg_id, flags, local, m["user"], _scoped(engine, name, 0xA2, rid, vbl), u, salt).hex()}
+    except (Malformed, IndexError):
+        return {"error": "malformed"}
+

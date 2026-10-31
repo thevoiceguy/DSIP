@@ -1,0 +1,24 @@
+{
+  "vector": "device-events/snmp-answer-report-unknown-engine-id-keeps-user",
+  "format": 1,
+  "kind": "device-events",
+  "description": "The Report carries the request's userName; a Counter32 whose top bit is set gets a leading 00.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "snmp-answer",
+    "answer": "unknown-engine-id",
+    "message": "3076020103300f0202012c020300ffe304010402010304133011040002010002010004036f707304000400304b04000400a745020101020100020100303a300e06082b06010201010300430204d23017060a2b06010603010104010006092b0601060301010503300f060a2b060102010202010103020103",
+    "local": {
+      "engine_id": "80001f8880aaaaaaaaaaaaaaaa",
+      "boots": 1,
+      "time": 500
+    },
+    "counter": 200
+  },
+  "expect": {
+    "answer": "3069020103300f0202012c020300ffe30401000201030421301f040d80001f8880aaaaaaaaaaaaaaaa020101020201f404036f7073040004003030040d80001f8880aaaaaaaaaaaaaaaa0400a81d02010002010002010030123010060a2b060106030f01010400410200c8"
+  }
+}

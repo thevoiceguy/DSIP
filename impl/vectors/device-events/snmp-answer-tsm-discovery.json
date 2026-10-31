@@ -1,0 +1,23 @@
+{
+  "vector": "device-events/snmp-answer-tsm-discovery",
+  "format": 1,
+  "kind": "device-events",
+  "description": "net-snmp's RFC 5343 discovery request: a Response naming the gateway's engine ID, with the request's msgID, request-id, contextEngineID and contextName.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "snmp-answer",
+    "answer": "discovery",
+    "message": "3043020103301102043a39be96020300ffe304010402010404003029040580000000060400a01e02040a2c07100201000201003010300e060a2b060106030a020101000500",
+    "local": {
+      "engine_id": "80001f8880aaaaaaaaaaaaaaaa",
+      "boots": 1,
+      "time": 500
+    }
+  },
+  "expect": {
+    "answer": "3050020103301102043a39be96020300ffe304010002010404003036040580000000060400a22b02040a2c0710020100020100301d301b060a2b060106030a02010100040d80001f8880aaaaaaaaaaaaaaaa"
+  }
+}

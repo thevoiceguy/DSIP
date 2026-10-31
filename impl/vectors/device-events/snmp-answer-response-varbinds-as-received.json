@@ -1,0 +1,28 @@
+{
+  "vector": "device-events/snmp-answer-response-varbinds-as-received",
+  "format": 1,
+  "kind": "device-events",
+  "description": "The VarBindList is copied as received, its non-shortest length included: never re-encoded.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "snmp-answer",
+    "answer": "response",
+    "message": "308190020103300e020109020300ffe3040101020103042c302a040d80001f8880aaaaaaaaaaaaaaaa02010102016404036f7073040c7541ba9dedcfed4ea188c3ea0400304d04000400a64702012a0201000201003082003a300e06082b06010201010300430204d23017060a2b06010603010104010006092b0601060301010503300f060a2b060102010202010103020103",
+    "local": {
+      "engine_id": "80001f8880aaaaaaaaaaaaaaaa",
+      "boots": 1,
+      "time": 500
+    },
+    "user": {
+      "auth": "sha",
+      "auth_key": "80928a4ace35718672e7eeaa5530c760b095adb3",
+      "priv": null
+    }
+  },
+  "expect": {
+    "answer": "308191020103300e020109020300ffe3040101020103042d302b040d80001f8880aaaaaaaaaaaaaaaa020101020201f404036f7073040c50ec1ed083c4cb83deb0a0d30400304d04000400a24702012a0201000201003082003a300e06082b06010201010300430204d23017060a2b06010603010104010006092b0601060301010503300f060a2b060102010202010103020103"
+  }
+}

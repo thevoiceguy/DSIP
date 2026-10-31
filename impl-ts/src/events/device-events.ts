@@ -13,6 +13,7 @@ import { mapSyslog, parseSyslog } from "./syslog.js";
 import { UsmReceiver, usmKey } from "./usm.js";
 import { dtlsRecord, tlsFrames, tsmName, tsmReceive } from "./tsm.js";
 import { SyslogSignCollector } from "./syslog-sign.js";
+import { snmpAnswer } from "./snmp-answer.js";
 
 /** One varbind, as carried. Spec: E§3 */
 export interface Varbind {
@@ -582,6 +583,8 @@ export function runDeviceEvents(context: JsonObject, input: JsonObject): Json {
       return dtlsRecord(Buffer.from(input["record"] as string, "hex"));
     case "tsm":
       return tsmReceive(Buffer.from(input["message"] as string, "hex"));
+    case "snmp-answer":
+      return snmpAnswer(input);
     case "map": {
       const raw = input["raw"] as JsonObject;
       if ("syslog" in raw) {

@@ -122,6 +122,13 @@ reason tokens are those of `impl/vectors/README.md` (component `snmpv3`):
   other failure is reported: the gateway drops it silently.
 - **The response to an inform** is sent once the hub has stored the event, as for v2c. It is a Response-PDU at the
   inform's security level, under the gateway's engine ID, boots and time.
+- **The bytes** (spec-gap 168). A Report and a Response have the received message's `msgID`, a `msgMaxSize` of 65507,
+  the received `userName`, and lengths and integers in their shortest form. A Report is never encrypted, and its
+  request-id is 0, since the PDU was not read (RFC 3412 §7.1 step 3); its contextEngineID is the gateway's engine ID
+  and its contextName empty, and its one varbind is the counter after it was incremented. A Response copies the
+  inform's contextEngineID, contextName, request-id and variable bindings, the last as received; an `authPriv` one is
+  encrypted with a salt of the gateway's choosing. `impl/vectors/README.md` (`check: "snmp-answer"`) states each
+  byte.
 
 **SNMPv3 over TLS** (v0.10; RFC 6353's TLS Transport Model with RFC 5591's Transport Security Model). The basis is
 `snmpv3-tls`.
@@ -173,8 +180,8 @@ reason tokens are those of `impl/vectors/README.md` (component `snmpv3`):
   gateway's engine ID, as an OCTET STRING. It is the only request the
   gateway answers; it deposits nothing.
 - **The response to an inform** is sent on the same connection once the hub has stored the event, as for v2c. It is
-  a Response-PDU with the inform's `msgID`, request-id, varbinds, contextEngineID and contextName, and its `msgFlags`
-  without the reportable bit. `msgSecurityModel` is 4, `securityParameters` is empty, and the error status and
+  a Response-PDU with the inform's `msgID`, request-id, varbinds, contextEngineID and contextName, and its `msgFlags`'
+  auth and priv bits only, so never reportable (spec-gap 168). `msgSecurityModel` is 4, `securityParameters` is empty, and the error status and
   index are 0.
 
 **Signed syslog** (v0.10; RFC 5848, syslog-sign). A signer sends RFC 5424 messages, then **Signature Blocks**
