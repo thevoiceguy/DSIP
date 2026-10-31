@@ -328,11 +328,15 @@ export class AlarmList {
     this.retime();
   }
 
-  /** An `alarm-ack`. Spec: E§5 — `closed` is final until a re-raise; neither clears. */
+  /**
+   * An `alarm-ack`. Spec: E§5 — `closed` is final until a re-raise; neither clears; a state other than `ack` and
+   * `closed` is ignored (spec-gap 166).
+   */
   private ack(ev: JsonObject, emit: JsonObject[]): void {
     const k = ev["alarm"] as JsonObject;
     const a = this.alarms.get(JSON.stringify([k["resource"], k["type"], k["qualifier"] ?? ""]));
     const state = ev["state"] as string;
+    if (state !== "ack" && state !== "closed") return;
     if (!a || a.operator === "closed" || a.operator === state) return;
     a.operator = state;
     emit.push({ operator: { key: a.key, state, by: ev["by"] ?? null } });
@@ -495,7 +499,11 @@ export class HoldDown {
       const report: JsonObject = { ...r, qualifier };
       const key: Key = [r["resource"] as string, r["type"] as string, qualifier];
       const id = JSON.stringify(key);
-      if (r["cleared"] === true) {
+      if (r["inform"] === true) {
+        // Spec: E§4 (spec-gap 167) — an inform's event is stored at once, its clear never held; it settles a held clear.
+        this.held.delete(id);
+        emit.push({ deposit: report });
+      } else if (r["cleared"] === true) {
         if (this.holdS <= 0) {
           emit.push({ deposit: report });
         } else if (!this.held.has(id)) {

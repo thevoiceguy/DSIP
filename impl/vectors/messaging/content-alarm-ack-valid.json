@@ -2,10 +2,11 @@
   "vector": "messaging/content-alarm-ack-valid",
   "format": 1,
   "kind": "messaging",
-  "description": "An `alarm-ack` (E§5) names the alarm and the operator state.",
+  "description": "An `alarm-ack` (E§5) names the alarm and the operator state; it needs no capability (E§2).",
   "spec_ref": [
     "M§8.2",
-    "E§5"
+    "E§5",
+    "E§2"
   ],
   "context": {
     "conversation": "01K742SG00AX1F6HVTRWBW227R",

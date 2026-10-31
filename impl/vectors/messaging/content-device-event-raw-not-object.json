@@ -1,0 +1,41 @@
+{
+  "vector": "messaging/content-device-event-raw-not-object",
+  "format": 1,
+  "kind": "messaging",
+  "description": "`raw`, when present, is an object.",
+  "spec_ref": [
+    "E§5"
+  ],
+  "context": {
+    "conversation": "01K742SG00AX1F6HVTRWBW227R",
+    "conversation_kind": "direct",
+    "leaf_identity": "did:web:alice.example",
+    "leaf_capabilities": [
+      "dsip.messaging",
+      "dsip.events"
+    ]
+  },
+  "input": {
+    "check": "object",
+    "object": {
+      "object": "content",
+      "id": "01K742SG00ZGMY7PQ0XGPCANKQ",
+      "conversation": "01K742SG00AX1F6HVTRWBW227R",
+      "sender": "did:web:alice.example",
+      "sent_at": 1760000000,
+      "kind": "device-event",
+      "purpose": "message",
+      "event": {
+        "source": {
+          "address": "192.0.2.7",
+          "basis": "snmpv2c"
+        },
+        "raw": "trap"
+      }
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "content-body"
+  }
+}

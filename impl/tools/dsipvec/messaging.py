@@ -189,7 +189,7 @@ def check_object(o: dict, ctx: dict) -> dict:
     if name == "call-record":
         return check_call_record(o, ctx)
     if name == "content":
-        return check_content(o)
+        return check_content(o, ctx)
     if name == "receipt":
         if o["kind"] not in RECEIPT_KINDS:
             return accept(effective={"render": "ignore"})
@@ -229,11 +229,51 @@ _KIND_BODY = {
 }
 
 
-def check_content(o: dict) -> dict:
+def _str(v, nonempty=False) -> bool:
+    return isinstance(v, str) and (bool(v) or not nonempty)
+
+
+def _opt_str(o: dict, f: str) -> bool:
+    return f not in o or isinstance(o[f], str)
+
+
+def _device_event_body(e) -> bool:
+    """E§5 Bodies (spec-gap 166): required members and types only; unknown members and tokens are not checked."""
+    if not isinstance(e, dict):
+        return False
+    if "heartbeat" in e:
+        h = e["heartbeat"]
+        if not (isinstance(h, dict) and type(h.get("interval_s")) is int and h["interval_s"] >= 1):
+            return False
+    if "source" in e or "heartbeat" not in e:
+        src = e.get("source")
+        if not (isinstance(src, dict) and _str(src.get("address"), True) and _str(src.get("basis"))):
+            return False
+    if "alarm" in e:
+        a = e["alarm"]
+        if not (isinstance(a, dict) and _str(a.get("resource")) and _str(a.get("type"), True)
+                and (a.get("severity", 0) is None or _str(a.get("severity"))) and type(a.get("cleared")) is bool
+                and _opt_str(a, "qualifier") and _opt_str(a, "text")):
+            return False
+    return all(f not in e or isinstance(e[f], dict) for f in ("raw", "syslog_gap"))
+
+
+def _alarm_ack_body(o: dict) -> bool:
+    a = o["alarm"]
+    return (isinstance(a, dict) and _str(a.get("resource")) and _str(a.get("type"), True) and _opt_str(a, "qualifier")
+            and _str(o["state"]))
+
+
+def check_content(o: dict, ctx: dict) -> dict:
     kind, purpose = o["kind"], o["purpose"]
     if kind in CONTENT_KINDS:
         if not all(f in o for f in _KIND_BODY[kind]):
             return reject("content-body")
+        if kind == "device-event" and not _device_event_body(o["event"]) or kind == "alarm-ack" and not _alarm_ack_body(o):
+            return reject("content-body")
+        # spec-gap 165: only a gateway, delegated with dsip.events, raises alarms (E§2)
+        if kind == "device-event" and "dsip.events" not in (ctx.get("leaf_capabilities") or []):
+            return reject("delegation-capability")
         eff_kind = kind
     else:  # M§8.2 fallback
         eff_kind = "file" if "blob" in o else "unsupported"

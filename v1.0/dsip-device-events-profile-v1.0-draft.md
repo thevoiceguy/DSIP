@@ -26,6 +26,9 @@ devices (SNMP SET, NETCONF); standardized vendor mapping content.
   signer and the device is a claim, as G§2 and G§5 make a SIP caller a claim of the gateway.
 - **Gateway.** A device delegated by the organisation's identity (§7.4) with the delegation capability
   `dsip.events`. It is a member of the alarm group. A revoked gateway's events stop verifying (§7.4).
+  A member MUST refuse a `device-event` whose sender's device delegation, the one its MLS leaf carries (M§6.2), lacks
+  `dsip.events` (spec-gap 165). A refused event never reaches the alarm list (E§5), so no member device but a
+  gateway can raise an alarm or start an escalation. An `alarm-ack` needs no capability: any member may acknowledge.
 - **Members.** Operators' devices, and the escalation agent (E§6).
 - **Basis** (`event.source.basis`), a registry-governed token (shape `[a-z][a-z0-9-]*`):
 
@@ -297,7 +300,8 @@ default, turns it off):
   count, never a stream of clears and raises.
 - A second clear while one is held changes nothing; the first keeps its time.
 - Every other event, including one with no alarm, is deposited at once. So is an event from an SNMP inform: the
-  inform is answered only once its event is stored (E§3), so its clear is never held.
+  inform is answered only once its event is stored (E§3), so its clear is never held, and a clear held for the same
+  alarm is dropped, since the inform's report settles it (spec-gap 167).
 
 Members' rules (E§5) are unchanged: hold-down changes only which events a gateway deposits, and when. Its rules are
 the `device-events/holddown-*` traces.
@@ -317,6 +321,18 @@ the `device-events/holddown-*` traces.
 ```
 
 A gateway's own liveness is a `device-event` with `event.heartbeat: {"interval_s": n}` and no `raw`.
+
+**Bodies** (spec-gap 166). A member refuses a `device-event` or `alarm-ack` whose body does not have this shape, as
+the Messaging Profile refuses any malformed content body (M§8.2); members it does not name are ignored:
+
+- `event.source`, required unless `event.heartbeat` is present: `address` (a non-empty string) and `basis`;
+- `event.alarm`, when present: `resource`, `type` (non-empty), `severity` (a token or `null`), `cleared` (a boolean),
+  and optionally `qualifier` and `text`;
+- `event.heartbeat.interval_s`: an integer, at least 1;
+- an `alarm-ack`'s `alarm`: `resource`, `type` (non-empty) and optionally `qualifier`; and its `state`.
+
+Tokens are not checked against their registries here: an unknown basis renders as unauthenticated (E§2), and an
+unknown severity orders as `indeterminate`. The exact rules are `impl/vectors/README.md`'s **Content bodies**.
 
 A signed-syslog gap (E§3, v0.11) is a `device-event` with `event.source: {"address": <the signer's address>,
 "basis": "gateway"}` and `event.syslog_gap: {hostname, app_name, procid, rsid, sg, spri, from, to}`, and no `raw`.
@@ -349,6 +365,7 @@ acknowledgement means "I own this". RFC 8632 keeps operator state separate from 
 - `closed` means the corrective action is done. It is final until a re-raise reopens the alarm, and an `ack` after
   `closed` is ignored.
 - Neither clears the alarm.
+- Any other `state` is ignored by the alarm list (spec-gap 166), so a later revision can add one.
 
 **Gateway silence.** A member that has seen a gateway's heartbeat raises the alarm
 `(<gateway identity>, dsip-gateway-silent, "")`, severity `major`, when no heartbeat arrives for twice its

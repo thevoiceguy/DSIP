@@ -1,0 +1,55 @@
+{
+  "vector": "messaging/content-device-event-unknown-members-valid",
+  "format": 1,
+  "kind": "messaging",
+  "description": "Unknown members are ignored, and tokens are not checked against their registries (an unknown basis renders as unauthenticated, E§2).",
+  "spec_ref": [
+    "E§5"
+  ],
+  "context": {
+    "conversation": "01K742SG00AX1F6HVTRWBW227R",
+    "conversation_kind": "direct",
+    "leaf_identity": "did:web:alice.example",
+    "leaf_capabilities": [
+      "dsip.messaging",
+      "dsip.events"
+    ]
+  },
+  "input": {
+    "check": "object",
+    "object": {
+      "object": "content",
+      "id": "01K742SG005X6PWQ19G6FDS6AS",
+      "conversation": "01K742SG00AX1F6HVTRWBW227R",
+      "sender": "did:web:alice.example",
+      "sent_at": 1760000000,
+      "kind": "device-event",
+      "purpose": "message",
+      "event": {
+        "source": {
+          "address": "192.0.2.7",
+          "basis": "carrier-pigeon"
+        },
+        "vendor": {
+          "x": 1
+        },
+        "alarm": {
+          "resource": "192.0.2.7/3",
+          "type": "smoke",
+          "qualifier": "",
+          "severity": "catastrophic",
+          "cleared": false,
+          "text": "smoke",
+          "extra": true
+        }
+      }
+    }
+  },
+  "expect": {
+    "verdict": "accept",
+    "effective": {
+      "kind": "device-event",
+      "purpose": "message"
+    }
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "vector": "messaging/content-device-event-capabilities-absent",
+  "format": 1,
+  "kind": "messaging",
+  "description": "No `leaf_capabilities` in the context is no capabilities (spec-gap 165).",
+  "spec_ref": [
+    "E§2"
+  ],
+  "context": {
+    "conversation": "01K742SG00AX1F6HVTRWBW227R",
+    "conversation_kind": "direct",
+    "leaf_identity": "did:web:alice.example"
+  },
+  "input": {
+    "check": "object",
+    "object": {
+      "object": "content",
+      "id": "01K742SG00X25D2ZBQ7BXD4KT0",
+      "conversation": "01K742SG00AX1F6HVTRWBW227R",
+      "sender": "did:web:alice.example",
+      "sent_at": 1760000000,
+      "kind": "device-event",
+      "purpose": "message",
+      "event": {
+        "source": {
+          "address": "192.0.2.7",
+          "basis": "snmpv2c"
+        },
+        "alarm": {
+          "resource": "192.0.2.7/3",
+          "type": "link-down",
+          "qualifier": "",
+          "severity": "major",
+          "cleared": false
+        }
+      }
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "delegation-capability"
+  }
+}

@@ -700,7 +700,7 @@ digest of the MLS bytes), just as relay traces abstract signatures. `input.check
 |---|---|---|
 | `payload` | `schema`, `payload` | `accept` / `schema-invalid` |
 | `message` | a profile message `payload` | `accept`, or the first failing rule: `unknown-type` → `schema-invalid` → `lifetime-exceeded` (> 60 s; ephemeral > 10 s) → `deposit-class-unsupported` (`mailbox.unsupported-class`) → `deposit-fields` (M§5.2 class table) → `object-too-large` (`mailbox.object-too-large`, decoded length > 24,576 computed as `len·3/4`); `mailbox-mode-unsupported` (`mailbox.unsupported-mode`); `key-packages-empty` |
-| `object` | a decrypted content `object`; `context.conversation`, `conversation_kind`, `leaf_identity` | `payload-float` → unknown object `accept {effective: {render: ignore}}` → `schema-invalid` → `sender-mismatch` → `conversation-mismatch` → `ulid-sent-at-mismatch` (> 300 s) → `personal-group-only` (`archive-key`, `call-event`, `recording-acceptance`); `sender-mismatch` and `conversation-mismatch` apply to `content`, `receipt` and `activity` only (a `read` receipt in the personal group, and every `recording-acceptance`, name the conversation they describe, M§10.5, C§5); content: `content-body`, `reaction-invalid`, `accept {effective: {kind, purpose}}` (unknown kind → `file` with a blob, else `unsupported`; unknown purpose → `message`); receipt: `receipt-shape`, `effective.receipt` or `render: ignore`; activity: `effective.activity` (unknown → `active`); `call-record` (C§9, v0.13), after `schema-invalid`, with `context.leaf_device`: `sender-mismatch` when its `device` is not `leaf_device` → `recorder-conversation-only` when `conversation_kind` is not `direct` → `call-record-invalid` when `answered_at` is present and `outcome` is not `answered`, or absent and `outcome` is `answered`, or `invited_at` ≤ `answered_at` (when present) ≤ `ended_at` does not hold → `accept {effective: {render: ignore, store: call-record}}` |
+| `object` | a decrypted content `object`; `context.conversation`, `conversation_kind`, `leaf_identity` | `payload-float` → unknown object `accept {effective: {render: ignore}}` → `schema-invalid` → `sender-mismatch` → `conversation-mismatch` → `ulid-sent-at-mismatch` (> 300 s) → `personal-group-only` (`archive-key`, `call-event`, `recording-acceptance`); `sender-mismatch` and `conversation-mismatch` apply to `content`, `receipt` and `activity` only (a `read` receipt in the personal group, and every `recording-acceptance`, name the conversation they describe, M§10.5, C§5); content: `content-body` (for `device-event` and `alarm-ack`, the shapes under kind `device-events`, **Content bodies**), `delegation-capability` (a `device-event` whose `context.leaf_capabilities`, the capabilities of the sender leaf's device delegation, lacks `dsip.events`; absent is none; E§2, spec-gap 165), `reaction-invalid`, `accept {effective: {kind, purpose}}` (unknown kind → `file` with a blob, else `unsupported`; unknown purpose → `message`); receipt: `receipt-shape`, `effective.receipt` or `render: ignore`; activity: `effective.activity` (unknown → `active`); `call-record` (C§9, v0.13), after `schema-invalid`, with `context.leaf_device`: `sender-mismatch` when its `device` is not `leaf_device` → `recorder-conversation-only` when `conversation_kind` is not `direct` → `call-record-invalid` when `answered_at` is present and `outcome` is not `answered`, or absent and `outcome` is `answered`, or `invited_at` ≤ `answered_at` (when present) ≤ `ended_at` does not hold → `accept {effective: {render: ignore, store: call-record}}` |
 | `conversation-ext` | `extension` | `schema-invalid` or `effective.kind` (unknown → `group`) |
 | `blob-replicate` | `mode`, `max_blob_bytes`, `stored`, `entry {uri, sha256, size}`, `fetched? {status, sha256, size}`, `attempt?`, `max_attempts?` | `{action: fetch\|skip\|store\|discard, reason?, retry?}` (M§8.4 rule 6, spec-gaps 65 and 67) |
 | `blob-fetch` | `blob {sha256, size}` (the content's), `tried [{uri, status, sha256?, size?}]` (each source's result, in the order tried), `attempt?` (default 1), `max_attempts?` (default 5) | the first `tried` with status 200 and matching `sha256` and `size` → `{action: play, source: uri}`; otherwise, if any `tried` has a status other than 200, or `tried` is empty → `{action: retry, reason: unavailable}` while `attempt < max_attempts`, else `{action: give-up, reason: unavailable}`; otherwise (every source served other bytes) → `{action: give-up, reason: mismatch}` (M§8.4 "Fetching", spec-gap 106) |
@@ -960,6 +960,20 @@ lowercase hex. Everything else, non-ASCII included, is written as UTF-8.
 Device Events Profile draft (`v1.0/dsip-device-events-profile-v1.0-draft.md`, cited `E§n`; spec-gap 103). There are two
 shapes: stateless checks (`input.check`) and alarm-list traces (`input.steps`).
 
+**Content bodies** (E§5, spec-gap 166) are checked by kind `messaging`'s `check: "object"`: a body that breaks these is
+`content-body`. Members not named here are ignored, and token values are not checked against their registries (an
+unknown basis, type or severity has its fallback where it is used).
+- **`device-event`.** `event` is an object.
+  - `source` is an object whose `address` is a non-empty string and whose `basis` is a string. It is required unless
+    `heartbeat` is present.
+  - `alarm`, when present, is an object: `resource` a string, `type` a non-empty string, `severity` a string or
+    `null`, `cleared` a boolean, and, when present, `qualifier` and `text` strings.
+  - `heartbeat`, when present, is an object whose `interval_s` is an integer, at least 1.
+  - `raw` and `syslog_gap`, when present, are objects.
+- **`alarm-ack`.** `alarm` is an object: `resource` a string, `type` a non-empty string, and, when present,
+  `qualifier` a string. `state` is a string. A `state` other than `ack` and `closed` is accepted here, and the alarm
+  list ignores it (below).
+
 **`check: "trap"`** (E§3), with `input.trap`, outputs `{"snmp": {version, uptime, trap_oid, varbinds}}` or
 `{"error": "malformed-trap"}`. `varbinds` must be an array, and each element an object with string `oid` and
 `type` and a `value` (any JSON). Anything else is `malformed-trap`. The output copies exactly those three members of
@@ -1086,9 +1100,9 @@ Events:
     `{"raised": {key, severity, reopened: true}}`.
   - **Active, same severity:** nothing.
   - **Active, different severity:** emit `{"changed": {key, severity}}`.
-- **`ack: {alarm: {resource, type, qualifier}, state: "ack"|"closed", by}`.** A missing `qualifier` (here and in
-  reports) is `""`, and a missing `by` is emitted as `null`. Ignored for an unknown key, when the
-  operator state is already `closed`, or when it equals `state`. Otherwise set the operator state and emit
+- **`ack: {alarm: {resource, type, qualifier}, state, by}`.** A missing `qualifier` (here and in
+  reports) is `""`, and a missing `by` is emitted as `null`. Ignored for an unknown key, for a `state` other than `ack`
+  and `closed` (spec-gap 166), when the operator state is already `closed`, or when it equals `state`. Otherwise set the operator state and emit
   `{"operator": {key, state, by}}`.
 - **`heartbeat: {gateway, interval_s}`.** Records the gateway's interval and `last = now`. If the alarm
   `[gateway, "dsip-gateway-silent", ""]` is active, apply a cleared report to it.
@@ -1396,7 +1410,9 @@ The checks run in this order, and the first failure is the reason:
 
 **Hold-down traces** (`context.component: "holddown"`, E§4) have context `{component, now, hold_s}`. Each step's
 expect is `{"emit": [...], "held": [...]}`. `held` lists the held clears, sorted by key, each as `{key, due}`.
-- **`report: {resource, type, qualifier?, severity, cleared}`** (a missing `qualifier` is `""`):
+- **`report: {resource, type, qualifier?, severity, cleared, inform?}`** (a missing `qualifier` is `""`):
+  - **From an SNMP inform** (`inform: true`, E§4, spec-gap 167): it emits `{"deposit": report}` at once, cleared or not,
+    and a clear held for its key is dropped. An inform is answered only once its event is stored (E§3).
   - **A cleared report:**
     - with `hold_s` 0, it emits `{"deposit": report}`;
     - with a clear already held for the key, it changes nothing;

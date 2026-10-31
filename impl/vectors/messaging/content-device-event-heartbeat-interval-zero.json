@@ -1,0 +1,39 @@
+{
+  "vector": "messaging/content-device-event-heartbeat-interval-zero",
+  "format": 1,
+  "kind": "messaging",
+  "description": "`heartbeat.interval_s` is an integer, at least 1.",
+  "spec_ref": [
+    "E§5"
+  ],
+  "context": {
+    "conversation": "01K742SG00AX1F6HVTRWBW227R",
+    "conversation_kind": "direct",
+    "leaf_identity": "did:web:alice.example",
+    "leaf_capabilities": [
+      "dsip.messaging",
+      "dsip.events"
+    ]
+  },
+  "input": {
+    "check": "object",
+    "object": {
+      "object": "content",
+      "id": "01K742SG001KD3WSB3C2D41H6M",
+      "conversation": "01K742SG00AX1F6HVTRWBW227R",
+      "sender": "did:web:alice.example",
+      "sent_at": 1760000000,
+      "kind": "device-event",
+      "purpose": "message",
+      "event": {
+        "heartbeat": {
+          "interval_s": 0
+        }
+      }
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "content-body"
+  }
+}

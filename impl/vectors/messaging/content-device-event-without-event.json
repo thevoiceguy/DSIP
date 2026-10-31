@@ -2,7 +2,7 @@
   "vector": "messaging/content-device-event-without-event",
   "format": 1,
   "kind": "messaging",
-  "description": "A `device-event` must carry `event`.",
+  "description": "A `device-event` must carry `event`; `content-body` comes before the capability check.",
   "spec_ref": [
     "M§8.2",
     "E§5"

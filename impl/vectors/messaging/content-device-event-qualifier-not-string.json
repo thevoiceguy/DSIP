@@ -1,0 +1,47 @@
+{
+  "vector": "messaging/content-device-event-qualifier-not-string",
+  "format": 1,
+  "kind": "messaging",
+  "description": "`alarm.qualifier`, when present, is a string.",
+  "spec_ref": [
+    "E§5"
+  ],
+  "context": {
+    "conversation": "01K742SG00AX1F6HVTRWBW227R",
+    "conversation_kind": "direct",
+    "leaf_identity": "did:web:alice.example",
+    "leaf_capabilities": [
+      "dsip.messaging",
+      "dsip.events"
+    ]
+  },
+  "input": {
+    "check": "object",
+    "object": {
+      "object": "content",
+      "id": "01K742SG004YX0YVH1P6BZ1ENC",
+      "conversation": "01K742SG00AX1F6HVTRWBW227R",
+      "sender": "did:web:alice.example",
+      "sent_at": 1760000000,
+      "kind": "device-event",
+      "purpose": "message",
+      "event": {
+        "source": {
+          "address": "192.0.2.7",
+          "basis": "snmpv2c"
+        },
+        "alarm": {
+          "resource": "192.0.2.7/3",
+          "type": "link-down",
+          "qualifier": 3,
+          "severity": null,
+          "cleared": true
+        }
+      }
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "content-body"
+  }
+}

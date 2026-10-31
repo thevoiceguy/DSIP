@@ -4924,3 +4924,58 @@ Choices:
 so §11.4 allows it in 1.0 (A.16). M§4.1 gains "By its operator". The `enrolment-trace` gains the event
 `{operator_release: {identity}}`, which emits `released {cause: "operator"}` for an enrolled identity and nothing for
 any other (`enrolment-operator-ends-an-enrolment`, `enrolment-operator-end-spares-configured-and-unserved`).
+
+## 165. E§2 — a `device-event` from a device without `dsip.events`
+
+**Found (2026-10-31, auditing the Device Events Profile for 1.0).** E§2 delegates a gateway with the capability
+`dsip.events`, but says nothing of what a member does with a `device-event` whose sender's device lacks it. No
+implementation checked it, so any member device of the alarm group could raise an alarm, and an escalation agent
+(E§6) would call someone for it.
+
+Choices:
+
+- **(a) Refuse it.** The member's content check refuses it with the existing token `delegation-capability`; it never
+  reaches the alarm list. An `alarm-ack` needs no capability: any member may acknowledge.
+- **(b) Render it, marked as not from a gateway, and keep it out of the alarm list and escalation.**
+- **(c) Informational.** The capability is advice to operators; members do not check it.
+
+**Decided (2026-10-31, user): (a).** E§2 gains the rule. Kind `messaging`'s `check: "object"` gains
+`context.leaf_capabilities`, the capabilities of the sender leaf's device delegation (absent is none), and a
+`device-event` without `dsip.events` there is `delegation-capability`, after `content-body`
+(`content-device-event-without-capability`, `content-device-event-capabilities-absent`).
+
+## 166. E§5 — the shape of a `device-event`'s and an `alarm-ack`'s body
+
+**Found (2026-10-31, auditing the Device Events Profile for 1.0).** M§8.2 requires `event` on a `device-event`, and
+`alarm` and `state` on an `alarm-ack`, and the vectors checked only that they were present. What `event` holds
+(`source`, `alarm`, `heartbeat`) and what a member does with an `alarm-ack` whose `state` is neither `ack` nor
+`closed` were not stated.
+
+Choices:
+
+- **(a) A minimal shape.** Required members and their types only; members not named are ignored; tokens keep their
+  registry fallbacks; an unknown `alarm-ack` `state` is accepted and ignored by the alarm list.
+- **(b) The full shape.** Every member E§2 and E§5 list (`raw.snmp`, `raw.syslog`, `usm`, `tsm`, `signed`,
+  `syslog_gap`, …), each as a body rule.
+- **(c) Presence only**, as before.
+
+**Decided (2026-10-31, user): (a).** E§5 gains **Bodies**; `impl/vectors/README.md` states them exactly (kind
+`device-events`, **Content bodies**), and a broken one is `content-body`. `source` is required unless `heartbeat` is
+present: E§5 never gave a heartbeat one, and its sender is the gateway itself. The alarm list ignores an `ack` with an
+unknown `state` (`alarm-ack-unknown-state-ignored`), so a later revision can register one.
+
+## 167. E§4 — an inform's clear when a clear for the same alarm is held
+
+**Found (2026-10-31, auditing the Device Events Profile for 1.0).** E§4's hold-down deposits an event from an SNMP
+inform at once, so an inform's clear is never held. It did not say what happens to a clear already held for the same
+alarm: left alone, it is deposited when due, a second clear that members count as a repeat.
+
+Choices:
+
+- **(a) The inform's report drops it**, as a raise for the same alarm does: the alarm's state is settled by the
+  inform's report.
+- **(b) It stays, and is deposited when due.**
+
+**Decided (2026-10-31, editor's proposal, to be confirmed): (a).** It matches the raise rule and deposits one clear
+for one state. The hold-down traces' `report` gains `inform: true` (`holddown-inform-clear-not-held`,
+`holddown-inform-clear-drops-held-clear`).
