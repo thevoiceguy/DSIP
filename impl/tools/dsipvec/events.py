@@ -1,4 +1,4 @@
-"""Device Events Profile (draft, `device-events/0.1`) — reference for the `device-events/` vectors.
+"""Device Events Profile 1.0 (`device-events/1.0`) — reference for the `device-events/` vectors.
 
 Spec: E§3 (a notification becomes an event: RFC 3584 §3.1, the community never carried, the syslog severity table),
 E§4 (the rule table: an event becomes an alarm), E§5 (the alarm list: raise, repeat, change, clear, reopen;
@@ -117,6 +117,8 @@ def run_check(i: dict) -> dict:
         return events_v3.usm_key(i)
     if c == "tsm":
         return events_v3.tsm_receive(bytes.fromhex(i["message"]))
+    if c == "snmp-answer":
+        return events_v3.snmp_answer(i)
     if c == "tsm-name":
         return events_v3.tsm_name(i["certificate"], i["table"])
     if c == "tls-frames":
@@ -183,8 +185,8 @@ class AlarmList:
     def _ack(self, e: dict) -> list:
         k = key_of(e["alarm"])
         a = self.alarms.get(k)
-        if a is None or a["operator"] == "closed" or a["operator"] == e["state"]:
-            return []
+        if a is None or e["state"] not in OPERATOR_STATES or a["operator"] == "closed" or a["operator"] == e["state"]:
+            return []  # spec-gap 166: an unknown state is ignored
         a["operator"] = e["state"]
         self._arm(k)
         return [{"operator": {"key": list(k), "state": e["state"], "by": e.get("by")}}]
@@ -229,6 +231,7 @@ class AlarmList:
                  "count": a["count"], "escalation_due": a["due"]} for k, a in sorted(self.alarms.items())]
 
 
+OPERATOR_STATES = {"ack", "closed"}  # E§5: an alarm-ack's states; any other is ignored (spec-gap 166)
 INFORM_MEMORY_S = 300  # an answered inform is remembered this long, to answer its retransmissions
 
 
@@ -282,6 +285,9 @@ class HoldDown:
         if "report" in ev:
             r = {**ev["report"], "qualifier": ev["report"].get("qualifier", "")}
             k = (r["resource"], r["type"], r["qualifier"])
+            if r.get("inform") is True:  # spec-gap 167: an inform's report is never held, and settles a held clear
+                self.held.pop(k, None)
+                return [{"deposit": r}]
             if r["cleared"]:
                 if self.hold == 0:
                     return [{"deposit": r}]

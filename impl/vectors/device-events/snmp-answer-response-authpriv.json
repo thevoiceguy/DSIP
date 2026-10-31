@@ -1,0 +1,30 @@
+{
+  "vector": "device-events/snmp-answer-response-authpriv",
+  "format": 1,
+  "kind": "device-events",
+  "description": "An authPriv Response is encrypted with the gateway's salt and its own boots and time in the IV, then authenticated over the whole message.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "snmp-answer",
+    "answer": "response",
+    "message": "308198020103300e020109020300ffe304010302010304343032040d80001f8880aaaaaaaaaaaaaaaa02010102016404036f7073040c490c5185c9c67fce95aba85304080000000000000001044d5d25f5b9381d805caa848a5812d8234ba1977bb5c28775653b77cea9482a7df10ac320ee1819cfd9fd92b44778a5be662c024a72651f6f6a5beb20f117e4b266a951b065765bd5feeb91e38e2e",
+    "local": {
+      "engine_id": "80001f8880aaaaaaaaaaaaaaaa",
+      "boots": 1,
+      "time": 500
+    },
+    "user": {
+      "auth": "sha",
+      "auth_key": "80928a4ace35718672e7eeaa5530c760b095adb3",
+      "priv": "aes128",
+      "priv_key": "2b839672b82231b0aacdc94b8a81e5d2"
+    },
+    "salt": "0102030405060708"
+  },
+  "expect": {
+    "answer": "308199020103300e020109020300ffe304010302010304353033040d80001f8880aaaaaaaaaaaaaaaa020101020201f404036f7073040c6dc2d06e5a0cf1c0d7d474b004080102030405060708044d211a2e2a5baa941f690d6493c3382eec5f4c4b7e4b42851478e85a925f57b5c7aaedf8c7c4283f752f7ba68fe8340176de0ee970aed22011382c820901a2b922d418440b7aea3a728fe7372854"
+  }
+}

@@ -810,3 +810,102 @@ def syslog_vectors() -> list[dict]:
                    "raw": {"snmp": {"version": "v2c", "uptime": 1, "trap_oid": "1.3.6.1.6.3.1.1.5.3", "varbinds": []}}},
                   {"notify": True}))
     return out
+
+
+# --- the gateway's answers, byte for byte (E§3, spec-gap 168) -------------------------------------------------------
+
+UNKNOWN_ENGINE_IDS, NOT_IN_TIME_WINDOWS = "1.3.6.1.6.3.15.1.1.4.0", "1.3.6.1.6.3.15.1.1.2.0"
+LOCAL_CLOCK = {"engine_id": LOCAL, "boots": 1, "time": 500}
+
+
+def answer_vectors() -> list[dict]:
+    """Each expected answer is built field by field from README `check: "snmp-answer"`, with this file's encoder."""
+    out = []
+    lb = bytes.fromhex(LOCAL)
+
+    def a(vid, desc, answer, message, expect, **extra):
+        out.append(ev(f"snmp-answer-{vid}", desc, ["E§3"],
+                      {"check": "snmp-answer", "answer": answer, "message": message, "local": extra.pop("local", LOCAL_CLOCK),
+                       **extra}, expect))
+
+    def report(oid, counter, msg_id, user_=b"", auth=None, k=None, local=LOCAL_CLOCK):
+        pdu = scoped(0xA8, 0, [varbind(oid, buint(0x41, counter))], ctx_engine=lb)
+        return {"answer": v3(engine=LOCAL, boots=local["boots"], time=local["time"], user=user_, auth=auth, key=k,
+                             flags=0x01 if auth else 0x00, pdu=pdu, msg_id=msg_id)}
+
+    def u(auth, priv=None):
+        x = {"auth": auth, "auth_key": key(auth, LOCAL).hex(), "priv": priv}
+        if priv:
+            x["priv_key"] = pkey(auth, LOCAL).hex()
+        return x
+
+    def inform(auth="sha", priv=False, rid=42, vbs=None, ctx_engine=b"", ctx_name=b"", msg_id=9, boots=1, time=100,
+               pdu=None, flags=None):
+        p = pdu or tlv(0x30, tlv(0x04, ctx_engine) + tlv(0x04, ctx_name)
+                        + tlv(0xA6, bint(rid) + bint(0) + bint(0) + tlv(0x30, b"".join(std_vbs() if vbs is None else vbs))))
+        return v3(engine=LOCAL, boots=boots, time=time, user="ops", auth=auth, key=key(auth, LOCAL),
+                  priv_key=pkey(auth, LOCAL) if priv else None, pdu=p, msg_id=msg_id, flags=flags)
+
+    def response(auth="sha", priv=False, rid=42, vbl=None, ctx_engine=b"", ctx_name=b"", msg_id=9, salt=None):
+        vbl = tlv(0x30, b"".join(std_vbs())) if vbl is None else vbl
+        p = tlv(0x30, tlv(0x04, ctx_engine) + tlv(0x04, ctx_name) + tlv(0xA2, bint(rid) + bint(0) + bint(0) + vbl))
+        kw = {"salt": salt} if priv else {}
+        return {"answer": v3(engine=LOCAL, boots=1, time=500, user="ops", auth=auth, key=key(auth, LOCAL),
+                             priv_key=pkey(auth, LOCAL) if priv else None, pdu=p, msg_id=msg_id, **kw)}
+
+    disc = v3(engine="", boots=0, time=0, user="", auth=None, flags=0x04, msg_id=0x63,
+              pdu=tlv(0x30, tlv(0x04, b"") + tlv(0x04, b"") + tlv(0xA0, bint(0x63) + bint(0) + bint(0) + tlv(0x30, b""))))
+    a("report-unknown-engine-id", "Discovery (an empty engine ID): an unauthenticated Report with the gateway's engine ID, "
+      "boots and time, the request's msgID, request-id 0 and usmStatsUnknownEngineIDs after the increment (RFC 3414 §4).",
+      "unknown-engine-id", disc, report(UNKNOWN_ENGINE_IDS, 1, 0x63), counter=1)
+    a("report-unknown-engine-id-keeps-user", "The Report carries the request's userName; a Counter32 whose top bit is set "
+      "gets a leading 00.", "unknown-engine-id",
+      v3(engine="", boots=0, time=0, user="ops", auth=None, flags=0x04, msg_id=300),
+      report(UNKNOWN_ENGINE_IDS, 200, 300, b"ops"), counter=200)
+    a("report-not-in-time-window", "An authenticated inform outside the window: an authNoPriv Report (flags 01) whose MAC "
+      "uses the user's key for the gateway's engine (RFC 3414 §3.2 step 7a).", "not-in-time-window",
+      inform("sha", time=100), report(NOT_IN_TIME_WINDOWS, 3, 9, b"ops", "sha", key("sha", LOCAL)),
+      user=u("sha"), counter=3)
+    a("report-not-in-time-window-authpriv", "After an authPriv inform the Report is still authNoPriv: never encrypted, "
+      "request-id 0 (its PDU was not read); SHA-256's MAC is 24 bytes.", "not-in-time-window",
+      inform("sha256", priv=True, time=100), report(NOT_IN_TIME_WINDOWS, 1, 9, b"ops", "sha256", key("sha256", LOCAL)),
+      user=u("sha256", "aes128"), counter=1)
+    big = {"engine_id": LOCAL, "boots": MAX31 - 1, "time": 2**24}
+    a("report-integers-shortest", "Boots, time and the counter in their shortest INTEGER and Counter32 forms.",
+      "not-in-time-window", inform("md5", time=100),
+      report(NOT_IN_TIME_WINDOWS, 2**32 - 1, 9, b"ops", "md5", key("md5", LOCAL), local=big),
+      user=u("md5"), counter=2**32 - 1, local=big)
+    a("response-authnopriv", "The Response to an inform: its msgID, request-id and varbinds, error status and index 0, "
+      "at the inform's level, under the gateway's engine ID, boots and time (RFC 3416 §4.2.7).", "response",
+      inform("md5"), response("md5"), user=u("md5"))
+    salt = bytes.fromhex("0102030405060708")
+    a("response-authpriv", "An authPriv Response is encrypted with the gateway's salt and its own boots and time in the IV, "
+      "then authenticated over the whole message.", "response",
+      inform("sha", priv=True), response("sha", priv=True, salt=salt), user=u("sha", "aes128"), salt=salt.hex())
+    a("response-context-copied", "The Response copies the inform's contextEngineID and contextName.", "response",
+      inform("sha", ctx_engine=bytes.fromhex(DEV), ctx_name=b"site-a"),
+      response("sha", ctx_engine=bytes.fromhex(DEV), ctx_name=b"site-a"), user=u("sha"))
+    a("response-negative-request-id", "A negative request-id is copied, in its shortest two's complement form.", "response",
+      inform("sha", rid=-5), response("sha", rid=-5), user=u("sha"))
+    body = b"".join(std_vbs())
+    long_vbl = bytes([0x30, 0x82]) + len(body).to_bytes(2, "big") + body  # a long form BER allows and DER would not
+    lp = tlv(0x30, tlv(0x04, b"") + tlv(0x04, b"") + tlv(0xA6, bint(42) + bint(0) + bint(0) + long_vbl))
+    a("response-varbinds-as-received", "The VarBindList is copied as received, its non-shortest length included: never "
+      "re-encoded.", "response", inform("sha", pdu=lp), response("sha", vbl=long_vbl), user=u("sha"))
+    a("response-reportable-dropped", "The Response's msgFlags are the inform's auth and priv bits: reportable and every "
+      "other bit dropped.", "response", inform("sha", flags=0x0D), response("sha"), user=u("sha"))
+    tsm_inform = tsm(pdu=tlv(0x30, tlv(0x04, bytes.fromhex(DEV)) + tlv(0x04, b"")
+                             + tlv(0xA6, bint(77) + bint(0) + bint(0) + tlv(0x30, body))), flags=0x07, msg_id=11)
+    a("tsm-response", "Over TLS: the Response has msgSecurityModel 4, an empty securityParameters and a plaintext "
+      "ScopedPDU, and the inform's flags without reportable (E§3).", "response", tsm_inform,
+      {"answer": tsm(pdu=tlv(0x30, tlv(0x04, bytes.fromhex(DEV)) + tlv(0x04, b"")
+                             + tlv(0xA2, bint(77) + bint(0) + bint(0) + tlv(0x30, body))), flags=0x03, msg_id=11)})
+    nd = bytes.fromhex(NETSNMP_DISCOVERY)
+    a("tsm-discovery", "net-snmp's RFC 5343 discovery request: a Response naming the gateway's engine ID, with the "
+      "request's msgID, request-id, contextEngineID and contextName.", "discovery", NETSNMP_DISCOVERY,
+      {"answer": tsm(pdu=tlv(0x30, tlv(0x04, LOCAL_ENGINE) + tlv(0x04, b"")
+                             + tlv(0xA2, bint(0x0A2C0710) + bint(0) + bint(0)
+                                   + tlv(0x30, varbind(ENGINE_OID, tlv(0x04, lb))))), flags=0x00, msg_id=0x3A39BE96)})
+    assert nd[nd.index(bytes.fromhex("02043a39be96")):][:6] and b"\x0a\x2c\x07\x10" in nd
+    a("malformed", "A message that is not SNMPv3 has no answer.", "response", "3000", {"error": "malformed"}, user=u("sha"))
+    return out

@@ -52,6 +52,8 @@ export interface ObjectContext {
   leaf_identity: string;
   /** The device of the MLS sender leaf: what a call record's `device` must be (C§9). */
   leaf_device?: string;
+  /** The capabilities of the sender leaf's device delegation; absent is none (E§2, spec-gap 165). */
+  leaf_capabilities?: string[];
 }
 
 /** Check one decrypted object. */
@@ -78,7 +80,7 @@ export function checkObject(object: JsonObject, ctx: ObjectContext): Verdict {
   if (PERSONAL_ONLY.includes(schema) && ctx.conversation_kind !== "personal") return reject("personal-group-only");
 
   if (schema === "call-record") return checkCallRecord(object, ctx);
-  if (schema === "content") return checkContent(object);
+  if (schema === "content") return checkContent(object, ctx);
   if (schema === "receipt") return checkReceipt(object);
   if (schema === "activity") {
     const activity = object["activity"] as string;
@@ -87,10 +89,15 @@ export function checkObject(object: JsonObject, ctx: ObjectContext): Verdict {
   return { verdict: "accept" };
 }
 
-function checkContent(o: JsonObject): Verdict {
+function checkContent(o: JsonObject, ctx: ObjectContext): Verdict {
   const kind = o["kind"] as string;
   const body = KIND_BODY[kind];
   if (body && body.some((member) => !(member in o))) return reject("content-body");
+  // Spec: E§5 Bodies (spec-gap 166) — the Device Events Profile's two kinds have a minimal shape
+  if (kind === "device-event" && !deviceEventBody(o["event"])) return reject("content-body");
+  if (kind === "alarm-ack" && !alarmAckBody(o["alarm"], o["state"])) return reject("content-body");
+  // Spec: E§2 (spec-gap 165) — only a device delegated with `dsip.events`, a gateway, sends device events
+  if (kind === "device-event" && !(ctx.leaf_capabilities ?? []).includes("dsip.events")) return reject("delegation-capability");
   // M§8.2: a voicemail names the unanswered session (M§13)
   if (o["purpose"] === "voicemail" && !("session" in o)) return reject("content-body");
   if (o["purpose"] === "reaction") {
@@ -109,6 +116,41 @@ function checkContent(o: JsonObject): Verdict {
       purpose: purpose !== undefined && PURPOSES.includes(purpose) ? purpose : "message",
     },
   };
+}
+
+const isObject = (v: unknown): v is JsonObject => typeof v === "object" && v !== null && !Array.isArray(v);
+const isText = (v: unknown, nonEmpty = false): boolean => typeof v === "string" && (!nonEmpty || v.length > 0);
+const optionalText = (o: JsonObject, member: string): boolean => !(member in o) || typeof o[member] === "string";
+
+/**
+ * A `device-event`'s `event`. Spec: E§5 Bodies (spec-gap 166) — `source` (non-empty `address`, string `basis`) unless
+ * `heartbeat` is present; `alarm`'s `resource`, non-empty `type`, `severity` (a string or null), boolean `cleared`;
+ * `heartbeat.interval_s` an integer ≥ 1; `raw` and `syslog_gap` objects. Members not named, and token values, are
+ * not checked.
+ */
+function deviceEventBody(e: unknown): boolean {
+  if (!isObject(e)) return false;
+  if ("heartbeat" in e) {
+    const h = e["heartbeat"];
+    if (!isObject(h) || !Number.isInteger(h["interval_s"]) || (h["interval_s"] as number) < 1) return false;
+  } else if (!("source" in e)) return false;
+  if ("source" in e) {
+    const src = e["source"];
+    if (!isObject(src) || !isText(src["address"], true) || !isText(src["basis"])) return false;
+  }
+  if ("alarm" in e) {
+    const a = e["alarm"];
+    if (!isObject(a) || !isText(a["resource"]) || !isText(a["type"], true)) return false;
+    if (!("severity" in a) || !(a["severity"] === null || typeof a["severity"] === "string")) return false;
+    if (typeof a["cleared"] !== "boolean" || !optionalText(a, "qualifier") || !optionalText(a, "text")) return false;
+  }
+  return ["raw", "syslog_gap"].every((m) => !(m in e) || isObject(e[m]));
+}
+
+/** An `alarm-ack`'s body. Spec: E§5 Bodies (spec-gap 166) — any string `state`: the alarm list ignores unknown ones. */
+function alarmAckBody(alarm: unknown, state: unknown): boolean {
+  return isObject(alarm) && isText(alarm["resource"]) && isText(alarm["type"], true) && optionalText(alarm, "qualifier") &&
+    typeof state === "string";
 }
 
 function checkReceipt(o: JsonObject): Verdict {

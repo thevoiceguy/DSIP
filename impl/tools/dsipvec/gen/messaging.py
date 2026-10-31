@@ -230,15 +230,62 @@ def object_vectors():
       content("locf", kind="location", lat_e7=43.0481, lon_e7=-76.1474), reject("payload-float"))
     ev = {"source": {"address": "192.0.2.7", "basis": "snmpv2c"},
           "alarm": {"resource": "192.0.2.7/3", "type": "link-down", "qualifier": "", "severity": "major", "cleared": False}}
-    o("content-device-event-valid", "A Device Events Profile `device-event` (v0.9, E§5) is a registered kind.", ["M§8.2", "E§5"],
-      content("dev", kind="device-event", event=ev), accept(effective={"kind": "device-event", "purpose": "message"}))
-    o("content-device-event-without-event", "A `device-event` must carry `event`.", ["M§8.2", "E§5"],
-      content("dev0", kind="device-event"), reject("content-body"))
-    o("content-alarm-ack-valid", "An `alarm-ack` (E§5) names the alarm and the operator state.", ["M§8.2", "E§5"],
-      content("ack", kind="alarm-ack", alarm={"resource": "192.0.2.7/3", "type": "link-down", "qualifier": ""}, state="ack"),
-      accept(effective={"kind": "alarm-ack", "purpose": "message"}))
+    GW_CTX = {**OBJ_CTX, "leaf_capabilities": ["dsip.messaging", "dsip.events"]}  # a gateway's leaf (E§2)
+    DEV = {"kind": "device-event", "purpose": "message"}
+    o("content-device-event-valid", "A Device Events Profile `device-event` (v0.9, E§5) is a registered kind, from a gateway "
+      "(its leaf's delegation carries `dsip.events`, E§2).", ["M§8.2", "E§5", "E§2"],
+      content("dev", kind="device-event", event=ev), accept(effective=DEV), ctx=GW_CTX)
+    o("content-device-event-without-capability", "A `device-event` from a device whose delegation lacks `dsip.events` is refused: "
+      "only a gateway raises alarms (spec-gap 165).", ["E§2"],
+      content("dev-nocap", kind="device-event", event=ev), reject("delegation-capability"),
+      ctx={**OBJ_CTX, "leaf_capabilities": ["dsip.messaging"]})
+    o("content-device-event-capabilities-absent", "No `leaf_capabilities` in the context is no capabilities (spec-gap 165).",
+      ["E§2"], content("dev-nocap2", kind="device-event", event=ev), reject("delegation-capability"))
+    o("content-device-event-without-event", "A `device-event` must carry `event`; `content-body` comes before the capability "
+      "check.", ["M§8.2", "E§5"], content("dev0", kind="device-event"), reject("content-body"))
+
+    def body(vid, desc, event, expect):  # spec-gap 166: E§5 Bodies, from a gateway
+        o(vid, desc, ["E§5"], content(vid, kind="device-event", event=event), expect, ctx=GW_CTX)
+    src = {"address": "192.0.2.7", "basis": "snmpv2c"}
+    clear = {"resource": "192.0.2.7/3", "type": "link-down", "qualifier": "", "severity": None, "cleared": True}
+    body("content-device-event-heartbeat-valid", "A heartbeat needs no `source`: its sender is the gateway itself.",
+         {"heartbeat": {"interval_s": 60}}, accept(effective=DEV))
+    body("content-device-event-clear-severity-null-valid", "A clear's severity is `null`.",
+         {"source": src, "alarm": clear}, accept(effective=DEV))
+    body("content-device-event-unknown-members-valid", "Unknown members are ignored, and tokens are not checked against "
+         "their registries (an unknown basis renders as unauthenticated, E§2).",
+         {"source": {"address": "192.0.2.7", "basis": "carrier-pigeon"}, "vendor": {"x": 1},
+          "alarm": {**clear, "type": "smoke", "severity": "catastrophic", "cleared": False, "text": "smoke", "extra": True}},
+         accept(effective=DEV))
+    body("content-device-event-event-not-object", "`event` is an object.", "link down", reject("content-body"))
+    body("content-device-event-without-source", "`source` is required unless `heartbeat` is present.",
+         {"alarm": clear}, reject("content-body"))
+    body("content-device-event-address-empty", "`source.address` is a non-empty string.",
+         {"source": {"address": "", "basis": "snmpv2c"}}, reject("content-body"))
+    body("content-device-event-basis-not-string", "`source.basis` is a string.",
+         {"source": {"address": "192.0.2.7", "basis": 2}}, reject("content-body"))
+    body("content-device-event-cleared-not-boolean", "`alarm.cleared` is a boolean.",
+         {"source": src, "alarm": {**clear, "cleared": "true"}}, reject("content-body"))
+    body("content-device-event-alarm-without-type", "`alarm.type` is required and non-empty.",
+         {"source": src, "alarm": {**clear, "type": ""}}, reject("content-body"))
+    body("content-device-event-qualifier-not-string", "`alarm.qualifier`, when present, is a string.",
+         {"source": src, "alarm": {**clear, "qualifier": 3}}, reject("content-body"))
+    body("content-device-event-heartbeat-interval-zero", "`heartbeat.interval_s` is an integer, at least 1.",
+         {"heartbeat": {"interval_s": 0}}, reject("content-body"))
+    body("content-device-event-raw-not-object", "`raw`, when present, is an object.",
+         {"source": src, "raw": "trap"}, reject("content-body"))
+    ALARM = {"resource": "192.0.2.7/3", "type": "link-down", "qualifier": ""}
+    ACK = {"kind": "alarm-ack", "purpose": "message"}
+    o("content-alarm-ack-valid", "An `alarm-ack` (E§5) names the alarm and the operator state; it needs no capability (E§2).",
+      ["M§8.2", "E§5", "E§2"], content("ack", kind="alarm-ack", alarm=ALARM, state="ack"), accept(effective=ACK))
     o("content-alarm-ack-without-state", "An `alarm-ack` must carry `state`.", ["M§8.2", "E§5"],
-      content("ack0", kind="alarm-ack", alarm={"resource": "192.0.2.7/3", "type": "link-down", "qualifier": ""}), reject("content-body"))
+      content("ack0", kind="alarm-ack", alarm=ALARM), reject("content-body"))
+    o("content-alarm-ack-unknown-state-valid", "An unknown `state` is accepted; the alarm list ignores it (spec-gap 166).",
+      ["E§5"], content("ack-shelved", kind="alarm-ack", alarm=ALARM, state="shelved"), accept(effective=ACK))
+    o("content-alarm-ack-state-not-string", "`state` is a string.", ["E§5"],
+      content("ack-num", kind="alarm-ack", alarm=ALARM, state=1), reject("content-body"))
+    o("content-alarm-ack-without-resource", "The acknowledged `alarm` names its `resource`.", ["E§5"],
+      content("ack-nores", kind="alarm-ack", alarm={"type": "link-down"}, state="ack"), reject("content-body"))
     o("content-unknown-kind-with-blob-is-file", "Unknown kind carrying a blob is offered as a file.", ["M§8.2"],
       content("hol", kind="hologram", blob=blob(content_type="model/gltf-binary")),
       accept(effective={"kind": "file", "purpose": "message"}))

@@ -1,0 +1,28 @@
+{
+  "vector": "device-events/snmp-answer-response-reportable-dropped",
+  "format": 1,
+  "kind": "device-events",
+  "description": "The Response's msgFlags are the inform's auth and priv bits: reportable and every other bit dropped.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "snmp-answer",
+    "answer": "response",
+    "message": "30818e020103300e020109020300ffe304010d020103042c302a040d80001f8880aaaaaaaaaaaaaaaa02010102016404036f7073040c197c46c68f97411432fc429e0400304b04000400a64502012a020100020100303a300e06082b06010201010300430204d23017060a2b06010603010104010006092b0601060301010503300f060a2b060102010202010103020103",
+    "local": {
+      "engine_id": "80001f8880aaaaaaaaaaaaaaaa",
+      "boots": 1,
+      "time": 500
+    },
+    "user": {
+      "auth": "sha",
+      "auth_key": "80928a4ace35718672e7eeaa5530c760b095adb3",
+      "priv": null
+    }
+  },
+  "expect": {
+    "answer": "30818f020103300e020109020300ffe3040101020103042d302b040d80001f8880aaaaaaaaaaaaaaaa020101020201f404036f7073040c6c692cf057b18849dadb3ff10400304b04000400a24502012a020100020100303a300e06082b06010201010300430204d23017060a2b06010603010104010006092b0601060301010503300f060a2b060102010202010103020103"
+  }
+}

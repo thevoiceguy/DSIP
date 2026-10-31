@@ -1,0 +1,28 @@
+{
+  "vector": "device-events/snmp-answer-malformed",
+  "format": 1,
+  "kind": "device-events",
+  "description": "A message that is not SNMPv3 has no answer.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "snmp-answer",
+    "answer": "response",
+    "message": "3000",
+    "local": {
+      "engine_id": "80001f8880aaaaaaaaaaaaaaaa",
+      "boots": 1,
+      "time": 500
+    },
+    "user": {
+      "auth": "sha",
+      "auth_key": "80928a4ace35718672e7eeaa5530c760b095adb3",
+      "priv": null
+    }
+  },
+  "expect": {
+    "error": "malformed"
+  }
+}

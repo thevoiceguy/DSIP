@@ -169,7 +169,7 @@ pip installs in this environment need `--break-system-packages`.
 | M§n | Messaging Profile 1.0 (`v1.0/dsip-messaging-profile-v1.0.md`) — cite as `M§n` |
 | R§n | RTP/SRTP Media Binding, draft (`v1.0/dsip-rtp-srtp-media-binding-v1.0-draft.md`) — cite as `R§n` |
 | T§n | Alias Transparency Profile, draft (`v1.0/dsip-alias-transparency-profile-v1.0-draft.md`) — cite as `T§n` |
-| E§n | Device Events Profile, draft (`v1.0/dsip-device-events-profile-v1.0-draft.md`) — cite as `E§n` |
+| E§n | Device Events Profile 1.0 (`v1.0/dsip-device-events-profile-v1.0.md`) — cite as `E§n` |
 | C§n | Recording Profile, draft (`v1.0/dsip-recording-profile-v1.0-draft.md`) — cite as `C§n` |
 | N§n | Number Attestation Profile, draft (`v1.0/dsip-number-attestation-profile-v1.0-draft.md`) — cite as `N§n` |
 | P§n | Presence Profile, draft (`v1.0/dsip-presence-profile-v1.0-draft.md`) — cite as `P§n` |

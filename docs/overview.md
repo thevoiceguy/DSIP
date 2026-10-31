@@ -125,7 +125,7 @@ The specification is a small core plus companion profiles, each cited by its own
 | [Alias Transparency](../v1.0/dsip-alias-transparency-profile-v1.0-draft.md) | T§n | Draft | Auditable alias lookups on KEYTRANS; proof checking waits for KEYTRANS -06 |
 | [Number Attestation](../v1.0/dsip-number-attestation-profile-v1.0-draft.md) | N§n | Draft | Binding phone numbers to DIDs; a live trial needs a pilot partner |
 | [Recording](../v1.0/dsip-recording-profile-v1.0-draft.md) | C§n | Draft | Recording with consent, and metadata-only call records |
-| [Device Events](../v1.0/dsip-device-events-profile-v1.0-draft.md) | E§n | Draft | Network alarms (SNMP, syslog) delivered as encrypted messages |
+| [Device Events](../v1.0/dsip-device-events-profile-v1.0.md) | E§n | 1.0 | Network alarms (SNMP, syslog) delivered as encrypted messages |
 | [Presence](../v1.0/dsip-presence-profile-v1.0-draft.md) | P§n | Draft | A device's signed presence published to its authority, several devices combined into one presence |
 
 JSON Schemas for every message ship beside the core and the Messaging Profile.

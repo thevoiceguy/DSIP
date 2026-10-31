@@ -1,0 +1,48 @@
+{
+  "vector": "device-events/holddown-inform-clear-not-held",
+  "format": 1,
+  "kind": "device-events",
+  "description": "A clear from an SNMP inform is deposited at once: the inform is answered only once its event is stored (spec-gap 167).",
+  "spec_ref": [
+    "E§4",
+    "E§3"
+  ],
+  "context": {
+    "component": "holddown",
+    "now": 1000,
+    "hold_s": 5
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "report": {
+            "resource": "192.0.2.7/3",
+            "type": "link-down",
+            "qualifier": "",
+            "severity": null,
+            "cleared": true,
+            "inform": true
+          }
+        }
+      }
+    ]
+  },
+  "expect": [
+    {
+      "emit": [
+        {
+          "deposit": {
+            "resource": "192.0.2.7/3",
+            "type": "link-down",
+            "qualifier": "",
+            "severity": null,
+            "cleared": true,
+            "inform": true
+          }
+        }
+      ],
+      "held": []
+    }
+  ]
+}

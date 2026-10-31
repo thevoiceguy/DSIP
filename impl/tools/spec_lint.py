@@ -33,7 +33,7 @@ DOCS = {
     "G": ("Gateway Profile", "dsip-gateway-profile-v1.0.md", re.compile(r"^#{2,4} G§(\d+(?:\.\d+)*)")),
     "M": ("Messaging Profile", "dsip-messaging-profile-v1.0.md", re.compile(r"^#{2,4} M§(\d+(?:\.\d+)*)")),
     "R": ("RTP/SRTP Media Binding", "dsip-rtp-srtp-media-binding-v1.0-draft.md", re.compile(r"^#{2,4} R§(\d+(?:\.\d+)*)")),
-    "E": ("Device Events Profile", "dsip-device-events-profile-v1.0-draft.md", re.compile(r"^#{2,4} E§(\d+(?:\.\d+)*)")),
+    "E": ("Device Events Profile", "dsip-device-events-profile-v1.0.md", re.compile(r"^#{2,4} E§(\d+(?:\.\d+)*)")),
     "T": ("Alias Transparency Profile", "dsip-alias-transparency-profile-v1.0-draft.md", re.compile(r"^#{2,4} T§(\d+(?:\.\d+)*)")),
     "C": ("Recording Profile", "dsip-recording-profile-v1.0-draft.md", re.compile(r"^#{2,4} C§(\d+(?:\.\d+)*)")),
     "N": ("Number Attestation Profile", "dsip-number-attestation-profile-v1.0-draft.md", re.compile(r"^#{2,4} N§(\d+(?:\.\d+)*)")),

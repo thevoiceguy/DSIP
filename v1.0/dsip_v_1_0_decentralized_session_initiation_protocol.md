@@ -7,7 +7,7 @@
 **Editor:** James Ferris
 **Date:** October 2026
 **Supersedes:** v0.17
-**Companion documents:** WebRTC Media Binding 1.0 (`dsip-webrtc-media-binding-v1.0.md`); Gateway Profile 1.0 (`dsip-gateway-profile-v1.0.md`); Messaging Profile 1.0 (`dsip-messaging-profile-v1.0.md`, with its schema set `dsip-messaging-schemas-draft/`); RTP/SRTP Media Binding (draft, `dsip-rtp-srtp-media-binding-v1.0-draft.md`); DHT Hints Profile (draft, `dsip-dht-hints-profile-v1.0-draft.md`); Alias Transparency Profile (draft, `dsip-alias-transparency-profile-v1.0-draft.md`); Device Events Profile (draft, `dsip-device-events-profile-v1.0-draft.md`); Recording Profile (draft, `dsip-recording-profile-v1.0-draft.md`); Number Attestation Profile (draft, `dsip-number-attestation-profile-v1.0-draft.md`); Presence Profile (draft, `dsip-presence-profile-v1.0-draft.md`); JSON Schema set v0.17 (`dsip-schemas-v1.0/`); conformance vectors (`impl/vectors/`, 2,325 vectors on which the Python harness, the Rust reference implementation and the independent TypeScript implementation agree)
+**Companion documents:** WebRTC Media Binding 1.0 (`dsip-webrtc-media-binding-v1.0.md`); Gateway Profile 1.0 (`dsip-gateway-profile-v1.0.md`); Messaging Profile 1.0 (`dsip-messaging-profile-v1.0.md`, with its schema set `dsip-messaging-schemas-draft/`); RTP/SRTP Media Binding (draft, `dsip-rtp-srtp-media-binding-v1.0-draft.md`); DHT Hints Profile (draft, `dsip-dht-hints-profile-v1.0-draft.md`); Alias Transparency Profile (draft, `dsip-alias-transparency-profile-v1.0-draft.md`); Device Events Profile 1.0 (`dsip-device-events-profile-v1.0.md`); Recording Profile (draft, `dsip-recording-profile-v1.0-draft.md`); Number Attestation Profile (draft, `dsip-number-attestation-profile-v1.0-draft.md`); Presence Profile (draft, `dsip-presence-profile-v1.0-draft.md`); JSON Schema set v0.17 (`dsip-schemas-v1.0/`); conformance vectors (`impl/vectors/`, 2,359 vectors on which the Python harness, the Rust reference implementation and the independent TypeScript implementation agree)
 
 ---
 
@@ -2247,8 +2247,8 @@ DSIP needs registries for:
 - Info data namespaces (`dsip-info-about`, §12.12)
 - Subscription event classes (`dsip-subscription-event`: `presence`, `publication`; §9.3)
 - Grant scopes (`dsip-grant-scope`: `dsip.invite`, `dsip.subscribe`, `dsip.message`; §19.4)
-- Delegation capabilities (`dsip-delegation-capability`: `dsip.signaling`, `dsip.media.interactive`, `dsip.messaging`; §7.4; `dsip.events`, Device Events Profile E§2, draft; `dsip.record`, Recording Profile C§1, draft)
-- The Device Events Profile's own registries (device-event basis, alarm type, alarm severity; E§7, draft)
+- Delegation capabilities (`dsip-delegation-capability`: `dsip.signaling`, `dsip.media.interactive`, `dsip.messaging`; §7.4; `dsip.events`, Device Events Profile 1.0 E§2; `dsip.record`, Recording Profile C§1, draft)
+- The Device Events Profile's own registries (device-event basis, alarm type, alarm severity; E§7)
 - Recording states and purposes (`dsip-recording-state`: `on`, `paused`, `off`; `dsip-recording-purpose`: `compliance`, `quality`, `personal`; Recording Profile C§7, draft)
 - Delegation-revocation reasons (`dsip-revocation-reason`: `lost`, `compromised`, `retired`, `policy`; §7.4)
 - DID service types (`DSIPSignaling`, §13.2; `DSIPMailbox`, Messaging Profile)
@@ -2281,7 +2281,7 @@ DSIP Messaging Profile 1.0
 DSIP Mailbox 1.0
 DSIP DHT Hints Profile 1.0 (draft)
 DSIP Alias Transparency Profile 0.1 (draft, stage 1)
-DSIP Device Events Profile 0.1 (draft)
+DSIP Device Events Profile 1.0
 DSIP Recording Profile 0.1 (draft)
 ```
 
@@ -2482,7 +2482,7 @@ v0.8 is final at tag `poc-v0.8.1`; v0.9 is final at tag `poc-v0.9`. v0.9 work, d
 - `did:webvh` as a recommended DID method beside `did:web` (§7.2, §8.4; spec-gap 101): resolvers verify the whole log, support v1.0 only, read I-JSON, and reject rollback and fork against the highest `versionId` they have verified. Pinned by the `did-webvh/` vectors.
 - Reachability hints on the BitTorrent Mainline DHT (Pkarr) for `did:key` subjects, in addition to the hints overlay (§8.5; DHT Reachability Hints Profile §9; spec-gap 105): compact `_dsip` TXT records signed by the identity key, with a signed expiry of the timestamp plus the smallest TTL (≤ 3600 s), the checks Pkarr omits, and §8.3 conflicts. Pinned by the `pkarr/` vectors and confirmed against the pkarr crate.
 - Alias transparency: a log that makes an alias provider's `alias → DID` answers auditable (§8.2) — companion profile `v1.0/dsip-alias-transparency-profile-v1.0-draft.md` (cited `T§n`; spec-gap 104), KEYTRANS-shaped with VRF-blinded aliases. Stage 1 (this revision): the profile's choices and the KEYTRANS building blocks, pinned by the `alias-transparency/` vectors and confirmed against the KEYTRANS editor's implementation. Lookup verification, owner monitoring and fork detection follow KEYTRANS -06.
-- A Device Events Profile: signed device alarms and events, gatewayed from SNMP and syslog (companion profile `v1.0/dsip-device-events-profile-v1.0-draft.md`, cited `E§n`; spec-gap 103): RFC 3584 trap translation without the community, an RFC 3877-shaped rule table, an RFC 8632-style alarm list every member computes from the group's order, acknowledgement separate from read receipts, gateway silence, and an escalation trigger run by a member. Later in the revision: SNMPv2c informs answered only once the hub has stored the event; SNMPv3 with USM (RFC 3414 order, HMAC-SHA-2, AES-128; `noAuthNoPriv` and DES refused); syslog over UDP and TLS (RFC 5424 and RFC 3164) with its rules; and the identity an authenticated basis adds to the claim (E§2). Pinned by the `device-events/` vectors.
+- A Device Events Profile: signed device alarms and events, gatewayed from SNMP and syslog (companion profile `v1.0/dsip-device-events-profile-v1.0.md`, cited `E§n`; spec-gap 103): RFC 3584 trap translation without the community, an RFC 3877-shaped rule table, an RFC 8632-style alarm list every member computes from the group's order, acknowledgement separate from read receipts, gateway silence, and an escalation trigger run by a member. Later in the revision: SNMPv2c informs answered only once the hub has stored the event; SNMPv3 with USM (RFC 3414 order, HMAC-SHA-2, AES-128; `noAuthNoPriv` and DES refused); syslog over UDP and TLS (RFC 5424 and RFC 3164) with its rules; and the identity an authenticated basis adds to the claim (E§2). Pinned by the `device-events/` vectors.
 - Reachability hints on Pkarr, publishing (DHT Reachability Hints Profile §9; spec-gap 105): a publisher carries every record another application put in its zone, re-encoding the names in the RFC 1035 types RFC 3597 §4 lets compress; and it signs `max(clock, previous + 1)`, the one case signed ahead of the clock being a clock stepped back. Hints travel through Pkarr relays and the Mainline DHT directly. Pinned by the `pkarr/` vectors.
 - A Recording Profile for compliance recording under end-to-end encryption (companion profile `v1.0/dsip-recording-profile-v1.0-draft.md`, cited `C§n`; spec-gaps 107, 108). Recording happens at endpoints the organisation controls, and is disclosed:
   - a signed `recording` declaration on `invite`, `answer` and `update` (§16.4 now separates that declaration from the `policy.recording` preference) and `recording_session` metadata on `invite` — the first core schema additions since v0.8, both optional;
@@ -2721,6 +2721,14 @@ or rejects.
 
 - Messaging Profile 1.0: a mailbox's operator MAY end an enrolment, with the same effects as a release (spec-gap 164,
   M§4.1). It is a local action of the mailbox; nothing on the wire changes.
+- Device Events Profile 1.0 (`device-events/1.0`, final at `poc-v1.0.2`; a draft until then, so §11.4 bounds it from
+  here on). The core is unchanged; the profile's own rules settled before it became final:
+  - a member refuses a `device-event` from a device whose delegation lacks `dsip.events` (spec-gap 165, E§2);
+  - `device-event` and `alarm-ack` bodies have a minimal shape, and an unknown `alarm-ack` state is ignored (spec-gap
+    166, E§5);
+  - an inform's report drops a clear held for its alarm (spec-gap 167, E§4);
+  - the gateway's SNMPv3 Reports and Responses are pinned byte for byte (spec-gap 168, E§3);
+  - erratum: E§5's example objects carry the members every content object has (M§8.1).
 
 ---
 

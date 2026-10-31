@@ -2,15 +2,20 @@
   "vector": "messaging/content-device-event-valid",
   "format": 1,
   "kind": "messaging",
-  "description": "A Device Events Profile `device-event` (v0.9, E§5) is a registered kind.",
+  "description": "A Device Events Profile `device-event` (v0.9, E§5) is a registered kind, from a gateway (its leaf's delegation carries `dsip.events`, E§2).",
   "spec_ref": [
     "M§8.2",
-    "E§5"
+    "E§5",
+    "E§2"
   ],
   "context": {
     "conversation": "01K742SG00AX1F6HVTRWBW227R",
     "conversation_kind": "direct",
-    "leaf_identity": "did:web:alice.example"
+    "leaf_identity": "did:web:alice.example",
+    "leaf_capabilities": [
+      "dsip.messaging",
+      "dsip.events"
+    ]
   },
   "input": {
     "check": "object",

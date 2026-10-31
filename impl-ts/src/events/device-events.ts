@@ -1,9 +1,9 @@
 /**
- * Device Events Profile (`device-events/0.1`, draft): SNMP notifications and syslog become
+ * Device Events Profile 1.0 (`device-events/1.0`): SNMP notifications and syslog become
  * signed events, events become alarms, every member computes the same alarm list, and an
  * escalation agent pages when an alarm stays unacknowledged.
  *
- * Spec: E§3, E§4, E§5, E§6 (`v1.0/dsip-device-events-profile-v1.0-draft.md`); RFC 3584 §3.1
+ * Spec: E§3, E§4, E§5, E§6 (`v1.0/dsip-device-events-profile-v1.0.md`); RFC 3584 §3.1
  * (v1 → v2 translation), RFC 3416 §4.2.6–§4.2.7 (the first two varbinds), RFC 8632 §3.1 (alarm
  * as state, operator state apart from resource state). The exact output shapes, orderings and
  * timer rules are the vectors README's, "Kind: `device-events`".
@@ -13,6 +13,7 @@ import { mapSyslog, parseSyslog } from "./syslog.js";
 import { UsmReceiver, usmKey } from "./usm.js";
 import { dtlsRecord, tlsFrames, tsmName, tsmReceive } from "./tsm.js";
 import { SyslogSignCollector } from "./syslog-sign.js";
+import { snmpAnswer } from "./snmp-answer.js";
 
 /** One varbind, as carried. Spec: E§3 */
 export interface Varbind {
@@ -328,11 +329,15 @@ export class AlarmList {
     this.retime();
   }
 
-  /** An `alarm-ack`. Spec: E§5 — `closed` is final until a re-raise; neither clears. */
+  /**
+   * An `alarm-ack`. Spec: E§5 — `closed` is final until a re-raise; neither clears; a state other than `ack` and
+   * `closed` is ignored (spec-gap 166).
+   */
   private ack(ev: JsonObject, emit: JsonObject[]): void {
     const k = ev["alarm"] as JsonObject;
     const a = this.alarms.get(JSON.stringify([k["resource"], k["type"], k["qualifier"] ?? ""]));
     const state = ev["state"] as string;
+    if (state !== "ack" && state !== "closed") return;
     if (!a || a.operator === "closed" || a.operator === state) return;
     a.operator = state;
     emit.push({ operator: { key: a.key, state, by: ev["by"] ?? null } });
@@ -495,7 +500,11 @@ export class HoldDown {
       const report: JsonObject = { ...r, qualifier };
       const key: Key = [r["resource"] as string, r["type"] as string, qualifier];
       const id = JSON.stringify(key);
-      if (r["cleared"] === true) {
+      if (r["inform"] === true) {
+        // Spec: E§4 (spec-gap 167) — an inform's event is stored at once, its clear never held; it settles a held clear.
+        this.held.delete(id);
+        emit.push({ deposit: report });
+      } else if (r["cleared"] === true) {
         if (this.holdS <= 0) {
           emit.push({ deposit: report });
         } else if (!this.held.has(id)) {
@@ -574,6 +583,8 @@ export function runDeviceEvents(context: JsonObject, input: JsonObject): Json {
       return dtlsRecord(Buffer.from(input["record"] as string, "hex"));
     case "tsm":
       return tsmReceive(Buffer.from(input["message"] as string, "hex"));
+    case "snmp-answer":
+      return snmpAnswer(input);
     case "map": {
       const raw = input["raw"] as JsonObject;
       if ("syslog" in raw) {

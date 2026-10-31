@@ -1,0 +1,29 @@
+{
+  "vector": "device-events/snmp-answer-report-not-in-time-window",
+  "format": 1,
+  "kind": "device-events",
+  "description": "An authenticated inform outside the window: an authNoPriv Report (flags 01) whose MAC uses the user's key for the gateway's engine (RFC 3414 §3.2 step 7a).",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "snmp-answer",
+    "answer": "not-in-time-window",
+    "message": "30818e020103300e020109020300ffe3040101020103042c302a040d80001f8880aaaaaaaaaaaaaaaa02010102016404036f7073040c15fd9d883dff8294bbc6ae8b0400304b04000400a64502012a020100020100303a300e06082b06010201010300430204d23017060a2b06010603010104010006092b0601060301010503300f060a2b060102010202010103020103",
+    "local": {
+      "engine_id": "80001f8880aaaaaaaaaaaaaaaa",
+      "boots": 1,
+      "time": 500
+    },
+    "user": {
+      "auth": "sha",
+      "auth_key": "80928a4ace35718672e7eeaa5530c760b095adb3",
+      "priv": null
+    },
+    "counter": 3
+  },
+  "expect": {
+    "answer": "3073020103300e020109020300ffe3040101020103042d302b040d80001f8880aaaaaaaaaaaaaaaa020101020201f404036f7073040cbec52ae4ccb8c2ad7738c3150400302f040d80001f8880aaaaaaaaaaaaaaaa0400a81c0201000201000201003011300f060a2b060106030f01010200410103"
+  }
+}

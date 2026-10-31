@@ -1,6 +1,8 @@
-# Draft: DSIP Device Events Profile (`device-events/0.1`)
+# DSIP Device Events Profile 1.0 (`device-events/1.0`)
 
-**Status:** DRAFT, companion profile to DSIP 1.0. Cite as `E§n`. Decided 2026-10-04 from
+**Status:** Companion profile to DSIP 1.0 — normative 1.0, final at `poc-v1.0.2` (spec-gaps 165–168; Appendix A.16 of
+the core). Cite as `E§n`. A `device-event` travels as Messaging Profile content, so the token names this document and
+appears on no message. Drafted 2026-10-04 from
 `impl/docs/v0.9-research.md` (track B): DSIP works **alongside** SNMP and syslog, not instead of them. SNMP keeps
 polling and MIBs. A site gateway turns traps and syslog alarms into signed events, delivers them durably across the
 WAN to a NOC, and the people there acknowledge and escalate them. Conformance: the `device-events/` vectors.
@@ -26,6 +28,9 @@ devices (SNMP SET, NETCONF); standardized vendor mapping content.
   signer and the device is a claim, as G§2 and G§5 make a SIP caller a claim of the gateway.
 - **Gateway.** A device delegated by the organisation's identity (§7.4) with the delegation capability
   `dsip.events`. It is a member of the alarm group. A revoked gateway's events stop verifying (§7.4).
+  A member MUST refuse a `device-event` whose sender's device delegation, the one its MLS leaf carries (M§6.2), lacks
+  `dsip.events` (spec-gap 165). A refused event never reaches the alarm list (E§5), so no member device but a
+  gateway can raise an alarm or start an escalation. An `alarm-ack` needs no capability: any member may acknowledge.
 - **Members.** Operators' devices, and the escalation agent (E§6).
 - **Basis** (`event.source.basis`), a registry-governed token (shape `[a-z][a-z0-9-]*`):
 
@@ -119,6 +124,13 @@ reason tokens are those of `impl/vectors/README.md` (component `snmpv3`):
   other failure is reported: the gateway drops it silently.
 - **The response to an inform** is sent once the hub has stored the event, as for v2c. It is a Response-PDU at the
   inform's security level, under the gateway's engine ID, boots and time.
+- **The bytes** (spec-gap 168). A Report and a Response have the received message's `msgID`, a `msgMaxSize` of 65507,
+  the received `userName`, and lengths and integers in their shortest form. A Report is never encrypted, and its
+  request-id is 0, since the PDU was not read (RFC 3412 §7.1 step 3); its contextEngineID is the gateway's engine ID
+  and its contextName empty, and its one varbind is the counter after it was incremented. A Response copies the
+  inform's contextEngineID, contextName, request-id and variable bindings, the last as received; an `authPriv` one is
+  encrypted with a salt of the gateway's choosing. `impl/vectors/README.md` (`check: "snmp-answer"`) states each
+  byte.
 
 **SNMPv3 over TLS** (v0.10; RFC 6353's TLS Transport Model with RFC 5591's Transport Security Model). The basis is
 `snmpv3-tls`.
@@ -170,8 +182,8 @@ reason tokens are those of `impl/vectors/README.md` (component `snmpv3`):
   gateway's engine ID, as an OCTET STRING. It is the only request the
   gateway answers; it deposits nothing.
 - **The response to an inform** is sent on the same connection once the hub has stored the event, as for v2c. It is
-  a Response-PDU with the inform's `msgID`, request-id, varbinds, contextEngineID and contextName, and its `msgFlags`
-  without the reportable bit. `msgSecurityModel` is 4, `securityParameters` is empty, and the error status and
+  a Response-PDU with the inform's `msgID`, request-id, varbinds, contextEngineID and contextName, and its `msgFlags`'
+  auth and priv bits only, so never reportable (spec-gap 168). `msgSecurityModel` is 4, `securityParameters` is empty, and the error status and
   index are 0.
 
 **Signed syslog** (v0.10; RFC 5848, syslog-sign). A signer sends RFC 5424 messages, then **Signature Blocks**
@@ -297,7 +309,8 @@ default, turns it off):
   count, never a stream of clears and raises.
 - A second clear while one is held changes nothing; the first keeps its time.
 - Every other event, including one with no alarm, is deposited at once. So is an event from an SNMP inform: the
-  inform is answered only once its event is stored (E§3), so its clear is never held.
+  inform is answered only once its event is stored (E§3), so its clear is never held, and a clear held for the same
+  alarm is dropped, since the inform's report settles it (spec-gap 167).
 
 Members' rules (E§5) are unchanged: hold-down changes only which events a gateway deposits, and when. Its rules are
 the `device-events/holddown-*` traces.
@@ -305,8 +318,8 @@ the `device-events/holddown-*` traces.
 ## E§5 The `device-event` object and the alarm list
 
 ```json
-{"object": "content", "kind": "device-event", "id": "…", "conversation": "…", "sender": "<gateway identity>",
- "sent_at": 1790000000,
+{"object": "content", "kind": "device-event", "purpose": "message", "id": "…", "conversation": "…",
+ "sender": "<gateway identity>", "sent_at": 1790000000,
  "event": {
    "source": {"address": "192.0.2.7", "basis": "snmpv2c"},
    "raw": {"snmp": {"version": "v2c", "uptime": 123400, "trap_oid": "1.3.6.1.6.3.1.1.5.3",
@@ -317,6 +330,18 @@ the `device-events/holddown-*` traces.
 ```
 
 A gateway's own liveness is a `device-event` with `event.heartbeat: {"interval_s": n}` and no `raw`.
+
+**Bodies** (spec-gap 166). A member refuses a `device-event` or `alarm-ack` whose body does not have this shape, as
+the Messaging Profile refuses any malformed content body (M§8.2); members it does not name are ignored:
+
+- `event.source`, required unless `event.heartbeat` is present: `address` (a non-empty string) and `basis`;
+- `event.alarm`, when present: `resource`, `type` (non-empty), `severity` (a token or `null`), `cleared` (a boolean),
+  and optionally `qualifier` and `text`;
+- `event.heartbeat.interval_s`: an integer, at least 1;
+- an `alarm-ack`'s `alarm`: `resource`, `type` (non-empty) and optionally `qualifier`; and its `state`.
+
+Tokens are not checked against their registries here: an unknown basis renders as unauthenticated (E§2), and an
+unknown severity orders as `indeterminate`. The exact rules are `impl/vectors/README.md`'s **Content bodies**.
 
 A signed-syslog gap (E§3, v0.11) is a `device-event` with `event.source: {"address": <the signer's address>,
 "basis": "gateway"}` and `event.syslog_gap: {hostname, app_name, procid, rsid, sg, spri, from, to}`, and no `raw`.
@@ -341,14 +366,16 @@ machine below. Its transitions are the `device-events/` traces, and `impl/vector
 acknowledgement means "I own this". RFC 8632 keeps operator state separate from resource state:
 
 ```json
-{"object": "content", "kind": "alarm-ack", "alarm": {"resource": "…", "type": "…", "qualifier": ""},
- "state": "ack" | "closed", "text": "…"}
+{"object": "content", "kind": "alarm-ack", "purpose": "message", "id": "…", "conversation": "…",
+ "sender": "<operator identity>", "sent_at": 1790000060,
+ "alarm": {"resource": "…", "type": "…", "qualifier": ""}, "state": "ack" | "closed", "text": "…"}
 ```
 
 - `ack` means being handled.
 - `closed` means the corrective action is done. It is final until a re-raise reopens the alarm, and an `ack` after
   `closed` is ignored.
 - Neither clears the alarm.
+- Any other `state` is ignored by the alarm list (spec-gap 166), so a later revision can add one.
 
 **Gateway silence.** A member that has seen a gateway's heartbeat raises the alarm
 `(<gateway identity>, dsip-gateway-silent, "")`, severity `major`, when no heartbeat arrives for twice its

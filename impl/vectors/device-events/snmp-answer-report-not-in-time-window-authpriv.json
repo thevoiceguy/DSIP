@@ -1,0 +1,30 @@
+{
+  "vector": "device-events/snmp-answer-report-not-in-time-window-authpriv",
+  "format": 1,
+  "kind": "device-events",
+  "description": "After an authPriv inform the Report is still authNoPriv: never encrypted, request-id 0 (its PDU was not read); SHA-256's MAC is 24 bytes.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "snmp-answer",
+    "answer": "not-in-time-window",
+    "message": "3081a4020103300e020109020300ffe30401030201030440303e040d80001f8880aaaaaaaaaaaaaaaa02010102016404036f7073041893b71b1f1df8c1222d24abd82d0b753df05383542ee5a6df04080000000000000001044d8363a56c957656cc6f3866653f49f04717bdbd3a8ae4a5b6491df02dbd806d3565a881dfb92f85d7c004ef452f0db0931ca4babd159a46f0360bd0acc5c230bcbb1b78a8b496827f99571db931",
+    "local": {
+      "engine_id": "80001f8880aaaaaaaaaaaaaaaa",
+      "boots": 1,
+      "time": 500
+    },
+    "user": {
+      "auth": "sha256",
+      "auth_key": "a508051439e1997115fbae72be1d3efd1fa01b06b646f89209fab6d311918b4d",
+      "priv": "aes128",
+      "priv_key": "2ef84b83cf297670b2a66ec20b96f95b"
+    },
+    "counter": 1
+  },
+  "expect": {
+    "answer": "307f020103300e020109020300ffe304010102010304393037040d80001f8880aaaaaaaaaaaaaaaa020101020201f404036f707304183857d16f17e7210a36cbcfbac0f8028b863cfb2283342c030400302f040d80001f8880aaaaaaaaaaaaaaaa0400a81c0201000201000201003011300f060a2b060106030f01010200410101"
+  }
+}

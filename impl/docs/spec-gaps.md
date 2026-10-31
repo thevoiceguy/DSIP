@@ -4924,3 +4924,88 @@ Choices:
 so §11.4 allows it in 1.0 (A.16). M§4.1 gains "By its operator". The `enrolment-trace` gains the event
 `{operator_release: {identity}}`, which emits `released {cause: "operator"}` for an enrolled identity and nothing for
 any other (`enrolment-operator-ends-an-enrolment`, `enrolment-operator-end-spares-configured-and-unserved`).
+
+## 165. E§2 — a `device-event` from a device without `dsip.events`
+
+**Found (2026-10-31, auditing the Device Events Profile for 1.0).** E§2 delegates a gateway with the capability
+`dsip.events`, but says nothing of what a member does with a `device-event` whose sender's device lacks it. No
+implementation checked it, so any member device of the alarm group could raise an alarm, and an escalation agent
+(E§6) would call someone for it.
+
+Choices:
+
+- **(a) Refuse it.** The member's content check refuses it with the existing token `delegation-capability`; it never
+  reaches the alarm list. An `alarm-ack` needs no capability: any member may acknowledge.
+- **(b) Render it, marked as not from a gateway, and keep it out of the alarm list and escalation.**
+- **(c) Informational.** The capability is advice to operators; members do not check it.
+
+**Decided (2026-10-31, user): (a).** E§2 gains the rule. Kind `messaging`'s `check: "object"` gains
+`context.leaf_capabilities`, the capabilities of the sender leaf's device delegation (absent is none), and a
+`device-event` without `dsip.events` there is `delegation-capability`, after `content-body`
+(`content-device-event-without-capability`, `content-device-event-capabilities-absent`).
+
+## 166. E§5 — the shape of a `device-event`'s and an `alarm-ack`'s body
+
+**Found (2026-10-31, auditing the Device Events Profile for 1.0).** M§8.2 requires `event` on a `device-event`, and
+`alarm` and `state` on an `alarm-ack`, and the vectors checked only that they were present. What `event` holds
+(`source`, `alarm`, `heartbeat`) and what a member does with an `alarm-ack` whose `state` is neither `ack` nor
+`closed` were not stated.
+
+Choices:
+
+- **(a) A minimal shape.** Required members and their types only; members not named are ignored; tokens keep their
+  registry fallbacks; an unknown `alarm-ack` `state` is accepted and ignored by the alarm list.
+- **(b) The full shape.** Every member E§2 and E§5 list (`raw.snmp`, `raw.syslog`, `usm`, `tsm`, `signed`,
+  `syslog_gap`, …), each as a body rule.
+- **(c) Presence only**, as before.
+
+**Decided (2026-10-31, user): (a).** E§5 gains **Bodies**; `impl/vectors/README.md` states them exactly (kind
+`device-events`, **Content bodies**), and a broken one is `content-body`. `source` is required unless `heartbeat` is
+present: E§5 never gave a heartbeat one, and its sender is the gateway itself. The alarm list ignores an `ack` with an
+unknown `state` (`alarm-ack-unknown-state-ignored`), so a later revision can register one.
+
+## 167. E§4 — an inform's clear when a clear for the same alarm is held
+
+**Found (2026-10-31, auditing the Device Events Profile for 1.0).** E§4's hold-down deposits an event from an SNMP
+inform at once, so an inform's clear is never held. It did not say what happens to a clear already held for the same
+alarm: left alone, it is deposited when due, a second clear that members count as a repeat.
+
+Choices:
+
+- **(a) The inform's report drops it**, as a raise for the same alarm does: the alarm's state is settled by the
+  inform's report.
+- **(b) It stays, and is deposited when due.**
+
+**Decided (2026-10-31, editor's proposal, to be confirmed): (a).** It matches the raise rule and deposits one clear
+for one state. The hold-down traces' `report` gains `inform: true` (`holddown-inform-clear-not-held`,
+`holddown-inform-clear-drops-held-clear`).
+
+## 168. E§3 — the bytes of the gateway's SNMPv3 Reports and Responses
+
+**Found (2026-10-31, auditing the Device Events Profile for 1.0).** E§3 named what the gateway answers (a Report for
+discovery and for an inform outside the time window, a Response once an inform's event is stored) but not its bytes,
+and the vectors only said whether a Report was sent. A device that cannot read the Response retries the inform
+forever. RFC 3412, 3414 and 3416 settle most fields: `msgID` copied (RFC 3412 §6.2, §7.1 step 2b); a Report at
+noAuthNoPriv for discovery and authNoPriv for the time window (RFC 3414 §3.2 steps 3b, 7a; RFC 3412 §7.1 step 3d),
+never reportable (§6.4); its contextEngineID the local engine's and contextName "" (§7.1 step 3d); the local
+engine's boots and time (RFC 3414 §3.1 step 6); the counter after it was incremented; a Response with the inform's
+request-id and variable bindings, error status and index 0 (RFC 3416 §4.2.7), at the inform's security level; the
+AES salt the sender's own (RFC 3826 §3.1.2.1). They leave open:
+
+1. a Report's request-id when, as always for a USM error, the PDU was not read: RFC 3412 §7.1 step 3c4 gives 0, but
+   step 3a says "if possible";
+2. `msgMaxSize` ("implementation-dependent", §7.1 step 7c);
+3. a Response's contextEngineID and contextName (supplied by the application, RFC 3413);
+4. the encoding, which BER lets vary;
+5. which `msgFlags` bits besides auth and priv a Response carries.
+
+**Decided (2026-10-31, user: pin the bytes before 1.0; values chosen by the editor, to be confirmed):**
+
+1. request-id 0, the literal reading; a Report is matched by its `msgID` (RFC 3412 §6.2);
+2. 65507, the largest UDP payload;
+3. the inform's, as E§3 already says for TSM;
+4. the shortest lengths and integers, and the inform's VarBindList copied as received, never re-encoded;
+5. only the auth and priv bits (`& 0x03`).
+
+`check: "snmp-answer"` (README, kind `device-events`) pins them for USM Reports and Responses and for TSM Responses
+and discovery answers (`snmp-answer-*`).

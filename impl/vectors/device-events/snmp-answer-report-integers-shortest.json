@@ -1,0 +1,29 @@
+{
+  "vector": "device-events/snmp-answer-report-integers-shortest",
+  "format": 1,
+  "kind": "device-events",
+  "description": "Boots, time and the counter in their shortest INTEGER and Counter32 forms.",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "snmp-answer",
+    "answer": "not-in-time-window",
+    "message": "30818e020103300e020109020300ffe3040101020103042c302a040d80001f8880aaaaaaaaaaaaaaaa02010102016404036f7073040cc07127fcb45f28b7778c599d0400304b04000400a64502012a020100020100303a300e06082b06010201010300430204d23017060a2b06010603010104010006092b0601060301010503300f060a2b060102010202010103020103",
+    "local": {
+      "engine_id": "80001f8880aaaaaaaaaaaaaaaa",
+      "boots": 2147483646,
+      "time": 16777216
+    },
+    "user": {
+      "auth": "md5",
+      "auth_key": "bf75f528cad6e4d605a3169cbb7a6995",
+      "priv": null
+    },
+    "counter": 4294967295
+  },
+  "expect": {
+    "answer": "307c020103300e020109020300ffe304010102010304323030040d80001f8880aaaaaaaaaaaaaaaa02047ffffffe02040100000004036f7073040cc5d6294f8936e524cbfa21a404003033040d80001f8880aaaaaaaaaaaaaaaa0400a82002010002010002010030153013060a2b060106030f01010200410500ffffffff"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "vector": "device-events/snmp-answer-tsm-response",
+  "format": 1,
+  "kind": "device-events",
+  "description": "Over TLS: the Response has msgSecurityModel 4, an empty securityParameters and a plaintext ScopedPDU, and the inform's flags without reportable (E§3).",
+  "spec_ref": [
+    "E§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "snmp-answer",
+    "answer": "response",
+    "message": "306f020103300e02010b020300ffe304010702010404003058040d80001f8880bbbbbbbbbbbbbbbb0400a64502014d020100020100303a300e06082b06010201010300430204d23017060a2b06010603010104010006092b0601060301010503300f060a2b060102010202010103020103",
+    "local": {
+      "engine_id": "80001f8880aaaaaaaaaaaaaaaa",
+      "boots": 1,
+      "time": 500
+    }
+  },
+  "expect": {
+    "answer": "306f020103300e02010b020300ffe304010302010404003058040d80001f8880bbbbbbbbbbbbbbbb0400a24502014d020100020100303a300e06082b06010201010300430204d23017060a2b06010603010104010006092b0601060301010503300f060a2b060102010202010103020103"
+  }
+}

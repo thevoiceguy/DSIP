@@ -180,6 +180,14 @@ def vectors() -> list[dict]:
     out.append(trace("alarm-ack-unknown-ignored", "An acknowledgement for an alarm not in the list changes nothing.", ["E§5"], {"now": 0}, [
         (ack(R, T, "ack"), {"emit": [], "alarms": []}),
     ]))
+    out.append(trace("alarm-ack-unknown-state-ignored", "An acknowledgement with a state other than ack and closed changes "
+                     "nothing, so a later revision can add one (spec-gap 166).", ["E§5"], {"now": 0}, [
+        (rep(R, T, "major"), {"emit": [{"raised": {"key": K, "severity": "major", "reopened": False}}],
+                              "alarms": [alarm(K, "major")]}),
+        (ack(R, T, "shelved"), {"emit": [], "alarms": [alarm(K, "major")]}),
+        (ack(R, T, "ack"), {"emit": [{"operator": {"key": K, "state": "ack", "by": "did:web:noc.example:users:ann"}}],
+                            "alarms": [alarm(K, "major", op="ack")]}),
+    ]))
     out.append(trace("alarm-unknown-severity-orders-lowest", "An unregistered severity token is kept, and orders as indeterminate "
                      "(below the escalation threshold).", ["E§5", "E§6"], {"now": 0, "escalation": {"min_severity": "warning", "after_s": 60}}, [
                          (rep(R, T, "catastrophic"), {"emit": [{"raised": {"key": K, "severity": "catastrophic", "reopened": False}}],
@@ -378,6 +386,19 @@ def vectors() -> list[dict]:
                          (up(2), {"emit": [dep(up(2))], "held": [{"key": hk(1), "due": NOW + 6}, {"key": hk(3), "due": NOW + 5}]}),
                          ({"advance": 10}, {"emit": [dep(down(3)), dep(down(1))], "held": []}),
                      ]))
+    inform_down = lambda port: {"report": {**down(port)["report"], "inform": True}}  # noqa: E731
+    out.append(trace("holddown-inform-clear-not-held", "A clear from an SNMP inform is deposited at once: the inform is "
+                     "answered only once its event is stored (spec-gap 167).", ["E§4", "E§3"], HD, [
+        (inform_down(3), {"emit": [dep(inform_down(3))], "held": []}),
+    ]))
+    out.append(trace("holddown-inform-clear-drops-held-clear", "An inform's clear drops a clear held for the same alarm, as a "
+                     "raise does, so members see one clear (spec-gap 167).", ["E§4"], HD, [
+        (down(3), {"emit": [], "held": [{"key": hk(3), "due": NOW + 5}]}),
+        (down(4), {"emit": [], "held": [{"key": hk(3), "due": NOW + 5}, {"key": hk(4), "due": NOW + 5}]}),
+        ({"advance": 1}, {"emit": [], "held": [{"key": hk(3), "due": NOW + 5}, {"key": hk(4), "due": NOW + 5}]}),
+        (inform_down(3), {"emit": [dep(inform_down(3))], "held": [{"key": hk(4), "due": NOW + 5}]}),
+        ({"advance": 10}, {"emit": [dep(down(4))], "held": []}),
+    ]))
     out.append(trace("holddown-off", "hold_s 0: every clear is deposited at once.", ["E§4"], {**HD, "hold_s": 0}, [
         (down(3), {"emit": [dep(down(3))], "held": []}),
     ]))
@@ -399,6 +420,7 @@ def vectors() -> list[dict]:
     ]))
     from . import events_v3  # SNMPv3 (USM) and syslog
     out += events_v3.usm_key_vectors() + events_v3.snmpv3_vectors() + events_v3.syslog_vectors()
+    out += events_v3.answer_vectors()
     out += events_v3.tsm_vectors() + events_v3.tls_frames_vectors() + events_v3.dtls_record_vectors() + events_v3.tsm_name_vectors()
     from . import syslog_sign
     out += syslog_sign.vectors()
