@@ -30,7 +30,7 @@ vectors/
   broadcast/   Receiver-side verification of a publication record and its provenance (§22)
   trust/       The basis-of-verification lines a client shows (§18.1, §6.3) — exact text
   did-webvh/   Resolving a did:webvh v1.0 log for DSIP (§7.2, §8.1, §8.4; v0.9, spec-gap 101)
-  device-events/ Device Events Profile draft (E§3–E§6): traps → events → alarms, the alarm list, escalation
+  device-events/ Device Events Profile 1.0 (E§3–E§6): traps → events → alarms, the alarm list, escalation
   recording/   Recording Profile draft (C§3–C§6): the counterparty's consent, recorded conversations, the recorder leg
   alias-transparency/ Alias Transparency Profile draft (T§2–T§5): KEYTRANS building blocks, alias normalization
   pkarr/       Reachability hints on Pkarr / BEP 44 for did:key subjects (§8.5; DHT Hints Profile §9; spec-gap 105)
@@ -957,7 +957,7 @@ lowercase hex. Everything else, non-ASCII included, is written as UTF-8.
 
 ## Kind: `device-events`
 
-Device Events Profile draft (`v1.0/dsip-device-events-profile-v1.0-draft.md`, cited `E§n`; spec-gap 103). There are two
+Device Events Profile 1.0 (`v1.0/dsip-device-events-profile-v1.0.md`, cited `E§n`; spec-gaps 103, 165–168). There are two
 shapes: stateless checks (`input.check`) and alarm-list traces (`input.steps`).
 
 **Content bodies** (E§5, spec-gap 166) are checked by kind `messaging`'s `check: "object"`: a body that breaks these is

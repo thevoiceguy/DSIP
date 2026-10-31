@@ -1,6 +1,8 @@
-# Draft: DSIP Device Events Profile (`device-events/0.1`)
+# DSIP Device Events Profile 1.0 (`device-events/1.0`)
 
-**Status:** DRAFT, companion profile to DSIP 1.0. Cite as `E§n`. Decided 2026-10-04 from
+**Status:** Companion profile to DSIP 1.0 — normative 1.0, final at `poc-v1.0.2` (spec-gaps 165–168; Appendix A.16 of
+the core). Cite as `E§n`. A `device-event` travels as Messaging Profile content, so the token names this document and
+appears on no message. Drafted 2026-10-04 from
 `impl/docs/v0.9-research.md` (track B): DSIP works **alongside** SNMP and syslog, not instead of them. SNMP keeps
 polling and MIBs. A site gateway turns traps and syslog alarms into signed events, delivers them durably across the
 WAN to a NOC, and the people there acknowledge and escalate them. Conformance: the `device-events/` vectors.
@@ -316,8 +318,8 @@ the `device-events/holddown-*` traces.
 ## E§5 The `device-event` object and the alarm list
 
 ```json
-{"object": "content", "kind": "device-event", "id": "…", "conversation": "…", "sender": "<gateway identity>",
- "sent_at": 1790000000,
+{"object": "content", "kind": "device-event", "purpose": "message", "id": "…", "conversation": "…",
+ "sender": "<gateway identity>", "sent_at": 1790000000,
  "event": {
    "source": {"address": "192.0.2.7", "basis": "snmpv2c"},
    "raw": {"snmp": {"version": "v2c", "uptime": 123400, "trap_oid": "1.3.6.1.6.3.1.1.5.3",
@@ -364,8 +366,9 @@ machine below. Its transitions are the `device-events/` traces, and `impl/vector
 acknowledgement means "I own this". RFC 8632 keeps operator state separate from resource state:
 
 ```json
-{"object": "content", "kind": "alarm-ack", "alarm": {"resource": "…", "type": "…", "qualifier": ""},
- "state": "ack" | "closed", "text": "…"}
+{"object": "content", "kind": "alarm-ack", "purpose": "message", "id": "…", "conversation": "…",
+ "sender": "<operator identity>", "sent_at": 1790000060,
+ "alarm": {"resource": "…", "type": "…", "qualifier": ""}, "state": "ack" | "closed", "text": "…"}
 ```
 
 - `ack` means being handled.

@@ -5,7 +5,8 @@ and `../v0.17/` is frozen. Errata to 1.0 are fixed in place here and listed in A
 allow a 1.x revision waits for 2.0.
 Appendix A.15 of `dsip_v_1_0_decentralized_session_initiation_protocol.md` lists what 1.0 changes: no message, field,
 rule, schema or vector, and the stability rule for later 1.x revisions (§11.4, spec-gap 163). The companion documents
-are carried unchanged, each with its own version; the drafts stay drafts.
+are carried unchanged, each with its own version; the drafts stay drafts, until one is finalized in 1.x (Device Events
+1.0, A.16).
 
 | document | what | status |
 |---|---|---|
@@ -18,11 +19,11 @@ are carried unchanged, each with its own version; the drafts stay drafts.
 | `dsip-rtp-srtp-media-binding-v1.0-draft.md` | RTP/SRTP Media Binding | draft |
 | `dsip-dht-hints-profile-v1.0-draft.md` | DHT Reachability Hints Profile | draft |
 | `dsip-alias-transparency-profile-v1.0-draft.md` | Alias Transparency Profile (`alias-transparency/0.1`), cited `T§n` | draft; stage 1 and the DSIP side of stage 2 (T§7–T§10); proof verification waits for KEYTRANS -06 (T§6) |
-| `dsip-device-events-profile-v1.0-draft.md` | Device Events Profile (`device-events/0.1`), cited `E§n` | draft |
+| `dsip-device-events-profile-v1.0.md` | Device Events Profile 1.0 (`device-events/1.0`), cited `E§n` | normative 1.0, final at `poc-v1.0.2` (spec-gaps 165–168, A.16) |
 | `dsip-recording-profile-v1.0-draft.md` | Recording Profile (`recording/0.1`), cited `C§n` | draft |
 | `dsip-number-attestation-profile-v1.0-draft.md` | Number Attestation Profile (`tn-binding/0.1`), cited `N§n` | draft, stages 1–4; stage 5 needs a pilot partner |
 | `dsip-presence-profile-v1.0-draft.md` | Presence Profile (`presence/0.1`), cited `P§n` | draft; records (P§3–P§5, P§8), audiences (P§6), shares (P§7) and sealed records (P§12, `presence/0.2`) pinned by vectors (spec-gaps 134–162) and run by the CLI and the browser client |
 
-`dsip.core` is `1.0`, as it has been since it was introduced. The suite has 2,325 vectors, v0.17's 2,323 and two
-for spec-gap 164 (A.16), on which the Python harness, the Rust reference implementation and the independent
+`dsip.core` is `1.0`, as it has been since it was introduced. The suite has 2,359 vectors: v0.17's 2,323, two
+for spec-gap 164 and 34 for Device Events 1.0 (spec-gaps 165–168), both in A.16, on which the Python harness, the Rust reference implementation and the independent
 TypeScript implementation agree.

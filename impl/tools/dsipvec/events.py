@@ -1,4 +1,4 @@
-"""Device Events Profile (draft, `device-events/0.1`) — reference for the `device-events/` vectors.
+"""Device Events Profile 1.0 (`device-events/1.0`) — reference for the `device-events/` vectors.
 
 Spec: E§3 (a notification becomes an event: RFC 3584 §3.1, the community never carried, the syslog severity table),
 E§4 (the rule table: an event becomes an alarm), E§5 (the alarm list: raise, repeat, change, clear, reopen;

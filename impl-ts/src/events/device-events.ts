@@ -1,9 +1,9 @@
 /**
- * Device Events Profile (`device-events/0.1`, draft): SNMP notifications and syslog become
+ * Device Events Profile 1.0 (`device-events/1.0`): SNMP notifications and syslog become
  * signed events, events become alarms, every member computes the same alarm list, and an
  * escalation agent pages when an alarm stays unacknowledged.
  *
- * Spec: E§3, E§4, E§5, E§6 (`v1.0/dsip-device-events-profile-v1.0-draft.md`); RFC 3584 §3.1
+ * Spec: E§3, E§4, E§5, E§6 (`v1.0/dsip-device-events-profile-v1.0.md`); RFC 3584 §3.1
  * (v1 → v2 translation), RFC 3416 §4.2.6–§4.2.7 (the first two varbinds), RFC 8632 §3.1 (alarm
  * as state, operator state apart from resource state). The exact output shapes, orderings and
  * timer rules are the vectors README's, "Kind: `device-events`".
