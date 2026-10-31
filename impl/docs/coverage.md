@@ -16,6 +16,7 @@ Profile, `M§n` Messaging Profile, `R§n` RTP/SRTP Media Binding.
 | §2.3 | dsip-transport/status.rs | — |
 | §3 | dsip-dht/node.rs, dsip-events/ber.rs | — |
 | §3.1 | dsip-events/lib.rs, dsip-events/tsm.rs, dsip-events/usm.rs | — |
+| §3.1.2.1 | dsip-events/usm.rs | — |
 | §3.2 | dsip-events/usm.rs | — |
 | §3.5 | dsip-events/syslog_sign.rs, dsip-kt/lib.rs, dsip-number/lib.rs | — |
 | §4 | dsip-core/pkarr.rs, dsip-dht/node.rs, dsip-dht/store.rs, dsip-events/usm.rs, dsip-gateway/host/numbers.rs, dsip-mailbox/bin/dsip-msg.rs, dsip-node/config.rs, dsip-node/lib.rs | — |
@@ -27,7 +28,7 @@ Profile, `M§n` Messaging Profile, `R§n` RTP/SRTP Media Binding.
 | §4.2.1.9 | dsip-number/lib.rs | — |
 | §4.2.2 | dsip-gateway/host/sip_leg.rs | — |
 | §4.2.6 | dsip-events/lib.rs | — |
-| §4.2.7 | dsip-events/ber.rs | — |
+| §4.2.7 | dsip-events/ber.rs, dsip-events/usm.rs | — |
 | §4.3 | dsip-mailbox/bin/dsip-msg/events.rs | — |
 | §4.3.1 | dsip-mailbox/bin/dsip-msg/events.rs | — |
 | §5 | dsip-gateway/controller.rs, dsip-kt/lib.rs, dsip-mailbox/bin/dsip-msg/events.rs, dsip-node/config.rs | — |
@@ -47,7 +48,7 @@ Profile, `M§n` Messaging Profile, `R§n` RTP/SRTP Media Binding.
 | §6.2.3 | dsip-number/lib.rs | — |
 | §6.3 | dsip-cli/console.rs, dsip-core/trust.rs, dsip-gateway/host/media.rs, dsip-gateway/host/sip_leg.rs, dsip-gateway/lib.rs | 13 vector(s): gateway/claims-attestation-a-verified, gateway/downgrade-error-none, gateway/downgrade-error-plain-trunk, gateway/downgrade-inbound-no-attestation, gateway/downgrade-inbound-recording-not-disclosed, gateway/downgrade-outbound-asserted-srtp … |
 | §7 | dsip-media/backend/webrtc_rs.rs, dsip-media/leg.rs, dsip-media/lib.rs | — |
-| §7.1 | dsip-kt/lib.rs | 1 vector(s): payload/invite-from-trailing-newline |
+| §7.1 | dsip-events/usm.rs, dsip-kt/lib.rs | 1 vector(s): payload/invite-from-trailing-newline |
 | §7.1.3 | dsip-core/hpke.rs | — |
 | §7.2 | dsip-cli/main.rs, dsip-core/did.rs, dsip-core/hpke.rs, dsip-core/keys.rs, dsip-core/lib.rs, dsip-core/webvh.rs, dsip-endpoint/core.rs, dsip-mailbox/bin/dsip-mailbox.rs, dsip-mailbox/service.rs, dsip-messaging-device/messenger.rs, dsip-messenger/lib.rs, dsip-relay/lib.rs, dsip-relay/main.rs, dsip-transport/identity.rs, dsip-transport/lib.rs, dsip-transport/resolver.rs, dsip-wasm/lib.rs | 69 vector(s): did-webvh/cache-at-latest-resolves, did-webvh/cache-behind-advances, did-webvh/cache-malformed-is-absent, did-webvh/carries-dsip-document-properties, did-webvh/create-resolves, did-webvh/deactivated … |
 | §7.3 | dsip-core/keys.rs, dsip-transport/identity.rs | — |
@@ -221,7 +222,7 @@ Profile, `M§n` Messaging Profile, `R§n` RTP/SRTP Media Binding.
 | M§15.5 | dsip-messaging/mailbox.rs | 3 vector(s): messaging/blob-put-unserved-identity-403, messaging/mailbox-introduction-unknown-recipient-indistinguishable, messaging/mailbox-welcome-unknown-recipient |
 | M§16 | dsip-core/registry.rs, dsip-mailbox/bin/dsip-msg.rs, dsip-messaging-device/events.rs, dsip-messaging-device/messenger.rs, dsip-messaging/checks.rs, dsip-messaging/enrolment.rs, dsip-messaging/mailbox.rs, dsip-messaging/verify.rs, dsip-messaging/wire.rs | 12 vector(s): messaging/blob-put-over-max-413, messaging/deposit-unknown-class-refused, messaging/enrolment-closed-refuses, messaging/enrolment-release-configured-refused, messaging/enrolment-release-unserved-refused, messaging/enrolment-within-bound-then-not-served … |
 | M§17 | dsip-messaging/checks.rs, dsip-messaging/mls_wire.rs | 11 vector(s): messaging/mls-extension-decode-eight-byte-length, messaging/mls-extension-decode-non-minimal-length, messaging/mls-extension-decode-trailing-bytes, messaging/mls-extension-decode-truncated-data, messaging/mls-extension-decode-truncated-header, messaging/mls-extension-decode-valid … |
-| E§2 | dsip-events/syslog_sign.rs, dsip-events/tsm.rs, dsip-events/usm.rs, dsip-mailbox/bin/dsip-msg.rs, dsip-mailbox/bin/dsip-msg/events.rs | 4 vector(s): messaging/content-alarm-ack-valid, messaging/content-device-event-capabilities-absent, messaging/content-device-event-valid, messaging/content-device-event-without-capability |
+| E§2 | dsip-events/syslog_sign.rs, dsip-events/tsm.rs, dsip-events/usm.rs, dsip-mailbox/bin/dsip-msg.rs, dsip-mailbox/bin/dsip-msg/events.rs, dsip-messaging-device/process.rs, dsip-messaging/checks.rs | 4 vector(s): messaging/content-alarm-ack-valid, messaging/content-device-event-capabilities-absent, messaging/content-device-event-valid, messaging/content-device-event-without-capability |
 | E§3 | dsip-events/ber.rs, dsip-events/lib.rs, dsip-events/syslog.rs, dsip-events/syslog_sign.rs, dsip-events/tsm.rs, dsip-events/usm.rs, dsip-mailbox/bin/dsip-msg.rs, dsip-mailbox/bin/dsip-msg/events.rs | 295 vector(s): device-events/dtls-record-empty, device-events/dtls-record-indefinite-length, device-events/dtls-record-inform, device-events/dtls-record-long-form-length, device-events/dtls-record-long-form-length-overruns, device-events/dtls-record-not-a-sequence … |
 | E§4 | dsip-events/lib.rs, dsip-events/syslog.rs, dsip-mailbox/bin/dsip-msg.rs, dsip-mailbox/bin/dsip-msg/events.rs | 32 vector(s): device-events/holddown-clear-that-holds, device-events/holddown-events-pass, device-events/holddown-flap-is-one-alarm, device-events/holddown-inform-clear-drops-held-clear, device-events/holddown-inform-clear-not-held, device-events/holddown-off … |
 | E§5 | dsip-events/lib.rs, dsip-mailbox/bin/dsip-msg.rs, dsip-mailbox/bin/dsip-msg/events.rs, dsip-messaging/checks.rs | 30 vector(s): device-events/alarm-ack-then-closed-is-final, device-events/alarm-ack-unknown-ignored, device-events/alarm-ack-unknown-state-ignored, device-events/alarm-ack-without-by, device-events/alarm-clear-unknown-creates-nothing, device-events/alarm-raise-repeat-clear … |
