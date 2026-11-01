@@ -5134,6 +5134,6 @@ Choices:
 - **(b) As drafted.** Any bound device registers; a registration of an identity the mailbox does not serve is kept
   and never used.
 
-**Proposed: (a).** dsip-rs's mailbox implements (a) (`Impl:` in `dsip-mailbox`'s `service.rs`,
-`crates/dsip-mailbox/tests/wake.rs`); W§4.2 gains one sentence when it is decided. No vector changes: the `wake/`
-vectors' register checks are the profile's own, run after the binding's.
+**Decided (2026-11-01, user: "176 (a)"): (a).** W§4.2 says so; dsip-rs's mailbox implements it (`dsip-mailbox`'s
+`service.rs`, `crates/dsip-mailbox/tests/wake.rs`). No vector changes: the `wake/` vectors' register checks are the
+profile's own, run after the binding's.

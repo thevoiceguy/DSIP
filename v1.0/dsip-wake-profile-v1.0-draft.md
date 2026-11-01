@@ -2,7 +2,8 @@
 
 **Status:** DRAFT, companion profile to DSIP 1.0. Cite as `W§n`. It collects spec-gaps 169–175, decided 2026-10-31
 ("all (a)") on the outline (`impl/docs/wake-profile-outline.md`); erratum 2026-10-31 (W§5.2 `session`, W§6
-`on_behalf_of`: an invite carries neither field), found implementing the relay. It adds message types, a credential
+`on_behalf_of`: an invite carries neither field), found implementing the relay; spec-gap 176 (W§4.2, a mailbox's
+owner operation) decided 2026-11-01, found implementing the mailbox. It adds message types, a credential
 and a capability member, which §11.4 allows in 1.x (spec-gap 163 (a)). Schemas: `v1.0/dsip-wake-schemas-draft/`.
 Conformance: the `wake/` vectors.
 
@@ -125,7 +126,7 @@ the handle, and no one else's (spec-gap 169). Like a delegation it is verified b
 no replay window: it is presented for its whole lifetime. `expires_at` − `issued_at` is at most W-Registration
 (W§7).
 
-### W§4.2 `wake-register` (spec-gap 170)
+### W§4.2 `wake-register` (spec-gaps 170, 176)
 
 A device sends its registration to a waker over its binding (§13.2):
 
@@ -158,7 +159,9 @@ The waker verifies the envelope as any message on the binding, then, in this ord
 4. the waker will use `gateway`: its own policy, which MAY admit any; otherwise `wake.gateway-unknown`.
 
 It answers `wake-accepted` and keeps one registration per device: the `wake-register` signer's device DID. A new one
-replaces it. No capability is needed beyond binding's (§13.2; M§4.3 for a mailbox).
+replaces it. No capability is needed beyond binding's (§13.2; M§4.3 for a mailbox). A mailbox treats `wake-register`
+as an owner operation (M§4.1) before these checks: an identity it does not serve enrols by it, or is refused
+`mailbox.not-served` (spec-gap 176).
 
 ### W§4.3 When a registration ends (spec-gap 174)
 
@@ -343,3 +346,4 @@ the device registers again on its next binding.
 | 173 | W§2.1 | an HTTPS `POST` of a signed envelope to `DSIPWake` |
 | 174 | W§4.3 | `expires_at` (W-Registration), replacement, `remove`, gateway answers, revocation, retention |
 | 175 | W§3 | a per-enrolment wake key, not the device DID |
+| 176 | W§4.2 | at a mailbox, `wake-register` is an owner operation (M§4.1) |
