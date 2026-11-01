@@ -1,0 +1,35 @@
+{
+  "vector": "wake/schema-register-remove-valid",
+  "format": 1,
+  "kind": "wake",
+  "description": "`remove: true` alone ends a registration.",
+  "spec_ref": [
+    "W§4.2"
+  ],
+  "context": {},
+  "input": {
+    "check": "schema",
+    "schema": "wake-register",
+    "value": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "wake/0.1"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "wake-register",
+      "id": "01K742SG005GEKV0P98A5P2QSH",
+      "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+      "to": "did:web:relay.example.com",
+      "remove": true,
+      "issued_at": 1760000000,
+      "expires_at": 1760000030
+    }
+  },
+  "expect": {
+    "verdict": "accept"
+  }
+}

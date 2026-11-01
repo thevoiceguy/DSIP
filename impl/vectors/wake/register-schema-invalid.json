@@ -1,0 +1,42 @@
+{
+  "vector": "wake/register-schema-invalid",
+  "format": 1,
+  "kind": "wake",
+  "description": "Neither a registration nor `remove`.",
+  "spec_ref": [
+    "W§4.1",
+    "W§4.2"
+  ],
+  "context": {
+    "waker": "did:web:relay.example.com",
+    "now": 1760000000,
+    "gateways": [
+      "did:web:push.dsip.example"
+    ]
+  },
+  "input": {
+    "check": "register",
+    "register": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "wake/0.1"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "wake-register",
+      "id": "01K742SG00H2RSA7WP5QNR8XYQ",
+      "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+      "to": "did:web:relay.example.com",
+      "issued_at": 1760000000,
+      "expires_at": 1760000030
+    },
+    "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "schema-invalid"
+  }
+}

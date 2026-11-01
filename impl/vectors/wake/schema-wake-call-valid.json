@@ -1,0 +1,42 @@
+{
+  "vector": "wake/schema-wake-call-valid",
+  "format": 1,
+  "kind": "wake",
+  "description": "A call wake with its session.",
+  "spec_ref": [
+    "W§5.2"
+  ],
+  "context": {},
+  "input": {
+    "check": "schema",
+    "schema": "wake",
+    "value": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "wake/0.1"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "wake",
+      "id": "01K742SG00RX3CB2J8RQ1XQMCW",
+      "from": "did:web:relay.example.com",
+      "to": "did:web:push.dsip.example",
+      "registration": {
+        "protected": "eyJhbGciOiJFZERTQSIsImtpZCI6ImRpZDprZXk6ejZNa21LTHkyMTUyaVRaU3RjQXl1MkZqU1JIRmpOM1Y1OHVxZ2VOMWlWcnBDOFZvI3o2TWttS0x5MjE1MmlUWlN0Y0F5dTJGalNSSEZqTjNWNTh1cWdlTjFpVnJwQzhWbyIsInR5cCI6ImRzaXAranNvbiJ9",
+        "payload": "eyJ0eXBlIjoiV2FrZVJlZ2lzdHJhdGlvbiIsImtleSI6ImRpZDprZXk6ejZNa21LTHkyMTUyaVRaU3RjQXl1MkZqU1JIRmpOM1Y1OHVxZ2VOMWlWcnBDOFZvIiwid2FrZXIiOiJkaWQ6d2ViOnJlbGF5LmV4YW1wbGUuY29tIiwiZ2F0ZXdheSI6ImRpZDp3ZWI6cHVzaC5kc2lwLmV4YW1wbGUiLCJoYW5kbGUiOiJoLWFwbnMtYm9iLXBob25lLTAwMDEiLCJpc3N1ZWRfYXQiOjE3NTk5OTk5NDAsImV4cGlyZXNfYXQiOjE3NjI1OTE5NDB9",
+        "signature": "YYalRNzhAkYyJgGyCWHvCChKMwgAALlESDKQLGX7qnEvrpynYZuIyDNEBDV-WNQDykSigmGCdYV1KSnJ_bC-Dw"
+      },
+      "kind": "call",
+      "session": "01K742SG00T7M5HCMD8XRTV0PM",
+      "deliver_by": 1760000030,
+      "issued_at": 1760000000,
+      "expires_at": 1760000030
+    }
+  },
+  "expect": {
+    "verdict": "accept"
+  }
+}

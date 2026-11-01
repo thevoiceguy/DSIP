@@ -1,0 +1,26 @@
+{
+  "vector": "wake/schema-registration-valid",
+  "format": 1,
+  "kind": "wake",
+  "description": "A WakeRegistration payload.",
+  "spec_ref": [
+    "W§4.1"
+  ],
+  "context": {},
+  "input": {
+    "check": "schema",
+    "schema": "wake-registration",
+    "value": {
+      "type": "WakeRegistration",
+      "key": "did:key:z6MkmKLy2152iTZStcAyu2FjSRHFjN3V58uqgeN1iVrpC8Vo",
+      "waker": "did:web:relay.example.com",
+      "gateway": "did:web:push.dsip.example",
+      "handle": "h-apns-bob-phone-0001",
+      "issued_at": 1759999940,
+      "expires_at": 1762591940
+    }
+  },
+  "expect": {
+    "verdict": "accept"
+  }
+}

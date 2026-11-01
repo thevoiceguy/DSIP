@@ -1334,6 +1334,70 @@ def gen_tn_assert(r: random.Random):
                                          "to_tn": r.choice([G.TO] * 5 + ["911", "+447700900123"]), "now": G.NOW + r.choice([0, 0, 3600]), "origid": G.ORIGID}
 
 
+def gen_wake_trace(r: random.Random):
+    """A relay's or a mailbox's wake state (W§4.3, W§5.1; README kind `wake`): registrations, bindings, held invites,
+    stored items, gateway answers and the clock, in any order and at colliding instants."""
+    component = r.choice(["relay", "mailbox"])
+    devices = [B1, B2, A1]
+    sessions = [ulid(40), ulid(41), ulid(42)]
+    t, ev = NOW, []
+    for _ in range(r.randint(3, 16)):
+        t += r.choice([0, 0, 1, 5, 29, 30, 59, 60, 61, 120])
+        x, d = r.random(), r.choice(devices)
+        if x < 0.2:
+            reg = {"device": d, "identity": IDENTITY[d], "expires_at": t + r.choice([0, 1, 30, 60, 90, 3600])}
+            if r.random() < 0.3:
+                reg["kinds"] = r.sample(["call", "call-ended", "message", "typing"], r.randint(0, 3))
+            e = {"register": reg}
+        elif x < 0.35:
+            e = {r.choice(["bind", "bind", "unbind", "unbind"]): d}
+        elif x < 0.45:
+            e = {r.choice(["remove", "revoke", "forget"]): d}
+        elif x < 0.52:
+            e = {"answer": {"device": d, "reason": r.choice(["wake.registration-ended", "wake.not-authorized", "wake.x-new",
+                                                             "transport.rate-limited", "session.failed"])}}
+        elif x < 0.85 and component == "relay":
+            if r.random() < 0.65:
+                e = {"hold": {"session": r.choice(sessions), "devices": r.sample(devices, r.randint(1, 3)),
+                              "expires_at": t + r.choice([0, 1, 15, 30, 60])}}
+            else:
+                e = {"drop": r.choice(sessions)}
+        elif x < 0.85:
+            e = {"store": {"identity": r.choice([BOB, BOB, ALICE]), "class": r.choice(["application", "welcome", "ephemeral"])}}
+        else:
+            e = {"tick": True}
+        ev.append({"at": t, **e})
+    return "wake", None, {"component": component}, ev
+
+
+def gen_wake_register(r: random.Random):
+    """A waker's checks on a `wake-register` (W§4.2; README kind `wake`, check `register`): registrations whose
+    signer, waker, gateway, lifetime and clock collide, so that the checks' order decides."""
+    from dsipvec import envelope as E
+    from dsipvec.crypto import keypair_from_seed_name
+    keys = [keypair_from_seed_name("wake-key-bob-phone"), keypair_from_seed_name("wake-key-mallory")]
+    key, signer = r.choice(keys), r.choice(keys + [keys[0]] * 2)
+    issued = NOW + r.choice([-3600, -60, 0, 299, 300, 301])
+    life = r.choice([-1, 0, 1, 60, 3600, 2_592_000, 2_592_001])
+    reg = {"type": r.choice(["WakeRegistration"] * 9 + ["DeviceDelegation"]), "key": key.did,
+           "waker": r.choice([RELAY, RELAY, HUB_B]), "gateway": r.choice(["did:web:push.dsip.example", ROGUE]),
+           "handle": "h-fuzz-0001", "issued_at": issued, "expires_at": issued + life}
+    if r.random() < 0.1:
+        reg["extra"] = 1
+    env = E.sign(reg, signer, signer.kid)
+    p = {"dsip": {"core": "1.0", "min_core": "1.0", "profiles": ["wake/0.1"], "extensions": [], "critical": []},
+         "type": "wake-register", "id": ulid(50), "from": B1, "to": RELAY, "registration": env,
+         "issued_at": NOW, "expires_at": NOW + 30}
+    if r.random() < 0.3:
+        p["kinds"] = r.sample(["call", "message", "call-ended", "call"], r.randint(0, 4))
+    if r.random() < 0.1:
+        p["remove"] = True
+    ctx = {"waker": RELAY, "now": NOW}
+    if r.random() < 0.6:
+        ctx["gateways"] = ["did:web:push.dsip.example"]
+    return "wake", "register", ctx, {"register": p, "device": B1}
+
+
 TARGETS = {
     "syslog": gen_syslog, "snmpv3": gen_snmpv3, "recording": gen_recording, "tn-binding": gen_tnbinding, "tn-store": gen_tn_store, "tn-select": gen_tn_select,
     "tn-passport": gen_tn_passport, "tn-route": gen_tn_route, "tn-assert": gen_tn_assert, "tn-authority": gen_tn_authority,
@@ -1346,7 +1410,7 @@ TARGETS = {
     "alias-lookup": gen_alias_lookup, "leave-proposals": gen_leave, "roster-change": gen_roster_change,
     "presence-aggregate": gen_presence_aggregate, "presence-authority": gen_presence_authority,
     "presence-admission": gen_presence_admission, "presence-sealed": gen_presence_sealed,
-    "presence-keys": gen_presence_keys,
+    "presence-keys": gen_presence_keys, "wake-trace": gen_wake_trace, "wake-register": gen_wake_register,
 }
 
 # Targets where the implementations are known to differ and the difference is a protocol decision, not a bug

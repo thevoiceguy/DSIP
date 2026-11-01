@@ -110,6 +110,21 @@ function open(value: Json | undefined, documents: DidDocuments): Opened | Reject
 }
 
 /**
+ * Verify a credential envelope (a delegation's form): stages 2–6 with no core-field check, no replay
+ * window and no dedup, and give its payload and the DID of the key that signed it.
+ *
+ * Spec: §7.4 (credentials are verified by signature, not by a delivery window), §10.2, §10.3; W§4.1
+ * (a Wake Profile registration is such a credential).
+ */
+export function openCredential(value: Json | undefined, documents: DidDocuments): { payload: JsonObject; signer: string } | Reject {
+  const opened = open(value, documents);
+  if (isReject(opened)) return opened;
+  const decoded = decodePayload(opened.bytes);
+  if (!decoded.ok) return decoded.error;
+  return { payload: decoded.value, signer: didOf(opened.kid) };
+}
+
+/**
  * A decoded payload or the reason it failed, tagged so that no decoded object (whatever keys it
  * holds) can be mistaken for a failure.
  */

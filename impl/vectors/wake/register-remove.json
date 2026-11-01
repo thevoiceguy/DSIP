@@ -1,0 +1,43 @@
+{
+  "vector": "wake/register-remove",
+  "format": 1,
+  "kind": "wake",
+  "description": "`remove: true` ends the registration; nothing else is read.",
+  "spec_ref": [
+    "W§4.1",
+    "W§4.2"
+  ],
+  "context": {
+    "waker": "did:web:relay.example.com",
+    "now": 1760000000,
+    "gateways": [
+      "did:web:push.dsip.example"
+    ]
+  },
+  "input": {
+    "check": "register",
+    "register": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "wake/0.1"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "wake-register",
+      "id": "01K742SG00RYKPMAMD7KA60VFM",
+      "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+      "to": "did:web:relay.example.com",
+      "remove": true,
+      "issued_at": 1760000000,
+      "expires_at": 1760000030
+    },
+    "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+  },
+  "expect": {
+    "verdict": "accept",
+    "removed": true
+  }
+}

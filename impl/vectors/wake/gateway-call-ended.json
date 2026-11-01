@@ -1,0 +1,82 @@
+{
+  "vector": "wake/gateway-call-ended",
+  "format": 1,
+  "kind": "wake",
+  "description": "A call-ended wake is of the call class.",
+  "spec_ref": [
+    "W§5.2",
+    "W§5.3"
+  ],
+  "context": {
+    "gateway": "did:web:push.dsip.example",
+    "now": 1760000000,
+    "handles": {
+      "h-apns-bob-phone-0001": {
+        "key": "did:key:z6MkmKLy2152iTZStcAyu2FjSRHFjN3V58uqgeN1iVrpC8Vo",
+        "provider": "apns",
+        "app": "org.dsip.app.voip",
+        "token": "7d1f7d1f7d1f7d1f7d1f7d1f7d1f7d1f7d1f7d1f7d1f7d1f7d1f7d1f7d1f7d1f"
+      },
+      "h-fcm-bob-laptop-0001": {
+        "key": "did:key:z6Mkqw4J1rwToKdie8H4rzNfhmgdqi2tkhbUwp98etMcbKhs",
+        "provider": "fcm",
+        "app": "dsip-app-prod",
+        "token": "fcm:APA91bH-bob-laptop-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      },
+      "h-apns-bob-tablet-sandbox": {
+        "key": "did:key:z6MkmKLy2152iTZStcAyu2FjSRHFjN3V58uqgeN1iVrpC8Vo",
+        "provider": "apns",
+        "app": "org.dsip.app.voip",
+        "token": "abababababababababababababababababababababababababababababababab",
+        "environment": "sandbox"
+      }
+    }
+  },
+  "input": {
+    "check": "gateway",
+    "wake": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "wake/0.1"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "wake",
+      "id": "01K742SG00JJ6J92C7TAEKETD0",
+      "from": "did:web:relay.example.com",
+      "to": "did:web:push.dsip.example",
+      "registration": {
+        "protected": "eyJhbGciOiJFZERTQSIsImtpZCI6ImRpZDprZXk6ejZNa21LTHkyMTUyaVRaU3RjQXl1MkZqU1JIRmpOM1Y1OHVxZ2VOMWlWcnBDOFZvI3o2TWttS0x5MjE1MmlUWlN0Y0F5dTJGalNSSEZqTjNWNTh1cWdlTjFpVnJwQzhWbyIsInR5cCI6ImRzaXAranNvbiJ9",
+        "payload": "eyJ0eXBlIjoiV2FrZVJlZ2lzdHJhdGlvbiIsImtleSI6ImRpZDprZXk6ejZNa21LTHkyMTUyaVRaU3RjQXl1MkZqU1JIRmpOM1Y1OHVxZ2VOMWlWcnBDOFZvIiwid2FrZXIiOiJkaWQ6d2ViOnJlbGF5LmV4YW1wbGUuY29tIiwiZ2F0ZXdheSI6ImRpZDp3ZWI6cHVzaC5kc2lwLmV4YW1wbGUiLCJoYW5kbGUiOiJoLWFwbnMtYm9iLXBob25lLTAwMDEiLCJpc3N1ZWRfYXQiOjE3NTk5OTk5NDAsImV4cGlyZXNfYXQiOjE3NjI1OTE5NDB9",
+        "signature": "YYalRNzhAkYyJgGyCWHvCChKMwgAALlESDKQLGX7qnEvrpynYZuIyDNEBDV-WNQDykSigmGCdYV1KSnJ_bC-Dw"
+      },
+      "kind": "call-ended",
+      "session": "01K742SG00T7M5HCMD8XRTV0PM",
+      "deliver_by": 1760000030,
+      "issued_at": 1760000000,
+      "expires_at": 1760000030
+    },
+    "signer": "did:web:relay.example.com"
+  },
+  "expect": {
+    "verdict": "accept",
+    "forward": {
+      "provider": "apns",
+      "app": "org.dsip.app.voip",
+      "token": "7d1f7d1f7d1f7d1f7d1f7d1f7d1f7d1f7d1f7d1f7d1f7d1f7d1f7d1f7d1f7d1f",
+      "class": "call",
+      "deliver_by": 1760000030,
+      "data": {
+        "dsip-wake": {
+          "kind": "call-ended",
+          "waker": "did:web:relay.example.com",
+          "session": "01K742SG00T7M5HCMD8XRTV0PM"
+        }
+      },
+      "environment": "production"
+    }
+  }
+}

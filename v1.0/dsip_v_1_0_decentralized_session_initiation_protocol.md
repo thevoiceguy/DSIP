@@ -7,7 +7,7 @@
 **Editor:** James Ferris
 **Date:** October 2026
 **Supersedes:** v0.17
-**Companion documents:** WebRTC Media Binding 1.0 (`dsip-webrtc-media-binding-v1.0.md`); Gateway Profile 1.0 (`dsip-gateway-profile-v1.0.md`); Messaging Profile 1.0 (`dsip-messaging-profile-v1.0.md`, with its schema set `dsip-messaging-schemas-draft/`); RTP/SRTP Media Binding (draft, `dsip-rtp-srtp-media-binding-v1.0-draft.md`); DHT Hints Profile (draft, `dsip-dht-hints-profile-v1.0-draft.md`); Alias Transparency Profile (draft, `dsip-alias-transparency-profile-v1.0-draft.md`); Device Events Profile 1.0 (`dsip-device-events-profile-v1.0.md`); Recording Profile (draft, `dsip-recording-profile-v1.0-draft.md`); Number Attestation Profile (draft, `dsip-number-attestation-profile-v1.0-draft.md`); Presence Profile (draft, `dsip-presence-profile-v1.0-draft.md`); JSON Schema set v0.17 (`dsip-schemas-v1.0/`); conformance vectors (`impl/vectors/`, 2,359 vectors on which the Python harness, the Rust reference implementation and the independent TypeScript implementation agree)
+**Companion documents:** WebRTC Media Binding 1.0 (`dsip-webrtc-media-binding-v1.0.md`); Gateway Profile 1.0 (`dsip-gateway-profile-v1.0.md`); Messaging Profile 1.0 (`dsip-messaging-profile-v1.0.md`, with its schema set `dsip-messaging-schemas-draft/`); RTP/SRTP Media Binding (draft, `dsip-rtp-srtp-media-binding-v1.0-draft.md`); DHT Hints Profile (draft, `dsip-dht-hints-profile-v1.0-draft.md`); Alias Transparency Profile (draft, `dsip-alias-transparency-profile-v1.0-draft.md`); Device Events Profile 1.0 (`dsip-device-events-profile-v1.0.md`); Recording Profile (draft, `dsip-recording-profile-v1.0-draft.md`); Number Attestation Profile (draft, `dsip-number-attestation-profile-v1.0-draft.md`); Presence Profile (draft, `dsip-presence-profile-v1.0-draft.md`); Wake Profile (draft, `dsip-wake-profile-v1.0-draft.md`, with its schema set `dsip-wake-schemas-draft/`); JSON Schema set v0.17 (`dsip-schemas-v1.0/`); conformance vectors (`impl/vectors/`, 2,475 vectors on which the Python harness, the Rust reference implementation and the independent TypeScript implementation agree)
 
 ---
 
@@ -1265,7 +1265,7 @@ The WebSocket binding delivers envelopes between *connected* parties. Reaching a
 
 **Bounded store (v0.8, spec-gap 99).** A relay holds store-and-forward envelopes within bounds it chooses: per recipient, and in total across recipients. An envelope that would exceed a bound is refused with a signed `error` (`transport.routing-refused`), never dropped silently (§13.2) — except an `introduction`, which is dropped silently at either bound so that a full relay is indistinguishable from an ignoring recipient (§19.4). A `cancel` for an `invite` still held for its recipient only shrinks the store (§12.11) and is never refused for either bound.
 
-The honest statement, in the spirit of §8.4: mobile wake-up on today's platforms requires platform push services, which are centralized. A DSIP relay that uses push to wake a device reintroduces a platform dependency for *delivery latency*, not for *identity or trust* — the envelope that eventually flows is still signed end-to-end, and the push payload need carry nothing but a wake signal. That trade is stated, not hidden.
+The honest statement, in the spirit of §8.4: mobile wake-up on today's platforms requires platform push services, which are centralized. A DSIP relay that uses push to wake a device reintroduces a platform dependency for *delivery latency*, not for *identity or trust* — the envelope that eventually flows is still signed end-to-end, and the push payload need carry nothing but a wake signal. That trade is stated, not hidden. The Wake Profile (draft, `dsip-wake-profile-v1.0-draft.md`, cited `W§n`) defines how a device asks its relay and its mailbox to wake it through a push gateway, who may, and what a wake carries.
 
 ### 13.4 QUIC Binding (Planned)
 
@@ -1395,6 +1395,7 @@ category     = "user" / "endpoint" / "identity" / "session" /
 | `gateway` | Condition arose beyond a protocol gateway | Treat per mapped semantics; trust per Appendix C downgrade rules |
 | `mailbox` | A mailbox or hub condition (Messaging Profile; v0.8) | Re-sync, retry once, then surface the failure |
 | `presence` | A presence record refused by its authority (Presence Profile P§9; v0.17) | Do not send the same record again; publish a corrected one |
+| `wake` | A wake registration or a wake refused (Wake Profile W§8.1; 1.0, A.16) | End the registration; register again on the next binding |
 
 ### 15.4 Core Registry
 
@@ -2729,6 +2730,11 @@ or rejects.
   - an inform's report drops a clear held for its alarm (spec-gap 167, E§4);
   - the gateway's SNMPv3 Reports and Responses are pinned byte for byte (spec-gap 168, E§3);
   - erratum: E§5's example objects carry the members every content object has (M§8.1).
+- The Wake Profile (`wake/0.1`, draft, cited `W§n`; spec-gaps 169–175): how a device asks its relay (calls) and its
+  mailbox (messages) to wake it through a push gateway (§13.3), with new message types (`wake-enrol`, `wake-accepted`,
+  `wake-register`, `wake`), a `WakeRegistration` credential, a `wake` capability member in `hello` and the reason
+  category `wake` (§15.1). A 1.0 receiver that does not implement it refuses the messages as unknown types; no core
+  message, schema or rule changes. 116 `wake/` vectors.
 
 ---
 

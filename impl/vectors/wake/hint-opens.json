@@ -1,0 +1,27 @@
+{
+  "vector": "wake/hint-opens",
+  "format": 1,
+  "kind": "wake",
+  "description": "A hint with the caller's device and identity, padded to 256 bytes.",
+  "spec_ref": [
+    "W§6"
+  ],
+  "context": {},
+  "input": {
+    "check": "open-hint",
+    "sealed": {
+      "alg": "hpke-base-x25519-sha256-aes128gcm",
+      "enc": "VxR2nRFr92Q2rnS8eT0sMK0ZA8WaxSc4BcfiaYtBDDY",
+      "ct": "dnSnFvwDSCPo-20ucdcFaagHkyjsGlBUkVCqhYW-d-yQe9RG0w592G_tnqi-9kYCbnmHhV2GbTPI9UqALapfeuFlyZAAdESwaxR6JTZIZr_FD2t8pkxFDz-3bpyHktVG1Q_AYKPILRQ1KmVkvRS23nFz_Q2VXlGXGxsKmK7ApXeAzL5BfdQhRTqn8Ax5YWnXmePx9qMbbitueePUiBLr9MiK9Z1YIzrLOcWWKeL1x4pTSERAdLIEGXhjZKsz9MMh5jNTLKTWDG_b30J8gUayVVuaWq9HzWEk2eJ06kWCPCob1tUklvxqlVnIrNS0uPINo2NKbTGBL9Mn7E-Q7ex1dj871m43AhtAnYUQwSjJ5eo"
+    },
+    "session": "01K742SG00T7M5HCMD8XRTV0PM",
+    "secret_hex": "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20"
+  },
+  "expect": {
+    "verdict": "accept",
+    "hint": {
+      "from": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+      "on_behalf_of": "did:key:z6MkhzX9qTeXBWkucyMVric1E9JrqUD5LPAkD2BNavakAptf"
+    }
+  }
+}

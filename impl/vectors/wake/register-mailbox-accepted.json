@@ -1,0 +1,59 @@
+{
+  "vector": "wake/register-mailbox-accepted",
+  "format": 1,
+  "kind": "wake",
+  "description": "The same checks at a mailbox, for a registration naming it.",
+  "spec_ref": [
+    "W§4.1",
+    "W§4.2"
+  ],
+  "context": {
+    "waker": "did:web:mbx.example.com",
+    "now": 1760000000,
+    "gateways": [
+      "did:web:push.dsip.example"
+    ]
+  },
+  "input": {
+    "check": "register",
+    "register": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "wake/0.1"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "wake-register",
+      "id": "01K742SG005WST9KEGX53ASJZP",
+      "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+      "to": "did:web:mbx.example.com",
+      "registration": {
+        "protected": "eyJhbGciOiJFZERTQSIsImtpZCI6ImRpZDprZXk6ejZNa21LTHkyMTUyaVRaU3RjQXl1MkZqU1JIRmpOM1Y1OHVxZ2VOMWlWcnBDOFZvI3o2TWttS0x5MjE1MmlUWlN0Y0F5dTJGalNSSEZqTjNWNTh1cWdlTjFpVnJwQzhWbyIsInR5cCI6ImRzaXAranNvbiJ9",
+        "payload": "eyJ0eXBlIjoiV2FrZVJlZ2lzdHJhdGlvbiIsImtleSI6ImRpZDprZXk6ejZNa21LTHkyMTUyaVRaU3RjQXl1MkZqU1JIRmpOM1Y1OHVxZ2VOMWlWcnBDOFZvIiwid2FrZXIiOiJkaWQ6d2ViOm1ieC5leGFtcGxlLmNvbSIsImdhdGV3YXkiOiJkaWQ6d2ViOnB1c2guZHNpcC5leGFtcGxlIiwiaGFuZGxlIjoiaC1hcG5zLWJvYi1waG9uZS0wMDAxIiwiaXNzdWVkX2F0IjoxNzU5OTk5OTQwLCJleHBpcmVzX2F0IjoxNzYyNTkxOTQwfQ",
+        "signature": "oDCK2UhatOVY8HleypyvFWZRJsgddVITErh1ki7SAcQemGz64JjF5lOE9zD8XRPvfyL0wanuxtMoE4Rc3nxgBw"
+      },
+      "kinds": [
+        "message"
+      ],
+      "issued_at": 1760000000,
+      "expires_at": 1760000030
+    },
+    "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+  },
+  "expect": {
+    "verdict": "accept",
+    "registration": {
+      "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+      "key": "did:key:z6MkmKLy2152iTZStcAyu2FjSRHFjN3V58uqgeN1iVrpC8Vo",
+      "gateway": "did:web:push.dsip.example",
+      "handle": "h-apns-bob-phone-0001",
+      "expires_at": 1762591940,
+      "kinds": [
+        "message"
+      ]
+    }
+  }
+}

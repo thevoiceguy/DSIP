@@ -1,0 +1,79 @@
+{
+  "vector": "wake/gateway-message-fcm",
+  "format": 1,
+  "kind": "wake",
+  "description": "A message wake through FCM: the message class, no environment.",
+  "spec_ref": [
+    "W§5.2",
+    "W§5.3"
+  ],
+  "context": {
+    "gateway": "did:web:push.dsip.example",
+    "now": 1760000000,
+    "handles": {
+      "h-apns-bob-phone-0001": {
+        "key": "did:key:z6MkmKLy2152iTZStcAyu2FjSRHFjN3V58uqgeN1iVrpC8Vo",
+        "provider": "apns",
+        "app": "org.dsip.app.voip",
+        "token": "7d1f7d1f7d1f7d1f7d1f7d1f7d1f7d1f7d1f7d1f7d1f7d1f7d1f7d1f7d1f7d1f"
+      },
+      "h-fcm-bob-laptop-0001": {
+        "key": "did:key:z6Mkqw4J1rwToKdie8H4rzNfhmgdqi2tkhbUwp98etMcbKhs",
+        "provider": "fcm",
+        "app": "dsip-app-prod",
+        "token": "fcm:APA91bH-bob-laptop-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      },
+      "h-apns-bob-tablet-sandbox": {
+        "key": "did:key:z6MkmKLy2152iTZStcAyu2FjSRHFjN3V58uqgeN1iVrpC8Vo",
+        "provider": "apns",
+        "app": "org.dsip.app.voip",
+        "token": "abababababababababababababababababababababababababababababababab",
+        "environment": "sandbox"
+      }
+    }
+  },
+  "input": {
+    "check": "gateway",
+    "wake": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "wake/0.1"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "wake",
+      "id": "01K742SG00D06DRMW1VTNKZAE8",
+      "from": "did:web:mbx.example.com",
+      "to": "did:web:push.dsip.example",
+      "registration": {
+        "protected": "eyJhbGciOiJFZERTQSIsImtpZCI6ImRpZDprZXk6ejZNa3F3NEoxcndUb0tkaWU4SDRyek5maG1nZHFpMnRraGJVd3A5OGV0TWNiS2hzI3o2TWtxdzRKMXJ3VG9LZGllOEg0cnpOZmhtZ2RxaTJ0a2hiVXdwOThldE1jYktocyIsInR5cCI6ImRzaXAranNvbiJ9",
+        "payload": "eyJ0eXBlIjoiV2FrZVJlZ2lzdHJhdGlvbiIsImtleSI6ImRpZDprZXk6ejZNa3F3NEoxcndUb0tkaWU4SDRyek5maG1nZHFpMnRraGJVd3A5OGV0TWNiS2hzIiwid2FrZXIiOiJkaWQ6d2ViOm1ieC5leGFtcGxlLmNvbSIsImdhdGV3YXkiOiJkaWQ6d2ViOnB1c2guZHNpcC5leGFtcGxlIiwiaGFuZGxlIjoiaC1mY20tYm9iLWxhcHRvcC0wMDAxIiwiaXNzdWVkX2F0IjoxNzU5OTk5OTQwLCJleHBpcmVzX2F0IjoxNzYyNTkxOTQwfQ",
+        "signature": "kz9ZIae6ZWVBMiEf3XyPxquTNzYGp5_UdeVzDeFON9hpn9j4tdOncWJXeqQ8rJ-Qp83eWgmh_Sa2jlCJFirUCg"
+      },
+      "kind": "message",
+      "deliver_by": 1760000060,
+      "issued_at": 1760000000,
+      "expires_at": 1760000030
+    },
+    "signer": "did:web:mbx.example.com"
+  },
+  "expect": {
+    "verdict": "accept",
+    "forward": {
+      "provider": "fcm",
+      "app": "dsip-app-prod",
+      "token": "fcm:APA91bH-bob-laptop-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "class": "message",
+      "deliver_by": 1760000060,
+      "data": {
+        "dsip-wake": {
+          "kind": "message",
+          "waker": "did:web:mbx.example.com"
+        }
+      }
+    }
+  }
+}

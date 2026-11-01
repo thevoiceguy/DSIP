@@ -1,0 +1,54 @@
+{
+  "vector": "wake/enrol-fcm-ignores-environment",
+  "format": 1,
+  "kind": "wake",
+  "description": "`environment` is APNs only: an FCM enrolment ignores it.",
+  "spec_ref": [
+    "W§3"
+  ],
+  "context": {
+    "apps": [
+      {
+        "provider": "apns",
+        "app": "org.dsip.app.voip"
+      },
+      {
+        "provider": "fcm",
+        "app": "dsip-app-prod"
+      }
+    ]
+  },
+  "input": {
+    "check": "enrol",
+    "enrol": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "wake/0.1"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "wake-enrol",
+      "id": "01K742SG009XXBPA157K92F8DX",
+      "from": "did:key:z6Mkqw4J1rwToKdie8H4rzNfhmgdqi2tkhbUwp98etMcbKhs",
+      "to": "did:web:push.dsip.example",
+      "provider": "fcm",
+      "app": "dsip-app-prod",
+      "token": "fcm:APA91bH-bob-laptop-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "environment": "sandbox",
+      "issued_at": 1760000000,
+      "expires_at": 1760000030
+    }
+  },
+  "expect": {
+    "verdict": "accept",
+    "enrolment": {
+      "key": "did:key:z6Mkqw4J1rwToKdie8H4rzNfhmgdqi2tkhbUwp98etMcbKhs",
+      "provider": "fcm",
+      "app": "dsip-app-prod",
+      "token": "fcm:APA91bH-bob-laptop-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    }
+  }
+}

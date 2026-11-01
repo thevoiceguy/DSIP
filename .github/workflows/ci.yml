@@ -34,6 +34,11 @@ jobs:
         run: |
           python3 v1.0/dsip-messaging-schemas-draft/generate_schemas.py v1.0/dsip-messaging-schemas-draft/schemas
           git diff --exit-code -- v1.0/dsip-messaging-schemas-draft/schemas
+      - name: regenerate Wake Profile schemas (draft) and diff
+        run: |
+          python3 v1.0/dsip-wake-schemas-draft/generate_schemas.py v1.0/dsip-wake-schemas-draft/schemas
+          git diff --exit-code -- v1.0/dsip-wake-schemas-draft/schemas
+          test -z "$(git status --porcelain -- v1.0/dsip-wake-schemas-draft/schemas)"
 
   vectors:
     name: vectors regenerate cleanly + Python harness
