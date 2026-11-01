@@ -5115,3 +5115,25 @@ Choices:
 - **(b) The device DID.** One key fewer.
 
 **Decided (2026-10-31, user: "all (a)"): (a).**
+
+## 176. W§4.2 — whether `wake-register` at a mailbox is an owner operation
+
+**Found (2026-11-01, implementing the mailbox's `message` wakes in dsip-rs).** W§4.2 says a waker needs no capability
+beyond binding's (§13.2; M§4.3 for a mailbox), and lists four checks, all on the registration. Any device can bind to
+a mailbox with a verified `hello`, whether or not the mailbox serves its identity (M§4.1). A registration from an
+identity the mailbox does not serve can never be used, since nothing is stored for it, but the mailbox would keep it
+for up to W-Registration. The Messaging Profile has a rule for this case already: an owner operation (`sync`,
+`key-packages`, `mailbox-config`) from an identity not served either enrols it, while the operator's bound has room,
+or is refused `mailbox.not-served` (M§4.1, spec-gaps 115, 130).
+
+Choices:
+
+- **(a) An owner operation.** Before W§4.2's checks, a mailbox treats `wake-register` as M§4.1 treats an owner
+  operation: an identity it serves registers; one it does not serve enrols by it, or is refused `mailbox.not-served`.
+  A relay is unchanged (§13.6 decides whom it serves at binding).
+- **(b) As drafted.** Any bound device registers; a registration of an identity the mailbox does not serve is kept
+  and never used.
+
+**Proposed: (a).** dsip-rs's mailbox implements (a) (`Impl:` in `dsip-mailbox`'s `service.rs`,
+`crates/dsip-mailbox/tests/wake.rs`); W§4.2 gains one sentence when it is decided. No vector changes: the `wake/`
+vectors' register checks are the profile's own, run after the binding's.
