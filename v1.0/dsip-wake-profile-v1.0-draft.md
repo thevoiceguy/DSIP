@@ -1,9 +1,10 @@
 # DSIP Wake Profile (`wake/0.1`)
 
 **Status:** DRAFT, companion profile to DSIP 1.0. Cite as `W§n`. It collects spec-gaps 169–175, decided 2026-10-31
-("all (a)") on the outline (`impl/docs/wake-profile-outline.md`). It adds message types, a credential and a capability
-member, which §11.4 allows in 1.x (spec-gap 163 (a)). Schemas: `v1.0/dsip-wake-schemas-draft/`. Conformance: the
-`wake/` vectors.
+("all (a)") on the outline (`impl/docs/wake-profile-outline.md`); erratum 2026-10-31 (W§5.2 `session`, W§6
+`on_behalf_of`: an invite carries neither field), found implementing the relay. It adds message types, a credential
+and a capability member, which §11.4 allows in 1.x (spec-gap 163 (a)). Schemas: `v1.0/dsip-wake-schemas-draft/`.
+Conformance: the `wake/` vectors.
 
 The core already assigns the job: reaching a device that is asleep "is the responsibility of the relay
 store-and-forward layer", mobile wake-up "requires platform push services, which are centralized", and "the push
@@ -225,7 +226,8 @@ that does not is unreachable like any other, and the initiator's T-Establish (§
 
 - `registration`: the device's, exactly as received.
 - `kind`: registry `dsip-wake-kind` (W§8.2). An unknown kind is treated as `message`.
-- `session`: the invite's `session`, required for `call` and `call-ended`, absent otherwise.
+- `session`: the session id, which is the invite's `id` (§12.2), required for `call` and `call-ended`, absent
+  otherwise.
 - `sealed`: W§6, `call` only, optional.
 - `deliver_by`: after it the wake is useless. For `call` the held invite's `expires_at`; for `call-ended` the time
   of the drop plus W-Call-Ended; for `message` the time of the item plus W-Coalesce.
@@ -275,8 +277,10 @@ app trusts only what arrives through DSIP and verifies (§8.1).
 The gateway and the provider see every wake, so a `call`'s caller travels sealed. `sealed` is HPKE base mode with the
 suite of M§6.9 (`hpke-base-x25519-sha256-aes128gcm`) to the registration's `seal_key`, `info`
 `"dsip wake hint v1"`, AAD the UTF-8 of the `session`. The plaintext is the compact JSON
-`{"from":"<the invite's from>","on_behalf_of":"<the invite's on_behalf_of>"}` (`on_behalf_of` only when the invite
-has one), followed by spaces to exactly 256 bytes; a hint that would be longer is not sent.
+`{"from":"<the invite's from>","on_behalf_of":"<the identity its signer acts for>"}`, followed by spaces to exactly
+256 bytes; a hint that would be longer is not sent. An invite carries no `on_behalf_of`: the identity is the subject of
+the delegation binding its signer (§7.4), which the relay knows from the caller's binding (§13.2); it is left out
+when it is the `from` itself.
 
 The app opens it, shows the contact it already holds for the DID (or "unknown"), and replaces that with what the
 verified invite says once it arrives. The hint is the relay's claim: the app MUST NOT treat it as the caller's
