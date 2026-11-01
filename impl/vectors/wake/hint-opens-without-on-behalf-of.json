@@ -1,0 +1,26 @@
+{
+  "vector": "wake/hint-opens-without-on-behalf-of",
+  "format": 1,
+  "kind": "wake",
+  "description": "A hint from a caller that is its own identity.",
+  "spec_ref": [
+    "W§6"
+  ],
+  "context": {},
+  "input": {
+    "check": "open-hint",
+    "sealed": {
+      "alg": "hpke-base-x25519-sha256-aes128gcm",
+      "enc": "VxR2nRFr92Q2rnS8eT0sMK0ZA8WaxSc4BcfiaYtBDDY",
+      "ct": "dnSnFvwDSCPo-20ucdcFaagHkyjsGlBUkVCqhYW-d-yQe9RG0w592G_tnqi-9kYCbnmHhV2GbTPI9UqALapfeuFlmJJPOjvyLlw7aXA3KfnHFWk47whfRHrudMaR_54Oj3fZMdeNVXZCYTAn5HnAjDgw7GiMNAPGbn8f9N6h7hOSrtAAK5VqJGrztg4kYWnXmePx9qMbbitueePUiBLr9MiK9Z1YIzrLOcWWKeL1x4pTSERAdLIEGXhjZKsz9MMh5jNTLKTWDG_b30J8gUayVVuaWq9HzWEk2eJ06kWCPCob1tUklvxqlVnIrNS0uPINo2NKbTGBL9Mn7E-Q7ex1dg_u6nZVitvgHtEFVkknR_I"
+    },
+    "session": "01K742SG00T7M5HCMD8XRTV0PM",
+    "secret_hex": "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20"
+  },
+  "expect": {
+    "verdict": "accept",
+    "hint": {
+      "from": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu"
+    }
+  }
+}

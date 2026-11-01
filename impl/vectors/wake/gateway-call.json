@@ -1,0 +1,92 @@
+{
+  "vector": "wake/gateway-call",
+  "format": 1,
+  "kind": "wake",
+  "description": "A call wake: the call class, the session and the sealed hint passed through, the waker named.",
+  "spec_ref": [
+    "W§5.2",
+    "W§5.3"
+  ],
+  "context": {
+    "gateway": "did:web:push.dsip.example",
+    "now": 1760000000,
+    "handles": {
+      "h-apns-bob-phone-0001": {
+        "key": "did:key:z6MkmKLy2152iTZStcAyu2FjSRHFjN3V58uqgeN1iVrpC8Vo",
+        "provider": "apns",
+        "app": "org.dsip.app.voip",
+        "token": "7d1f7d1f7d1f7d1f7d1f7d1f7d1f7d1f7d1f7d1f7d1f7d1f7d1f7d1f7d1f7d1f"
+      },
+      "h-fcm-bob-laptop-0001": {
+        "key": "did:key:z6Mkqw4J1rwToKdie8H4rzNfhmgdqi2tkhbUwp98etMcbKhs",
+        "provider": "fcm",
+        "app": "dsip-app-prod",
+        "token": "fcm:APA91bH-bob-laptop-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      },
+      "h-apns-bob-tablet-sandbox": {
+        "key": "did:key:z6MkmKLy2152iTZStcAyu2FjSRHFjN3V58uqgeN1iVrpC8Vo",
+        "provider": "apns",
+        "app": "org.dsip.app.voip",
+        "token": "abababababababababababababababababababababababababababababababab",
+        "environment": "sandbox"
+      }
+    }
+  },
+  "input": {
+    "check": "gateway",
+    "wake": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "wake/0.1"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "wake",
+      "id": "01K742SG00JJ6J92C7TAEKETD0",
+      "from": "did:web:relay.example.com",
+      "to": "did:web:push.dsip.example",
+      "registration": {
+        "protected": "eyJhbGciOiJFZERTQSIsImtpZCI6ImRpZDprZXk6ejZNa21LTHkyMTUyaVRaU3RjQXl1MkZqU1JIRmpOM1Y1OHVxZ2VOMWlWcnBDOFZvI3o2TWttS0x5MjE1MmlUWlN0Y0F5dTJGalNSSEZqTjNWNTh1cWdlTjFpVnJwQzhWbyIsInR5cCI6ImRzaXAranNvbiJ9",
+        "payload": "eyJ0eXBlIjoiV2FrZVJlZ2lzdHJhdGlvbiIsImtleSI6ImRpZDprZXk6ejZNa21LTHkyMTUyaVRaU3RjQXl1MkZqU1JIRmpOM1Y1OHVxZ2VOMWlWcnBDOFZvIiwid2FrZXIiOiJkaWQ6d2ViOnJlbGF5LmV4YW1wbGUuY29tIiwiZ2F0ZXdheSI6ImRpZDp3ZWI6cHVzaC5kc2lwLmV4YW1wbGUiLCJoYW5kbGUiOiJoLWFwbnMtYm9iLXBob25lLTAwMDEiLCJpc3N1ZWRfYXQiOjE3NTk5OTk5NDAsImV4cGlyZXNfYXQiOjE3NjI1OTE5NDB9",
+        "signature": "YYalRNzhAkYyJgGyCWHvCChKMwgAALlESDKQLGX7qnEvrpynYZuIyDNEBDV-WNQDykSigmGCdYV1KSnJ_bC-Dw"
+      },
+      "kind": "call",
+      "session": "01K742SG00T7M5HCMD8XRTV0PM",
+      "sealed": {
+        "alg": "hpke-base-x25519-sha256-aes128gcm",
+        "enc": "VxR2nRFr92Q2rnS8eT0sMK0ZA8WaxSc4BcfiaYtBDDY",
+        "ct": "dnSnFvwDSCPo-20ucdcFaagHkyjsGlBUkVCqhYW-d-yQe9RG0w592G_tnqi-9kYCbnmHhV2GbTPI9UqALapfeuFlyZAAdESwaxR6JTZIZr_FD2t8pkxFDz-3bpyHktVG1Q_AYKPILRQ1KmVkvRS23nFz_Q2VXlGXGxsKmK7ApXeAzL5BfdQhRTqn8Ax5YWnXmePx9qMbbitueePUiBLr9MiK9Z1YIzrLOcWWKeL1x4pTSERAdLIEGXhjZKsz9MMh5jNTLKTWDG_b30J8gUayVVuaWq9HzWEk2eJ06kWCPCob1tUklvxqlVnIrNS0uPINo2NKbTGBL9Mn7E-Q7ex1dj871m43AhtAnYUQwSjJ5eo"
+      },
+      "deliver_by": 1760000030,
+      "issued_at": 1760000000,
+      "expires_at": 1760000030
+    },
+    "signer": "did:web:relay.example.com"
+  },
+  "expect": {
+    "verdict": "accept",
+    "forward": {
+      "provider": "apns",
+      "app": "org.dsip.app.voip",
+      "token": "7d1f7d1f7d1f7d1f7d1f7d1f7d1f7d1f7d1f7d1f7d1f7d1f7d1f7d1f7d1f7d1f",
+      "class": "call",
+      "deliver_by": 1760000030,
+      "data": {
+        "dsip-wake": {
+          "kind": "call",
+          "waker": "did:web:relay.example.com",
+          "session": "01K742SG00T7M5HCMD8XRTV0PM",
+          "sealed": {
+            "alg": "hpke-base-x25519-sha256-aes128gcm",
+            "enc": "VxR2nRFr92Q2rnS8eT0sMK0ZA8WaxSc4BcfiaYtBDDY",
+            "ct": "dnSnFvwDSCPo-20ucdcFaagHkyjsGlBUkVCqhYW-d-yQe9RG0w592G_tnqi-9kYCbnmHhV2GbTPI9UqALapfeuFlyZAAdESwaxR6JTZIZr_FD2t8pkxFDz-3bpyHktVG1Q_AYKPILRQ1KmVkvRS23nFz_Q2VXlGXGxsKmK7ApXeAzL5BfdQhRTqn8Ax5YWnXmePx9qMbbitueePUiBLr9MiK9Z1YIzrLOcWWKeL1x4pTSERAdLIEGXhjZKsz9MMh5jNTLKTWDG_b30J8gUayVVuaWq9HzWEk2eJ06kWCPCob1tUklvxqlVnIrNS0uPINo2NKbTGBL9Mn7E-Q7ex1dj871m43AhtAnYUQwSjJ5eo"
+          }
+        }
+      },
+      "environment": "production"
+    }
+  }
+}

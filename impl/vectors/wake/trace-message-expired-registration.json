@@ -1,0 +1,55 @@
+{
+  "vector": "wake/trace-message-expired-registration",
+  "format": 1,
+  "kind": "wake",
+  "description": "A registration expired before the item wakes nothing.",
+  "spec_ref": [
+    "W§4.3",
+    "W§5.1"
+  ],
+  "context": {
+    "component": "mailbox"
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "at": 1760000000,
+          "register": {
+            "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "identity": "did:web:example.com:users:bob",
+            "expires_at": 1760000005
+          }
+        }
+      },
+      {
+        "event": {
+          "at": 1760000005,
+          "store": {
+            "identity": "did:web:example.com:users:bob",
+            "class": "application"
+          }
+        }
+      }
+    ]
+  },
+  "expect": [
+    {
+      "emit": [],
+      "registrations": [
+        "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+      ]
+    },
+    {
+      "emit": [
+        {
+          "ended": {
+            "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "cause": "expired"
+          }
+        }
+      ],
+      "registrations": []
+    }
+  ]
+}

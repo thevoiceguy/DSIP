@@ -1,0 +1,24 @@
+{
+  "vector": "wake/hint-wrong-info",
+  "format": 1,
+  "kind": "wake",
+  "description": "Sealed under another info string.",
+  "spec_ref": [
+    "W§6"
+  ],
+  "context": {},
+  "input": {
+    "check": "open-hint",
+    "sealed": {
+      "alg": "hpke-base-x25519-sha256-aes128gcm",
+      "enc": "VxR2nRFr92Q2rnS8eT0sMK0ZA8WaxSc4BcfiaYtBDDY",
+      "ct": "u2brGJ_YUz4FQGAQWIcFogpW288QoijjoPHnscRuuh2-imQjsbLQ6DUFGPspnADp5SBJq2gBhkRe6s6wPDuJNM5Xhup81PwkIdfojxXwOacSIMWjwuptY1-vIRAmHkcD9roYooqNJuy5zNslDY4Y1E-z1YySgYQRj1m5kacgeHsJA4mlr_6JSq1XGTWu7nJsiV3L4hg2fK_p8nDcVHh8C99ezyFQNWtQry-F1NVFYuFIbrPQ_ba4REPp8L158ABdUIgDjtUCSsvd-9MJZECDwJG7D-pf7YbnKhcyXznMERCKUYnGbxpeYEj-IVMyUEgsemUDYX9GAL0pAqnouTXlVJ1AJYCEYx3pxNZ1s1iRhbE"
+    },
+    "session": "01K742SG00T7M5HCMD8XRTV0PM",
+    "secret_hex": "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20"
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "sealed-open-failed"
+  }
+}

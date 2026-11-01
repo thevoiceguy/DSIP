@@ -1,0 +1,24 @@
+{
+  "vector": "wake/hint-not-json",
+  "format": 1,
+  "kind": "wake",
+  "description": "256 bytes that are not JSON.",
+  "spec_ref": [
+    "W§6"
+  ],
+  "context": {},
+  "input": {
+    "check": "open-hint",
+    "sealed": {
+      "alg": "hpke-base-x25519-sha256-aes128gcm",
+      "enc": "VxR2nRFr92Q2rnS8eT0sMK0ZA8WaxSc4BcfiaYtBDDY",
+      "ct": "dS65HOsWEmGy53wyM8QYaOoF3R3_BRFDu3u1y7yWe-alSfwGwhNu8Xqtn4Clt1EIczK6yXa0ICn2unGPZKNhQew_ncoXYmOqdgRjMShvcaGfTTFgt1AHHCK2LJ7Jp8ZW1y-BaY_VDS4aOWh_vCGY1GBotDDUbFueNidHrIb5tkvK9ohYc80yfDKr7lZ8OTGPwbuprvtDNnM2IbuM0EqzrJDSrcUAe2KTYZ3Ocbqtn9ILEBwYLOpcQSA7PPNrrJt5vmsLdPyOVDeDhxok2R7qDQPCAvcflTl8gbossh3aZHJDjo18zqQyzQGQ9Izs4KpV-zsSNWnZd4t_tBfItbQtLindr1VOkCnuM2di1Lwl7e4"
+    },
+    "session": "01K742SG00T7M5HCMD8XRTV0PM",
+    "secret_hex": "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20"
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "sealed-plaintext-invalid"
+  }
+}

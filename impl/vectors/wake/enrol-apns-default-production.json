@@ -1,0 +1,54 @@
+{
+  "vector": "wake/enrol-apns-default-production",
+  "format": 1,
+  "kind": "wake",
+  "description": "An APNs enrolment without `environment` is for production.",
+  "spec_ref": [
+    "W§3"
+  ],
+  "context": {
+    "apps": [
+      {
+        "provider": "apns",
+        "app": "org.dsip.app.voip"
+      },
+      {
+        "provider": "fcm",
+        "app": "dsip-app-prod"
+      }
+    ]
+  },
+  "input": {
+    "check": "enrol",
+    "enrol": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "wake/0.1"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "wake-enrol",
+      "id": "01K742SG00XPWA1PHC1N3XSK9N",
+      "from": "did:key:z6MkmKLy2152iTZStcAyu2FjSRHFjN3V58uqgeN1iVrpC8Vo",
+      "to": "did:web:push.dsip.example",
+      "provider": "apns",
+      "app": "org.dsip.app.voip",
+      "token": "7d1f7d1f7d1f7d1f7d1f7d1f7d1f7d1f7d1f7d1f7d1f7d1f7d1f7d1f7d1f7d1f",
+      "issued_at": 1760000000,
+      "expires_at": 1760000030
+    }
+  },
+  "expect": {
+    "verdict": "accept",
+    "enrolment": {
+      "key": "did:key:z6MkmKLy2152iTZStcAyu2FjSRHFjN3V58uqgeN1iVrpC8Vo",
+      "provider": "apns",
+      "app": "org.dsip.app.voip",
+      "token": "7d1f7d1f7d1f7d1f7d1f7d1f7d1f7d1f7d1f7d1f7d1f7d1f7d1f7d1f7d1f7d1f",
+      "environment": "production"
+    }
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "vector": "wake/schema-register-remove-with-kinds",
+  "format": 1,
+  "kind": "wake",
+  "description": "`remove` carries no kinds.",
+  "spec_ref": [
+    "W§4.2"
+  ],
+  "context": {},
+  "input": {
+    "check": "schema",
+    "schema": "wake-register",
+    "value": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "wake/0.1"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "wake-register",
+      "id": "01K742SG00Y3XRS930YTH2TRAH",
+      "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+      "to": "did:web:relay.example.com",
+      "remove": true,
+      "kinds": [
+        "call"
+      ],
+      "issued_at": 1760000000,
+      "expires_at": 1760000030
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "schema-invalid"
+  }
+}

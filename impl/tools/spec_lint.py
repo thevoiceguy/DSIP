@@ -25,7 +25,7 @@ VECTORS = IMPL / "vectors"
 SPEC = IMPL.parent / "v1.0"
 # `§n` = Core section; a letter prefix names a v0.17 companion document: `B§n` WebRTC Media Binding,
 # `G§n` Gateway Profile, `M§n` Messaging Profile, `R§n` RTP/SRTP Media Binding, `E§n` Device Events Profile, `T§n` Alias Transparency,
-# `C§n` Recording Profile, `N§n` Number Attestation Profile, `P§n` Presence Profile.
+# `C§n` Recording Profile, `N§n` Number Attestation Profile, `P§n` Presence Profile, `W§n` Wake Profile.
 SECTION_RE = None  # built from DOCS below, so every companion prefix is recognised
 DOCS = {
     "": ("Core", "dsip_v_1_0_decentralized_session_initiation_protocol.md", re.compile(r"^#{2,4} (\d+(?:\.\d+)*)[. ]")),
@@ -38,6 +38,7 @@ DOCS = {
     "C": ("Recording Profile", "dsip-recording-profile-v1.0-draft.md", re.compile(r"^#{2,4} C§(\d+(?:\.\d+)*)")),
     "N": ("Number Attestation Profile", "dsip-number-attestation-profile-v1.0-draft.md", re.compile(r"^#{2,4} N§(\d+(?:\.\d+)*)")),
     "P": ("Presence Profile", "dsip-presence-profile-v1.0-draft.md", re.compile(r"^#{2,4} P§(\d+(?:\.\d+)*)")),
+    "W": ("Wake Profile", "dsip-wake-profile-v1.0-draft.md", re.compile(r"^#{2,4} W§(\d+(?:\.\d+)*)")),
 }
 DOC_ORDER = {p: i for i, p in enumerate(DOCS)}
 PREFIXES = "".join(p for p in DOCS if p)

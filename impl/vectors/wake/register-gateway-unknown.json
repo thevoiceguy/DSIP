@@ -1,0 +1,48 @@
+{
+  "vector": "wake/register-gateway-unknown",
+  "format": 1,
+  "kind": "wake",
+  "description": "A gateway the relay will not use.",
+  "spec_ref": [
+    "W§4.1",
+    "W§4.2"
+  ],
+  "context": {
+    "waker": "did:web:relay.example.com",
+    "now": 1760000000,
+    "gateways": [
+      "did:web:push.dsip.example"
+    ]
+  },
+  "input": {
+    "check": "register",
+    "register": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "wake/0.1"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "wake-register",
+      "id": "01K742SG00Q0SF4K3BG8CV8AF5",
+      "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+      "to": "did:web:relay.example.com",
+      "registration": {
+        "protected": "eyJhbGciOiJFZERTQSIsImtpZCI6ImRpZDprZXk6ejZNa21LTHkyMTUyaVRaU3RjQXl1MkZqU1JIRmpOM1Y1OHVxZ2VOMWlWcnBDOFZvI3o2TWttS0x5MjE1MmlUWlN0Y0F5dTJGalNSSEZqTjNWNTh1cWdlTjFpVnJwQzhWbyIsInR5cCI6ImRzaXAranNvbiJ9",
+        "payload": "eyJ0eXBlIjoiV2FrZVJlZ2lzdHJhdGlvbiIsImtleSI6ImRpZDprZXk6ejZNa21LTHkyMTUyaVRaU3RjQXl1MkZqU1JIRmpOM1Y1OHVxZ2VOMWlWcnBDOFZvIiwid2FrZXIiOiJkaWQ6d2ViOnJlbGF5LmV4YW1wbGUuY29tIiwiZ2F0ZXdheSI6ImRpZDp3ZWI6cHVzaC5vdGhlci5leGFtcGxlIiwiaGFuZGxlIjoiaC1hcG5zLWJvYi1waG9uZS0wMDAxIiwiaXNzdWVkX2F0IjoxNzU5OTk5OTQwLCJleHBpcmVzX2F0IjoxNzYyNTkxOTQwfQ",
+        "signature": "vPRO0j2oqeeAws27ohxTF0oCjrUWOndP-YLB9au5bQF6e5CULD34Dk9ZSRXsz7oEp7BzaNy9e7CwSALvKQYFCg"
+      },
+      "issued_at": 1760000000,
+      "expires_at": 1760000030
+    },
+    "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "gateway-unknown",
+    "reason": "wake.gateway-unknown"
+  }
+}

@@ -1,0 +1,78 @@
+{
+  "vector": "wake/trace-remove-ends",
+  "format": 1,
+  "kind": "wake",
+  "description": "`remove` ends the registration; a held invite then wakes nothing.",
+  "spec_ref": [
+    "W§4.3",
+    "W§5.1"
+  ],
+  "context": {
+    "component": "relay"
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "at": 1760000000,
+          "register": {
+            "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "identity": "did:web:example.com:users:bob",
+            "expires_at": 1760086400
+          }
+        }
+      },
+      {
+        "event": {
+          "at": 1760000001,
+          "remove": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+        }
+      },
+      {
+        "event": {
+          "at": 1760000002,
+          "remove": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+        }
+      },
+      {
+        "event": {
+          "at": 1760000003,
+          "hold": {
+            "session": "01K742SG00S2ZXSFY4M6G14MEM",
+            "devices": [
+              "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+            ],
+            "expires_at": 1760000030
+          }
+        }
+      }
+    ]
+  },
+  "expect": [
+    {
+      "emit": [],
+      "registrations": [
+        "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+      ]
+    },
+    {
+      "emit": [
+        {
+          "ended": {
+            "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "cause": "removed"
+          }
+        }
+      ],
+      "registrations": []
+    },
+    {
+      "emit": [],
+      "registrations": []
+    },
+    {
+      "emit": [],
+      "registrations": []
+    }
+  ]
+}

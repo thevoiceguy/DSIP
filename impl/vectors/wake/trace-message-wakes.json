@@ -1,0 +1,89 @@
+{
+  "vector": "wake/trace-message-wakes",
+  "format": 1,
+  "kind": "wake",
+  "description": "An item stored for the identity wakes each registered, unbound device.",
+  "spec_ref": [
+    "W§4.3",
+    "W§5.1"
+  ],
+  "context": {
+    "component": "mailbox"
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "at": 1760000000,
+          "register": {
+            "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "identity": "did:web:example.com:users:bob",
+            "expires_at": 1760086400
+          }
+        }
+      },
+      {
+        "event": {
+          "at": 1760000000,
+          "register": {
+            "device": "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ",
+            "identity": "did:web:example.com:users:bob",
+            "expires_at": 1760086400
+          }
+        }
+      },
+      {
+        "event": {
+          "at": 1760000001,
+          "bind": "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ"
+        }
+      },
+      {
+        "event": {
+          "at": 1760000002,
+          "store": {
+            "identity": "did:web:example.com:users:bob",
+            "class": "application"
+          }
+        }
+      }
+    ]
+  },
+  "expect": [
+    {
+      "emit": [],
+      "registrations": [
+        "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+      ]
+    },
+    {
+      "emit": [],
+      "registrations": [
+        "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ",
+        "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+      ]
+    },
+    {
+      "emit": [],
+      "registrations": [
+        "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ",
+        "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+      ]
+    },
+    {
+      "emit": [
+        {
+          "wake": {
+            "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "kind": "message",
+            "deliver_by": 1760000062
+          }
+        }
+      ],
+      "registrations": [
+        "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ",
+        "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+      ]
+    }
+  ]
+}

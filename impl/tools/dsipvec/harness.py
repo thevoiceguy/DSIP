@@ -245,6 +245,9 @@ def run_vector(v: dict) -> Result:
         elif kind == "presence":
             from . import presence as PRESENCE
             actual = PRESENCE.run(v)
+        elif kind == "wake":
+            from . import wake as WAKE
+            actual = WAKE.run(v)
         elif kind == "did-webvh":
             i = v["input"]
             actual = WEBVH.resolve(i["did"], i["log"], i["witness"], i["cache"], i["now"])

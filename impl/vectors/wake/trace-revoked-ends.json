@@ -1,0 +1,71 @@
+{
+  "vector": "wake/trace-revoked-ends",
+  "format": 1,
+  "kind": "wake",
+  "description": "A revoked delegation ends the device's registration (§7.4).",
+  "spec_ref": [
+    "W§4.3",
+    "W§5.1"
+  ],
+  "context": {
+    "component": "relay"
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "at": 1760000000,
+          "register": {
+            "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "identity": "did:web:example.com:users:bob",
+            "expires_at": 1760086400
+          }
+        }
+      },
+      {
+        "event": {
+          "at": 1760000000,
+          "register": {
+            "device": "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ",
+            "identity": "did:web:example.com:users:bob",
+            "expires_at": 1760086400
+          }
+        }
+      },
+      {
+        "event": {
+          "at": 1760000001,
+          "revoke": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+        }
+      }
+    ]
+  },
+  "expect": [
+    {
+      "emit": [],
+      "registrations": [
+        "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+      ]
+    },
+    {
+      "emit": [],
+      "registrations": [
+        "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ",
+        "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+      ]
+    },
+    {
+      "emit": [
+        {
+          "ended": {
+            "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "cause": "revoked"
+          }
+        }
+      ],
+      "registrations": [
+        "did:key:z6Mkj2BxyZQc1YnUdPNkRDAd1GP2ZigPPhh6ZfYwf5HRMrtJ"
+      ]
+    }
+  ]
+}

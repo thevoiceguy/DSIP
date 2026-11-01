@@ -1,0 +1,22 @@
+{
+  "vector": "wake/schema-hint-extra-field",
+  "format": 1,
+  "kind": "wake",
+  "description": "An opened hint carries only `from` and `on_behalf_of`.",
+  "spec_ref": [
+    "W§6"
+  ],
+  "context": {},
+  "input": {
+    "check": "schema",
+    "schema": "wake-hint",
+    "value": {
+      "from": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+      "display_name": "Alice"
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "schema-invalid"
+  }
+}

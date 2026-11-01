@@ -34,7 +34,7 @@ impl/               Conformance: vectors, tools, docs (spec versions tracked via
                     poc-v0.6, …, poc-v1.0, never via folder placement); dsip-rs.rev pins dsip-rs
 impl/vectors/       Language-neutral JSON test vectors (envelope/ payload/
                     semantic/ state/ transport/ dht/ broadcast/ media-binding/
-                    gateway/ trust/ messaging/ device-events/ recording/ tn-binding/ …)
+                    gateway/ trust/ messaging/ device-events/ recording/ tn-binding/ wake/ …)
 impl/tools/         Python: vector generator + reference harness (dsipvec/), parity.py
                     (Rust/Python), parity_ts.py (Python/TypeScript), fuzz.py (differential
                     fuzzing of all three), spec_lint.py (Spec: headers of dsip-rs's crates +
@@ -173,6 +173,7 @@ pip installs in this environment need `--break-system-packages`.
 | C§n | Recording Profile, draft (`v1.0/dsip-recording-profile-v1.0-draft.md`) — cite as `C§n` |
 | N§n | Number Attestation Profile, draft (`v1.0/dsip-number-attestation-profile-v1.0-draft.md`) — cite as `N§n` |
 | P§n | Presence Profile, draft (`v1.0/dsip-presence-profile-v1.0-draft.md`) — cite as `P§n` |
+| W§n | Wake Profile, draft (`v1.0/dsip-wake-profile-v1.0-draft.md`) — cite as `W§n` |
 | — | DHT Reachability Hints Profile, draft (`v1.0/dsip-dht-hints-profile-v1.0-draft.md`) — no prefix of its own; cite core §8.3 / §8.5 |
 
 ## Semantic checks (post-schema, must-implement)

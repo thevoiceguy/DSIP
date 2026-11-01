@@ -1,0 +1,37 @@
+{
+  "vector": "wake/schema-accepted-handle-too-long",
+  "format": 1,
+  "kind": "wake",
+  "description": "A handle is at most 512 characters.",
+  "spec_ref": [
+    "W§3"
+  ],
+  "context": {},
+  "input": {
+    "check": "schema",
+    "schema": "wake-accepted",
+    "value": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "wake/0.1"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "wake-accepted",
+      "id": "01K742SG006WS2637C0ZZBJQ2R",
+      "from": "did:web:push.dsip.example",
+      "to": "did:key:z6MkmKLy2152iTZStcAyu2FjSRHFjN3V58uqgeN1iVrpC8Vo",
+      "in_reply_to": "01K742SG0055TZG3BE7979FQJW",
+      "handle": "hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh",
+      "issued_at": 1760000000,
+      "expires_at": 1760000030
+    }
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "schema-invalid"
+  }
+}

@@ -41,6 +41,9 @@ vectors/
                sealed records (P§12): keys, sealing, opening, keys in a grant, the subscriber's view (spec-gaps 152–157);
                the record's age (envelope/), shape (payload/), checks (semantic/) and the authority (state/) are beside
                their kinds
+  wake/        Wake Profile draft (W§3–W§6; spec-gaps 169–175): the messages' shapes, enrolment at the push gateway, a
+               waker's checks on a registration, the gateway's checks on a wake and what it forwards, the sealed hint,
+               and the relay's and mailbox's wake traces
 ```
 
 One vector per file. The vector id is its path relative to `vectors/` without
@@ -2302,6 +2305,79 @@ presents, and the SHAKEN PASSporT it signs under its own STIR certificate when i
 
 Keys are P-256 scalars from `sha256("dsip-vector-tn:" + name)`. Signatures use RFC 6979 deterministic nonces, so the
 vectors regenerate byte for byte.
+
+## Kind: `wake`
+
+Wake Profile draft (`v1.0/dsip-wake-profile-v1.0-draft.md`, cited `W§n`; spec-gaps 169–175). Schemas are the
+profile's own set, `v1.0/dsip-wake-schemas-draft/schemas/` (names below without `.schema.json`). Every input that is a
+message payload has already passed the envelope pipeline; these vectors start after it. `input.check` selects:
+
+| check | input | expect |
+|---|---|---|
+| `schema` | `schema` (a name in the wake set), `value` | `accept`, or `schema-invalid` |
+| `enrol` | `enrol` (a `wake-enrol` payload); `context.apps` (the `{provider, app}` pairs the gateway pushes for) | `accept {enrolment}`, or in order `schema-invalid` → `unsupported-app` |
+| `register` | `register` (a `wake-register` payload), `device` (its verified signer); `context.waker`, `context.now`, `context.gateways?` | `accept {registration}` or `accept {removed: true}`, or in order `schema-invalid` → `registration-invalid` → `waker-mismatch` → `registration-invalid` → `gateway-unknown` |
+| `gateway` | `wake` (a `wake` payload), `signer` (its verified `from`); `context.gateway`, `context.now`, `context.handles` | `accept {forward}`, or in order `schema-invalid` → `not-authorized` → `expired` |
+| `open-hint` | `sealed`, `session`, `secret_hex` | `accept {hint}`, or in order `sealed-alg-unsupported` → `sealed-open-failed` → `sealed-plaintext-invalid` |
+| (none) | `steps`, each `{event}`; `context.component` (`relay` or `mailbox`) | per step `{emit, registrations}` |
+
+A refusal with a W§8.1 token is `{"verdict": "reject", "code": C, "reason": "wake.C"}` (`unsupported-app` →
+`wake.unsupported-app`, and so on); `schema-invalid` and the `open-hint` codes carry no `reason`.
+
+**Verifying a registration** (W§4.1), used by `register` and `gateway`: `registration` is a DSIP-JOSE envelope verified
+as a delegation is, by stages 2–6 of the pipeline (shape, header, `kid` resolution, signature, payload parse with the
+§10.3 rules) with no core-field check, no replay window and no dedup; then its payload must be valid against
+`wake-registration`, and the DID of the signing `kid` must equal `key`. Any failure is "does not verify".
+
+- `enrol` (W§3): `unsupported-app` unless `{provider, app}` is one of `context.apps` (compared as pairs; an unknown
+  provider is simply not there). `enrolment` is `{key, provider, app, token}`, `key` the payload's `from`, plus
+  `environment` (the payload's, default `production`) when `provider` is `apns` and never otherwise.
+- `register` (W§4.2): after `schema-invalid`, a payload with `remove: true` is `accept {removed: true}`. Otherwise
+  `registration-invalid` when the registration does not verify; `waker-mismatch` unless its `waker` is
+  `context.waker`; `registration-invalid` unless `issued_at` < `expires_at` ≤ `issued_at` + 2,592,000, `expires_at` >
+  `now` and `issued_at` ≤ `now` + 300; `gateway-unknown` when `context.gateways` is present and lacks its `gateway`
+  (absent, any gateway is admitted). `registration` is `{device, key, gateway, handle, expires_at}` from `input.device`
+  and the registration, plus `kinds` (the payload's, each once, sorted by code point) and `seal_key` when the payload
+  has them.
+- `gateway` (W§5.3): `context.handles` maps each handle the gateway issued to `{key, provider, app, token,
+  environment?}`. `not-authorized` unless all hold: the registration verifies, its `handle` is in `handles`, its
+  `key` is that entry's `key`, its `waker` is `input.signer`, its `gateway` is `context.gateway`, its `expires_at` >
+  `now` (the lifetime cap is not checked here). Then `expired` when `deliver_by` ≤ `now`. `forward` is `{provider,
+  app, token, class, deliver_by, data}` from the handle's entry and the wake, plus `environment` (the entry's, default
+  `production`) when the provider is `apns`. `class` is `call` for kind `call` or `call-ended` and `message` for any
+  other kind. `data` is `{"dsip-wake": {kind, waker, session?, sealed?}}`: the wake's `kind` as sent, `waker` the
+  signer, and `session` and `sealed` copied when the wake has them.
+- `open-hint` (W§6): `sealed-alg-unsupported` unless `sealed.alg` is `hpke-base-x25519-sha256-aes128gcm`;
+  `sealed-open-failed` when `enc` or `ct` is not unpadded base64url, or HPKE base mode (M§6.9's suite; RFC 9180) with
+  the X25519 private key `secret_hex`, `info` `dsip wake hint v1` and AAD the UTF-8 of `session` does not open;
+  `sealed-plaintext-invalid` unless the plaintext is exactly 256 bytes and, with its trailing spaces (0x20) removed,
+  is UTF-8 JSON under §10.3 (a number with a fraction or exponent is refused) valid against `wake-hint`. `hint` is that
+  JSON object.
+
+**Wake traces** (W§4.3, W§5.1). A waker holds a registration per device (`{identity, expires_at, kinds?}`), the set of
+bound devices, and, at a relay, held invites; each event carries `at`. Before the event is applied, in this order:
+every held invite with `expires_at` ≤ `at` stops being held at its `expires_at` (in session-id order); then every
+registration with `expires_at` ≤ `at` ends with cause `expired` (in DID order). A registration is *live* at a time
+`T` when it exists and its `expires_at` > `T`; a device *wants* a kind when its registration has no `kinds` or
+`kinds` contains it. Events:
+
+| event | effect |
+|---|---|
+| `register: {device, identity, expires_at, kinds?}` | stores the device's registration, replacing any; emits nothing |
+| `remove`, `revoke`, `forget`: a device | ends its registration with cause `removed`, `revoked`, `forgotten` (nothing if it has none) |
+| `answer: {device, reason}` | a reason in category `wake` (any `wake.*`, known or not) ends the registration with cause `gateway`; any other reason changes nothing |
+| `bind: device` | the device is bound; every held invite stops being held for it, and it no longer counts as woken for any; its message count is cleared |
+| `unbind: device` | the device is no longer bound |
+| `hold: {session, devices, expires_at}` (relay) | nothing if `expires_at` ≤ `at`. Otherwise the invite is held (the first `hold` of a session sets its `expires_at`), and for each listed device in DID order that is not bound: it is held for, and if it is not yet woken for this session, is live at `at` and wants `call`, it is woken: `wake {device, kind: "call", session, deliver_by: expires_at}` |
+| `drop: session` (relay) | if held, it stops being held at `at` |
+| `store: {identity, class}` (mailbox) | nothing for class `ephemeral`. Otherwise, for each registered device of `identity` in DID order that is not bound, is live at `at`, wants `message`, and has no message wake within the last 60 s (`at` − its last < 60) since its last `bind`: `wake {device, kind: "message", deliver_by: at + 60}` |
+| `tick: true` | nothing beyond the expiries above |
+
+When an invite stops being held at time `W`, each device still held for it and woken for it, in DID order, that is
+live at `W` and wants `call-ended` gets `wake {device, kind: "call-ended", session, deliver_by: W + 60}`; the invite
+is forgotten. An ending registration emits `ended {device, cause}`. Emissions are in the order above: invite expiries,
+registration expiries, then the event's own. `registrations` is the list of devices with a registration after the
+step, sorted by code point.
 
 ## Spec-gap list (Impl decisions these vectors encode)
 

@@ -1,0 +1,48 @@
+{
+  "vector": "wake/register-signer-not-key",
+  "format": 1,
+  "kind": "wake",
+  "description": "A registration signed by a key other than the one it names.",
+  "spec_ref": [
+    "W§4.1",
+    "W§4.2"
+  ],
+  "context": {
+    "waker": "did:web:relay.example.com",
+    "now": 1760000000,
+    "gateways": [
+      "did:web:push.dsip.example"
+    ]
+  },
+  "input": {
+    "check": "register",
+    "register": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "wake/0.1"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "wake-register",
+      "id": "01K742SG00DGEZN5P2CRC4NTNG",
+      "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+      "to": "did:web:relay.example.com",
+      "registration": {
+        "protected": "eyJhbGciOiJFZERTQSIsImtpZCI6ImRpZDprZXk6ejZNa3VQSzM4NGZUcW93SFVLV05TcE1lMTd4OTFTSjdDdmdmWWlEb2dycXJHa3U3I3o2TWt1UEszODRmVHFvd0hVS1dOU3BNZTE3eDkxU0o3Q3ZnZllpRG9ncnFyR2t1NyIsInR5cCI6ImRzaXAranNvbiJ9",
+        "payload": "eyJ0eXBlIjoiV2FrZVJlZ2lzdHJhdGlvbiIsImtleSI6ImRpZDprZXk6ejZNa21LTHkyMTUyaVRaU3RjQXl1MkZqU1JIRmpOM1Y1OHVxZ2VOMWlWcnBDOFZvIiwid2FrZXIiOiJkaWQ6d2ViOnJlbGF5LmV4YW1wbGUuY29tIiwiZ2F0ZXdheSI6ImRpZDp3ZWI6cHVzaC5kc2lwLmV4YW1wbGUiLCJoYW5kbGUiOiJoLWFwbnMtYm9iLXBob25lLTAwMDEiLCJpc3N1ZWRfYXQiOjE3NTk5OTk5NDAsImV4cGlyZXNfYXQiOjE3NjI1OTE5NDB9",
+        "signature": "n5l4P6OpnTiR74kduyln287rLeyoLTQqs6oTuYMhdSBERav3z5VNycmf3CfZ-7mCUoiar3LHdtbDjP-QvTsTDw"
+      },
+      "issued_at": 1760000000,
+      "expires_at": 1760000030
+    },
+    "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+  },
+  "expect": {
+    "verdict": "reject",
+    "code": "registration-invalid",
+    "reason": "wake.registration-invalid"
+  }
+}

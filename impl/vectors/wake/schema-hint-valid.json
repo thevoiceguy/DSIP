@@ -1,0 +1,21 @@
+{
+  "vector": "wake/schema-hint-valid",
+  "format": 1,
+  "kind": "wake",
+  "description": "An opened hint with on_behalf_of.",
+  "spec_ref": [
+    "W§6"
+  ],
+  "context": {},
+  "input": {
+    "check": "schema",
+    "schema": "wake-hint",
+    "value": {
+      "from": "did:key:z6Mkg9oRSg6APtrMJP8iekQm8yPc9ore3E4SJ5bF7Cw1qFCu",
+      "on_behalf_of": "did:key:z6MkhzX9qTeXBWkucyMVric1E9JrqUD5LPAkD2BNavakAptf"
+    }
+  },
+  "expect": {
+    "verdict": "accept"
+  }
+}

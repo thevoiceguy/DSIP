@@ -1,0 +1,70 @@
+{
+  "vector": "wake/trace-expires-ends",
+  "format": 1,
+  "kind": "wake",
+  "description": "A registration ends at its `expires_at` (§12.9), before the event at that instant.",
+  "spec_ref": [
+    "W§4.3",
+    "W§5.1"
+  ],
+  "context": {
+    "component": "relay"
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "at": 1760000000,
+          "register": {
+            "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "identity": "did:web:example.com:users:bob",
+            "expires_at": 1760000010
+          }
+        }
+      },
+      {
+        "event": {
+          "at": 1760000009,
+          "tick": true
+        }
+      },
+      {
+        "event": {
+          "at": 1760000010,
+          "hold": {
+            "session": "01K742SG00S2ZXSFY4M6G14MEM",
+            "devices": [
+              "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+            ],
+            "expires_at": 1760000040
+          }
+        }
+      }
+    ]
+  },
+  "expect": [
+    {
+      "emit": [],
+      "registrations": [
+        "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+      ]
+    },
+    {
+      "emit": [],
+      "registrations": [
+        "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+      ]
+    },
+    {
+      "emit": [
+        {
+          "ended": {
+            "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "cause": "expired"
+          }
+        }
+      ],
+      "registrations": []
+    }
+  ]
+}

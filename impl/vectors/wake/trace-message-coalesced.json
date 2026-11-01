@@ -1,0 +1,111 @@
+{
+  "vector": "wake/trace-message-coalesced",
+  "format": 1,
+  "kind": "wake",
+  "description": "One message wake per W-Coalesce (60 s) per device.",
+  "spec_ref": [
+    "W§4.3",
+    "W§5.1"
+  ],
+  "context": {
+    "component": "mailbox"
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "at": 1760000000,
+          "register": {
+            "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "identity": "did:web:example.com:users:bob",
+            "expires_at": 1760086400
+          }
+        }
+      },
+      {
+        "event": {
+          "at": 1760000001,
+          "store": {
+            "identity": "did:web:example.com:users:bob",
+            "class": "application"
+          }
+        }
+      },
+      {
+        "event": {
+          "at": 1760000030,
+          "store": {
+            "identity": "did:web:example.com:users:bob",
+            "class": "welcome"
+          }
+        }
+      },
+      {
+        "event": {
+          "at": 1760000060,
+          "store": {
+            "identity": "did:web:example.com:users:bob",
+            "class": "application"
+          }
+        }
+      },
+      {
+        "event": {
+          "at": 1760000061,
+          "store": {
+            "identity": "did:web:example.com:users:bob",
+            "class": "application"
+          }
+        }
+      }
+    ]
+  },
+  "expect": [
+    {
+      "emit": [],
+      "registrations": [
+        "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+      ]
+    },
+    {
+      "emit": [
+        {
+          "wake": {
+            "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "kind": "message",
+            "deliver_by": 1760000061
+          }
+        }
+      ],
+      "registrations": [
+        "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+      ]
+    },
+    {
+      "emit": [],
+      "registrations": [
+        "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+      ]
+    },
+    {
+      "emit": [],
+      "registrations": [
+        "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+      ]
+    },
+    {
+      "emit": [
+        {
+          "wake": {
+            "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "kind": "message",
+            "deliver_by": 1760000121
+          }
+        }
+      ],
+      "registrations": [
+        "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+      ]
+    }
+  ]
+}

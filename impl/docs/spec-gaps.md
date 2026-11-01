@@ -5009,3 +5009,109 @@ AES salt the sender's own (RFC 3826 §3.1.2.1). They leave open:
 
 `check: "snmp-answer"` (README, kind `device-events`) pins them for USM Reports and Responses and for TSM Responses
 and discovery answers (`snmp-answer-*`).
+
+## 169. W§4 — how a waker is authorized to wake a device
+
+**Found (2026-10-31, app plan stage A1; `impl/docs/wake-profile-outline.md`).** §13.3 makes waking a sleeping device
+the relay's job and says push is centralized, but not who may ask a push gateway to wake whom. RFC 8599 hands the
+server a bearer token: whoever holds it can push. In DSIP the token goes to relays and mailboxes run by anyone, so a
+bearer token lets any of them, or anyone it leaks to, wake the phone.
+
+Choices:
+
+- **(a) A device-signed registration** naming the waker, the gateway and the handle, with a `not_after`. The waker
+  shows it to the gateway with every wake; the gateway checks it is signed by the key the handle names and that the
+  waker signed the wake. Offline: no gateway round trip per waker, and the gateway keeps no table.
+- **(b) Per-waker tokens issued by the gateway.** The device asks the gateway for a token for each waker. The gateway
+  keeps them, and adding a relay or mailbox needs the gateway.
+- **(c) A bearer token**, as RFC 8599.
+
+**Decided (2026-10-31, user: "all (a)"): (a).**
+
+## 170. W§4 — where a device gives a waker its push address
+
+**Found (2026-10-31, as 169).** The app plan put the address "in its `hello` or its `mailbox-config`". A binding
+ends with its connection, and a sleeping device has none, so the address must outlive what it rides in; and a field
+in `hello` or `mailbox-config` is a new field in a closed core or profile message (spec-gap 163).
+
+Choices:
+
+- **(a) A new message, `wake-register`**, the same to a relay and a mailbox, answered `accepted` or `error`; the
+  waker holds the registration until it ends (spec-gap 174).
+- **(b) Fields in `hello` and `mailbox-config`**, negotiated as §11.4 allows, held past the binding by rule.
+
+**Decided (2026-10-31, user: "all (a)"): (a).**
+
+## 171. W§6 — what a wake may carry
+
+**Found (2026-10-31, as 169).** §13.3: "the push payload need carry nothing but a wake signal". iOS needs a call
+reported the moment a VoIP push arrives, before the app can bind, so a bare signal rings as "unknown" until the invite
+arrives. APNs and FCM bound a payload at 4 KB, under an invite with its offer.
+
+Choices:
+
+- **(a) Kind and session, plus a hint sealed to the device**: HPKE (M§6.9's suite) to a key in the registration,
+  holding the invite's `from` and `on_behalf_of`. The app shows the contact it already holds; neither the gateway nor
+  the provider sees the caller. The hint is the relay's claim, replaced by the verified invite.
+- **(b) Kind and session only.**
+- **(c) The held envelope sealed to the device.** Does not fit for an invite.
+
+**Decided (2026-10-31, user: "all (a)"): (a).**
+
+## 172. W§5 — when a waker wakes, coalescing and retries
+
+**Found (2026-10-31, as 169).** Nothing says which held traffic wakes a device, how a woken call that is cancelled
+before the device binds is ended on its screen (Apple requires the call reported), how often messages may wake it,
+or whether a failed wake is retried.
+
+Choices:
+
+- **(a)** `call` once per held invite per device, including legs of an identity-addressed invite; `call-ended` when
+  the relay drops a held invite it woke for before the device bound (cancel or expiry); `message` for a stored item
+  while the device is unbound, at most once per W-Coalesce (60 s) per device, never for an `ephemeral` deposit; one
+  retry for a transport failure, before the wake's `expires`; none for an answered wake. Call timing is untouched:
+  T-Establish ends an attempt whose device does not bind in time.
+- **(b)** As (a) without `call-ended`: the app ends a call whose invite does not arrive.
+- **(c)** Wakes for calls only; messages wait for the next time the app runs.
+
+**Decided (2026-10-31, user: "all (a)"): (a).**
+
+## 173. W§3, W§5 — how wakers and devices reach the gateway
+
+**Found (2026-10-31, as 169).**
+
+Choices:
+
+- **(a) HTTPS POST of a signed envelope** to the `DSIPWake` service endpoint in the gateway's DID document, answered
+  with a signed envelope: verified with the same code as every envelope, stateless for the gateway.
+- **(b) A `ws/1.0` binding** with `hello`: a connection held from every waker to the gateway.
+
+**Decided (2026-10-31, user: "all (a)"): (a).**
+
+## 174. W§4 — when a registration ends
+
+**Found (2026-10-31, as 169).**
+
+Choices:
+
+- **(a)** At its `not_after` (at most W-Registration cap, 30 days, after `issued_at`); when replaced by the device's
+  next registration (one per device per waker); on `wake-register` `remove: true`; when the gateway answers
+  `wake.registration-ended` or `wake.not-authorized`; when the device's delegation is revoked or expires; and when
+  the waker forgets the device (§13.3 retention, M§4.4).
+- **(b)** As (a) without a lifetime: a registration lasts until one of the other events.
+
+**Decided (2026-10-31, user: "all (a)"): (a).**
+
+## 175. W§3 — what identifies a device to the push gateway
+
+**Found (2026-10-31, as 169).** The gateway must tie a handle to whoever may sign registrations for it. Using the
+device DID tells the app's publisher every device that runs the app and, through delegations, its identity.
+
+Choices:
+
+- **(a) A per-enrolment wake key**: an Ed25519 key the device makes for the enrolment, signing the enrolment and the
+  registrations. The gateway never learns the device's DID; the waker sees the registration arrive on the device's
+  binding, so it needs no link either.
+- **(b) The device DID.** One key fewer.
+
+**Decided (2026-10-31, user: "all (a)"): (a).**

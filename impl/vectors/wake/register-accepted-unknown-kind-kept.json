@@ -1,0 +1,59 @@
+{
+  "vector": "wake/register-accepted-unknown-kind-kept",
+  "format": 1,
+  "kind": "wake",
+  "description": "An unknown kind is kept: the waker never sends it, and it harms nothing.",
+  "spec_ref": [
+    "W§4.1",
+    "W§4.2"
+  ],
+  "context": {
+    "waker": "did:web:relay.example.com",
+    "now": 1760000000,
+    "gateways": [
+      "did:web:push.dsip.example"
+    ]
+  },
+  "input": {
+    "check": "register",
+    "register": {
+      "dsip": {
+        "core": "1.0",
+        "min_core": "1.0",
+        "profiles": [
+          "wake/0.1"
+        ],
+        "extensions": [],
+        "critical": []
+      },
+      "type": "wake-register",
+      "id": "01K742SG00HZHA1HAVB2HFRXH0",
+      "from": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+      "to": "did:web:relay.example.com",
+      "kinds": [
+        "typing"
+      ],
+      "registration": {
+        "protected": "eyJhbGciOiJFZERTQSIsImtpZCI6ImRpZDprZXk6ejZNa21LTHkyMTUyaVRaU3RjQXl1MkZqU1JIRmpOM1Y1OHVxZ2VOMWlWcnBDOFZvI3o2TWttS0x5MjE1MmlUWlN0Y0F5dTJGalNSSEZqTjNWNTh1cWdlTjFpVnJwQzhWbyIsInR5cCI6ImRzaXAranNvbiJ9",
+        "payload": "eyJ0eXBlIjoiV2FrZVJlZ2lzdHJhdGlvbiIsImtleSI6ImRpZDprZXk6ejZNa21LTHkyMTUyaVRaU3RjQXl1MkZqU1JIRmpOM1Y1OHVxZ2VOMWlWcnBDOFZvIiwid2FrZXIiOiJkaWQ6d2ViOnJlbGF5LmV4YW1wbGUuY29tIiwiZ2F0ZXdheSI6ImRpZDp3ZWI6cHVzaC5kc2lwLmV4YW1wbGUiLCJoYW5kbGUiOiJoLWFwbnMtYm9iLXBob25lLTAwMDEiLCJpc3N1ZWRfYXQiOjE3NTk5OTk5NDAsImV4cGlyZXNfYXQiOjE3NjI1OTE5NDB9",
+        "signature": "YYalRNzhAkYyJgGyCWHvCChKMwgAALlESDKQLGX7qnEvrpynYZuIyDNEBDV-WNQDykSigmGCdYV1KSnJ_bC-Dw"
+      },
+      "issued_at": 1760000000,
+      "expires_at": 1760000030
+    },
+    "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+  },
+  "expect": {
+    "verdict": "accept",
+    "registration": {
+      "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+      "key": "did:key:z6MkmKLy2152iTZStcAyu2FjSRHFjN3V58uqgeN1iVrpC8Vo",
+      "gateway": "did:web:push.dsip.example",
+      "handle": "h-apns-bob-phone-0001",
+      "expires_at": 1762591940,
+      "kinds": [
+        "typing"
+      ]
+    }
+  }
+}

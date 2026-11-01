@@ -1,0 +1,50 @@
+{
+  "vector": "wake/trace-ephemeral-no-wake",
+  "format": 1,
+  "kind": "wake",
+  "description": "An ephemeral deposit is never stored, so it wakes nothing.",
+  "spec_ref": [
+    "W§4.3",
+    "W§5.1"
+  ],
+  "context": {
+    "component": "mailbox"
+  },
+  "input": {
+    "steps": [
+      {
+        "event": {
+          "at": 1760000000,
+          "register": {
+            "device": "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn",
+            "identity": "did:web:example.com:users:bob",
+            "expires_at": 1760086400
+          }
+        }
+      },
+      {
+        "event": {
+          "at": 1760000001,
+          "store": {
+            "identity": "did:web:example.com:users:bob",
+            "class": "ephemeral"
+          }
+        }
+      }
+    ]
+  },
+  "expect": [
+    {
+      "emit": [],
+      "registrations": [
+        "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+      ]
+    },
+    {
+      "emit": [],
+      "registrations": [
+        "did:key:z6Mks11tjMeRnE1JceWhyT7zEToX4z3L6BuKaM13PbTEdApn"
+      ]
+    }
+  ]
+}

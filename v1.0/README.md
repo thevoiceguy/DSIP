@@ -22,8 +22,10 @@ are carried unchanged, each with its own version; the drafts stay drafts, until 
 | `dsip-device-events-profile-v1.0.md` | Device Events Profile 1.0 (`device-events/1.0`), cited `E§n` | normative 1.0, final at `poc-v1.0.2` (spec-gaps 165–168, A.16) |
 | `dsip-recording-profile-v1.0-draft.md` | Recording Profile (`recording/0.1`), cited `C§n` | draft |
 | `dsip-number-attestation-profile-v1.0-draft.md` | Number Attestation Profile (`tn-binding/0.1`), cited `N§n` | draft, stages 1–4; stage 5 needs a pilot partner |
+| `dsip-wake-profile-v1.0-draft.md` | Wake Profile (`wake/0.1`), cited `W§n` | draft; waking a sleeping device through a push gateway (spec-gaps 169–175, A.16), pinned by the `wake/` vectors |
+| `dsip-wake-schemas-draft/` | Wake Profile schema set | generated |
 | `dsip-presence-profile-v1.0-draft.md` | Presence Profile (`presence/0.1`), cited `P§n` | draft; records (P§3–P§5, P§8), audiences (P§6), shares (P§7) and sealed records (P§12, `presence/0.2`) pinned by vectors (spec-gaps 134–162) and run by the CLI and the browser client |
 
-`dsip.core` is `1.0`, as it has been since it was introduced. The suite has 2,359 vectors: v0.17's 2,323, two
-for spec-gap 164 and 34 for Device Events 1.0 (spec-gaps 165–168), both in A.16, on which the Python harness, the Rust reference implementation and the independent
+`dsip.core` is `1.0`, as it has been since it was introduced. The suite has 2,475 vectors: v0.17's 2,323, two
+for spec-gap 164, 34 for Device Events 1.0 (spec-gaps 165–168) and 116 for the Wake Profile draft (spec-gaps 169–175), all in A.16, on which the Python harness, the Rust reference implementation and the independent
 TypeScript implementation agree.
